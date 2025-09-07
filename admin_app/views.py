@@ -220,7 +220,7 @@ def generate_qr(request):
                         box_size=12,  # Larger box size for bigger QR code
                         border=2,  # Smaller border to maximize QR code area
                     )
-                    qr.add_data(f"{base_domain}/send-notification/{qr_id}/")
+                    qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
                     qr.make(fit=True)
                     qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
 
@@ -1319,7 +1319,7 @@ def manage_qrs(request):
                 box_size=4,
                 border=2,
             )
-            qr.add_data(f"{settings.BASE_DOMAIN}/send-notification/{doc.id}/")
+            qr.add_data(f"{settings.BASE_DOMAIN}/admin/send-notification/{doc.id}/")
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
             
@@ -1530,7 +1530,7 @@ def regenerate_qr(request, qr_id):
             box_size=12,
             border=2,
         )
-        qr.add_data(f"{settings.BASE_DOMAIN}/send-notification/{qr_id}/")
+        qr.add_data(f"{settings.BASE_DOMAIN}/admin/send-notification/{qr_id}/")
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
 
