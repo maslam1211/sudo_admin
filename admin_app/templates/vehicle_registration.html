@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Registration Complete</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4361ee;
+            margin-bottom: 10px;
+        }
+        .content-box {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .vehicle-details {
+            background-color: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: 600;
+            width: 150px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #6c757d;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SUDO</div>
+        <h2>Your Vehicle is Registered!</h2>
+    </div>
+    
+    <div class="content-box">
+        <p>Hello {{ name }},</p>
+        <p>Your vehicle has been successfully registered with Sudo. Here are the details:</p>
+        
+        <div class="vehicle-details">
+            <div class="detail-row">
+                <span class="detail-label">Make:</span>
+                <span>{{ make }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Model:</span>
+                <span>{{ model }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Registration Number:</span>
+                <span>{{ registrationNumber }}</span>
+            </div>
+            <div class="detail-row"> 
+                <span class="detail-label">Vehicle Type:</span>
+                <span>{{ vehicleType }}</span> 
+            </div>
+        </div>
+        
+        <p>Your QR code is now active and can be scanned by others to contact you about your vehicle.</p>
+        <p>You can manage your vehicle and account settings by logging into the Sudo app.</p>
+    </div>
+    
+    <p>If you have any questions or need assistance, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+    
+    <div class="footer">
+        <p>&copy; 2025 Sudo. All rights reserved.</p>
+        <p>This email was sent to {{ email }} as part of your vehicle registration.</p>
+    </div>
+</body>
+</html>

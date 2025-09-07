@@ -1,0 +1,921 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Sudo - Report Issues Seamlessly</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Favicons -->
+  <link href="{% static 'landing/img/logo22.png' %}" rel="icon">
+  <link href="{% static 'landing/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+
+  <!-- =======================================================
+  * Template Name: Gp
+  * Template URL: https://bootstrapmade.com/gp-free-multipurpose-html-bootstrap-template/
+  * Updated: Aug 15 2024 with Bootstrap v5.3.3
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+
+      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0">
+        <!-- Uncomment the line below if you also wish to use an image logo -->
+        <!-- <img src="{% static 'landing/img/logo.png' %}" alt=""> -->
+        <h1 class="sitename">Sudo</h1>
+        <span>.</span>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="#hero" class="active">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#contact">Contact</a></li>          
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+      <a class="btn-getstarted" href="#about">Get Started</a>
+
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero section dark-background">
+
+      <img src="{% static 'landing/img/QR-Codes-for-Work-Hours-Tracking_Main-Illustration-580x428.webp' %}" alt="" data-aos="fade-in">
+
+      <div class="container">
+
+        <div class="row justify-content-center text-center" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-xl-6 col-lg-8">
+            <h2>Introducing Sudo<span>.</span></h2>
+            <p>Revolutionizing issue reporting for a safer community. Scan, report, and resolve—coming soon!</p>
+          </div>
+        </div>
+
+        <div class="row gy-4 mt-5 justify-content-center" data-aos="fade-up" data-aos-delay="200">
+          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="300">
+            <div class="icon-box">
+              <i class="bi bi-qr-code"></i>
+              <h3><a href="#">QR-based Reporting</a></h3>
+            </div>
+          </div>
+          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="400">
+            <div class="icon-box">
+              <i class="bi bi-shield-lock"></i>
+              <h3><a href="#">Secure Registration</a></h3>
+            </div>
+          </div>
+          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="500">
+            <div class="icon-box">
+              <i class="bi bi-people"></i>
+              <h3><a href="#">User Interaction</a></h3>
+            </div>
+          </div>
+          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="600">
+            <div class="icon-box">
+              <i class="bi bi-chat-left-text"></i>
+              <h3><a href="#">Notify Other Users</a></h3>
+            </div>
+          </div>
+          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="700">
+            <div class="icon-box">
+              <i class="bi bi-clock"></i>
+              <h3><a href="#">Real-Time Updates</a></h3>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section><!-- /Hero Section -->
+
+    <!-- About Section -->
+    <section id="about" class="about section">
+
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+
+        <div class="row gy-4">
+          <div class="col-lg-6 order-1 order-lg-2">
+            <img src="{% static 'landing/img/qr-code-on-car-1.jpeg' %}" class="img-fluid" alt="Sudo App Overview">
+          </div>
+          <div class="col-lg-6 order-2 order-lg-1 content">
+            <h3>About Sudo</h3>
+            <p class="fst-italic">
+              Sudo is a QR-based app designed to help users report various issues such as improper parking, unsafe practices, and more. Soon available on Play Store and App Store.
+            </p>
+            <ul>
+              <li><i class="bi bi-check2-all"></i> <span>Report issues easily using a QR code scan.</span></li>
+              <li><i class="bi bi-check2-all"></i> <span>Secure registration with personal details for better service.</span></li>
+              <li><i class="bi bi-check2-all"></i> <span>Notify others instantly to resolve issues in real-time.</span></li>
+            </ul>
+            <p>
+              Sudo provides a simple, effective, and secure way for users to report and resolve issues quickly. With an intuitive interface and real-time notifications, users can make their surroundings safer and more organized.
+            </p>
+          </div>
+        </div>
+    
+      </div>
+
+    </section><!-- /About Section -->
+
+    <!-- Clients Section -->
+    <section id="clients" class="clients section">
+
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+
+        <div class="swiper init-swiper">
+          <script type="application/json" class="swiper-config">
+            {
+              "loop": true,
+              "speed": 600,
+              "autoplay": {
+                "delay": 5000
+              },
+              "slidesPerView": "auto",
+              "pagination": {
+                "el": ".swiper-pagination",
+                "type": "bullets",
+                "clickable": true
+              },
+              "breakpoints": {
+                "320": {
+                  "slidesPerView": 2,
+                  "spaceBetween": 40
+                },
+                "480": {
+                  "slidesPerView": 3,
+                  "spaceBetween": 60
+                },
+                "640": {
+                  "slidesPerView": 4,
+                  "spaceBetween": 80
+                },
+                "992": {
+                  "slidesPerView": 6,
+                  "spaceBetween": 120
+                }
+              }
+            }
+          </script>
+          <div class="swiper-wrapper align-items-center">
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-1.png' %}" class="img-fluid" alt="Client 1"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-2.png' %}" class="img-fluid" alt="Client 2"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-3.png' %}" class="img-fluid" alt="Client 3"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-4.png' %}" class="img-fluid" alt="Client 4"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-5.png' %}" class="img-fluid" alt="Client 5"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-6.png' %}" class="img-fluid" alt="Client 6"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-7.png' %}" class="img-fluid" alt="Client 7"></div>
+            <div class="swiper-slide"><img src="{% static 'landing/img/clients/client-8.png' %}" class="img-fluid" alt="Client 8"></div>
+          </div>
+          <div class="swiper-pagination"></div>
+        </div>
+    
+      </div>    
+
+    </section><!-- /Clients Section -->
+
+    <!-- Features Section -->
+    <section id="features" class="features section">
+
+      <div class="container">
+
+        <div class="row gy-4">
+          <div class="features-image col-lg-6" data-aos="fade-up" data-aos-delay="100"><img src="{% static 'landing/img/unlocking-car-by-qr-code-smartphone.jpg' %}" alt="Features"></div>
+          <div class="col-lg-6">
+    
+            <div class="features-item d-flex ps-0 ps-lg-3 pt-4 pt-lg-0" data-aos="fade-up" data-aos-delay="200">
+              <i class="bi bi-qrcode flex-shrink-0"></i>
+              <div>
+                <h4>QR-Based Issue Reporting</h4>
+                <p>Using Sudo, you can instantly report issues by scanning a QR code. It's simple, fast, and effective.</p>
+              </div>
+            </div><!-- End Features Item-->
+    
+            <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="300">
+              <i class="bi bi-shield-lock flex-shrink-0"></i>
+              <div>
+                <h4>Secure & Safe Registration</h4>
+                <p>Sign up securely with your personal details like name and vehicle number. Your data is always kept safe and protected.</p>
+              </div>
+            </div><!-- End Features Item-->
+    
+            <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="400">
+              <i class="bi bi-gear flex-shrink-0"></i>
+              <div>
+                <h4>Easy App Integration</h4>
+                <p>Our app integrates seamlessly with your mobile device, allowing you to register, report, and track issues in real-time.</p>
+              </div>
+            </div><!-- End Features Item-->
+    
+            <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="500">
+              <i class="bi bi-graph-up flex-shrink-0"></i>
+              <div>
+                <h4>Always Up-to-Date</h4>
+                <p>Sudo keeps the issue-reporting tags updated from the cloud, ensuring that all past reports are accessible and current.</p>
+              </div>
+            </div><!-- End Features Item-->
+    
+          </div>
+        </div>
+    
+      </div>
+
+    </section><!-- /Features Section -->
+
+    <!-- Services Section -->
+    <section id="services" class="services section">
+
+      <!-- Section Title -->
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Services</h2>
+        <p>Check out the services we provide with Sudo</p>
+      </div><!-- End Section Title -->
+    
+      <div class="container">
+    
+        <div class="row gy-4">
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-qr-code"></i>
+              </div>
+                <h3>QR Code Reporting</h3>
+              <p>Easily report issues like improper parking by scanning a QR code, simplifying the process for users and authorities alike.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-shield-lock"></i>
+              </div>
+                <h3>Secure User Data</h3>
+              <p>Your personal details and reports are securely stored and protected, ensuring privacy with every action.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-bell"></i>
+              </div>
+                <h3>Instant Notifications</h3>
+              <p>Get real-time notifications on your reports, ensuring you're always informed about the status of the issue you've raised.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+                <h3>Detailed Reports</h3>
+              <p>Track and view detailed reports of all the issues raised with timestamps and actions taken by authorities.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-cloud-check"></i>
+              </div>
+                <h3>Cloud Syncing</h3>
+              <p>All your reports and data are stored in the cloud, ensuring they're always accessible, no matter where you are.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-chat-square-dots"></i>
+              </div>
+                <h3>Real-Time Communication</h3>
+              <p>Engage in direct communication with authorities or other users to resolve issues faster, enhancing community safety.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+        </div>
+    
+      </div>
+    
+    <!-- Call To Action Section -->
+    <section id="call-to-action" class="call-to-action section dark-background">
+
+      <img src="{% static 'landing/img/Fleets-1-4.jpg' %}" alt="">
+
+      <div class="container">
+        <div class="row justify-content-center" data-aos="zoom-in" data-aos-delay="100">
+          <div class="col-xl-10">
+            <div class="text-center">
+              <h3>Get Started with Sudo Today</h3>
+              <p>Join our community and help improve public safety with easy, QR-based issue reporting. Secure, quick, and reliable—Sudo makes parking and other issues easier to report and resolve.</p>
+              <a class="cta-btn" href="https://play.google.com/store">Download the App</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section><!-- /Call To Action Section -->
+
+
+    <!-- Stats Section -->
+    <section id="stats" class="stats section">
+
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+
+        <div class="row gy-4 align-items-center justify-content-between">
+
+          <div class="col-lg-5">
+            <img src="{% static 'landing/img/stats-img.jpg' %}" alt="Sudo App Statistics" class="img-fluid">
+          </div>
+
+          <div class="col-lg-6">
+
+            <h3 class="fw-bold fs-2 mb-3">Empowering Communities with Sudo</h3>
+            <p>
+              Sudo has revolutionized issue reporting by enabling seamless QR-based solutions for public safety and convenience. Join thousands who rely on Sudo to keep their spaces organized and safe.
+            </p>
+
+            <div class="row gy-4">
+
+              <div class="col-lg-6">
+                <div class="stats-item d-flex">
+                  <i class="bi bi-emoji-smile flex-shrink-0"></i>
+                  <div>
+                    <span data-purecounter-start="0" data-purecounter-end="1200" data-purecounter-duration="1" class="purecounter"></span>
+                    <p><strong>Happy Users</strong> <span>trusted our app</span></p>
+                  </div>
+                </div>
+              </div><!-- End Stats Item -->
+
+              <div class="col-lg-6">
+                <div class="stats-item d-flex">
+                  <i class="bi bi-journal-richtext flex-shrink-0"></i>
+                  <div>
+                    <span data-purecounter-start="0" data-purecounter-end="2500" data-purecounter-duration="1" class="purecounter"></span>
+                    <p><strong>Issues Resolved</strong> <span>with Sudo's platform</span></p>
+                  </div>
+                </div>
+              </div><!-- End Stats Item -->
+
+              <div class="col-lg-6">
+                <div class="stats-item d-flex">
+                  <i class="bi bi-headset flex-shrink-0"></i>
+                  <div>
+                    <span data-purecounter-start="0" data-purecounter-end="3000" data-purecounter-duration="1" class="purecounter"></span>
+                    <p><strong>Support Hours</strong> <span>provided to our users</span></p>
+                  </div>
+                </div>
+              </div><!-- End Stats Item -->
+
+              <div class="col-lg-6">
+                <div class="stats-item d-flex">
+                  <i class="bi bi-people flex-shrink-0"></i>
+                  <div>
+                    <span data-purecounter-start="0" data-purecounter-end="50" data-purecounter-duration="1" class="purecounter"></span>
+                    <p><strong>Team Members</strong> <span>dedicated to innovation</span></p>
+                  </div>
+                </div>
+              </div><!-- End Stats Item -->
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section><!-- /Stats Section -->
+
+    <section id="how-it-works" class="how-it-works section">
+      <div class="container section-title" data-aos="fade-up">
+        <h2>How It Works</h2>
+        <p>Learn how our product works</p>
+      </div><!-- End Section Title -->
+    
+      <div class="container">
+        <div class="row gy-4">
+    
+          <div class="col-md-6">
+            <div class="work-item" data-aos="fade-up" data-aos-delay="100">
+              <h3>Step 1: Registration</h3>
+              <p>Sign up for the service by providing your details including name and vehicle number.</p>
+            </div>
+          </div>
+    
+          <div class="col-md-6">
+            <div class="work-item" data-aos="fade-up" data-aos-delay="200">
+              <h3>Step 2: Issue Reporting</h3>
+              <p>Once registered, use the app to report issues scanning the QR code on vehicles.</p>
+            </div>
+          </div>
+    
+          <div class="col-md-6">
+            <div class="work-item" data-aos="fade-up" data-aos-delay="300">
+              <h3>Step 3: Resolution</h3>
+              <p>After reporting, our team will look into the issue and take necessary actions to resolve it.</p>
+            </div>
+          </div>
+    
+          <div class="col-md-6">
+            <div class="work-item" data-aos="fade-up" data-aos-delay="400">
+              <h3>Step 4: Feedback</h3>
+              <p>You can provide feedback on the service and continue using the app for other issues.</p>
+            </div>
+          </div>
+    
+        </div>
+      </div>
+    
+    </section><!-- End How It Works Section -->
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials section dark-background">
+
+      <img src="{% static 'landing/img/testimonials-bg.jpg' %}" class="testimonials-bg" alt="Background for Testimonials">
+
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+
+        <div class="swiper init-swiper">
+          <script type="application/json" class="swiper-config">
+            {
+              "loop": true,
+              "speed": 600,
+              "autoplay": {
+                "delay": 5000
+              },
+              "slidesPerView": "auto",
+              "pagination": {
+                "el": ".swiper-pagination",
+                "type": "bullets",
+                "clickable": true
+              }
+            }
+          </script>
+          <div class="swiper-wrapper">
+
+            <div class="swiper-slide">
+              <div class="testimonial-item">
+                <img src="{% static 'landing/img/testimonials/testimonials-1.jpg' %}" class="testimonial-img" alt="User Testimonial 1">
+                <h3>Arjun Nair</h3>
+                <h4>Community Volunteer</h4>
+                <div class="stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p>
+                  <i class="bi bi-quote quote-icon-left"></i>
+                  <span>Sudo is a game-changer for our community! Reporting parking violations is now so much easier and more efficient.</span>
+                  <i class="bi bi-quote quote-icon-right"></i>
+                </p>
+              </div>
+            </div><!-- End testimonial item -->
+
+            <div class="swiper-slide">
+              <div class="testimonial-item">
+                <img src="{% static 'landing/img/testimonials/testimonials-2.jpg' %}" class="testimonial-img" alt="User Testimonial 2">
+                <h3>Neha Sharma</h3>
+                <h4>Resident</h4>
+                <div class="stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p>
+                  <i class="bi bi-quote quote-icon-left"></i>
+                  <span>Using Sudo has made me feel more empowered to address issues in my neighborhood. It's simple and effective!</span>
+                  <i class="bi bi-quote quote-icon-right"></i>
+                </p>
+              </div>
+            </div><!-- End testimonial item -->
+
+            <div class="swiper-slide">
+              <div class="testimonial-item">
+                <img src="{% static 'landing/img/testimonials/testimonials-3.jpg' %}" class="testimonial-img" alt="User Testimonial 3">
+                <h3>Vikram Rao</h3>
+                <h4>Local Business Owner</h4>
+                <div class="stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p>
+                  <i class="bi bi-quote quote-icon-left"></i>
+                  <span>Sudo has helped us maintain order outside our store by addressing improper parking instantly. A brilliant app!</span>
+                  <i class="bi bi-quote quote-icon-right"></i>
+                </p>
+              </div>
+            </div><!-- End testimonial item -->
+
+            <div class="swiper-slide">
+              <div class="testimonial-item">
+                <img src="{% static 'landing/img/testimonials/testimonials-4.jpg' %}" class="testimonial-img" alt="User Testimonial 4">
+                <h3>Anjali Menon</h3>
+                <h4>Tech Enthusiast</h4>
+                <div class="stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p>
+                  <i class="bi bi-quote quote-icon-left"></i>
+                  <span>The QR-based approach is innovative! Sudo stands out in its ability to streamline reporting processes.</span>
+                  <i class="bi bi-quote quote-icon-right"></i>
+                </p>
+              </div>
+            </div><!-- End testimonial item -->
+
+            <div class="swiper-slide">
+              <div class="testimonial-item">
+                <img src="{% static 'landing/img/testimonials/testimonials-5.jpg' %}" class="testimonial-img" alt="User Testimonial 5">
+                <h3>Ramesh Iyer</h3>
+                <h4>City Official</h4>
+                <div class="stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p>
+                  <i class="bi bi-quote quote-icon-left"></i>
+                  <span>Sudo has proven invaluable in addressing public concerns quickly and effectively. Highly recommend it!</span>
+                  <i class="bi bi-quote quote-icon-right"></i>
+                </p>
+              </div>
+            </div><!-- End testimonial item -->
+
+          </div>
+          <div class="swiper-pagination"></div>
+        </div>
+
+      </div>
+
+    </section><!-- /Testimonials Section -->
+
+    <section id="faq" class="faq-section section">
+      <div class="container section-title" data-aos="fade-up">
+        <h2>FAQ</h2>
+        <p>Frequently Asked Questions</p>
+      </div><!-- End Section Title -->
+    
+      <div class="container">
+        <!-- First FAQ Column -->
+        <div class="row">
+          <div class="col">
+            <div class="faq-item" data-aos="fade-up" data-aos-delay="100">
+              <button class="faq-question">
+                How do I register on the app?
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="faq-answer">
+                <p>To register, simply download the app from the Play Store or App Store, create an account by entering your details like name and vehicle number, and you're all set to start using the service.</p>
+              </div>
+            </div>
+    
+            <div class="faq-item" data-aos="fade-up" data-aos-delay="200">
+              <button class="faq-question">
+                How can I report an issue?
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Once registered, you can easily report issues like improper parking by scanning the QR code on a vehicle through the app. The issue will be logged, and our team will take action.</p>
+              </div>
+            </div>
+    
+            <div class="faq-item" data-aos="fade-up" data-aos-delay="300">
+              <button class="faq-question">
+                What happens after I report an issue?
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Once an issue is reported, it is reviewed by our team. They will investigate and take necessary actions to resolve the issue. You will receive updates on the progress and resolution.</p>
+              </div>
+            </div>
+          </div>
+    
+          <!-- Second FAQ Column -->
+          <div class="col">
+            <div class="faq-item" data-aos="fade-up" data-aos-delay="400">
+              <button class="faq-question">
+                Is my personal information secure?
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Yes, we prioritize your privacy. All personal information provided during registration is encrypted and stored securely. We follow strict security protocols to protect your data.</p>
+              </div>
+            </div>
+    
+            <div class="faq-item" data-aos="fade-up" data-aos-delay="500">
+              <button class="faq-question">
+                Can I provide feedback on the service?
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="faq-answer">
+                <p>Absolutely! We encourage users to share feedback through the app. This helps us improve the service and address any concerns you might have.</p>
+              </div>
+            </div>
+    
+            <div class="faq-item" data-aos="fade-up" data-aos-delay="600">
+              <button class="faq-question">
+                How do I contact customer support?
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="faq-answer">
+                <p>If you need assistance, you can contact customer support directly through the app or email us at <b>support@sudoreport.com</b> We are here to help you!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- End FAQ Container -->
+    </section><!-- End FAQ Section -->
+    
+    <!-- Team Section -->
+    <section id="team" class="team section">
+
+      <!-- Section Title -->
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Team</h2>
+        <p>our Team</p>
+      </div><!-- End Section Title -->
+
+      <div class="container">
+
+        <div class="row gy-4">
+
+          <div class="col-lg-3 col-md-6 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="100">
+            <div class="team-member">
+              <div class="member-img">
+                <img src="{% static 'landing/img/team/team-1.jpg' %}" class="img-fluid" alt="">
+                <div class="social">
+                  <a href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
+                  <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+                  <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+                  <a href="https://linkedin.com" target="_blank"><i class="bi bi-linkedin"></i></a>
+                </div>
+              </div>
+              <div class="member-info">
+                <h4>Sinan Ahammed</h4>
+                <span>Chief Executive Officer</span>
+              </div>
+            </div>
+          </div><!-- End Team Member -->
+
+          <div class="col-lg-3 col-md-6 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="200">
+            <div class="team-member">
+              <div class="member-img">
+                <img src="{% static 'landing/img/team/team-2.jpg' %}" class="img-fluid" alt="">
+                <div class="social">
+                  <a href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
+                  <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+                  <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+                  <a href="https://linkedin.com" target="_blank"><i class="bi bi-linkedin"></i></a>
+                </div>
+              </div>
+              <div class="member-info">
+                <h4>Sarah Jhonson</h4>
+                <span>Product Manager</span>
+              </div>
+            </div>
+          </div><!-- End Team Member -->
+
+          <div class="col-lg-3 col-md-6 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="300">
+            <div class="team-member">
+              <div class="member-img">
+                <img src="{% static 'landing/img/team/team-3.jpg' %}" class="img-fluid" alt="">
+                <div class="social">
+                  <a href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
+                  <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+                                    <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+                  <a href="https://linkedin.com" target="_blank"><i class="bi bi-linkedin"></i></a>
+                </div>
+              </div>
+              <div class="member-info">
+                <h4>William Anderson</h4>
+                <span>CTO</span>
+              </div>
+            </div>
+          </div><!-- End Team Member -->
+
+          <div class="col-lg-3 col-md-6 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="400">
+            <div class="team-member">
+              <div class="member-img">
+                <img src="{% static 'landing/img/team/team-4.jpg' %}" class="img-fluid" alt="">
+                <div class="social">
+                  <a href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
+                  <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+                  <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+                  <a href="https://linkedin.com" target="_blank"><i class="bi bi-linkedin"></i></a>
+                </div>
+              </div>
+              <div class="member-info">
+                <h4>Amanda Jepson</h4>
+                <span>Accountant</span>
+              </div>
+            </div>
+          </div><!-- End Team Member -->
+
+        </div>
+
+      </div>
+
+    </section><!-- /Team Section -->
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact section">
+
+      <!-- Section Title -->
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Contact</h2>
+        <p>Contact Us</p>
+      </div><!-- End Section Title -->
+
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+
+        <div class="mb-4" data-aos="fade-up" data-aos-delay="200">
+          <iframe style="border:0; width: 100%; height: 270px;" src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d48389.78314118045!2d-74.006138!3d40.710059!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25a22a3bda30d%3A0xb89d1fe6bc499443!2sDowntown%20Conference%20Center!5e0!3m2!1sen!2sus!4v1676961268712!5m2!1sen!2sus" frameborder="0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div><!-- End Google Maps -->
+
+        <div class="row gy-4">
+
+          <div class="col-lg-4">
+            <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="300">
+              <i class="bi bi-geo-alt flex-shrink-0"></i>
+              <div>
+                <h3>Address</h3>
+                <p>A108 Adam Street, New York, NY 535022</p>
+              </div>
+            </div><!-- End Info Item -->
+
+            <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="400">
+              <i class="bi bi-telephone flex-shrink-0"></i>
+              <div>
+                <h3>Call Us</h3>
+                <p>+1 5589 55488 55</p>
+              </div>
+            </div><!-- End Info Item -->
+
+            <div class="info-item d-flex" data-aos="fade-up" data-aos-delay="500">
+              <i class="bi bi-envelope flex-shrink-0"></i>
+              <div>
+                <h3>Email Us</h3>
+                <p>support@sudoreport.com</p>
+              </div>
+            </div><!-- End Info Item -->
+
+          </div>
+
+          <div class="col-lg-8">
+            <form action="{% url 'index' %}" method="post" class="php-email-form" data-aos="fade-up" data-aos-delay="200">
+              {% csrf_token %}
+              <div class="row gy-4">
+    
+                <div class="col-md-6">
+                  <input type="text" name="name" class="form-control" placeholder="Your Name" required>
+                </div>
+    
+                <div class="col-md-6">
+                  <input type="email" class="form-control" name="email" placeholder="Your Email" required>
+                </div>
+    
+                <div class="col-md-12">
+                  <input type="text" class="form-control" name="subject" placeholder="Subject" required>
+                </div>
+    
+                <div class="col-md-12">
+                  <textarea class="form-control" name="message" rows="6" placeholder="Your Message" required></textarea>
+                </div>
+    
+                <div class="col-md-12 text-center">
+                  <div class="loading">Loading</div>
+                  <div class="error-message"></div>
+                  <div class="sent-message">Your message has been sent. Thank you!</div>
+    
+                  <button type="submit">Send Message</button>
+                </div>
+    
+              </div>
+            </form>
+          </div><!-- End Contact Form -->
+
+        </div>
+
+      </div>
+
+    </section><!-- /Contact Section -->
+
+  </main>
+  <footer id="footer" class="footer dark-background">
+
+    <div class="footer-top">
+      <div class="container">
+        <div class="row gy-4">
+          <div class="col-lg-4 col-md-6 footer-about">
+            <a href="{% url 'index' %}" class="logo d-flex align-items-center">
+              <span class="sitename">Sudo</span>
+            </a>
+            <div class="footer-contact pt-3">
+              <p>A108 Adam Street, New York, NY 535022</p>
+              <p class="mt-3"><strong>Phone:</strong> <span>+1 5589 55488 55</span></p>
+              <p><strong>Email:</strong> <span>support@sudoreport.com</span></p>
+            </div>
+            <div class="social-links d-flex mt-4">
+              <a href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
+              <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+              <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+              <a href="https://linkedin.com" target="_blank"><i class="bi bi-linkedin"></i></a>
+            </div>
+          </div>
+  
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>Useful Links</h4>
+            <ul>
+              <li><i class="bi bi-chevron-right"></i> <a href="#hero">Home</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="#about">About Sudo</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="#how-it-works">How It Works</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="#faq">FAQ</a></li>
+            </ul>
+          </div>
+  
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>Our Features</h4>
+            <ul>
+              <li><i class="bi bi-chevron-right"></i>QR-based Reporting</li>
+              <li><i class="bi bi-chevron-right"></i>User Verification</li>
+              <li><i class="bi bi-chevron-right"></i>Community Feedback</li>
+              <li><i class="bi bi-chevron-right"></i>Real-time Updates</li>
+            </ul>
+          </div>
+  
+          <div class="col-lg-4 col-md-12 footer-newsletter">
+            <h4>Stay Updated</h4>
+            <p>Sign up for our newsletter and get the latest updates on Sudo!</p>
+            <form action="{% url 'index' %}" method="post" class="php-email-form">
+              {% csrf_token %}
+              <div class="newsletter-form">
+                <input type="email" name="email" placeholder="Enter your email">
+                <input type="submit" value="Subscribe">
+              </div>
+              <div class="loading">Loading</div>
+              <div class="error-message"></div>
+              <div class="sent-message">Thank you for subscribing!</div>
+            </form>
+          </div>
+  
+        </div>
+      </div>
+    </div>
+  
+    <div class="copyright">
+      <div class="container text-center">
+        <p>© <span>Copyright</span> <strong class="px-1 sitename">Sudo</strong> <span>All Rights Reserved</span></p>
+        <div class="credits">
+          Designed by <a href="#" style="pointer-events: none; cursor: default;">Sudo Team</a>
+        </div>
+      </div>
+    </div>
+  
+  </footer>
+  
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+  <!-- Vendor JS Files -->
+  <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'landing/vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'landing/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'landing/vendor/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'landing/vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'landing/vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'landing/vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+  <script src="{% static 'landing/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'landing/js/main.js' %}"></script>
+
+</body>
+
+</html>
+                  

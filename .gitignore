@@ -1,0 +1,39 @@
+# Python
+*.pyc
+*.pyo
+__pycache__
+
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+db.sqlite3
+media
+staticfiles
+*.env
+*.sqlite3
+
+# Virtual Environment
+venv/
+env/
+.venv/
+.idea/
+.vscode/
+
+# Django migrations
+*/migrations/*
+
+# IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# PyCharm
+*.iml
+firebase/

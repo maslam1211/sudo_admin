@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Order Management - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">Order Management</h1>
+    
+    <!-- Action Buttons -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="btn-group" role="group">
+                <button id="selectAllBtn" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-check-square"></i> Select All
+                </button>
+                <button id="deselectAllBtn" class="btn btn-outline-secondary btn-sm">
+                    <i class="far fa-square"></i> Deselect All
+                </button> &nbsp;
+                <button id="exportWithQrBtn" class="btn btn-success btn-sm">
+                    <i class="fas fa-file-pdf"></i> Export Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% elif orders %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th width="40px"><input type="checkbox" id="masterCheckbox"></th>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Vehicle</th>
+                    <th>Address</th>
+                    <th>Payment</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in orders %}
+                <tr>
+                    <!-- Checkbox Column -->
+                    <td><input type="checkbox" class="order-checkbox" data-order-id="{{ entry.order.id }}"></td>
+                    
+                    <!-- Order ID Column - Full ID displayed -->
+                    <td class="text-nowrap">
+                        <div class="fw-bold font-monospace small">{{ entry.order.id }}</div>
+                        <small class="text-muted">Ref: {{ entry.order.paymentOrderId|truncatechars:10 }}</small>
+                    </td>
+                    
+                    <!-- Customer Column -->
+                    <td>
+                        <div class="fw-bold">{{ entry.order.fullName }}</div>
+                        <div class="text-muted small">{{ entry.order.mobile }}</div>
+                        {% if entry.order.mobileNumber and entry.order.mobileNumber != entry.order.mobile %}
+                        <div class="text-muted small">{{ entry.order.mobileNumber }}</div>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Product Column -->
+                    <td>
+                        <div class="fw-bold text-capitalize">{{ entry.order.selectedItem }}</div>
+                        <div class="text-muted small">Qty: {{ entry.order.quantity }}</div>
+                        <div class="text-success">₹{{ entry.order.amount }}</div>
+                    </td>
+                    
+                    <!-- Vehicle Column -->
+                    <td>
+                        <div class="text-muted small">{{ entry.order.vehicleCategory }}</div>
+                        <div class="fw-bold">{{ entry.order.vehicleNumber }}</div>
+                    </td>
+                    
+                    <!-- Address Column -->
+                    <td>
+                        <div class="address-details small">
+                            <div>{{ entry.order.address.houseNumber }}</div>
+                            <div>{{ entry.order.address.street }}</div>
+                            <div class="text-muted">{{ entry.order.address.landmark }}</div>
+                            <div>{{ entry.order.address.city }}, {{ entry.order.address.state }}</div>
+                            <div>{{ entry.order.address.pincode }}</div>
+                        </div>
+                    </td>
+                    
+                    <!-- Payment Column -->
+                    <td>
+                        {% if entry.order.paymentStatus == "paid" %}
+                            <span class="badge bg-success rounded-pill">Paid</span>
+                        {% else %}
+                            <span class="badge bg-warning rounded-pill">{{ entry.order.paymentStatus|default:"Pending" }}</span>
+                        {% endif %}
+                        <div class="mt-1 small text-muted">
+                            {{ entry.order.paymentId|truncatechars:10 }}
+                        </div>
+                    </td>
+                    
+                    <!-- Date Column -->
+                    <td class="text-nowrap">
+                        <div>{{ entry.order.timestamp|date:"d M Y" }}</div>
+                        <small class="text-muted">{{ entry.order.timestamp|date:"H:i" }}</small>
+                    </td>
+                    
+                    <!-- Status Column -->
+                    <td>
+                        <select class="form-select form-select-sm status-dropdown" 
+                                data-order-id="{{ entry.order.id }}">
+                            {% for key, value in STATUS_MAPPING.items %}
+                            <option value="{{ key }}" {% if entry.order.orderStatus == key %}selected{% endif %}>
+                                {{ value }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="mt-2 text-center">
+                            <span class="badge rounded-pill status-badge
+                                {% if entry.order.orderStatus == 0 %}bg-secondary
+                                {% elif entry.order.orderStatus == 1 %}bg-info
+                                {% elif entry.order.orderStatus == 2 %}bg-primary
+                                {% elif entry.order.orderStatus == 3 %}bg-success
+                                {% elif entry.order.orderStatus == 4 %}bg-danger
+                                {% elif entry.order.orderStatus == 5 %}bg-warning
+                                {% else %}bg-dark{% endif %}">
+                                {{ entry.order.status_text }}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="alert alert-info">No orders found.</div>
+    {% endif %}
+</div>
+
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="statusToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">System Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage"></div>
+    </div>
+</div>
+
+<style>
+    .address-details div {
+        margin-bottom: 2px;
+        line-height: 1.2;
+    }
+    .table td {
+        vertical-align: middle;
+        padding: 8px;
+    }
+    .status-dropdown {
+        min-width: 120px;
+        font-size: 12px;
+    }
+    .order-checkbox {
+        transform: scale(1.2);
+    }
+    #masterCheckbox {
+        transform: scale(1.2);
+    }
+    .font-monospace {
+        font-family: 'Courier New', monospace;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status update functionality
+    const statusDropdowns = document.querySelectorAll('.status-dropdown');
+    
+    statusDropdowns.forEach(dropdown => {
+        dropdown.addEventListener('change', function() {
+            const orderId = this.dataset.orderId;
+            const newStatus = this.value;
+            
+            const originalValue = this.value;
+            this.disabled = true;
+            
+            const data = {
+                orderId: orderId,
+                newStatus: newStatus
+            };
+            
+            fetch('/admin/update_order_status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json().catch(() => {
+                throw new Error('Invalid JSON response from server');
+            }))
+            .then(data => {
+                if (data.success) {
+                    const statusBadge = this.closest('td').querySelector('.status-badge');
+                    statusBadge.textContent = data.status_text;
+                    
+                    const statusColors = {
+                        0: 'bg-secondary', 1: 'bg-info', 2: 'bg-primary',
+                        3: 'bg-success', 4: 'bg-danger', 5: 'bg-warning',
+                        6: 'bg-dark', 7: 'bg-warning'
+                    };
+                    
+                    statusBadge.className = 'badge rounded-pill status-badge ' + 
+                                          (statusColors[newStatus] || 'bg-dark');
+                    
+                    showToast('Status updated successfully', 'success');
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                    this.value = originalValue;
+                }
+            })
+            .catch(error => {
+                showToast('Error updating status', 'error');
+                this.value = originalValue;
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+    
+    // Checkbox functionality
+    const masterCheckbox = document.getElementById('masterCheckbox');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    
+    masterCheckbox.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+    
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        masterCheckbox.checked = true;
+    });
+    
+    document.getElementById('deselectAllBtn').addEventListener('click', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        masterCheckbox.checked = false;
+    });
+    
+    // Export with QR codes
+    document.getElementById('exportWithQrBtn').addEventListener('click', function() {
+        const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+            .map(checkbox => checkbox.dataset.orderId);
+            
+        if (selectedOrders.length === 0) {
+            showToast('Please select at least one order', 'error');
+            return;
+        }
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/export_orders_with_qr/';
+        
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrfmiddlewaretoken';
+        csrfToken.value = '{{ csrf_token }}';
+        form.appendChild(csrfToken);
+        
+        selectedOrders.forEach(orderId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'order_ids';
+            input.value = orderId;
+            form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+    });
+    
+    function showToast(message, type) {
+        const toast = new bootstrap.Toast(document.getElementById('statusToast'));
+        const toastBody = document.getElementById('toastMessage');
+        
+        toastBody.textContent = message;
+        toastBody.className = 'toast-body ' + (type === 'error' ? 'text-danger' : 'text-success');
+        toast.show();
+    }
+});
+</script>
+{% endblock %}

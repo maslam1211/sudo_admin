@@ -1,0 +1,10 @@
+New feedback received from {{ name }} ({{ email }})
+
+Vehicle: {{ vehicle }}
+Rating: {{ rating }}/5 stars
+
+Feedback:
+{{ feedback }}
+
+---
+This email was sent from the Sudo Vehicle QR Activation System

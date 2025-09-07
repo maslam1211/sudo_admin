@@ -1,0 +1,12 @@
+Hi {{ name }},
+
+Thank you for taking the time to provide feedback about your Sudo Vehicle QR activation experience.
+
+We appreciate your rating of {{ rating }}/5 stars and will carefully consider your comments:
+
+{{ feedback }}
+
+If you have any further questions or need assistance, please don't hesitate to contact us.
+
+Best regards,
+The Sudo Team

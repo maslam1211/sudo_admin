@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Successful | Sudo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        /* Bubble Animation Background */
+        @keyframes floatBubble {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+            50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+            100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+        }
+
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --dark-color: #1b263b;
+            --light-color: #f8f9fa;
+            --success-color: #2ecc71;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--dark-color);
+            background-color: #f0f8ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Bubbles */
+        .bubbles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(67, 97, 238, 0.15);
+            border-radius: 50%;
+            animation: floatBubble 10s infinite linear;
+            opacity: 0;
+        }
+
+        /* Generate random bubbles */
+        .bubble:nth-child(1) {
+            width: 40px;
+            height: 40px;
+            left: 10%;
+            animation-delay: 0s;
+            animation-duration: 12s;
+        }
+        .bubble:nth-child(2) {
+            width: 60px;
+            height: 60px;
+            left: 25%;
+            animation-delay: 2s;
+            animation-duration: 15s;
+        }
+        .bubble:nth-child(3) {
+            width: 80px;
+            height: 80px;
+            left: 40%;
+            animation-delay: 1s;
+            animation-duration: 18s;
+        }
+        .bubble:nth-child(4) {
+            width: 50px;
+            height: 50px;
+            left: 55%;
+            animation-delay: 3s;
+            animation-duration: 14s;
+        }
+        .bubble:nth-child(5) {
+            width: 70px;
+            height: 70px;
+            left: 70%;
+            animation-delay: 0.5s;
+            animation-duration: 16s;
+        }
+        .bubble:nth-child(6) {
+            width: 90px;
+            height: 90px;
+            left: 85%;
+            animation-delay: 4s;
+            animation-duration: 20s;
+        }
+
+        /* Sudo Logo */
+        .sudo-header {
+            text-align: center;
+            padding: 15px 0;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .sudo-logo {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+        }
+
+        /* Container Styles */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        /* Success Card Styles */
+        .success-card {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .checkmark-icon {
+            font-size: 5rem;
+            color: var(--success-color);
+            margin-bottom: 20px;
+            animation: bounceIn 1s;
+        }
+
+        .success-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+
+        .success-message {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            color: #555;
+        }
+
+        .credentials-info {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .credentials-icon {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .app-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .btn-download {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-download:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .next-steps {
+            margin-top: 30px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            padding-top: 30px;
+        }
+
+        .step-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0%, 20%, 40%, 60%, 80%, 100% {animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);}
+            0% {opacity: 0; transform: scale3d(.3, .3, .3);}
+            20% {transform: scale3d(1.1, 1.1, 1.1);}
+            40% {transform: scale3d(.9, .9, .9);}
+            60% {opacity: 1; transform: scale3d(1.03, 1.03, 1.03);}
+            80% {transform: scale3d(.97, .97, .97);}
+            100% {opacity: 1; transform: scale3d(1, 1, 1);}
+        }
+
+        /* Footer Styles */
+        .sudo-footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .success-card {
+                padding: 25px 20px;
+            }
+            
+            .success-title {
+                font-size: 1.8rem;
+            }
+            
+            .app-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Bubbles Background -->
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
+    <!-- Sudo Header -->
+    <header class="sudo-header">
+        <a href="https://sudo-70852.firebaseapp.com" class="sudo-logo">Sudo</a>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container py-4">
+        <div class="success-card">
+            <div class="checkmark-icon">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <h1 class="success-title">Registration Successful!</h1>
+            <p class="success-message">Thank you for joining Sudo. Your account has been created successfully.</p>
+            
+            <!-- Added credentials notification -->
+            <div class="credentials-info animate__animated animate__fadeIn">
+                <div class="credentials-icon">
+                    <i class="bi bi-envelope-check"></i>
+                </div>
+                <h4>Check Your Email</h4>
+                <p>We've sent your login credentials to your registered email address.</p>
+                <p class="small text-muted">If you don't see the email, please check your spam folder.</p>
+            </div>
+            
+            <div class="app-buttons">
+                <a href="https://www.apple.com/app-store/" class="btn btn-download">
+                    <i class="bi bi-apple me-2"></i> Download on App Store
+                </a>
+                <a href="https://play.google.com/" class="btn btn-download">
+                    <i class="bi bi-google-play me-2"></i> Get on Play Store
+                </a>
+            </div>
+            
+            <div class="next-steps">
+                <h4 class="mb-4">What's Next?</h4>
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="step-icon">
+                            <i class="bi bi-phone"></i>
+                        </div>
+                        <h5>Install the App</h5>
+                        <p class="small text-muted">Download our mobile app to get started</p>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="step-icon">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <h5>Complete Profile</h5>
+                        <p class="small text-muted">Add your vehicle details for full features</p>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="step-icon">
+                            <i class="bi bi-bell"></i>
+                        </div>
+                        <h5>Get Alerts</h5>
+                        <p class="small text-muted">Receive instant notifications</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="https://sudo-70852.firebaseapp.com/" class="btn btn-outline-primary">
+                    <i class="bi bi-info-circle me-2"></i> Learn More About Sudo
+                </a>
+                <p class="small text-muted mt-2">Discover how Sudo can enhance your vehicle security and community awareness</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sudo Footer -->
+    <footer class="sudo-footer">
+        <p>&copy; 2025 Sudo. All rights reserved.</p>
+        <p class="mb-0">
+            <a href="https://sudo-70852.firebaseapp.com/#about" style="color: #666; text-decoration: none;">About Us</a> | 
+            <a href="https://sudo-70852.firebaseapp.com/#privacy" style="color: #666; text-decoration: none;">Privacy Policy</a> | 
+            <a href="https://sudo-70852.firebaseapp.com/#terms" style="color: #666; text-decoration: none;">Terms of Service</a>
+        </p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Create additional bubbles for animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const bubblesContainer = document.querySelector('.bubbles');
+            for (let i = 0; i < 10; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.width = (Math.random() * 50 + 20) + 'px';
+                bubble.style.height = bubble.style.width;
+                bubble.style.animationDelay = Math.random() * 5 + 's';
+                bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                bubblesContainer.appendChild(bubble);
+            }
+        });
+    </script>
+</body>
+</html>

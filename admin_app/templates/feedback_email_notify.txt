@@ -1,0 +1,12 @@
+New feedback received from vehicle contact form:
+
+Vehicle Model: {{ vehicle_model }}
+Contact Reason: {{ contact_reason }}
+Notification Method: {{ notification_method }}
+Rating: {{ rating }}/5 stars
+
+Feedback:
+{{ feedback }}
+
+---
+This email was sent from the Sudo Vehicle Contact System

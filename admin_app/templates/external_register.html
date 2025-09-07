@@ -1,0 +1,416 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register for Sudo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+    <style>
+        /* Bubble Animation Background */
+        @keyframes floatBubble {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+            50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+            100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+        }
+
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --dark-color: #1b263b;
+            --light-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--dark-color);
+            background-color: #f0f8ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Bubbles */
+        .bubbles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(67, 97, 238, 0.15);
+            border-radius: 50%;
+            animation: floatBubble 10s infinite linear;
+            opacity: 0;
+        }
+
+        /* Sudo Header */
+        .sudo-header {
+            text-align: center;
+            padding: 15px 0;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .sudo-logo {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+        }
+
+        /* Container Styles */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        /* Registration Card Styles */
+        .registration-card {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .registration-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--dark-color);
+            text-align: center;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .card-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        /* Benefit Items - Enhanced Animation */
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            animation: fadeInLeft 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .benefit-item:nth-child(1) { animation-delay: 0.2s; }
+        .benefit-item:nth-child(2) { animation-delay: 0.4s; }
+        .benefit-item:nth-child(3) { animation-delay: 0.6s; }
+        .benefit-item:nth-child(4) { animation-delay: 0.8s; }
+        .benefit-item:nth-child(5) { animation-delay: 1.0s; }
+
+        .benefit-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 6px 12px rgba(67, 97, 238, 0.15);
+        }
+
+        .benefit-icon {
+            margin-right: 15px;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .benefit-item:hover .benefit-icon {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        .benefits-container {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Form Styles */
+        .form-control {
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        /* Button Styles */
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        /* Footer Styles */
+        .sudo-footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .registration-card {
+                padding: 25px 20px;
+            }
+            
+            .card-title {
+                font-size: 1.5rem;
+            }
+            
+            .benefit-item {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Bubbles Background -->
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
+    <!-- Sudo Header -->
+    <header class="sudo-header">
+        <a href="https://sudo-70852.firebaseapp.com" class="sudo-logo">Sudo</a>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container py-4">
+        <div class="registration-card animate__animated animate__fadeInUp">
+            <h3 class="card-title">JOIN THE SUDO COMMUNITY</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="benefits-container">
+                        <h5 style="color: var(--primary-color); margin-bottom: 20px;">
+                            <i class="bi bi-stars me-2"></i>Why Register With Us?
+                        </h5>
+                        
+                        <div class="benefit-item">
+                            <i class="bi bi-bell-fill benefit-icon"></i>
+                            <div>
+                                <h6>Instant Vehicle Alerts</h6>
+                                <p class="small text-muted mb-0">Get notified immediately about your vehicle</p>
+                            </div>
+                        </div>
+                        
+                        <div class="benefit-item">
+                            <i class="bi bi-shield-check benefit-icon"></i>
+                            <div>
+                                <h6>Community Safety</h6>
+                                <p class="small text-muted mb-0">Connect with your neighborhood watch</p>
+                            </div>
+                        </div>
+                        
+                        <div class="benefit-item">
+                            <i class="bi bi-lightning-charge-fill benefit-icon"></i>
+                            <div>
+                                <h6>Real-time Updates</h6>
+                                <p class="small text-muted mb-0">Instant notifications about your vehicle</p>
+                            </div>
+                        </div>
+                        
+                        <div class="benefit-item">
+                            <i class="bi bi-lock-fill benefit-icon"></i>
+                            <div>
+                                <h6>Secure Platform</h6>
+                                <p class="small text-muted mb-0">Your data is always protected</p>
+                            </div>
+                        </div>
+                        
+                        <div class="benefit-item">
+                            <i class="bi bi-headset benefit-icon"></i>
+                            <div>
+                                <h6>24/7 Support</h6>
+                                <p class="small text-muted mb-0">Help whenever you need it</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    {% if error %}
+                    <div class="alert alert-danger animate__animated animate__shakeX mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {{ error }}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="fullName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="fullName" name="fullName" required 
+                                   value="{{ form_data.fullName|default:'' }}">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                   value="{{ form_data.email|default:'' }}">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required
+                                   value="{{ form_data.phone|default:'' }}">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" required
+                                   value="{{ form_data.city|default:'' }}">
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-person-plus-fill me-2"></i>Complete Registration
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4" style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px;">
+                        <p class="small text-muted">Already have an account? 
+                            <a href="https://play.google.com/" style="color: var(--primary-color);">Sign in here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sudo Footer -->
+    <footer class="sudo-footer">
+        <p>&copy; 2025 Sudo. All rights reserved.</p>
+        <p class="mb-0">
+            <a href="https://sudo-70852.firebaseapp.com/#about" style="color: #666; text-decoration: none;">About Us</a> | 
+            <a href="https://sudo-70852.firebaseapp.com/#privacy" style="color: #666; text-decoration: none;">Privacy Policy</a> | 
+            <a href="https://sudo-70852.firebaseapp.com/#terms" style="color: #666; text-decoration: none;">Terms of Service</a>
+        </p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Create additional bubbles for animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const bubblesContainer = document.querySelector('.bubbles');
+            for (let i = 0; i < 10; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.width = (Math.random() * 50 + 20) + 'px';
+                bubble.style.height = bubble.style.width;
+                bubble.style.animationDelay = Math.random() * 5 + 's';
+                bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                bubblesContainer.appendChild(bubble);
+            }
+        });
+    </script>
+</body>
+</html>

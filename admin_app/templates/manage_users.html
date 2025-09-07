@@ -1,0 +1,144 @@
+<!-- manage_users.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h4 class="my-4">Manage Users (Total: {{ users|length }})</h4>
+    
+    <!-- {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %} -->
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <div>
+                <button type="submit" class="btn btn-danger btn-sm" name="delete_selected" 
+                        onclick="return confirm('Are you sure you want to delete selected users?')">
+                    Delete Selected (Selected: <span id="selected-count">0</span>)
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover mt-3" id="users-table">
+                <thead class="table-dark">
+                    <tr>
+                        <th width="5%"><input type="checkbox" id="select_all" onclick="toggleSelectAll()"></th>
+                        <th width="20%">Document ID</th>
+                        <th width="15%">Name</th>
+                        <th width="15%">City</th>
+                        <th width="20%">Email</th>
+                        <th width="15%">Mobile</th>
+                        <th width="10%">Status</th>
+                        <th width="20%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="user-row {% if not user.enabled %}table-secondary{% endif %}">
+                        <td><input type="checkbox" name="selected_users" value="{{ user.doc_id }}" class="user_checkbox"></td>
+                        <td><span class="font-monospace">{{ user.doc_id|truncatechars:10 }}</span></td>
+                        <td>{{ user.fullName|default:"-" }}</td>
+                        <td>{{ user.city|default:"-" }}</td>
+                        <td>{{ user.emailAddress|default:"<span class='text-muted'>Not available</span>" }}</td>
+                        <td>{{ user.contactNumber|default:"<span class='text-muted'>Not available</span>" }}</td>
+                        <td class="text-center">
+                            <form method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ user.doc_id }}">
+                                <button type="submit" name="toggle_status" class="btn btn-sm {% if user.enabled %}btn-success{% else %}btn-secondary{% endif %}">
+                                    {% if user.enabled %}Active{% else %}Inactive{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ forloop.counter }}">
+                                Edit
+                            </button>
+                            <form method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ user.doc_id }}">
+                                <button type="submit" class="btn btn-sm btn-danger" name="delete_single"
+                                        onclick="return confirm('Are you sure you want to delete this user?')">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    
+                    <!-- Edit Modal -->
+                    <div class="modal fade" id="editModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit User</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form method="POST">
+                                    <div class="modal-body">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ user.doc_id }}">
+                                        <div class="mb-3">
+                                            <label class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" name="fullName" value="{{ user.fullName|default:'' }}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">City</label>
+                                            <input type="text" class="form-control" name="city" value="{{ user.city|default:'' }}">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary" name="update_user">Save changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No users found in database</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById("select_all");
+        const userCheckboxes = document.querySelectorAll(".user_checkbox:not(:disabled)");
+        userCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const selectedCount = document.querySelectorAll('.user_checkbox:checked').length;
+        document.getElementById('selected-count').textContent = selectedCount;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.user_checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+    });
+</script>
+
+<style>
+    .font-monospace { font-family: monospace; }
+    .table-hover tbody tr:hover { background-color: rgba(0, 0, 0, 0.05); }
+    .table-secondary { color: #6c757d; }
+</style>
+{% endblock %}

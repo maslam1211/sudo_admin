@@ -1,0 +1,1424 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate Vehicle QR Code | Sudo</title>
+  <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
+  <link href="{% static 'assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+
+  <style>
+    /* Bubble Animation Background */
+    @keyframes floatBubble {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+      100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    }
+
+    :root {
+      --primary-color: #FFD700; /* Gold/Yellow */
+      --primary-dark: #FFC000; /* Darker Gold */
+      --primary-light: #FFF9C4; /* Light Yellow */
+      --secondary-color: #000000; /* Black */
+      --accent-color: #FFEA00; /* Bright Yellow */
+      --success-color: #4CAF50; /* Green */
+      --danger-color: #F44336; /* Red */
+      --dark-color: #212121; /* Dark Gray */
+      --light-color: #FAFAFA; /* Very Light Gray */
+      --gray-color: #757575; /* Medium Gray */
+      --warning-color: #FFC107; /* Amber */
+      
+      /* Theme variables */
+      --bg-color: #FAFAFA;
+      --text-color: #212121;
+      --card-bg: #FFFFFF;
+      --border-color: #E0E0E0;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+      --input-text-color: #212121; /* Added for input text */
+    }
+
+    .dark-theme {
+      --primary-color: #FFD700; /* Gold/Yellow remains same */
+      --primary-dark: #FFC000;
+      --primary-light: #333300;
+      --secondary-color: #000000; /* Black remains same for buttons */
+      --accent-color: #FFEA00;
+      --success-color: #4CAF50;
+      --danger-color: #F44336;
+      --dark-color: #E0E0E0; /* Light Gray */
+      --light-color: #121212; /* Very Dark Gray */
+      --gray-color: #B0B0B0; /* Light Gray */
+      --warning-color: #FFC107;
+      
+      --bg-color: #121212;
+      --text-color: #E0E0E0;
+      --card-bg: #1E1E1E;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --input-text-color: #FFFFFF; /* White text in dark mode */
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--shadow-color);
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+    }
+    .feedback-form {
+      display: none;
+      margin-top: 30px;
+      padding: 25px;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 5px 15px var(--shadow-color);
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .feedback-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      text-align: center;
+    }
+    
+    .feedback-textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      margin-bottom: 20px;
+      resize: vertical;
+    }
+    
+    .feedback-textarea:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+      outline: none;
+    }
+    
+    .rating-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+      gap: 10px;
+    }
+    
+    .rating-star {
+      font-size: 2rem;
+      color: var(--gray-color);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .rating-star:hover,
+    .rating-star.active {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+    
+    .feedback-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    
+    .feedback-thankyou {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--text-color); /* Added to ensure text visibility */
+    }
+    
+    .feedback-thankyou-icon {
+      font-size: 3rem;
+      color: var(--success-color);
+      margin-bottom: 15px;
+      animation: pulse 2s infinite;
+    }
+    /* Welcome Popup Styles */
+    .welcome-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      opacity: 1;
+      visibility: visible;
+      transition: all 0.5s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .welcome-popup.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .welcome-content {
+      background: var(--card-bg);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 20px 50px var(--shadow-color);
+      transform: scale(0.9);
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .welcome-popup.hidden .welcome-content {
+      transform: scale(1);
+    }
+
+    .welcome-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      padding: 25px;
+      text-align: center;
+      color: var(--secondary-color);
+      position: relative;
+    }
+
+    .welcome-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .welcome-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .welcome-body {
+      padding: 25px;
+      text-align: center;
+    }
+
+    .welcome-text {
+      color: var(--gray-color);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+
+    .welcome-features {
+      text-align: left;
+      margin: 25px 0;
+    }
+
+    .welcome-feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .feature-icon {
+      color: var(--success-color);
+      margin-right: 10px;
+      font-size: 1.2rem;
+    }
+
+    .welcome-footer {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      padding: 0 25px 25px;
+    }
+
+    .welcome-btn {
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 120px;
+      color: var(--secondary-color); /* Ensure button text is black */
+    }
+
+    .welcome-btn-primary {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .welcome-btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+    }
+
+    .welcome-btn-outline {
+      background-color: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .welcome-btn-outline:hover {
+      background-color: var(--primary-light);
+    }
+
+    /* Animated Bubbles */
+    .bubbles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      top: 0;
+      left: 0;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(255, 215, 0, 0.15);
+      border-radius: 50%;
+      animation: floatBubble 10s infinite linear;
+      opacity: 0;
+    }
+
+    /* Sudo Logo */
+    .sudo-header {
+      text-align: center;
+      padding: 15px 0;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .sudo-logo {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+      text-shadow: 0 2px 4px var(--shadow-color);
+      letter-spacing: 1px;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    /* Card Styles */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px var(--shadow-color);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border: none;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px var(--shadow-color);
+    }
+
+    .card-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      text-align: center;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .card-title:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: var(--primary-color);
+      border-radius: 3px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--text-color);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s;
+      background-color: var(--card-bg);
+      color: var(--input-text-color); /* Use specific variable for input text */
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+      background-color: var(--card-bg);
+      color: var(--input-text-color);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--secondary-color); /* Ensure button text is black */
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    .btn-outline-primary {
+      background-color: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--primary-light);
+    }
+
+    .btn-block {
+      display: block;
+      width: 100%;
+    }
+
+    /* Confirmation Popup Styles */
+    .confirmation-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .confirmation-popup.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .confirmation-content {
+      background: var(--card-bg);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 20px 50px var(--shadow-color);
+      transform: scale(0.9);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .confirmation-popup.active .confirmation-content {
+      transform: scale(1);
+    }
+
+    .confirmation-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      padding: 25px;
+      text-align: center;
+      color: var(--secondary-color);
+      position: relative;
+    }
+
+    .confirmation-icon {
+      font-size: 3.5rem;
+      margin-bottom: 15px;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    .confirmation-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .confirmation-body {
+      padding: 25px;
+      text-align: center;
+    }
+
+    .confirmation-text {
+      color: var(--gray-color);
+      margin-bottom: 25px;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+
+    .confirmation-footer {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      padding: 0 25px 25px;
+    }
+
+    .confirmation-btn {
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 120px;
+      color: var(--secondary-color); /* Ensure button text is black */
+    }
+
+    .confirmation-btn-primary {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .confirmation-btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+    }
+
+    .confirmation-btn-outline {
+      background-color: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .confirmation-btn-outline:hover {
+      background-color: var(--primary-light);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--dark-color);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px var(--shadow-color);
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+    }
+
+    .toast-success {
+      background-color: var(--success-color);
+    }
+
+    .toast-error {
+      background-color: var(--danger-color);
+    }
+
+    .toast-warning {
+      background-color: var(--warning-color);
+    }
+
+    /* Loading Spinner */
+    .spinner-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1200;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spinner-container.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid var(--primary-light);
+      border-top-color: var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Success Message */
+    .success-message {
+      display: none;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .success-icon {
+      font-size: 4rem;
+      color: var(--success-color);
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+
+    .success-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+
+    .success-text {
+      color: var(--gray-color);
+      margin-bottom: 25px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Error Styling */
+    .is-invalid {
+      border-color: var(--danger-color) !important;
+    }
+
+    .invalid-feedback {
+      width: 100%;
+      margin-top: 0.25rem;
+      font-size: 0.875em;
+      color: var(--danger-color);
+    }
+
+    .form-check-input.is-invalid {
+      border-color: var(--danger-color);
+    }
+
+    .form-check-input.is-invalid ~ .form-check-label {
+      color: var(--danger-color);
+    }
+
+    /* Checkbox styling */
+    .form-check-input {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+    }
+
+    .form-check-label {
+      color: var(--text-color);
+    }
+
+    /* Modal styling */
+    .modal-content {
+      background-color: var(--card-bg);
+      color: var(--text-color);
+    }
+
+    .modal-header {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+      border-top: 1px solid var(--border-color);
+    }
+
+    .btn-close {
+      filter: invert(1);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .card {
+        padding: 25px 20px;
+      }
+      
+      .card-title {
+        font-size: 1.5rem;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+      }
+      
+      .welcome-content, .confirmation-content {
+        width: 95%;
+      }
+      
+      .welcome-title, .confirmation-title {
+        font-size: 1.5rem;
+      }
+      
+      .welcome-footer, .confirmation-footer {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .welcome-btn, .confirmation-btn {
+        width: 100%;
+      }
+      
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" id="themeToggle">
+    <i class="bi bi-moon-fill" id="themeIcon"></i>
+  </button>
+
+  <!-- Welcome Popup (shown on first load) -->
+  <div class="welcome-popup" id="welcomePopup">
+    <div class="welcome-content">
+      <div class="welcome-header">
+        <div class="welcome-icon">
+          <i class="bi bi-qr-code-scan"></i>
+        </div>
+        <h2 class="welcome-title">Activate Your Vehicle QR</h2>
+      </div>
+      <div class="welcome-body">
+        <p class="welcome-text">
+          By activating your vehicle's QR code, you'll enable others to contact you when needed. 
+          Complete this simple form to get started.
+        </p>
+        
+        <div class="welcome-features">
+          <div class="welcome-feature">
+            <i class="bi bi-check-circle-fill feature-icon"></i>
+            <span>Receive notifications when your vehicle is scanned</span>
+          </div>
+          <div class="welcome-feature">
+            <i class="bi bi-check-circle-fill feature-icon"></i>
+            <span>Help others contact you about your vehicle</span>
+          </div>
+          <div class="welcome-feature">
+            <i class="bi bi-check-circle-fill feature-icon"></i>
+            <span>Quick and easy activation process</span>
+          </div>
+        </div>
+      </div>
+      <div class="welcome-footer">
+        <button class="welcome-btn welcome-btn-outline" id="cancelWelcome">
+          <i class="bi bi-x-lg"></i> Not Now
+        </button>
+        <button class="welcome-btn welcome-btn-primary" id="continueWelcome">
+          <i class="bi bi-check-lg"></i> Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animated Bubbles Background -->
+  <div class="bubbles">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
+  <!-- Sudo Header -->
+  <header class="sudo-header">
+    <a href="https://sudo-70852.firebaseapp.com" class="sudo-logo">Sudo</a>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="card">
+      <h3 class="card-title">ACTIVATE YOUR VEHICLE QR CODE</h3>
+      
+      <div id="activationFormContainer">
+        <form id="activationForm">
+          <!-- Vehicle Information -->
+          <div class="form-group">
+            <label for="make" class="form-label">Vehicle Brand (e.g., Toyota, Honda)</label>
+            <input type="text" class="form-control" id="make" placeholder="Enter vehicle brand" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="model" class="form-label">Vehicle Model (e.g., Camry, Civic)</label>
+            <input type="text" class="form-control" id="model" placeholder="Enter vehicle model" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registrationNumber" class="form-label">License Plate Number</label>
+            <input type="text" class="form-control" id="registrationNumber" placeholder="Enter license plate number" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="vehicleType" class="form-label">Vehicle Category</label>
+            <select class="form-control" id="vehicleType" required>
+              <option value="" disabled selected>Select your vehicle type</option>
+              <option value="Car">Car</option>
+              <option value="Motorcycle">Motorcycle</option>
+              <option value="SUV">SUV</option>
+              <option value="Truck">Truck</option>
+              <option value="Van">Van</option>
+              <option value="Bus">Bus</option>
+              <option value="Auto Rickshaw">Auto Rickshaw</option>
+              <option value="Other">Other Vehicle Type</option>
+            </select>
+          </div>
+          
+          <!-- Owner Information -->
+          <div class="form-group">
+            <label for="fullName" class="form-label">Your Full Name</label>
+            <input type="text" class="form-control" id="fullName" placeholder="Enter your full name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="contactNumber" class="form-label">Mobile Number</label>
+            <input type="tel" class="form-control" id="contactNumber" placeholder="Enter 10-digit mobile number" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="emailAddress" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="emailAddress" placeholder="Enter your email address" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="city" class="form-label">City of Residence</label>
+            <input type="text" class="form-control" id="city" placeholder="Enter your city" required>
+          </div>
+          
+          <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="termsCheck" required>
+            <label class="form-check-label" for="termsCheck">
+              I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a>
+              and understand my data will be used as described in the <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>
+            </label>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="bi bi-check-circle-fill"></i> Activate QR Code
+          </button>
+        </form>
+      </div>
+
+      <!-- Success Message with Feedback Form -->
+      <div id="successMessage" class="success-message">
+        <div class="success-icon">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <h3 class="success-title">Activation Successful!</h3>
+        <p class="success-text">Your vehicle QR code is now active. Others can scan it to contact you.</p>
+        
+        <!-- Feedback Form -->
+        <div class="feedback-form" id="feedbackForm">
+          <h4 class="feedback-title">Help Us Improve</h4>
+          <p style="text-align: center; margin-bottom: 20px; color: var(--gray-color);">
+            We'd love to hear your feedback about the activation process
+          </p>
+          
+          <div class="form-group">
+            <label for="feedbackText" class="form-label">Your Feedback</label>
+            <textarea class="feedback-textarea" id="feedbackText" placeholder="Tell us about your experience..."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Rating</label>
+            <div class="rating-container">
+              <i class="bi bi-star-fill rating-star" data-rating="1"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="2"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="3"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="4"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="5"></i>
+            </div>
+          </div>
+          
+          <div class="feedback-buttons">
+            <button class="btn btn-outline-primary" id="skipFeedback">
+              Skip
+            </button>
+            <button class="btn btn-primary" id="submitFeedback">
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+        
+        <!-- Thank You Message -->
+        <div class="feedback-thankyou" id="thankYouMessage">
+          <div class="feedback-thankyou-icon">
+            <i class="bi bi-emoji-smile-fill"></i>
+          </div>
+          <h4 style="color: var(--text-color);">Thank You for Your Feedback!</h4>
+          <p style="color: var(--text-color);">We appreciate you taking the time to help us improve.</p>
+        </div>
+        
+        <button class="btn btn-primary" id="continueBtn" style="margin-top: 20px;">
+          <i class="bi bi-arrow-right"></i> Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms & Conditions Modal -->
+  <div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Terms & Conditions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>By activating your vehicle QR code, you agree to:</p>
+          <ul>
+            <li>Receive notifications when someone scans your QR code</li>
+            <li>Provide accurate vehicle information</li>
+            <li>Use the service responsibly</li>
+            <li>Comply with all applicable laws</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy Policy Modal -->
+  <div class="modal fade" id="privacyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Privacy Policy</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>We respect your privacy and will:</p>
+          <ul>
+            <li>Only use your contact information for QR code notifications</li>
+            <li>Never share your personal details without consent</li>
+            <li>Secure your data with industry-standard protections</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Popup -->
+  <div class="confirmation-popup" id="confirmationPopup">
+    <div class="confirmation-content">
+      <div class="confirmation-header">
+        <div class="confirmation-icon">
+          <i class="bi bi-qr-code"></i>
+        </div>
+        <h2 class="confirmation-title">Confirm Activation</h2>
+      </div>
+      <div class="confirmation-body">
+        <p class="confirmation-text">
+          By activating your QR code, you agree to receive notifications when someone scans your vehicle's QR code. 
+          This will allow others to contact you about your vehicle when needed.
+        </p>
+      </div>
+      <div class="confirmation-footer">
+        <button class="confirmation-btn confirmation-btn-outline" id="cancelActivation">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button class="confirmation-btn confirmation-btn-primary" id="confirmActivation">
+          <i class="bi bi-check-lg"></i> Activate Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="spinner-container" id="loadingSpinner">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastNotification">
+    <i class="bi bi-check-circle-fill toast-icon"></i>
+    <span id="toastMessage">Notification sent successfully!</span>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Theme Toggle Functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      // Check for saved theme preference or use system preference
+      const currentTheme = localStorage.getItem('theme');
+      if (currentTheme === 'dark' || (!currentTheme && prefersDarkScheme.matches)) {
+        document.body.classList.add('dark-theme');
+        themeIcon.className = 'bi bi-sun-fill';
+      }
+      
+      // Toggle theme on button click
+      themeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-theme');
+        const isDark = document.body.classList.contains('dark-theme');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        themeIcon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+      });
+
+      // Create additional bubbles for more animation
+      const bubblesContainer = document.querySelector('.bubbles');
+      for (let i = 0; i < 10; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.width = (Math.random() * 50 + 20) + 'px';
+        bubble.style.height = bubble.style.width;
+        bubble.style.animationDelay = Math.random() * 5 + 's';
+        bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        bubblesContainer.appendChild(bubble);
+      }
+
+      // DOM Elements
+      const welcomePopup = document.getElementById('welcomePopup');
+      const cancelWelcome = document.getElementById('cancelWelcome');
+      const continueWelcome = document.getElementById('continueWelcome');
+      const activationForm = document.getElementById('activationForm');
+      const confirmationPopup = document.getElementById('confirmationPopup');
+      const cancelActivation = document.getElementById('cancelActivation');
+      const confirmActivation = document.getElementById('confirmActivation');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      const toastNotification = document.getElementById('toastNotification');
+      const toastMessage = document.getElementById('toastMessage');
+      const activationFormContainer = document.getElementById('activationFormContainer');
+      const successMessage = document.getElementById('successMessage');
+      const continueBtn = document.getElementById('continueBtn');
+      
+      // Feedback elements
+      const ratingStars = document.querySelectorAll('.rating-star');
+      const feedbackText = document.getElementById('feedbackText');
+      const submitFeedback = document.getElementById('submitFeedback');
+      const skipFeedback = document.getElementById('skipFeedback');
+      const feedbackForm = document.getElementById('feedbackForm');
+      const thankYouMessage = document.getElementById('thankYouMessage');
+      
+      let formData = {};
+      let selectedRating = 0;
+
+      // Handle welcome popup actions
+      cancelWelcome.addEventListener('click', function() {
+        welcomePopup.classList.add('hidden');
+        showToast('You can activate your QR code anytime', 'warning');
+      });
+
+      continueWelcome.addEventListener('click', function() {
+        welcomePopup.classList.add('hidden');
+      });
+
+      // Form submission
+      activationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous errors
+        document.querySelectorAll('.is-invalid').forEach(el => {
+          el.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.invalid-feedback').forEach(el => {
+          el.remove();
+        });
+        
+        // Validate form
+        const requiredFields = [
+          'make', 'model', 'registrationNumber', 'vehicleType',
+          'fullName', 'contactNumber', 'emailAddress', 'city'
+        ];
+        
+        let isValid = true;
+        requiredFields.forEach(field => {
+          const element = document.getElementById(field);
+          if (!element.value.trim()) {
+            showFieldError(element, 'This field is required');
+            isValid = false;
+          }
+        });
+        
+        if (!document.getElementById('termsCheck').checked) {
+          showFieldError(document.getElementById('termsCheck'), 'You must accept the terms');
+          isValid = false;
+        }
+        
+        // Validate email format
+        const email = document.getElementById('emailAddress');
+        if (email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+          showFieldError(email, 'Enter a valid email address');
+          isValid = false;
+        }
+        
+        // Validate phone number format (simple check for 10 digits)
+        const phone = document.getElementById('contactNumber');
+        if (phone.value && !/^\+91\d{10}$/.test(phone.value)) {
+          showFieldError(phone, 'Enter a valid mobile number in +91XXXXXXXXXX format');
+          isValid = false;
+        }
+        
+        if (!isValid) {
+          showToast('Please fill all required fields correctly', 'error');
+          return;
+        }
+        
+        // Prepare data for submission
+        formData = {
+          make: document.getElementById('make').value.trim(),
+          model: document.getElementById('model').value.trim(),
+          registrationNumber: document.getElementById('registrationNumber').value.trim(),
+          vehicleType: document.getElementById('vehicleType').value,
+          fullName: document.getElementById('fullName').value.trim(),
+          contactNumber: document.getElementById('contactNumber').value.trim(),
+          emailAddress: document.getElementById('emailAddress').value.trim(),
+          city: document.getElementById('city').value.trim()
+        };
+        
+        // Show loading spinner
+        loadingSpinner.classList.add('active');
+        
+        // Send data to server
+        fetch('', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(errData => {
+              throw errData;
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            // Show success message with appropriate text
+            activationFormContainer.style.display = 'none';
+            successMessage.style.display = 'block';
+            
+            if (data.is_new_user) {
+                document.querySelector('.success-title').textContent = 'Account & Vehicle Registration Successful!';
+                document.querySelector('.success-text').textContent = 
+                    'Your account has been created and your vehicle QR code is now active. ' +
+                    'Others can scan it to contact you.';
+            } else {
+                document.querySelector('.success-title').textContent = 'Vehicle Registration Successful!';
+                document.querySelector('.success-text').textContent = 
+                    'Your new vehicle has been added to your account and the QR code is now active. ' +
+                    'Others can scan it to contact you.';
+            }
+            
+            // Show feedback form after a short delay
+            setTimeout(() => {
+              feedbackForm.style.display = 'block';
+            }, 500);
+            
+            // Redirect after delay if needed
+            if (data.redirect_url) {
+              continueBtn.addEventListener('click', function() {
+                window.location.href = data.redirect_url;
+              });
+            } else {
+              continueBtn.style.display = 'none';
+            }
+          } else {
+            throw data;
+          }
+        })
+        .catch(errorData => {
+          if (errorData.errors) {
+            // Handle field-specific errors
+            Object.keys(errorData.errors).forEach(field => {
+              const element = document.getElementById(field);
+              if (element) {
+                showFieldError(element, errorData.errors[field]);
+              }
+            });
+            showToast(errorData.message || 'Please correct the errors', 'error');
+          } else {
+            showToast(errorData.message || 'Registration failed. Please try again.', 'error');
+          }
+        })
+        .finally(() => {
+          loadingSpinner.classList.remove('active');
+        });
+      });
+
+      // Rating star selection
+      ratingStars.forEach(star => {
+        star.addEventListener('click', function() {
+          const rating = parseInt(this.getAttribute('data-rating'));
+          selectedRating = rating;
+          
+          // Update star colors
+          ratingStars.forEach((s, index) => {
+            if (index < rating) {
+              s.classList.add('active');
+            } else {
+              s.classList.remove('active');
+            }
+          });
+        });
+      });
+      
+      // Submit feedback
+      submitFeedback.addEventListener('click', function() {
+        const feedback = feedbackText.value.trim();
+        
+        // Show loading spinner
+        loadingSpinner.classList.add('active');
+        
+        // Prepare feedback data
+        const feedbackData = {
+          feedback: feedback,
+          rating: selectedRating,
+          email: formData.emailAddress,
+          name: formData.fullName,
+          vehicle: `${formData.make} ${formData.model}`
+        };
+        
+        // Send feedback to server
+        fetch('/send-feedback/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(feedbackData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Feedback submission failed');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            // Hide feedback form and show thank you message
+            feedbackForm.style.display = 'none';
+            thankYouMessage.style.display = 'block';
+            
+            // Move continue button down
+            continueBtn.style.marginTop = '30px';
+          } else {
+            throw new Error(data.message || 'Feedback submission failed');
+          }
+        })
+        .catch(error => {
+          showToast('Failed to submit feedback. Please try again.', 'error');
+        })
+        .finally(() => {
+          loadingSpinner.classList.remove('active');
+        });
+      });
+      
+      // Skip feedback
+      skipFeedback.addEventListener('click', function() {
+        feedbackForm.style.display = 'none';
+        continueBtn.style.marginTop = '30px';
+      });
+
+      // Helper function to show field errors
+      function showFieldError(element, message) {
+        element.classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = message;
+        element.parentNode.appendChild(errorDiv);
+      }
+
+      // Helper function to get CSRF token
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      // Function to show toast notification
+      function showToast(message, type = 'success') {
+        toastNotification.className = 'toast';
+        toastNotification.classList.add(`toast-${type}`);
+        toastMessage.textContent = message;
+        
+        if (type === 'success') {
+          toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+        } else if (type === 'error') {
+          toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+        } else if (type === 'warning') {
+          toastNotification.innerHTML = `<i class="bi bi-exclamation-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+        }
+        
+        toastNotification.classList.add('show');
+        
+        setTimeout(() => {
+          toastNotification.classList.remove('show');
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>

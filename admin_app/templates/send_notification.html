@@ -1,0 +1,1350 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Vehicle Owner</title>
+  <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
+  <link href="{% static 'assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+
+  <style>
+    /* Bubble Animation Background */
+    @keyframes floatBubble {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+      100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    }
+
+    :root {
+      --primary-color: #FFD700; /* Gold/Yellow */
+      --primary-dark: #FFC000; /* Darker Gold */
+      --primary-light: #FFF9C4; /* Light Yellow */
+      --secondary-color: #000000; /* Black */
+      --accent-color: #FFEA00; /* Bright Yellow */
+      --success-color: #4CAF50; /* Green */
+      --danger-color: #F44336; /* Red */
+      --dark-color: #212121; /* Dark Gray */
+      --light-color: #FAFAFA; /* Very Light Gray */
+      --gray-color: #757575; /* Medium Gray */
+      --warning-color: #FFC107; /* Amber */
+      
+      /* Theme variables */
+      --bg-color: #FAFAFA;
+      --text-color: #212121;
+      --card-bg: #FFFFFF;
+      --border-color: #E0E0E0;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .dark-theme {
+      --primary-color: #FFD700; /* Gold/Yellow remains same */
+      --primary-dark: #FFC000;
+      --primary-light: #333300;
+      --secondary-color: #E0E0E0; /* Light Gray */
+      --accent-color: #FFEA00;
+      --success-color: #4CAF50;
+      --danger-color: #F44336;
+      --dark-color: #E0E0E0; /* Light Gray */
+      --light-color: #121212; /* Very Dark Gray */
+      --gray-color: #B0B0B0; /* Light Gray */
+      --warning-color: #FFC107;
+      
+      --bg-color: #121212;
+      --text-color: #E0E0E0;
+      --card-bg: #1E1E1E;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--shadow-color);
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+    }
+
+    /* Animated Bubbles */
+    .bubbles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      top: 0;
+      left: 0;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(255, 215, 0, 0.15);
+      border-radius: 50%;
+      animation: floatBubble 10s infinite linear;
+      opacity: 0;
+    }
+
+    /* Generate random bubbles */
+    .bubble:nth-child(1) {
+      width: 40px;
+      height: 40px;
+      left: 10%;
+      animation-delay: 0s;
+      animation-duration: 12s;
+    }
+    .bubble:nth-child(2) {
+      width: 60px;
+      height: 60px;
+      left: 25%;
+      animation-delay: 2s;
+      animation-duration: 15s;
+    }
+    .bubble:nth-child(3) {
+      width: 80px;
+      height: 80px;
+      left: 40%;
+      animation-delay: 1s;
+      animation-duration: 18s;
+    }
+    .bubble:nth-child(4) {
+      width: 50px;
+      height: 50px;
+      left: 55%;
+      animation-delay: 3s;
+      animation-duration: 14s;
+    }
+    .bubble:nth-child(5) {
+      width: 70px;
+      height: 70px;
+      left: 70%;
+      animation-delay: 0.5s;
+      animation-duration: 16s;
+    }
+    .bubble:nth-child(6) {
+      width: 90px;
+      height: 90px;
+      left: 85%;
+      animation-delay: 4s;
+      animation-duration: 20s;
+    }
+
+    /* Sudo Logo */
+    .sudo-header {
+      text-align: center;
+      padding: 15px 0;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .sudo-logo {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+      text-shadow: 0 2px 4px var(--shadow-color);
+      letter-spacing: 1px;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    /* Card Styles */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px var(--shadow-color);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border: none;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px var(--shadow-color);
+    }
+
+    .card-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      text-align: center;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .card-title:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: var(--primary-color);
+      border-radius: 3px;
+    }
+
+    .vehicle-info {
+      background: rgba(255, 215, 0, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      text-align: center;
+      font-weight: 500;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .plate-number {
+      font-size: 1.6rem;
+      letter-spacing: 5px;
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-top: 10px;
+    }
+
+    /* Reason Selection */
+    .reason-list {
+      margin-bottom: 30px;
+    }
+
+    .reason-item {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--card-bg);
+    }
+
+    .reason-item:hover {
+      border-color: var(--primary-color);
+      box-shadow: 0 5px 15px rgba(255, 215, 0, 0.1);
+    }
+
+    .reason-item.selected {
+      background-color: rgba(255, 215, 0, 0.1);
+      border-color: var(--primary-color);
+    }
+
+    .reason-icon {
+      margin-right: 15px;
+      font-size: 1.5rem;
+      color: var(--primary-color);
+      transition: transform 0.3s ease;
+    }
+
+    .reason-item.selected .reason-icon {
+      transform: scale(1.1);
+    }
+
+    /* Custom Message Styles */
+    #customMessageContainer {
+      display: none;
+      margin-top: 15px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    #customMessage {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      min-height: 100px;
+      transition: all 0.3s ease;
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--card-bg);
+      color: var(--text-color);
+    }
+
+    #customMessage:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+      outline: none;
+    }
+
+    .char-count {
+      font-size: 0.8rem;
+      color: var(--gray-color);
+      text-align: right;
+      margin-top: 5px;
+    }
+
+    /* Button Styles */
+    .btn-container {
+      margin-top: 25px;
+      text-align: center;
+    }
+
+    .btn {
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    .btn-secondary {
+      background-color: var(--border-color);
+      color: var(--text-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--gray-color);
+      color: var(--light-color);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .modal-content {
+      background-color: var(--card-bg);
+      padding: 30px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 15px 40px var(--shadow-color);
+      transform: translateY(20px);
+      opacity: 0;
+      animation: modalOpen 0.4s ease-out forwards;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: var(--primary-color);
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background-color: var(--card-bg);
+      color: var(--text-color);
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+    }
+    /* Bubble Animation Background */
+    @keyframes floatBubble {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+      100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    }
+
+    :root {
+      --primary-color: #FFD700; /* Gold/Yellow */
+      --primary-dark: #FFC000; /* Darker Gold */
+      --primary-light: #FFF9C4; /* Light Yellow */
+      --secondary-color: #000000; /* Black */
+      --accent-color: #FFEA00; /* Bright Yellow */
+      --success-color: #4CAF50; /* Green */
+      --danger-color: #F44336; /* Red */
+      --dark-color: #212121; /* Dark Gray */
+      --light-color: #FAFAFA; /* Very Light Gray */
+      --gray-color: #757575; /* Medium Gray */
+      --warning-color: #FFC107; /* Amber */
+      
+      /* Theme variables */
+      --bg-color: #FAFAFA;
+      --text-color: #212121;
+      --card-bg: #FFFFFF;
+      --border-color: #E0E0E0;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+      --button-text-color: #000000; /* Black text for buttons */
+    }
+
+    .dark-theme {
+      --primary-color: #FFD700; /* Gold/Yellow remains same */
+      --primary-dark: #FFC000;
+      --primary-light: #333300;
+      --secondary-color: #E0E0E0; /* Light Gray */
+      --accent-color: #FFEA00;
+      --success-color: #4CAF50;
+      --danger-color: #F44336;
+      --dark-color: #E0E0E0; /* Light Gray */
+      --light-color: #121212; /* Very Dark Gray */
+      --gray-color: #B0B0B0; /* Light Gray */
+      --warning-color: #FFC107;
+      
+      --bg-color: #121212;
+      --text-color: #E0E0E0;
+      --card-bg: #1E1E1E;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --button-text-color: #000000; /* Black text for buttons remains same */
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--shadow-color);
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+    }
+
+    /* Button Styles */
+    .btn {
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--button-text-color); /* Use button text color variable */
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: var(--button-text-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    /* Thank You Message */
+    .feedback-thankyou {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--button-text-color); /* Use button text color for consistency */
+    }
+    
+    .feedback-thankyou h4,
+    .feedback-thankyou p {
+      color: var(--button-text-color); /* Ensure text is black in both themes */
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 15px;
+      margin-top: 25px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--dark-color);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px var(--shadow-color);
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+    }
+
+    .toast-success {
+      background-color: var(--success-color);
+    }
+
+    .toast-error {
+      background-color: var(--danger-color);
+    }
+
+    /* Warning Text */
+    .warning-text {
+      font-size: 0.85rem;
+      color: var(--gray-color);
+      margin-top: 25px;
+      text-align: center;
+      padding-top: 15px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* No Vehicle Message */
+    .no-vehicle {
+      text-align: center;
+      padding: 30px;
+      color: var(--danger-color);
+      font-weight: 600;
+      background: rgba(244, 67, 54, 0.1);
+      border-radius: 12px;
+    }
+
+    /* Notification Method Options */
+    .method-option {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background-color: var(--card-bg);
+    }
+    .feedback-form {
+      display: none;
+      margin-top: 30px;
+      padding: 25px;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 5px 15px var(--shadow-color);
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .feedback-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      text-align: center;
+    }
+    
+    .feedback-textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      margin-bottom: 20px;
+      resize: vertical;
+    }
+    
+    .feedback-textarea:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+      outline: none;
+    }
+    
+    .rating-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+      gap: 10px;
+    }
+    
+    .rating-star {
+      font-size: 2rem;
+      color: var(--gray-color);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .rating-star:hover,
+    .rating-star.active {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+    
+    .feedback-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    
+    .feedback-thankyou {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .feedback-thankyou-icon {
+      font-size: 3rem;
+      color: var(--success-color);
+      margin-bottom: 15px;
+      animation: pulse 2s infinite;
+    }
+    
+    /* Success Modal */
+    .success-modal {
+      text-align: center;
+      padding: 30px;
+    }
+    
+    .success-icon {
+      font-size: 4rem;
+      color: var(--success-color);
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+    
+    .success-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+    
+    .success-text {
+      color: var(--gray-color);
+      margin-bottom: 25px;
+    }
+    .method-option:hover {
+      background-color: rgba(255, 215, 0, 0.05);
+      border-color: rgba(255, 215, 0, 0.3);
+    }
+
+    .method-option.selected {
+      background-color: rgba(255, 215, 0, 0.1);
+      border-color: var(--primary-color);
+    }
+
+    /* Info Text */
+    .info-text {
+      text-align: center;
+      margin-top: 25px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes modalOpen {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .card {
+        padding: 25px 20px;
+      }
+      
+      .card-title {
+        font-size: 1.5rem;
+      }
+      
+      .plate-number {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+      }
+      
+      .btn {
+        padding: 14px 24px;
+        font-size: 1rem;
+      }
+      
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" id="themeToggle">
+    <i class="bi bi-moon-fill" id="themeIcon"></i>
+  </button>
+
+  <!-- Animated Bubbles Background -->
+  <div class="bubbles">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
+  <!-- Sudo Header -->
+  <header class="sudo-header">
+    <a href="https://sudo-70852.firebaseapp.com" class="sudo-logo">Sudo</a>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    {% if vehicle_data %}
+    <div class="card">
+      <h3 class="card-title">CONTACT VEHICLE OWNER</h3>
+      
+      <div class="vehicle-info">
+        <div id="vehicleModel" style="color: var(--gray-color);">{{ vehicle_data.model }}</div>
+        <div class="plate-number">
+          {{ vehicle_data.registrationNumber }}
+        </div>
+      </div>
+
+      <div>
+        <p style="text-align: center; margin-bottom: 25px; color: var(--gray-color);">Please select why you need to contact the vehicle owner:</p>
+        
+        <div class="reason-list">
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle lights are on')">
+            <i class="bi bi-lightbulb-fill reason-icon"></i>
+            <span style="color: var(--gray-color);">Vehicle lights are on</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle is at a No Parking Zone')">
+            <i class="bi bi-sign-stop-fill reason-icon"></i>
+            <span style="color: var(--gray-color);">Vehicle is at a No Parking Zone</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle is getting towed')">
+            <i class="bi bi-truck-flatbed reason-icon"></i>
+            <span style="color: var(--gray-color);">Vehicle is getting towed</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle window is open')">
+            <i class="bi bi-door-open-fill reason-icon"></i>
+            <span style="color: var(--gray-color);">Vehicle window is open</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'Some issues with the vehicle noticed')">
+            <i class="bi bi-exclamation-triangle-fill reason-icon"></i>
+            <span style="color: var(--gray-color);">Some issues with the vehicle noticed</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'custom')" id="customReasonItem">
+            <i class="bi bi-chat-square-text-fill reason-icon"></i>
+            <span style="color: var(--gray-color);">Other reason (type your message)</span>
+          </div>
+        </div>
+
+        <!-- Custom Message Container -->
+        <div id="customMessageContainer">
+          <textarea 
+            class="form-control" 
+            id="customMessage" 
+            rows="3" 
+            placeholder="Please type your message here..."
+            maxlength="200"></textarea>
+          <div class="char-count"><span id="charCount">0</span>/200 characters</div>
+        </div>
+
+        <div class="btn-container">
+          <button class="btn btn-primary" id="notifyBtn">
+            <i class="bi bi-bell-fill"></i> Notify Owner
+          </button>
+        </div>
+
+        <!-- Feedback Form (shown after successful notification) -->
+        <div class="feedback-form" id="feedbackForm">
+          <h4 class="feedback-title">Help Us Improve</h4>
+          <p style="text-align: center; margin-bottom: 20px; color: var(--gray-color);">
+            We'd love to hear your feedback about this contact process
+          </p>
+          
+          <div class="form-group">
+            <label for="feedbackText" class="form-label">Your Feedback</label>
+            <textarea class="feedback-textarea" id="feedbackText" placeholder="Tell us about your experience..."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Rating</label>
+            <div class="rating-container">
+              <i class="bi bi-star-fill rating-star" data-rating="1"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="2"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="3"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="4"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="5"></i>
+            </div>
+          </div>
+          
+          <div class="feedback-buttons">
+            <button class="btn btn-outline-primary" id="skipFeedback">
+              Skip
+            </button>
+            <button class="btn btn-primary" id="submitFeedback">
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+        
+        <div class="feedback-thankyou" id="thankYouMessage">
+          <div class="feedback-thankyou-icon">
+            <i class="bi bi-emoji-smile-fill"></i>
+          </div>
+          <h4>Thank You for Your Feedback!</h4>
+          <p>We appreciate you taking the time to help us improve.</p>
+        </div>
+        <div class="info-text">
+          <p style="color: var(--primary-color); font-weight: 500;">
+            <i class="bi bi-info-circle-fill" style="margin-right: 5px;"></i>
+            Thank you for helping keep our community safe!
+          </p>
+          <p style="font-size: 0.85rem; color: var(--gray-color); margin-top: 10px;">
+            Learn more about our <a href="https://sudo-70852.firebaseapp.com/#about" style="color: var(--primary-color); text-decoration: none;">Community Guidelines</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="no-vehicle">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
+        <p style="font-size: 1.2rem;">No vehicle registered for this QR code</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Notification Method Modal -->
+  <div class="modal-overlay" id="methodModal">
+    <div class="modal-content">
+      <h4 class="modal-title">Select Notification Method</h4>
+      <p style="text-align: center; color: var(--gray-color); margin-bottom: 20px;">
+        How would you like to notify the vehicle owner?
+      </p>
+      
+      <div class="method-options" style="margin-bottom: 25px;">
+        <div class="method-option" onclick="selectMethod('push')">
+          <i class="bi bi-bell-fill" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+          <span>Push Notification</span>
+        </div>
+        
+        <div class="method-option" onclick="selectMethod('sms')">
+          <i class="bi bi-chat-text-fill" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+          <span>Send SMS Message</span>
+        </div>
+        
+        <div class="method-option" onclick="selectMethod('call')">
+          <i class="bi bi-telephone-fill" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+          <span>Make Phone Call</span>
+        </div>
+      </div>
+      
+      <!-- Phone number input (shown only for SMS/Call) -->
+      <div id="phoneInputContainer" style="display: none; margin-top: 20px;">
+        <label style="display: block; margin-bottom: 8px; color: var(--gray-color);">Your phone number (optional):</label>
+        <input type="tel" class="form-control" id="userPhone" placeholder="+1234567890">
+        <small style="color: var(--gray-color); display: block; margin-top: 5px;">We'll share this with the owner so they can contact you back.</small>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="methodCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="methodConfirmBtn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal-content">
+      <div class="success-modal">
+        <div class="success-icon">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <h3 class="success-title">Notification Sent!</h3>
+        <p class="success-text">The vehicle owner has been notified about your message.</p>
+        <button class="btn btn-primary" id="continueBtn">
+          <i class="bi bi-arrow-right"></i> Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastNotification">
+    <i class="bi bi-check-circle-fill toast-icon"></i>
+    <span id="toastMessage">Notification sent successfully!</span>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <script>
+    // Theme Toggle Functionality
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // Check for saved theme preference or use system preference
+    const currentTheme = localStorage.getItem('theme');
+    if (currentTheme === 'dark' || (!currentTheme && prefersDarkScheme.matches)) {
+      document.body.classList.add('dark-theme');
+      themeIcon.className = 'bi bi-sun-fill';
+    }
+    
+    // Toggle theme on button click
+    themeToggle.addEventListener('click', function() {
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      themeIcon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    });
+
+    // DOM Elements
+    const notifyBtn = document.getElementById('notifyBtn');
+    const methodModal = document.getElementById('methodModal');
+    const methodCancelBtn = document.getElementById('methodCancelBtn');
+    const methodConfirmBtn = document.getElementById('methodConfirmBtn');
+    const phoneInputContainer = document.getElementById('phoneInputContainer');
+    const userPhone = document.getElementById('userPhone');
+    const toastNotification = document.getElementById('toastNotification');
+    const toastMessage = document.getElementById('toastMessage');
+    const customMessageContainer = document.getElementById('customMessageContainer');
+    const customMessage = document.getElementById('customMessage');
+    const charCount = document.getElementById('charCount');
+    const feedbackForm = document.getElementById('feedbackForm');
+    const submitFeedback = document.getElementById('submitFeedback');
+    const skipFeedback = document.getElementById('skipFeedback');
+    const thankYouMessage = document.getElementById('thankYouMessage');
+    const successModal = document.getElementById('successModal');
+    const continueBtn = document.getElementById('continueBtn');
+    
+    // Selected reason, method, and rating
+    let selectedReason = '';
+    let selectedMethod = 'push';
+    let selectedRating = 0;
+    const vehicleData = {
+      model: "{{ vehicle_data.model|default:'' }}",
+      registrationNumber: "{{ vehicle_data.registrationNumber|default:'' }}"
+    };
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Create additional bubbles for more animation
+      const bubblesContainer = document.querySelector('.bubbles');
+      for (let i = 0; i < 10; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.width = (Math.random() * 50 + 20) + 'px';
+        bubble.style.height = bubble.style.width;
+        bubble.style.animationDelay = Math.random() * 5 + 's';
+        bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        bubblesContainer.appendChild(bubble);
+      }
+      
+      // Hide custom message container initially
+      customMessageContainer.style.display = 'none';
+      feedbackForm.style.display = 'none';
+      thankYouMessage.style.display = 'none';
+      
+      // Set up character counter for custom message
+      customMessage.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+      });
+      
+      // Set up rating stars
+      const ratingStars = document.querySelectorAll('.rating-star');
+      ratingStars.forEach(star => {
+        star.addEventListener('click', function() {
+          const rating = parseInt(this.getAttribute('data-rating'));
+          selectedRating = rating;
+          
+          // Update star colors
+          ratingStars.forEach((s, index) => {
+            if (index < rating) {
+              s.classList.add('active');
+            } else {
+              s.classList.remove('active');
+            }
+          });
+        });
+      });
+    });
+
+    // Function to select reason
+    function selectReason(element, reason) {
+      // Remove selected class from all items
+      const reasonItems = document.querySelectorAll('.reason-item');
+      reasonItems.forEach(item => {
+        item.classList.remove('selected');
+      });
+      
+      // Add selected class to clicked item
+      element.classList.add('selected');
+      selectedReason = reason;
+      
+      // Show/hide custom message field
+      if (reason === 'custom') {
+        customMessageContainer.style.display = 'block';
+        customMessage.focus();
+      } else {
+        customMessageContainer.style.display = 'none';
+      }
+    }
+
+    // Function to select notification method
+    function selectMethod(method) {
+      selectedMethod = method;
+      const methodOptions = document.querySelectorAll('.method-option');
+      
+      methodOptions.forEach(option => {
+        option.classList.remove('selected');
+        if (option.getAttribute('onclick').includes(method)) {
+          option.classList.add('selected');
+        }
+      });
+      
+      // Show phone input for SMS/Call
+      if (method === 'sms' || method === 'call') {
+        phoneInputContainer.style.display = 'block';
+      } else {
+        phoneInputContainer.style.display = 'none';
+      }
+    }
+
+    // Show method modal when Notify button is clicked
+    notifyBtn.addEventListener('click', function() {
+      if (!selectedReason) {
+        showToast('Please select a reason first', 'error');
+        return;
+      }
+      
+      // If custom reason is selected but no message
+      if (selectedReason === 'custom' && customMessage.value.trim() === '') {
+        showToast('Please type your message', 'error');
+        return;
+      }
+
+      methodModal.style.display = 'flex';
+    });
+
+    // Hide method modal when Cancel button is clicked
+    methodCancelBtn.addEventListener('click', function() {
+      methodModal.style.display = 'none';
+    });
+
+    // Method modal confirm button
+    methodConfirmBtn.addEventListener('click', function() {
+      methodModal.style.display = 'none';
+      
+      // Prepare the message to send
+      let messageToSend = selectedReason;
+      if (selectedReason === 'custom') {
+        messageToSend = customMessage.value.trim();
+      }
+      
+      // Send notification
+      sendNotification(messageToSend);
+    });
+
+    // Continue button in success modal
+    continueBtn.addEventListener('click', function() {
+      successModal.style.display = 'none';
+      feedbackForm.style.display = 'block';
+    });
+
+    // Submit feedback
+    submitFeedback.addEventListener('click', function() {
+      const feedback = feedbackText.value.trim();
+      
+      // Show loading state
+      submitFeedback.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+      submitFeedback.disabled = true;
+      
+      // Prepare feedback data
+      const feedbackData = {
+        feedback: feedback,
+        rating: selectedRating,
+        contact_reason: selectedReason,
+        vehicle_model: vehicleData.model,
+        notification_method: selectedMethod
+      };
+      
+      // Send feedback to server
+      fetch('/send-feedback-notify/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(feedbackData)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Feedback submission failed');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.status === 'success') {
+          // Hide feedback form and show thank you message
+          feedbackForm.style.display = 'none';
+          thankYouMessage.style.display = 'block';
+        } else {
+          throw new Error(data.message || 'Feedback submission failed');
+        }
+      })
+      .catch(error => {
+        showToast('Failed to submit feedback. Please try again.', 'error');
+      })
+      .finally(() => {
+        submitFeedback.innerHTML = 'Submit Feedback';
+        submitFeedback.disabled = false;
+      });
+    });
+    
+    // Skip feedback
+    skipFeedback.addEventListener('click', function() {
+      feedbackForm.style.display = 'none';
+      thankYouMessage.style.display = 'block';
+    });
+
+    // Function to show toast notification
+    function showToast(message, type = 'success') {
+      toastNotification.className = 'toast';
+      toastNotification.classList.add(`toast-${type}`);
+      toastMessage.textContent = message;
+      
+      if (type === 'success') {
+        toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+      } else {
+        toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+      }
+      
+      toastNotification.classList.add('show');
+      
+      setTimeout(() => {
+        toastNotification.classList.remove('show');
+      }, 3000);
+    }
+
+    // Function to send notification to server
+    function sendNotification(message) {
+      const csrfToken = "{{ csrf_token }}";
+      const phoneNumber = userPhone.value.trim();
+      
+      if (!csrfToken) {
+        console.error('CSRF token not found');
+        showToast('Security error. Please refresh', 'error');
+        return;
+      }
+      
+      // Show loading state
+      methodConfirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+      methodConfirmBtn.disabled = true;
+      
+      fetch('', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          reason: message,
+          user_phone: phoneNumber,
+          notification_method: selectedMethod
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.status === 'success') {
+          // Show success modal
+          successModal.style.display = 'flex';
+          
+          // Reset form
+          const reasonItems = document.querySelectorAll('.reason-item');
+          reasonItems.forEach(item => {
+            item.classList.remove('selected');
+          });
+          selectedReason = '';
+          customMessage.value = '';
+          customMessageContainer.style.display = 'none';
+          charCount.textContent = '0';
+          userPhone.value = '';
+          selectedMethod = 'push';
+        } else {
+          throw new Error(data.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast(error.message || 'Failed to send notification', 'error');
+      })
+      .finally(() => {
+        methodConfirmBtn.innerHTML = 'Continue';
+        methodConfirmBtn.disabled = false;
+      });
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  </script>
+</body>
+</html>
