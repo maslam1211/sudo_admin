@@ -23,17 +23,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-no=2un6zvm5r&cupj9%k_%zjn)!7#*lyf#ca6mizl28ls#sdxk'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['sudo-admin.onrender.com','*']
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://sudobe-production.up.railway.app',
-    'http://sudobe-production.up.railway.app'  # Only if you need HTTP support
+    'https://sudo-admin.onrender.com',
+    'http://sudo-admin.onrender.com'  # Only if you need HTTP support
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'sudobe-production.up.railway.app',
+    'sudo-admin.onrender.com',
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -192,7 +192,7 @@ DEFAULT_FROM_EMAIL = 'aslamsalman1211@gmail.com'  # Sender email (same as HOST_U
 SERVER_EMAIL = 'aslamsalman1211@gmail.com'  # For server error notifications
 EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
-BASE_DOMAIN='https://sudobe-production.up.railway.app'
+BASE_DOMAIN='https://sudo-admin.onrender.com'
 
 TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
 TWILIO_AUTH_TOKEN = '1e57f1b27e6acc6694751819ae441a72'    # Get from Twilio console
