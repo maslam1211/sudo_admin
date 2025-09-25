@@ -33,6 +33,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    'http://43.205.192.146',
     'sudo-admin.onrender.com',
 ]
 
