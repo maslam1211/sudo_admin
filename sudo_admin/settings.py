@@ -28,7 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['sudo-admin.onrender.com','*']
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://sudo-admin.onrender.com',
+    'http://43.205.192.146',
     'http://sudo-admin.onrender.com'  # Only if you need HTTP support
 ]
 
@@ -186,17 +186,17 @@ EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP server address
 EMAIL_PORT = 587  # Port for TLS
 EMAIL_USE_TLS = True  # Enable TLS encryption
 EMAIL_USE_SSL = False  # Important: Must be False when using TLS
-EMAIL_HOST_USER = 'aslamsalman1211@gmail.com'  # Your full Gmail address
-EMAIL_HOST_PASSWORD = 'ukrm zfjl tlps gfaj'  # Your 16-character app password
-DEFAULT_FROM_EMAIL = 'aslamsalman1211@gmail.com'  # Sender email (same as HOST_USER)
-SERVER_EMAIL = 'aslamsalman1211@gmail.com'  # For server error notifications
+EMAIL_HOST_USER = 'sudotagonline@gmail.com'  # Your full Gmail address
+EMAIL_HOST_PASSWORD = 'bhai mtkd xyhg mefr'  # Your 16-character app password
+DEFAULT_FROM_EMAIL = 'sudotagonline@gmail.com'  # Sender email (same as HOST_USER)
+SERVER_EMAIL = 'sudotagonline@gmail.com'  # For server error notifications
 EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
-BASE_DOMAIN='https://sudo-admin.onrender.com'
+BASE_DOMAIN='http://43.205.192.146'
 
 TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
 TWILIO_AUTH_TOKEN = '1e57f1b27e6acc6694751819ae441a72'    # Get from Twilio console
 TWILIO_PHONE_NUMBER = '+19895205533'      # Your Twilio phone number
 
 
-FEEDBACK_EMAIL = 'aslamsalman1211@gmail.com'
+FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
