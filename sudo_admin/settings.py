@@ -24,10 +24,14 @@ SECRET_KEY = 'django-insecure-no=2un6zvm5r&cupj9%k_%zjn)!7#*lyf#ca6mizl28ls#sdxk
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # temporarily for debugging only
+
 ALLOWED_HOSTS = ['*']  # temporarily allow everything
+
 CSRF_TRUSTED_ORIGINS = ['http://43.205.192.146', 'https://sudotag.duckdns.org']
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+# Cookies
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
 
 CORS_ALLOWED_ORIGINS = [
     'http://43.205.192.146',
@@ -35,14 +39,10 @@ CORS_ALLOWED_ORIGINS = [
     'sudo-admin.onrender.com',
 ]
 
+
+# Tell Django the real request is HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SESSION_COOKIE_HTTPONLY = True
-# CSRF_COOKIE_HTTPONLY = False  # Django default
-# SECURE_BROWSER_XSS_FILTER = True
-# SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 # Application definition
