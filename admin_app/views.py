@@ -196,6 +196,7 @@ def get_font(font_size=20):
 
 from django.utils.timezone import now  # Add this import at the top of your file
 
+
 def generate_qr(request):
     if not request.session.get('admin'):
         return redirect('login')
@@ -207,54 +208,51 @@ def generate_qr(request):
         
         if qr_type == 'user':
             count = int(request.POST.get('count', 1))
+            batch = db.batch()  # Firestore batch
+            template_path = os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'images', 'qr_template.jpg')
+            
+            if not os.path.exists(template_path):
+                return render(request, 'generate_qr.html', {
+                    'error': f'Template image not found at: {template_path}'
+                })
+            
+            template_img = PILImage.open(template_path).convert('RGB')
+            template_width, template_height = template_img.size
+            qr_size = (int(template_height * 0.75), int(template_height * 0.75))
+            left_margin = int(template_width * 0.07)
             
             for _ in range(count):
                 try:
-                    # Generate unique IDs
+                    # Generate unique QR ID
                     qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
                     
-                    # Create yellow QR code on black background
+                    # Create QR code
                     qr = qrcode.QRCode(
-                        version=3,  # Increased version for larger capacity
+                        version=3,
                         error_correction=qrcode.constants.ERROR_CORRECT_H,
-                        box_size=12,  # Larger box size for bigger QR code
-                        border=2,  # Smaller border to maximize QR code area
+                        box_size=12,
+                        border=2
                     )
                     qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
                     qr.make(fit=True)
                     qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
-
-                    # Open template image
-                    template_path = os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'images', 'qr_template.jpg')
-                    if not os.path.exists(template_path):
-                        return render(request, 'generate_qr.html', {
-                            'error': f'Template image not found at: {template_path}'
-                        })
-
-                    template_img = PILImage.open(template_path).convert('RGB')
-                    template_width, template_height = template_img.size
-
-                    # Calculate QR code size to occupy 75% of template height
-                    qr_size = (int(template_height * 0.75), int(template_height * 0.75))
-
-                    # Position QR code on left side with precise margins
-                    left_margin = int(template_width * 0.07)  # 5% from left edge
-                    qr_position = (
-                        left_margin,  # Left aligned with margin
-                        (template_height - qr_size[1]) // 2  # Perfect vertical center
-                    )
-
-                    # High-quality resize and paste
+                    
+                    # Paste on template
                     qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
                     final_img = template_img.copy()
+                    qr_position = (
+                        left_margin,
+                        (template_height - qr_size[1]) // 2
+                    )
                     final_img.paste(qr_img, qr_position)
-
-                    # Save to buffer
+                    
+                    # Convert to base64
                     buffer = BytesIO()
                     final_img.save(buffer, format="PNG")
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     
-                    # Save to Firestore - FIXED THE DATETIME ISSUE
+                    # Prepare Firestore data
+                    qr_doc_ref = db.collection('qrcodes').document(qr_id)
                     qr_data_firestore = {
                         'createdBy': 'admin',
                         'createdDateTime': now(),
@@ -263,20 +261,27 @@ def generate_qr(request):
                         'vehicleID': '',
                         'userID': ''
                     }
+                    batch.set(qr_doc_ref, qr_data_firestore)
                     
-                    db.collection('qrcodes').document(qr_id).set(qr_data_firestore)
-                    
+                    # Add to response
                     qr_data.append({
                         'type': 'user',
                         'qrId': qr_id,
                         'vehicleID': '',
                         'qr_code_base64': qr_code_base64
                     })
-                    
                 except Exception as e:
-                    return render(request, 'generate_qr.html', {
-                        'error': f'Failed to generate QR: {str(e)}'
-                    })
+                    # Log error but continue
+                    qr_data.append({'error': f'Failed to generate QR: {str(e)}'})
+            
+            # Commit batch to Firestore
+            try:
+                batch.commit()
+            except Exception as e:
+                return render(request, 'generate_qr.html', {
+                    'error': f'Failed to save QR codes to Firestore: {str(e)}'
+                })
+        
         else:
             # External QR generation
             count = int(request.POST.get('external_count', 1))
@@ -303,9 +308,7 @@ def generate_qr(request):
                         'qr_code_base64': qr_code_base64
                     })
                 except Exception as e:
-                    return render(request, 'generate_qr.html', {
-                        'error': f'Failed to generate external QR: {str(e)}'
-                    })
+                    qr_data.append({'error': f'Failed to generate external QR: {str(e)}'})
 
         request.session['qr_data'] = qr_data
         return render(request, 'generate_qr.html', {'qr_data': qr_data})
