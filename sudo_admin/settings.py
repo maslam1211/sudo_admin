@@ -29,9 +29,9 @@ ALLOWED_HOSTS = ['*']  # temporarily allow everything
 
 CSRF_TRUSTED_ORIGINS = ['http://43.205.192.146', 'https://sudotag.duckdns.org']
 # Cookies
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = False
 
 CORS_ALLOWED_ORIGINS = [
     'http://43.205.192.146',
@@ -183,7 +183,9 @@ load_dotenv()
 # FIREBASE_AUTH_PROVIDER_X509_CERT_URL = os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL")
 # FIREBASE_CLIENT_X509_CERT_URL = os.getenv("FIREBASE_CLIENT_X509_CERT_URL")
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+# SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 SESSION_CACHE_ALIAS = 'default'
 
 
