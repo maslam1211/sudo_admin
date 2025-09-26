@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-no=2un6zvm5r&cupj9%k_%zjn)!7#*lyf#ca6mizl28ls#sdxk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['43.205.192.146','localhost', '127.0.0.1','sudo-admin.onrender.com','sudotag.duckdns.org','*']
+ALLOWED_HOSTS = ['43.205.192.146','localhost', '127.0.0.1','sudo-admin.onrender.com','sudotag.duckdns.org']
 
 CSRF_TRUSTED_ORIGINS = [
     'http://43.205.192.146',
@@ -39,7 +39,13 @@ CORS_ALLOWED_ORIGINS = [
     'sudo-admin.onrender.com',
 ]
 
+# Let Django know HTTPS is coming through Nginx
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Optional: ensure cookies are sent over HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 
