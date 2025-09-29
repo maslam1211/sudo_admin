@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign QR Code - Sudo Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Assign QR Code to User Vehicle</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="assignQrForm">
+                        {% csrf_token %}
+                        
+                        <!-- QR Code Selection with Search -->
+                        <div class="mb-4">
+                            <label for="qr_id" class="form-label">Select QR Code *</label>
+                            <div class="input-group">
+                                <select class="form-select" id="qr_id" name="qr_id" required>
+                                    <option value="">Choose a QR Code...</option>
+                                    {% for qr in unassigned_qrs %}
+                                    <option value="{{ qr.id }}" data-full-id="{{ qr.id }}">
+                                        {{ qr.id }} 
+                                        {% if qr.createdDateTime %}
+                                        (Created: {{ qr.createdDateTime|date:"M d, Y H:i" }})
+                                        {% endif %}
+                                    </option>
+                                    {% empty %}
+                                    <option value="">No unassigned QR codes found{% if search_qr %} matching "{{ search_qr }}"{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#qrSearchModal">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                {% if unassigned_qrs %}
+                                Found {{ unassigned_qrs|length }} unassigned QR code(s)
+                                {% if search_qr %} matching "{{ search_qr }}"{% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- User Selection with Search -->
+                        <div class="mb-4">
+                            <label for="user_id" class="form-label">Select User *</label>
+                            <div class="input-group">
+                                <select class="form-select" id="user_id" name="user_id" required onchange="loadUserVehicles(this.value)">
+                                    <option value="">Choose a User...</option>
+                                    {% for user in users_with_vehicles %}
+                                    <option value="{{ user.id }}" data-full-id="{{ user.id }}">
+                                        {{ user.fullName }} ({{ user.emailAddress }}) - ID: {{ user.id }}
+                                    </option>
+                                    {% empty %}
+                                    <option value="">No users found{% if search_user %} matching "{{ search_user }}"{% endif %} with unassigned vehicles</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#userSearchModal">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                {% if users_with_vehicles %}
+                                Found {{ users_with_vehicles|length }} user(s) with unassigned vehicles
+                                {% if search_user %} matching "{{ search_user }}"{% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Vehicle Selection -->
+                        <div class="mb-4">
+                            <label for="vehicle_id" class="form-label">Select Vehicle *</label>
+                            <select class="form-select" id="vehicle_id" name="vehicle_id" required disabled>
+                                <option value="">First select a user...</option>
+                            </select>
+                            <div class="form-text">Vehicles belonging to the selected user that don't have QR codes</div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="card border-primary mb-4" id="previewSection" style="display: none;">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-eye me-2"></i>Assignment Preview</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong class="text-primary">QR Code:</strong>
+                                        <div class="mt-1" id="previewQr">
+                                            <code class="bg-light p-1 rounded d-block text-sm"></code>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong class="text-primary">User:</strong>
+                                        <div class="mt-1" id="previewUser"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong class="text-primary">Vehicle:</strong>
+                                        <div class="mt-1" id="previewVehicle"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="reset" class="btn btn-secondary me-md-2">Reset Form</button>
+                            <button type="submit" class="btn btn-primary" id="assignBtn" disabled>
+                                <i class="fas fa-link me-2"></i> Assign QR Code
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Assignment Information</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary">How it works:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Select an unassigned QR code</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Choose a user with vehicles</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Select the target vehicle</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Complete the assignment</li>
+                    </ul>
+                    
+                    <hr>
+                    
+                    <h6 class="text-primary">Statistics:</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="text-primary fw-bold h5">{{ unassigned_qrs|length }}</div>
+                            <small class="text-muted">Available QR Codes</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-success fw-bold h5">{{ users_with_vehicles|length }}</div>
+                            <small class="text-muted">Users with Vehicles</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="text-primary">Quick Tips:</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-search me-2 text-info"></i>Use search to filter QR codes and users</li>
+                        <li><i class="fas fa-id-card me-2 text-info"></i>Full QR code IDs are displayed for accuracy</li>
+                        <li><i class="fas fa-sync me-2 text-info"></i>Vehicles load dynamically when user is selected</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Search Modal -->
+<div class="modal fade" id="qrSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Search QR Codes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="liveQrSearch" 
+                           placeholder="Type to search QR codes...">
+                </div>
+                <div id="qrSearchResults" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Results will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Search Modal -->
+<div class="modal fade" id="userSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Search Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="liveUserSearch" 
+                           placeholder="Type to search users by name, email, or ID...">
+                </div>
+                <div id="userSearchResults" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Results will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live search functionality
+let qrSearchTimeout;
+let userSearchTimeout;
+
+// QR Code Search
+document.getElementById('liveQrSearch').addEventListener('input', function(e) {
+    clearTimeout(qrSearchTimeout);
+    const searchTerm = e.target.value.trim();
+    
+    if (searchTerm.length < 2) {
+        document.getElementById('qrSearchResults').innerHTML = '<div class="text-center text-muted p-3">Type at least 2 characters to search</div>';
+        return;
+    }
+    
+    qrSearchTimeout = setTimeout(() => {
+        searchQrCodes(searchTerm);
+    }, 500);
+});
+
+// User Search
+document.getElementById('liveUserSearch').addEventListener('input', function(e) {
+    clearTimeout(userSearchTimeout);
+    const searchTerm = e.target.value.trim();
+    
+    if (searchTerm.length < 2) {
+        document.getElementById('userSearchResults').innerHTML = '<div class="text-center text-muted p-3">Type at least 2 characters to search</div>';
+        return;
+    }
+    
+    userSearchTimeout = setTimeout(() => {
+        searchUsers(searchTerm);
+    }, 500);
+});
+
+function searchQrCodes(searchTerm) {
+    fetch(`/admin/search-qr-codes/?q=${encodeURIComponent(searchTerm)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsContainer = document.getElementById('qrSearchResults');
+            
+            if (data.error) {
+                resultsContainer.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            if (data.qr_codes.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center text-muted p-3">No QR codes found</div>';
+                return;
+            }
+            
+            let html = '';
+            data.qr_codes.forEach(qr => {
+                html += `
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            onclick="selectQrCode('${qr.id}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${qr.id}</h6>
+                            <small class="text-muted">Unassigned</small>
+                        </div>
+                        <small class="text-muted">Full ID: ${qr.full_id}</small>
+                    </button>
+                `;
+            });
+            
+            resultsContainer.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('qrSearchResults').innerHTML = '<div class="alert alert-danger">Error searching QR codes</div>';
+        });
+}
+
+function searchUsers(searchTerm) {
+    fetch(`/admin/search-users/?q=${encodeURIComponent(searchTerm)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsContainer = document.getElementById('userSearchResults');
+            
+            if (data.error) {
+                resultsContainer.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            if (data.users.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center text-muted p-3">No users found</div>';
+                return;
+            }
+            
+            let html = '';
+            data.users.forEach(user => {
+                html += `
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            onclick="selectUser('${user.id}', '${user.fullName}', '${user.emailAddress}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${user.fullName}</h6>
+                            <small class="text-muted">User</small>
+                        </div>
+                        <p class="mb-1">${user.emailAddress}</p>
+                        <small class="text-muted">ID: ${user.full_id}</small>
+                    </button>
+                `;
+            });
+            
+            resultsContainer.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('userSearchResults').innerHTML = '<div class="alert alert-danger">Error searching users</div>';
+        });
+}
+
+function selectQrCode(qrId) {
+    document.getElementById('qr_id').value = qrId;
+    const modal = bootstrap.Modal.getInstance(document.getElementById('qrSearchModal'));
+    modal.hide();
+    updatePreview();
+}
+
+function selectUser(userId, userName, userEmail) {
+    document.getElementById('user_id').value = userId;
+    const modal = bootstrap.Modal.getInstance(document.getElementById('userSearchModal'));
+    modal.hide();
+    loadUserVehicles(userId);
+}
+
+// Existing functions from previous implementation
+function loadUserVehicles(userId) {
+    const vehicleSelect = document.getElementById('vehicle_id');
+    const assignBtn = document.getElementById('assignBtn');
+    const previewSection = document.getElementById('previewSection');
+    
+    if (!userId) {
+        vehicleSelect.innerHTML = '<option value="">First select a user...</option>';
+        vehicleSelect.disabled = true;
+        assignBtn.disabled = true;
+        previewSection.style.display = 'none';
+        return;
+    }
+    
+    // Show loading state
+    vehicleSelect.innerHTML = '<option value="">Loading vehicles...</option>';
+    vehicleSelect.disabled = true;
+    assignBtn.disabled = true;
+    
+    // Fetch vehicles for the selected user
+    fetch(`/admin/get-user-vehicles/${userId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                vehicleSelect.innerHTML = `<option value="">Error: ${data.error}</option>`;
+                return;
+            }
+            
+            if (data.vehicles.length === 0) {
+                vehicleSelect.innerHTML = '<option value="">No unassigned vehicles found for this user</option>';
+                return;
+            }
+            
+            vehicleSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+            data.vehicles.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle.id;
+                option.textContent = `${vehicle.make} ${vehicle.model} (${vehicle.registrationNumber})`;
+                option.setAttribute('data-vehicle-info', `${vehicle.make} ${vehicle.model} - ${vehicle.registrationNumber}`);
+                vehicleSelect.appendChild(option);
+            });
+            
+            vehicleSelect.disabled = false;
+            updatePreview();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            vehicleSelect.innerHTML = '<option value="">Error loading vehicles</option>';
+        });
+}
+
+function updatePreview() {
+    const qrSelect = document.getElementById('qr_id');
+    const userSelect = document.getElementById('user_id');
+    const vehicleSelect = document.getElementById('vehicle_id');
+    const assignBtn = document.getElementById('assignBtn');
+    const previewSection = document.getElementById('previewSection');
+    
+    const qrSelected = qrSelect.value;
+    const userSelected = userSelect.value;
+    const vehicleSelected = vehicleSelect.value;
+    
+    if (qrSelected && userSelected && vehicleSelected && !vehicleSelect.disabled) {
+        // Update preview with full IDs
+        const qrOption = qrSelect.options[qrSelect.selectedIndex];
+        const userOption = userSelect.options[userSelect.selectedIndex];
+        
+        document.getElementById('previewQr').querySelector('code').textContent = qrSelected;
+        document.getElementById('previewUser').textContent = userOption.text;
+        document.getElementById('previewVehicle').textContent = vehicleSelect.options[vehicleSelect.selectedIndex].getAttribute('data-vehicle-info');
+        
+        previewSection.style.display = 'block';
+        assignBtn.disabled = false;
+    } else {
+        previewSection.style.display = 'none';
+        assignBtn.disabled = true;
+    }
+}
+
+// Add event listeners
+document.getElementById('qr_id').addEventListener('change', updatePreview);
+document.getElementById('user_id').addEventListener('change', updatePreview);
+document.getElementById('vehicle_id').addEventListener('change', updatePreview);
+
+// Reset form handler
+document.querySelector('button[type="reset"]').addEventListener('click', function() {
+    setTimeout(updatePreview, 100);
+});
+
+// Initial state
+updatePreview();
+</script>
+{% endblock %}

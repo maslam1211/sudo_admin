@@ -1827,3 +1827,265 @@ def export_orders_with_qr(request):
         print(f"Error: {str(e)}")
         print(traceback.format_exc())
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+
+def assign_qr(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+
+    db = firestore.client()
+    
+    if request.method == 'POST':
+        try:
+            qr_id = request.POST.get('qr_id')
+            user_id = request.POST.get('user_id')
+            vehicle_id = request.POST.get('vehicle_id')
+            
+            if not all([qr_id, user_id, vehicle_id]):
+                messages.error(request, 'All fields are required')
+                return redirect('assign_qr')
+            
+            # Verify QR exists and is not assigned
+            qr_ref = db.collection('qrcodes').document(qr_id)
+            qr_doc = qr_ref.get()
+            
+            if not qr_doc.exists:
+                messages.error(request, 'QR code not found')
+                return redirect('assign_qr')
+            
+            qr_data = qr_doc.to_dict()
+            if qr_data.get('isAssigned', False):
+                messages.error(request, 'QR code is already assigned')
+                return redirect('assign_qr')
+            
+            # Verify user exists
+            user_ref = db.collection('users').document(user_id)
+            if not user_ref.get().exists:
+                messages.error(request, 'User not found')
+                return redirect('assign_qr')
+            
+            # Verify vehicle exists and belongs to user
+            vehicle_ref = db.collection('vehicles').document(vehicle_id)
+            vehicle_doc = vehicle_ref.get()
+            
+            if not vehicle_doc.exists:
+                messages.error(request, 'Vehicle not found')
+                return redirect('assign_qr')
+            
+            vehicle_data = vehicle_doc.to_dict()
+            if vehicle_data.get('ownerId') != user_id:
+                messages.error(request, 'Vehicle does not belong to the selected user')
+                return redirect('assign_qr')
+            
+            # Update QR code assignment
+            qr_ref.update({
+                'isAssigned': True,
+                'userID': user_id,
+                'vehicleID': vehicle_id,
+                'assignedAt': firestore.SERVER_TIMESTAMP
+            })
+            
+            # Update vehicle with QR code ID
+            vehicle_ref.update({
+                'qrCodeId': qr_id,
+                'isQrGenerated': True
+            })
+            
+            # Update user to enable ID check
+            user_ref.update({
+                'enableIdCheck': True
+            })
+            
+            messages.success(request, f'QR code {qr_id} successfully assigned to user')
+            return redirect('manage_qrs')
+            
+        except Exception as e:
+            messages.error(request, f'Error assigning QR code: {str(e)}')
+            return redirect('assign_qr')
+    
+    # GET request - show assignment form
+    try:
+        # Get search parameters
+        search_qr = request.GET.get('search_qr', '')
+        search_user = request.GET.get('search_user', '')
+        
+        # Get unassigned QR codes with search filter
+        qr_query = db.collection('qrcodes').where('isAssigned', '==', False)
+        
+        qr_list = []
+        for qr in qr_query.stream():
+            qr_data = qr.to_dict()
+            qr_data['id'] = qr.id
+            
+            # Apply QR search filter if provided
+            if search_qr and search_qr.lower() not in qr.id.lower():
+                continue
+                
+            qr_list.append(qr_data)
+        
+        # Get users with vehicles but no QR assigned
+        users_with_vehicles = []
+        users_query = db.collection('users')
+        
+        # If user search is provided, filter users
+        if search_user:
+            # This is a simple client-side filter since Firestore doesn't support OR queries well
+            # For production, you might want to use Algolia or similar for better search
+            users_ref = users_query.stream()
+        else:
+            users_ref = users_query.stream()
+        
+        for user in users_ref:
+            user_data = user.to_dict()
+            user_data['id'] = user.id
+            
+            # Apply user search filter
+            if search_user:
+                search_lower = search_user.lower()
+                matches_search = (
+                    search_lower in user_data.get('fullName', '').lower() or
+                    search_lower in user_data.get('emailAddress', '').lower() or
+                    search_lower in user.id.lower()
+                )
+                if not matches_search:
+                    continue
+            
+            # Get user's vehicles without QR codes
+            vehicles_ref = db.collection('vehicles')\
+                .where('ownerId', '==', user.id)\
+                .where('isQrGenerated', '==', False)\
+                .stream()
+            
+            user_vehicles = []
+            for vehicle in vehicles_ref:
+                vehicle_data = vehicle.to_dict()
+                vehicle_data['id'] = vehicle.id
+                user_vehicles.append(vehicle_data)
+            
+            if user_vehicles:
+                user_data['vehicles'] = user_vehicles
+                users_with_vehicles.append(user_data)
+        
+        context = {
+            'unassigned_qrs': qr_list,
+            'users_with_vehicles': users_with_vehicles,
+            'search_qr': search_qr,
+            'search_user': search_user
+        }
+        
+        return render(request, 'assign_qr.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Error loading data: {str(e)}')
+        return render(request, 'assign_qr.html', {
+            'unassigned_qrs': [],
+            'users_with_vehicles': [],
+            'search_qr': '',
+            'search_user': ''
+        })
+
+def search_qr_codes(request):
+    """AJAX endpoint to search QR codes"""
+    if not request.session.get('admin'):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    
+    try:
+        search_term = request.GET.get('q', '')
+        db = firestore.client()
+        
+        qr_query = db.collection('qrcodes')\
+            .where('isAssigned', '==', False)\
+            .stream()
+        
+        qr_codes = []
+        for qr in qr_query:
+            qr_data = qr.to_dict()
+            qr_data['id'] = qr.id
+            
+            # Apply search filter
+            if search_term and search_term.lower() not in qr.id.lower():
+                continue
+                
+            qr_codes.append({
+                'id': qr.id,
+                'createdDateTime': qr_data.get('createdDateTime', ''),
+                'full_id': qr.id  # Send full ID for display
+            })
+        
+        return JsonResponse({'qr_codes': qr_codes})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def search_users(request):
+    """AJAX endpoint to search users with unassigned vehicles"""
+    if not request.session.get('admin'):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    
+    try:
+        search_term = request.GET.get('q', '')
+        db = firestore.client()
+        
+        users_ref = db.collection('users').stream()
+        
+        users = []
+        for user in users_ref:
+            user_data = user.to_dict()
+            user_data['id'] = user.id
+            
+            # Apply search filter
+            if search_term:
+                search_lower = search_term.lower()
+                matches_search = (
+                    search_lower in user_data.get('fullName', '').lower() or
+                    search_lower in user_data.get('emailAddress', '').lower() or
+                    search_lower in user.id.lower()
+                )
+                if not matches_search:
+                    continue
+            
+            # Check if user has unassigned vehicles
+            vehicles_ref = db.collection('vehicles')\
+                .where('ownerId', '==', user.id)\
+                .where('isQrGenerated', '==', False)\
+                .limit(1)\
+                .stream()
+            
+            has_unassigned_vehicles = any(True for _ in vehicles_ref)
+            
+            if has_unassigned_vehicles:
+                users.append({
+                    'id': user.id,
+                    'fullName': user_data.get('fullName', ''),
+                    'emailAddress': user_data.get('emailAddress', ''),
+                    'full_id': user.id  # Send full ID for display
+                })
+        
+        return JsonResponse({'users': users})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_user_vehicles(request, user_id):
+    """AJAX endpoint to get vehicles for a specific user"""
+    if not request.session.get('admin'):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    
+    try:
+        db = firestore.client()
+        vehicles_ref = db.collection('vehicles')\
+            .where('ownerId', '==', user_id)\
+            .where('isQrGenerated', '==', False)\
+            .stream()
+        
+        vehicles = []
+        for vehicle in vehicles_ref:
+            vehicle_data = vehicle.to_dict()
+            vehicle_data['id'] = vehicle.id
+            vehicles.append(vehicle_data)
+        
+        return JsonResponse({'vehicles': vehicles})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

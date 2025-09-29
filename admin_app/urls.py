@@ -20,5 +20,9 @@ urlpatterns = [
     path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),
     path('manage-qrs/', views.manage_qrs, name='manage_qrs'),
     path('regenerate-qr/<str:qr_id>/', views.regenerate_qr, name='regenerate_qr'),
-
+    # Add these new routes for QR assignment
+    path('assign-qr/', views.assign_qr, name='assign_qr'),
+    path('get-user-vehicles/<str:user_id>/', views.get_user_vehicles, name='get_user_vehicles'),
+    path('search-qr-codes/', views.search_qr_codes, name='search_qr_codes'),
+    path('search-users/', views.search_users, name='search_users'),
 ]
