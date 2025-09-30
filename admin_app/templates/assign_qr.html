@@ -5,19 +5,21 @@
 
 {% block content %}
 <div class="container-fluid">
-    
-
-    {% if messages %}
-    <div class="mb-4">
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="toast align-items-center text-white bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} border-0" 
+             role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
         </div>
         {% endfor %}
     </div>
-    {% endif %}
-
 
 
     <div class="row">
@@ -44,7 +46,7 @@
                                         {% endif %}
                                     </option>
                                     {% empty %}
-                                    <option value="">No unassigned QR codes found{% if search_qr %} matching "{{ search_qr }}"{% endif %}</option>
+                                    <option value="">No unassigned QR codes found</option>
                                     {% endfor %}
                                 </select>
                                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#qrSearchModal">
@@ -54,7 +56,6 @@
                             <div class="form-text">
                                 {% if unassigned_qrs %}
                                 Found {{ unassigned_qrs|length }} unassigned QR code(s)
-                                {% if search_qr %} matching "{{ search_qr }}"{% endif %}
                                 {% endif %}
                             </div>
                         </div>
@@ -70,7 +71,7 @@
                                         {{ user.fullName }} ({{ user.emailAddress }}) - ID: {{ user.id }}
                                     </option>
                                     {% empty %}
-                                    <option value="">No users found{% if search_user %} matching "{{ search_user }}"{% endif %} with unassigned vehicles</option>
+                                    <option value="">No users found with unassigned vehicles</option>
                                     {% endfor %}
                                 </select>
                                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#userSearchModal">
@@ -80,7 +81,6 @@
                             <div class="form-text">
                                 {% if users_with_vehicles %}
                                 Found {{ users_with_vehicles|length }} user(s) with unassigned vehicles
-                                {% if search_user %} matching "{{ search_user }}"{% endif %}
                                 {% endif %}
                             </div>
                         </div>
@@ -120,7 +120,7 @@
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="reset" class="btn btn-secondary me-md-2">Reset Form</button>
+                            <button type="reset" class="btn btn-secondary me-md-2" id="resetBtn">Reset Form</button>
                             <button type="submit" class="btn btn-primary" id="assignBtn" disabled>
                                 <i class="fas fa-link me-2"></i> Assign QR Code
                             </button>
@@ -218,6 +218,14 @@
 
 {% block extra_js %}
 <script>
+// Initialize toasts when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    var toastElList = [].slice.call(document.querySelectorAll('.toast'))
+    var toastList = toastElList.map(function(toastEl) {
+        return new bootstrap.Toast(toastEl).show()
+    });
+});
+
 // Live search functionality
 let qrSearchTimeout;
 let userSearchTimeout;
@@ -422,15 +430,30 @@ function updatePreview() {
     }
 }
 
+// Enhanced reset form function
+document.getElementById('resetBtn').addEventListener('click', function() {
+    // Clear all selections
+    document.getElementById('qr_id').value = '';
+    document.getElementById('user_id').value = '';
+    document.getElementById('vehicle_id').innerHTML = '<option value="">First select a user...</option>';
+    document.getElementById('vehicle_id').disabled = true;
+    
+    // Hide preview
+    document.getElementById('previewSection').style.display = 'none';
+    document.getElementById('assignBtn').disabled = true;
+    
+    // Reset any search modals if they're open
+    const qrModal = bootstrap.Modal.getInstance(document.getElementById('qrSearchModal'));
+    if (qrModal) qrModal.hide();
+    
+    const userModal = bootstrap.Modal.getInstance(document.getElementById('userSearchModal'));
+    if (userModal) userModal.hide();
+});
+
 // Add event listeners
 document.getElementById('qr_id').addEventListener('change', updatePreview);
 document.getElementById('user_id').addEventListener('change', updatePreview);
 document.getElementById('vehicle_id').addEventListener('change', updatePreview);
-
-// Reset form handler
-document.querySelector('button[type="reset"]').addEventListener('click', function() {
-    setTimeout(updatePreview, 100);
-});
 
 // Initial state
 updatePreview();

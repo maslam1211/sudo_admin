@@ -1897,8 +1897,11 @@ def assign_qr(request):
                 'enableIdCheck': True
             })
             
-            messages.success(request, f'QR code {qr_id} successfully assigned to user')
-            return redirect('manage_qrs')
+            # Success message - stay on same page
+            messages.success(request, f'QR code {qr_id} successfully assigned to user!')
+            
+            # Return the same form but with success message
+            return redirect('assign_qr')
             
         except Exception as e:
             messages.error(request, f'Error assigning QR code: {str(e)}')
@@ -1930,8 +1933,6 @@ def assign_qr(request):
         
         # If user search is provided, filter users
         if search_user:
-            # This is a simple client-side filter since Firestore doesn't support OR queries well
-            # For production, you might want to use Algolia or similar for better search
             users_ref = users_query.stream()
         else:
             users_ref = users_query.stream()
