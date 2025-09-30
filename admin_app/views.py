@@ -439,6 +439,9 @@ def register_user(request):
     return render(request, 'register_user.html', {'users': user_list})
 
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from math import ceil
+
 def manage_users(request):
     if not request.session.get('admin'):
         messages.error(request, 'Admin access required')
@@ -467,6 +470,19 @@ def manage_users(request):
         messages.error(request, f'Error accessing database: {str(e)}')
         users = []
 
+    # Pagination
+    page = request.GET.get('page', 1)
+    items_per_page = 10  # You can adjust this number
+    
+    paginator = Paginator(users, items_per_page)
+    
+    try:
+        users_page = paginator.page(page)
+    except PageNotAnInteger:
+        users_page = paginator.page(1)
+    except EmptyPage:
+        users_page = paginator.page(paginator.num_pages)
+
     if request.method == "POST":
         if 'delete_selected' in request.POST:
             return handle_bulk_delete(request, users_ref)
@@ -493,7 +509,8 @@ def manage_users(request):
             return redirect('manage_users')
 
     return render(request, 'manage_users.html', {
-        'users': users,
+        'users': users_page,
+        'paginator': paginator,
         'messages': get_message_list(request)
     })
 
@@ -1018,6 +1035,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Define status mapping
 STATUS_MAPPING = {
@@ -1050,8 +1068,25 @@ def view_orders(request):
                 'order': order_dict,
             })
 
+        # Sort by timestamp (newest first) - adjust field name if different
+        orders_data.sort(key=lambda x: x['order'].get('timestamp', ''), reverse=True)
+
+        # Pagination
+        page = request.GET.get('page', 1)
+        items_per_page = 15  # Adjust as needed
+        
+        paginator = Paginator(orders_data, items_per_page)
+        
+        try:
+            orders_page = paginator.page(page)
+        except PageNotAnInteger:
+            orders_page = paginator.page(1)
+        except EmptyPage:
+            orders_page = paginator.page(paginator.num_pages)
+
         context = {
-            'orders': orders_data,
+            'orders': orders_page,
+            'paginator': paginator,
             'STATUS_MAPPING': STATUS_MAPPING,
         }
         return render(request, 'view_orders.html', context)
@@ -1283,6 +1318,11 @@ def send_feedback_notify(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.conf import settings
+import qrcode
+import base64
+from io import BytesIO
 
 def manage_qrs(request):
     if not request.session.get('admin'):
@@ -1384,6 +1424,10 @@ def manage_qrs(request):
             
             qrs.append(qr_data)
             
+        # Sort by last created first - using document ID (assuming timestamp-based IDs)
+        # If you have a specific timestamp field, replace 'doc_id' with that field name
+        qrs.sort(key=lambda x: x.get('createdDateTime', ''), reverse=True)
+            
         if not qrs:
             messages.info(request, 'No QR codes found matching your criteria')
 
@@ -1391,12 +1435,26 @@ def manage_qrs(request):
         messages.error(request, f'Error accessing database: {str(e)}')
         qrs = []
 
+    # Pagination
+    page = request.GET.get('page', 1)
+    items_per_page = 10  # Adjust as needed
+    
+    paginator = Paginator(qrs, items_per_page)
+    
+    try:
+        qrs_page = paginator.page(page)
+    except PageNotAnInteger:
+        qrs_page = paginator.page(1)
+    except EmptyPage:
+        qrs_page = paginator.page(paginator.num_pages)
+
     # Handle export request
     if request.GET.get('export') == 'pdf':
         return export_qrs_pdf(request, qrs)
     
     return render(request, 'manage_qrs.html', {
-        'qrs': qrs,
+        'qrs': qrs_page,
+        'paginator': paginator,
         'status_filter': status_filter,
         'search_query': search_query,
         'messages': get_message_list(request)
@@ -2090,3 +2148,208 @@ def get_user_vehicles(request, user_id):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+# Define your collections
+COLLECTIONS = [
+    'ads', 'chats', 'orders', 'payments', 'qrcodes', 'users', 'vehicles'
+]
+
+def delete_data(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    # Get collection counts
+    collection_counts = {}
+    for collection in COLLECTIONS:
+        try:
+            docs = db.collection(collection).stream()
+            collection_counts[collection] = len(list(docs))
+        except Exception as e:
+            collection_counts[collection] = f"Error: {str(e)}"
+    
+    context = {
+        'collections': COLLECTIONS,
+        'collection_counts': collection_counts,
+    }
+    return render(request, 'delete_data.html', context)
+
+def delete_collection(request, collection_name):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    if collection_name not in COLLECTIONS:
+        messages.error(request, 'Invalid collection name')
+        return redirect('delete_data')
+    
+    try:
+        # Get all documents in the collection
+        docs = db.collection(collection_name).stream()
+        deleted_count = 0
+        
+        # Delete each document
+        for doc in docs:
+            doc.reference.delete()
+            deleted_count += 1
+        
+        messages.success(request, f'Successfully deleted {deleted_count} documents from {collection_name}')
+    
+    except Exception as e:
+        messages.error(request, f'Error deleting collection {collection_name}: {str(e)}')
+    
+    return redirect('delete_data')
+
+def delete_document(request, collection_name, document_id):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    if collection_name not in COLLECTIONS:
+        messages.error(request, 'Invalid collection name')
+        return redirect('delete_data')
+    
+    try:
+        # Delete the specific document
+        doc_ref = db.collection(collection_name).document(document_id)
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            doc_ref.delete()
+            messages.success(request, f'Successfully deleted document {document_id} from {collection_name}')
+        else:
+            messages.error(request, f'Document {document_id} not found in {collection_name}')
+    
+    except Exception as e:
+        messages.error(request, f'Error deleting document: {str(e)}')
+    
+    return redirect('delete_data')
+
+@csrf_exempt
+def bulk_delete(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'})
+    
+    if request.method == 'POST':
+        try:
+            data = request.POST
+            collections_to_delete = data.getlist('collections[]')
+            confirm_text = data.get('confirm_text', '')
+            
+            # Safety check - require confirmation text
+            if confirm_text != 'DELETE ALL':
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'Confirmation text incorrect. Please type "DELETE ALL" to confirm.'
+                })
+            
+            total_deleted = 0
+            results = {}
+            
+            for collection_name in collections_to_delete:
+                if collection_name in COLLECTIONS:
+                    try:
+                        docs = db.collection(collection_name).stream()
+                        deleted_count = 0
+                        
+                        for doc in docs:
+                            doc.reference.delete()
+                            deleted_count += 1
+                        
+                        results[collection_name] = deleted_count
+                        total_deleted += deleted_count
+                    
+                    except Exception as e:
+                        results[collection_name] = f"Error: {str(e)}"
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Successfully deleted {total_deleted} documents across {len(collections_to_delete)} collections',
+                'results': results
+            })
+        
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+# Advanced: Delete with conditions
+def delete_with_conditions(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    if request.method == 'POST':
+        collection_name = request.POST.get('collection_name')
+        field = request.POST.get('field')
+        operator = request.POST.get('operator')
+        value = request.POST.get('value')
+        
+        if collection_name not in COLLECTIONS:
+            messages.error(request, 'Invalid collection name')
+            return redirect('delete_data')
+        
+        try:
+            collection_ref = db.collection(collection_name)
+            
+            # Build query based on operator
+            if operator == '==':
+                query = collection_ref.where(field, '==', value)
+            elif operator == '!=':
+                query = collection_ref.where(field, '!=', value)
+            elif operator == '>':
+                query = collection_ref.where(field, '>', value)
+            elif operator == '<':
+                query = collection_ref.where(field, '<', value)
+            elif operator == '>=':
+                query = collection_ref.where(field, '>=', value)
+            elif operator == '<=':
+                query = collection_ref.where(field, '<=', value)
+            elif operator == 'array_contains':
+                query = collection_ref.where(field, 'array_contains', value)
+            else:
+                messages.error(request, 'Invalid operator')
+                return redirect('delete_data')
+            
+            docs = query.stream()
+            deleted_count = 0
+            
+            for doc in docs:
+                doc.reference.delete()
+                deleted_count += 1
+            
+            messages.success(request, f'Deleted {deleted_count} documents from {collection_name} where {field} {operator} {value}')
+        
+        except Exception as e:
+            messages.error(request, f'Error deleting documents: {str(e)}')
+    
+    return redirect('delete_data')
+
+
+def view_collection(request, collection_name):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    if collection_name not in COLLECTIONS:
+        messages.error(request, 'Invalid collection name')
+        return redirect('delete_data')
+    
+    try:
+        docs = db.collection(collection_name).stream()
+        documents = []
+        
+        for doc in docs:
+            doc_data = doc.to_dict()
+            doc_data['id'] = doc.id
+            documents.append(doc_data)
+        
+        context = {
+            'collection_name': collection_name,
+            'documents': documents,
+        }
+        return render(request, 'view_collection.html', context)
+    
+    except Exception as e:
+        messages.error(request, f'Error accessing collection: {str(e)}')
+        return redirect('delete_data')

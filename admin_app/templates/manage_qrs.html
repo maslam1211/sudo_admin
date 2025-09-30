@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4>Manage QR Codes</h4>
+        <h4>Manage QR Codes (Total: {{ paginator.count }})</h4>
         <div>
             <a href="{% url 'generate_qr' %}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-circle"></i> Generate New QR
@@ -38,9 +38,6 @@
                     <div class="btn-group w-100">
                         <button type="submit" class="btn btn-outline-primary">Apply Filters</button>
                         <a href="{% url 'manage_qrs' %}" class="btn btn-outline-secondary">Reset</a>
-                        <!-- <a href="?{{ request.GET.urlencode }}&export=pdf" class="btn btn-success">
-                            <i class="bi bi-file-earmark-pdf"></i> Export
-                        </a> -->
                     </div>
                 </div>
             </form>
@@ -59,80 +56,151 @@
     </div>
     {% endif %}
     
+    <!-- Results Count -->
+    <div class="mb-3 text-muted">
+        Showing {{ qrs.start_index }} - {{ qrs.end_index }} of {{ paginator.count }} QR codes
+        <small class="text-muted ms-2">(Sorted by newest first)</small>
+    </div>
+    
     <!-- QR Codes Table -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
-<table class="table table-hover mb-0">
-    <thead class="table-light">
-        <tr>
-            <th width="15%">QR Code</th>
-            <th width="20%">QR ID</th> <!-- Increased width for full QR ID -->
-            <th width="10%">Status</th>
-            <th width="20%">Assigned To</th>
-            <th width="20%">Vehicle Info</th>
-            <th width="15%">Download QR</th> <!-- Adjusted width -->
-        </tr>
-    </thead>
-    <tbody>
-        {% for qr in qrs %}
-        <tr>
-            <td>
-                <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" 
-                     alt="QR Code" 
-                     style="width: 80px; height: 80px; object-fit: contain;">
-            </td>
-            <td>
-                <span class="font-monospace" title="{{ qr.doc_id }}">
-                    {{ qr.doc_id }} <!-- Removed truncation to show full QR ID -->
-                </span>
-                {% if qr.createdBy == 'admin' %}
-                <span class="badge bg-info text-dark ms-1">Admin</span>
-                {% endif %}
-            </td>
-            <td>
-                <span class="badge bg-{% if qr.isAssigned %}success{% else %}secondary{% endif %}">
-                    {% if qr.isAssigned %}Active{% else %}Inactive{% endif %}
-                </span>
-            </td>
-            <td>
-                {% if qr.user %}
-                    <strong>{{ qr.user.fullName|default:"-" }}</strong><br>
-                    <small class="text-muted">{{ qr.user.emailAddress|default:"" }}</small><br>
-                    <small>{{ qr.user.contactNumber|default:"" }}</small>
-                {% else %}
-                    <span class="text-muted">Not assigned</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if qr.vehicle %}
-                    <strong>{{ qr.vehicle.make }} {{ qr.vehicle.model }}</strong><br>
-                    <small>Reg: {{ qr.vehicle.registrationNumber }}</small><br>
-                    <small>Type: {{ qr.vehicle.vehicleType }}</small>
-                {% else %}
-                    <span class="text-muted">No vehicle</span>
-                {% endif %}
-            </td>
-            <td>
-                <a class="btn btn-sm btn-success" 
-                   href="{% url 'regenerate_qr' qr_id=qr.doc_id %}"
-                   title="Download QR Code">
-                    <i class="bi bi-download"></i> Download
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="6" class="text-center py-4">
-                No QR codes found matching your criteria
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="12%">QR Code</th>
+                            <th width="18%">QR ID</th>
+                            <th width="10%">Status</th>
+                            <th width="20%">Assigned To</th>
+                            <th width="20%">Vehicle Info</th>
+                            <!-- <th width="15%">Created</th> -->
+                            <th width="10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for qr in qrs %}
+                        <tr>
+                            <td>
+                                <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" 
+                                     alt="QR Code" 
+                                     style="width: 70px; height: 70px; object-fit: contain;">
+                            </td>
+                            <td>
+                                <span class="font-monospace small" title="{{ qr.doc_id }}">
+                                    {{ qr.doc_id|truncatechars:12 }}
+                                </span>
+                                {% if qr.createdBy == 'admin' %}
+                                <span class="badge bg-info text-dark ms-1">Admin</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if qr.isAssigned %}success{% else %}secondary{% endif %}">
+                                    {% if qr.isAssigned %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if qr.user %}
+                                    <strong>{{ qr.user.fullName|default:"-" }}</strong><br>
+                                    <small class="text-muted">{{ qr.user.emailAddress|default:"" }}</small><br>
+                                    <small>{{ qr.user.contactNumber|default:"" }}</small>
+                                {% else %}
+                                    <span class="text-muted">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if qr.vehicle %}
+                                    <strong>{{ qr.vehicle.make }} {{ qr.vehicle.model }}</strong><br>
+                                    <small>Reg: {{ qr.vehicle.registrationNumber }}</small><br>
+                                    <small>Type: {{ qr.vehicle.vehicleType }}</small>
+                                {% else %}
+                                    <span class="text-muted">No vehicle</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td>
+                                <a class="btn btn-sm btn-success" 
+                                   href="{% url 'regenerate_qr' qr_id=qr.doc_id %}"
+                                   title="Download QR Code">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                No QR codes found matching your criteria
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+
+    <!-- Pagination -->
+    {% if qrs.paginator.num_pages > 1 %}
+    <nav aria-label="QR codes pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if qrs.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}page=1" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ qrs.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;&laquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            {% endif %}
+
+            {% for num in qrs.paginator.page_range %}
+                {% if qrs.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > qrs.number|add:'-3' and num < qrs.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if qrs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ qrs.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ qrs.paginator.num_pages }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;&raquo;</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <div class="text-center text-muted mt-2">
+        Page {{ qrs.number }} of {{ qrs.paginator.num_pages }}
+    </div>
+    {% endif %}
 </div>
 
 <style>
@@ -144,6 +212,13 @@
     }
     .table-hover tbody tr:hover {
         background-color: rgba(0, 0, 0, 0.02);
+    }
+    .pagination .page-link { 
+        color: #495057; 
+    }
+    .pagination .page-item.active .page-link { 
+        background-color: #495057; 
+        border-color: #495057;
     }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">

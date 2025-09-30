@@ -6,9 +6,14 @@
 <div class="container-fluid">
     <h1 class="mt-4 mb-4">Order Management</h1>
     
-    <!-- Action Buttons -->
+    <!-- Results Count -->
     <div class="row mb-3">
-        <div class="col-md-12">
+        <div class="col-md-6">
+            <div class="text-muted">
+                Showing {{ orders.start_index }} - {{ orders.end_index }} of {{ paginator.count }} orders
+            </div>
+        </div>
+        <div class="col-md-6 text-end">
             <div class="btn-group" role="group">
                 <button id="selectAllBtn" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-check-square"></i> Select All
@@ -132,6 +137,70 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination -->
+    {% if orders.paginator.num_pages > 1 %}
+    <nav aria-label="Orders pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if orders.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ orders.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;&laquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            {% endif %}
+
+            {% for num in orders.paginator.page_range %}
+                {% if orders.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > orders.number|add:'-3' and num < orders.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if orders.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ orders.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ orders.paginator.num_pages }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;&raquo;</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <div class="text-center text-muted mt-2">
+        Page {{ orders.number }} of {{ orders.paginator.num_pages }}
+    </div>
+    {% endif %}
+    
     {% else %}
         <div class="alert alert-info">No orders found.</div>
     {% endif %}
@@ -172,6 +241,13 @@
     }
     .table-hover tbody tr:hover {
         background-color: rgba(0, 123, 255, 0.05);
+    }
+    .pagination .page-link { 
+        color: #495057; 
+    }
+    .pagination .page-item.active .page-link { 
+        background-color: #495057; 
+        border-color: #495057;
     }
 </style>
 

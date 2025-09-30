@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">Collection: {{ collection_name }}</h1>
+                    <p class="text-muted">Viewing all documents in this collection</p>
+                </div>
+                <div>
+                    <a href="{% url 'delete_data' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Data Management
+                    </a>
+                    <button class="btn btn-danger" onclick="deleteEntireCollection()">
+                        <i class="fas fa-trash"></i> Delete Entire Collection
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ documents|length }}</h4>
+                                    <p class="mb-0">Total Documents</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-file fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Documents in {{ collection_name }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if documents %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="25%">Document ID</th>
+                                    <th width="65%">Document Data</th>
+                                    <th width="10%">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td>
+                                        <div class="font-monospace small" title="{{ document.id }}">
+                                            {{ document.id|truncatechars:30 }}
+                                        </div>
+                                        <small class="text-muted">Click to copy</small>
+                                    </td>
+                                    <td>
+                                        <div class="document-data">
+                                            <pre class="small mb-0" style="max-height: 100px; overflow-y: auto;"><code>{{ document|pprint }}</code></pre>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" 
+                                                    onclick="viewDocumentDetails('{{ document.id }}', {{ document|escapejs }})"
+                                                    title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteDocument('{{ document.id }}')"
+                                                    title="Delete Document">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Documents Found</h4>
+                        <p class="text-muted">This collection is empty.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            {% if documents %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Export Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="exportData('json')">
+                            <i class="fas fa-download"></i> Export as JSON
+                        </button>
+                        <button class="btn btn-outline-success" onclick="exportData('csv')">
+                            <i class="fas fa-file-csv"></i> Export as CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Document Details Modal -->
+<div class="modal fade" id="documentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Document Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Document ID:</label>
+                    <div class="font-monospace bg-light p-2 rounded" id="modalDocumentId"></div>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">Document Data:</label>
+                    <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code id="modalDocumentData"></code></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="modalDeleteBtn">
+                    <i class="fas fa-trash"></i> Delete Document
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Are you sure you want to delete this document?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// View document details
+function viewDocumentDetails(docId, docData) {
+    document.getElementById('modalDocumentId').textContent = docId;
+    document.getElementById('modalDocumentData').textContent = JSON.stringify(docData, null, 2);
+    
+    // Set up delete button in modal
+    const deleteBtn = document.getElementById('modalDeleteBtn');
+    deleteBtn.onclick = function() {
+        deleteDocument(docId);
+        bootstrap.Modal.getInstance(document.getElementById('documentModal')).hide();
+    };
+    
+    const modal = new bootstrap.Modal(document.getElementById('documentModal'));
+    modal.show();
+}
+
+// Delete individual document
+function deleteDocument(docId) {
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const modalMessage = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    modalMessage.textContent = `Are you sure you want to delete document "${docId}"? This action cannot be undone.`;
+    
+    confirmBtn.onclick = function() {
+        window.location.href = `/admin/delete-document/{{ collection_name }}/${docId}/`;
+    };
+    
+    modal.show();
+}
+
+// Delete entire collection
+function deleteEntireCollection() {
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const modalMessage = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    modalMessage.textContent = `Are you sure you want to delete the entire "{{ collection_name }}" collection? This will permanently delete {{ documents|length }} documents and cannot be undone.`;
+    
+    confirmBtn.onclick = function() {
+        window.location.href = `/admin/delete-collection/{{ collection_name }}/`;
+    };
+    
+    modal.show();
+}
+
+// Export data
+function exportData(format) {
+    const data = {
+        collection: '{{ collection_name }}',
+        documents: {{ documents|safe }},
+        export_date: new Date().toISOString(),
+        total_documents: {{ documents|length }}
+    };
+    
+    let content, mimeType, filename;
+    
+    if (format === 'json') {
+        content = JSON.stringify(data, null, 2);
+        mimeType = 'application/json';
+        filename = '{{ collection_name }}_export.json';
+    } else if (format === 'csv') {
+        // Simple CSV conversion (you might want to enhance this based on your data structure)
+        let csvContent = 'Document ID,Data\n';
+        data.documents.forEach(doc => {
+            const docId = doc.id || 'N/A';
+            const docData = JSON.stringify(doc).replace(/"/g, '""');
+            csvContent += `"${docId}","${docData}"\n`;
+        });
+        content = csvContent;
+        mimeType = 'text/csv';
+        filename = '{{ collection_name }}_export.csv';
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Copy document ID to clipboard
+document.addEventListener('DOMContentLoaded', function() {
+    const docIdCells = document.querySelectorAll('td .font-monospace');
+    docIdCells.forEach(cell => {
+        cell.style.cursor = 'pointer';
+        cell.addEventListener('click', function() {
+            const docId = this.getAttribute('title');
+            navigator.clipboard.writeText(docId).then(() => {
+                const originalText = this.textContent;
+                this.textContent = 'Copied!';
+                setTimeout(() => {
+                    this.textContent = originalText;
+                }, 2000);
+            });
+        });
+    });
+});
+
+// Search functionality (optional enhancement)
+function setupSearch() {
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search documents...';
+    searchInput.className = 'form-control mb-3';
+    searchInput.id = 'documentSearch';
+    
+    const cardHeader = document.querySelector('.card-header');
+    cardHeader.appendChild(searchInput);
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const docId = row.cells[0].textContent.toLowerCase();
+            const docData = row.cells[1].textContent.toLowerCase();
+            const isVisible = docId.includes(searchTerm) || docData.includes(searchTerm);
+            row.style.display = isVisible ? '' : 'none';
+        });
+    });
+}
+
+// Initialize search if there are documents
+{% if documents %}
+document.addEventListener('DOMContentLoaded', setupSearch);
+{% endif %}
+</script>
+
+<style>
+.font-monospace {
+    font-family: 'Courier New', monospace;
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.document-data pre {
+    font-size: 0.8rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+#documentSearch {
+    max-width: 300px;
+}
+
+/* Smooth scrolling for modal content */
+.modal-body pre {
+    scrollbar-width: thin;
+    scrollbar-color: #adb5bd #f8f9fa;
+}
+
+.modal-body pre::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body pre::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.modal-body pre::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 4px;
+}
+
+.modal-body pre::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+</style>
+{% endblock %}

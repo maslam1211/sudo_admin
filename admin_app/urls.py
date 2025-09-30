@@ -25,4 +25,10 @@ urlpatterns = [
     path('get-user-vehicles/<str:user_id>/', views.get_user_vehicles, name='get_user_vehicles'),
     path('search-qr-codes/', views.search_qr_codes, name='search_qr_codes'),
     path('search-users/', views.search_users, name='search_users'),
+    # Delete data URLs
+    path('delete-data/', views.delete_data, name='delete_data'),
+    path('delete-collection/<str:collection_name>/', views.delete_collection, name='delete_collection'),
+    path('delete-document/<str:collection_name>/<str:document_id>/', views.delete_document, name='delete_document'),
+    path('bulk-delete/', views.bulk_delete, name='bulk_delete'),
+    path('view-collection/<str:collection_name>/', views.view_collection, name='view_collection'),
 ]

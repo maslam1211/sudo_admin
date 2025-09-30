@@ -1,11 +1,11 @@
-<!-- manage_users.html -->
 {% extends 'base.html' %}
 
 {% block content %}
 <div class="container">
-    <h4 class="my-4">Manage Users (Total: {{ users|length }})</h4>
+    <h4 class="my-4">Manage Users (Total: {{ paginator.count }})</h4>
     
-    <!-- {% if messages %}
+    <!-- Messages display (uncommented and improved) -->
+    {% if messages %}
     <div class="mb-4">
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -14,7 +14,7 @@
         </div>
         {% endfor %}
     </div>
-    {% endif %} -->
+    {% endif %}
     
     <form method="POST">
         {% csrf_token %}
@@ -24,6 +24,9 @@
                         onclick="return confirm('Are you sure you want to delete selected users?')">
                     Delete Selected (Selected: <span id="selected-count">0</span>)
                 </button>
+            </div>
+            <div class="text-muted">
+                Showing {{ users.start_index }} - {{ users.end_index }} of {{ paginator.count }} users
             </div>
         </div>
         
@@ -112,6 +115,69 @@
             </table>
         </div>
     </form>
+
+    <!-- Pagination -->
+    {% if users.paginator.num_pages > 1 %}
+    <nav aria-label="User pagination">
+        <ul class="pagination justify-content-center">
+            {% if users.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;&laquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            {% endif %}
+
+            {% for num in users.paginator.page_range %}
+                {% if users.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if users.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.paginator.num_pages }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;&raquo;</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <div class="text-center text-muted mt-2">
+        Page {{ users.number }} of {{ users.paginator.num_pages }}
+    </div>
+    {% endif %}
 </div>
 
 <script>
@@ -133,6 +199,9 @@
         document.querySelectorAll('.user_checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', updateSelectedCount);
         });
+        
+        // Update selected count on page load
+        updateSelectedCount();
     });
 </script>
 
@@ -140,5 +209,10 @@
     .font-monospace { font-family: monospace; }
     .table-hover tbody tr:hover { background-color: rgba(0, 0, 0, 0.05); }
     .table-secondary { color: #6c757d; }
+    .pagination .page-link { color: #495057; }
+    .pagination .page-item.active .page-link { 
+        background-color: #495057; 
+        border-color: #495057;
+    }
 </style>
 {% endblock %}
