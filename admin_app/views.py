@@ -2353,3 +2353,339 @@ def view_collection(request, collection_name):
     except Exception as e:
         messages.error(request, f'Error accessing collection: {str(e)}')
         return redirect('delete_data')
+
+# views.py - Add these imports
+import cloudinary.uploader
+from datetime import datetime
+import uuid
+import base64
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+# views.py - Update the manage_ads function
+def manage_ads(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    # Get all ads from the ads collection
+    ads_data = {}
+    
+    try:
+        ads_ref = db.collection('ads')
+        ads_docs = ads_ref.stream()
+        
+        for doc in ads_docs:
+            data = doc.to_dict()
+            doc_id = doc.id
+            print(f"Debug: Found document {doc_id} with data: {data}")  # Debug
+            
+            # Handle different ad types from ALL documents
+            if 'banner_Ads' in data and isinstance(data['banner_Ads'], list):
+                # Add is_active field if missing and convert timestamp
+                for ad in data['banner_Ads']:
+                    if 'is_active' not in ad:
+                        ad['is_active'] = True
+                    # Convert Firestore timestamp to string if needed
+                    if hasattr(ad.get('timestamp'), 'strftime'):
+                        ad['timestamp'] = ad['timestamp'].strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                
+                # Append to existing list or create new
+                if 'banner_ads' not in ads_data:
+                    ads_data['banner_ads'] = []
+                ads_data['banner_ads'].extend(data['banner_Ads'])
+                
+            if 'marquee_Ads' in data and isinstance(data['marquee_Ads'], list):
+                for ad in data['marquee_Ads']:
+                    if 'is_active' not in ad:
+                        ad['is_active'] = True
+                    if hasattr(ad.get('timestamp'), 'strftime'):
+                        ad['timestamp'] = ad['timestamp'].strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                
+                if 'marquee_ads' not in ads_data:
+                    ads_data['marquee_ads'] = []
+                ads_data['marquee_ads'].extend(data['marquee_Ads'])
+                
+            if 'popup_Ads' in data and isinstance(data['popup_Ads'], list):
+                for ad in data['popup_Ads']:
+                    if 'is_active' not in ad:
+                        ad['is_active'] = True
+                    if hasattr(ad.get('timestamp'), 'strftime'):
+                        ad['timestamp'] = ad['timestamp'].strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                
+                if 'popup_ads' not in ads_data:
+                    ads_data['popup_ads'] = []
+                ads_data['popup_ads'].extend(data['popup_Ads'])
+                
+    except Exception as e:
+        print(f"Error loading ads: {str(e)}")
+        messages.error(request, f'Error loading ads: {str(e)}')
+    
+    # Initialize empty lists if not found
+    ads_data.setdefault('banner_ads', [])
+    ads_data.setdefault('marquee_ads', [])
+    ads_data.setdefault('popup_ads', [])
+    
+    print(f"Debug: Final ads data - Banner: {len(ads_data['banner_ads'])}, Marquee: {len(ads_data['marquee_ads'])}, Popup: {len(ads_data['popup_ads'])}")  # Debug
+    
+    return render(request, 'manage_ads.html', {'ads_data': ads_data})
+
+# views.py - Update the add_ad function to handle images for all ad types
+@csrf_exempt
+def add_ad(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'})
+    
+    if request.method == 'POST':
+        try:
+            ad_type = request.POST.get('ad_type')  # banner, marquee, popup
+            image_file = request.FILES.get('image_file')
+            message = request.POST.get('message', '')
+            link_url = request.POST.get('link_url', '')
+            
+            print(f"Debug: Adding {ad_type} ad - message: {message}, link: {link_url}")
+            
+            if not ad_type:
+                return JsonResponse({'success': False, 'error': 'Ad type is required'})
+            
+            # Require image for ALL ad types
+            if not image_file:
+                return JsonResponse({'success': False, 'error': 'Image is required for all ad types'})
+            
+            # Generate unique ID
+            ad_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:12]
+            
+            image_url = ""
+            # Upload image for ALL ad types
+            if image_file:
+                try:
+                    upload_result = cloudinary.uploader.upload(
+                        image_file,
+                        folder=f"{ad_type}_ads",
+                        public_id=f"{ad_type}_{ad_id}",
+                        overwrite=True,
+                        resource_type="image"
+                    )
+                    image_url = upload_result['secure_url']
+                    print(f"Debug: Image uploaded to: {image_url}")
+                except Exception as upload_error:
+                    return JsonResponse({'success': False, 'error': f'Image upload failed: {str(upload_error)}'})
+
+            # Create ad data - ALL types have image_url now
+            ad_data = {
+                'id': ad_id,
+                'message': message,
+                'link': link_url,
+                'image_url': image_url,  # This line ensures ALL ad types get image_url
+                'timestamp': datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30"),
+                'is_active': True
+            }
+            
+            # Find the correct document ID (use the one that already exists)
+            ads_ref = db.collection('ads')
+            ads_docs = list(ads_ref.stream())
+            
+            target_doc_id = None
+            
+            # Look for existing document with any ads field
+            for doc in ads_docs:
+                data = doc.to_dict()
+                if 'banner_Ads' in data or 'marquee_Ads' in data or 'popup_Ads' in data:
+                    target_doc_id = doc.id
+                    break
+            
+            # If no existing document found, use the first one or create new
+            if not target_doc_id and ads_docs:
+                target_doc_id = ads_docs[0].id
+            elif not target_doc_id:
+                target_doc_id = 'Tj0a1J50TeKUVjmWvg26'  # Use a default ID
+            
+            print(f"Debug: Using document ID: {target_doc_id}")
+            
+            # Get or create the main ads document
+            ads_ref = db.collection('ads').document(target_doc_id)
+            ads_doc = ads_ref.get()
+            
+            if ads_doc.exists:
+                current_data = ads_doc.to_dict()
+            else:
+                current_data = {}
+            
+            # Update the specific ad type array
+            field_name = f"{ad_type}_Ads"
+            if field_name not in current_data:
+                current_data[field_name] = []
+            
+            current_data[field_name].append(ad_data)
+            
+            # Save to Firestore
+            ads_ref.set(current_data)
+            
+            return JsonResponse({'success': True, 'message': f'{ad_type.capitalize()} ad added successfully'})
+            
+        except Exception as e:
+            print(f"Debug: Error in add_ad: {str(e)}")
+            import traceback
+            print(f"Debug: Traceback: {traceback.format_exc()}")
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+# Update the update_ad function to handle images for all ad types
+@csrf_exempt
+def update_ad(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'})
+    
+    if request.method == 'POST':
+        try:
+            ad_type = request.POST.get('ad_type')
+            ad_id = request.POST.get('ad_id')
+            message = request.POST.get('message')
+            link_url = request.POST.get('link_url')
+            is_active = request.POST.get('is_active')
+            image_file = request.FILES.get('image_file')
+            
+            print(f"Debug: Updating {ad_type} ad {ad_id}")
+            
+            # Find the correct document across all ads documents
+            ads_ref = db.collection('ads')
+            ads_docs = list(ads_ref.stream())
+            
+            updated = False
+            target_doc_id = None
+            
+            for doc in ads_docs:
+                current_data = doc.to_dict()
+                field_name = f"{ad_type}_Ads"
+                
+                if field_name in current_data and isinstance(current_data[field_name], list):
+                    # Find and update the specific ad
+                    for ad in current_data[field_name]:
+                        if ad.get('id') == ad_id:
+                            if message is not None:
+                                ad['message'] = message
+                            if link_url is not None:
+                                ad['link'] = link_url
+                            if is_active is not None:
+                                ad['is_active'] = is_active == 'true'
+                            
+                            # Handle image update for ALL ad types
+                            if image_file:
+                                try:
+                                    upload_result = cloudinary.uploader.upload(
+                                        image_file,
+                                        folder=f"{ad_type}_ads",
+                                        public_id=f"{ad_type}_{ad_id}",
+                                        overwrite=True,
+                                        resource_type="image"
+                                    )
+                                    ad['image_url'] = upload_result['secure_url']
+                                except Exception as upload_error:
+                                    return JsonResponse({'success': False, 'error': f'Image upload failed: {str(upload_error)}'})
+                            
+                            ad['timestamp'] = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                            updated = True
+                            target_doc_id = doc.id
+                            break
+                
+                if updated:
+                    break
+            
+            if not updated:
+                return JsonResponse({'success': False, 'error': 'Ad not found'})
+            
+            # Save updated data
+            if target_doc_id:
+                ads_ref.document(target_doc_id).set(current_data)
+            
+            return JsonResponse({'success': True, 'message': f'{ad_type.capitalize()} ad updated successfully'})
+            
+        except Exception as e:
+            print(f"Debug: Error in update_ad: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@csrf_exempt
+def delete_ad(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'})
+    
+    if request.method == 'POST':
+        try:
+            ad_type = request.POST.get('ad_type')
+            ad_id = request.POST.get('ad_id')
+            
+            print(f"Debug: Deleting {ad_type} ad {ad_id}")
+            
+            # Find the correct document across all ads documents
+            ads_ref = db.collection('ads')
+            ads_docs = list(ads_ref.stream())
+            
+            deleted = False
+            target_doc_id = None
+            
+            for doc in ads_docs:
+                current_data = doc.to_dict()
+                field_name = f"{ad_type}_Ads"
+                
+                if field_name in current_data and isinstance(current_data[field_name], list):
+                    original_count = len(current_data[field_name])
+                    current_data[field_name] = [ad for ad in current_data[field_name] if ad.get('id') != ad_id]
+                    
+                    if len(current_data[field_name]) != original_count:
+                        deleted = True
+                        target_doc_id = doc.id
+                        
+                        # Delete image from Cloudinary for banner and popup ads
+                        if ad_type in ['banner', 'popup']:
+                            try:
+                                # Find the deleted ad to get image URL
+                                for ad in current_data[field_name]:
+                                    if ad.get('id') == ad_id and 'image_url' in ad:
+                                        image_url = ad['image_url']
+                                        if 'cloudinary.com' in image_url:
+                                            public_id = image_url.split('/')[-1].split('.')[0]
+                                            cloudinary.uploader.destroy(public_id)
+                                        break
+                            except Exception as e:
+                                print(f"Warning: Could not delete Cloudinary image: {str(e)}")
+                        break
+            
+            if not deleted:
+                return JsonResponse({'success': False, 'error': 'Ad not found'})
+            
+            # Save updated data
+            if target_doc_id:
+                ads_ref.document(target_doc_id).set(current_data)
+            
+            return JsonResponse({'success': True, 'message': f'{ad_type.capitalize()} ad deleted successfully'})
+            
+        except Exception as e:
+            print(f"Debug: Error in delete_ad: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+def get_active_ads(request, ad_type):
+    """API endpoint to get active ads for mobile app"""
+    try:
+        ads_ref = db.collection('ads').document('Tj0a1J50TeKUVjmWvg26')
+        ads_doc = ads_ref.get()
+        
+        if not ads_doc.exists:
+            return JsonResponse({'success': True, 'ads': []})
+        
+        current_data = ads_doc.to_dict()
+        field_name = f"{ad_type}_Ads"
+        
+        if field_name not in current_data:
+            return JsonResponse({'success': True, 'ads': []})
+        
+        # Filter active ads
+        active_ads = [ad for ad in current_data[field_name] if ad.get('is_active', True)]
+        
+        return JsonResponse({'success': True, 'ads': active_ads})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

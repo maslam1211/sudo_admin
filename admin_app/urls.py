@@ -31,4 +31,10 @@ urlpatterns = [
     path('delete-document/<str:collection_name>/<str:document_id>/', views.delete_document, name='delete_document'),
     path('bulk-delete/', views.bulk_delete, name='bulk_delete'),
     path('view-collection/<str:collection_name>/', views.view_collection, name='view_collection'),
+    # Ads management URLs
+    path('manage-ads/', views.manage_ads, name='manage_ads'),
+    path('add-ad/', views.add_ad, name='add_ad'),
+    path('update-ad/', views.update_ad, name='update_ad'),
+    path('delete-ad/', views.delete_ad, name='delete_ad'),
+    path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),   
 ]

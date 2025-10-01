@@ -209,3 +209,17 @@ TWILIO_PHONE_NUMBER = '+19895205533'      # Your Twilio phone number
 
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
+
+# Add to your settings.py
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+CLOUDINARY_CONFIG = {
+    'cloud_name': 'djuvhdtfs',  # Replace with your cloud name
+    'api_key': '288376169192531',        # Replace with your API key
+    'api_secret': 'sewn3kJI6egEEqFtoWjrTsbcboo',  # Replace with your API secret
+    'secure': True
+}
+
+cloudinary.config(**CLOUDINARY_CONFIG)

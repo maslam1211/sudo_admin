@@ -1,0 +1,129 @@
+<!-- templates/ads_modals.html -->
+<!-- Add Banner Ad Modal -->
+<div class="modal fade" id="addBannerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Banner Advertisement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addBannerForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="ad_type" value="banner">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Choose the image you want to advertise *</label>
+                        <input type="file" class="form-control" name="image_file" accept="image/*" required>
+                        <div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type the message you want to advertise</label>
+                        <textarea class="form-control" name="message" rows="3" placeholder="Enter advertisement message"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Enter the link for redirection</label>
+                        <input type="url" class="form-control" name="link_url" placeholder="https://example.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Advertise</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Marquee Ad Modal -->
+<div class="modal fade" id="addMarqueeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Marquee Advertisement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addMarqueeForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="ad_type" value="marquee">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Choose the image you want to advertise *</label>
+                        <input type="file" class="form-control" name="image_file" accept="image/*" required>
+                        <div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type the message you want to advertise</label>
+                        <textarea class="form-control" name="message" rows="3" placeholder="Enter advertisement message"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Enter the link for redirection</label>
+                        <input type="url" class="form-control" name="link_url" placeholder="https://example.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Advertise</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Popup Ad Modal -->
+<div class="modal fade" id="addPopupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Popup Advertisement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addPopupForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="ad_type" value="popup">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Choose the image you want to advertise *</label>
+                        <input type="file" class="form-control" name="image_file" accept="image/*" required>
+                        <div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type the message you want to advertise</label>
+                        <textarea class="form-control" name="message" rows="3" placeholder="Enter advertisement message"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Enter the link for redirection</label>
+                        <input type="url" class="form-control" name="link_url" placeholder="https://example.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Advertise</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Ad Modal (Will be dynamically populated) -->
+<div class="modal fade" id="editAdModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Advertisement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editAdForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="ad_type" id="editAdType">
+                <input type="hidden" name="ad_id" id="editAdId">
+                <div class="modal-body" id="editModalBody">
+                    <!-- Dynamic content will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Ad</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
