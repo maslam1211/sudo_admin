@@ -422,6 +422,7 @@
       transition: all 0.3s;
       background-color: var(--card-bg);
       color: var(--input-text-color); /* Use specific variable for input text */
+      text-transform: uppercase; /* Auto capitalize all input text */
     }
 
     .form-control:focus {
@@ -429,6 +430,16 @@
       box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
       background-color: var(--card-bg);
       color: var(--input-text-color);
+    }
+
+    /* Style for email input to prevent capitalization */
+    input[type="email"] {
+      text-transform: none; /* Email should not be capitalized */
+    }
+
+    /* Style for phone input to prevent capitalization */
+    input[type="tel"] {
+      text-transform: none; /* Phone numbers should not be capitalized */
     }
 
     .btn {
@@ -776,7 +787,7 @@
       }
       
       .card-title {
-        font-size: 1.5rem;
+        fontSize: 1.5rem;
       }
       
       .btn {
@@ -788,7 +799,7 @@
       }
       
       .welcome-title, .confirmation-title {
-        font-size: 1.5rem;
+        fontSize: 1.5rem;
       }
       
       .welcome-footer, .confirmation-footer {
@@ -1123,6 +1134,20 @@
         bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
         bubblesContainer.appendChild(bubble);
       }
+
+      // Auto-capitalization for text inputs
+      const textInputs = document.querySelectorAll('input[type="text"]');
+      textInputs.forEach(input => {
+        input.addEventListener('input', function(e) {
+          // Convert to uppercase
+          this.value = this.value.toUpperCase();
+        });
+        
+        // Also capitalize on blur (when user leaves the field)
+        input.addEventListener('blur', function(e) {
+          this.value = this.value.toUpperCase();
+        });
+      });
 
       // DOM Elements
       const welcomePopup = document.getElementById('welcomePopup');
