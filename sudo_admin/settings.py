@@ -27,6 +27,9 @@ DEBUG = True  # temporarily for debugging only
 
 ALLOWED_HOSTS = ['*']  # temporarily allow everything
 
+# Custom 404 page
+handler404 = 'admin_app.views.custom_404'
+
 CSRF_TRUSTED_ORIGINS = ['http://43.205.192.146', 'https://sudotag.duckdns.org']
 # Cookies
 SESSION_COOKIE_SECURE = False

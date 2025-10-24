@@ -50,6 +50,8 @@ if not firebase_admin._apps:
 # Now you can use Firebase as usual
 db = firestore.client()
 
+def custom_404(request, exception):
+    return render(request, '404.html', status=404)
 
 def admin_login(request):
     if request.method == 'POST':
