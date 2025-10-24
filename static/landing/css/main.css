@@ -19,37 +19,39 @@
 
 /* Global Colors - The following color variables are used throughout the website. Updating them here will change the color scheme of the entire website */
 :root { 
-  --background-color: #ffffff; /* Background color for the entire website, including individual sections */
-  --default-color: #444444; /* Default color used for the majority of the text content across the entire website */
-  --heading-color: #151515; /* Color for headings, subheadings and title throughout the website */
-  --accent-color: #ffc451; /* Accent color that represents your brand on the website. It's used for buttons, links, and other elements that need to stand out */
-  --surface-color: #ffffff; /* The surface color is used as a background of boxed elements within sections, such as cards, icon boxes, or other elements that require a visual separation from the global background. */
-  --contrast-color: #312f2f; /* Contrast color for text, ensuring readability against backgrounds of accent, heading, or default colors. */
+  --background-color: #1C1C1C; /* Primary Black - Background color for the entire website */
+  --default-color: #FFFFFF; /* Text/Surface White - Default color used for the majority of the text content */
+  --heading-color: #FFFFFF; /* Text/Surface White - Color for headings, subheadings and title */
+  --accent-color: #E58147; /* Accent Orange - Accent color that represents your brand on the website */
+  --surface-color: #282828; /* Secondary Gray - The surface color used as a background of boxed elements */
+  --contrast-color: #FFFFFF; /* Text/Surface White - Contrast color for text */
 }
 
-/* Nav Menu Colors - The following color variables are used specifically for the navigation menu. They are separate from the global colors to allow for more customization options */
+/* Nav Menu Colors - The following color variables are used specifically for the navigation menu. */
 :root {
   --nav-color: rgba(255, 255, 255, 0.905);  /* The default color of the main navmenu links */
-  --nav-hover-color: #ffc451; /* Applied to main navmenu links when they are hovered over or active */
-  --nav-mobile-background-color: #ffffff; /* Used as the background color for mobile navigation menu */
-  --nav-dropdown-background-color: #ffffff; /* Used as the background color for dropdown items that appear when hovering over primary navigation items */
-  --nav-dropdown-color: #212529; /* Used for navigation links of the dropdown items in the navigation menu. */
-  --nav-dropdown-hover-color: #ffc451; /* Similar to --nav-hover-color, this color is applied to dropdown navigation links when they are hovered over. */
+  --nav-hover-color: #E58147; /* Applied to main navmenu links when they are hovered over or active */
+  --nav-mobile-background-color: #282828; /* Used as the background color for mobile navigation menu */
+  --nav-dropdown-background-color: #282828; /* Used as the background color for dropdown items */
+  --nav-dropdown-color: #FFFFFF; /* Used for navigation links of the dropdown items */
+  --nav-dropdown-hover-color: #E58147; /* Color applied to dropdown navigation links when hovered */
 }
 
-/* Color Presets - These classes override global colors when applied to any section or element, providing reuse of the sam color scheme. */
+/* Color Presets - These classes override global colors when applied to any section or element */
 
 .light-background {
   --background-color: #f9f9f9;
   --surface-color: #ffffff;
+  --default-color: #444444;
+  --heading-color: #151515;
 }
 
 .dark-background {
-  --background-color: #060606;
-  --default-color: #ffffff;
-  --heading-color: #ffffff;
-  --surface-color: #252525;
-  --contrast-color: #2a2727;
+  --background-color: #1C1C1C;
+  --default-color: #FFFFFF;
+  --heading-color: #FFFFFF;
+  --surface-color: #282828;
+  --contrast-color: #FFFFFF;
 }
 
 /* Smooth scroll */
@@ -91,7 +93,7 @@ h6 {
 ------------------------------*/
 .php-email-form .error-message {
   display: none;
-  background: #df1529;
+  background: #FF4500; /* Notification Red */
   color: #ffffff;
   text-align: left;
   padding: 15px;
@@ -102,7 +104,7 @@ h6 {
 .php-email-form .sent-message {
   display: none;
   color: #ffffff;
-  background: #059652;
+  background: #4CAF50; /* Success Green */
   text-align: center;
   padding: 15px;
   margin-bottom: 24px;
@@ -143,9 +145,9 @@ h6 {
 # Global Header
 --------------------------------------------------------------*/
 .header {
-  --background-color: rgba(0, 0, 0, 0.8);
-  --heading-color: #ffffff;
-  --contrast-color: #ffffff;
+  --background-color: rgba(28, 28, 28, 0.9); /* Primary Black with transparency */
+  --heading-color: #FFFFFF; /* Text/Surface White */
+  --contrast-color: #FFFFFF; /* Text/Surface White */
   color: var(--default-color);
   background-color: var(--background-color);
   padding: 10px 0;
@@ -183,12 +185,14 @@ h6 {
   border-radius: 4px;
   transition: 0.3s;
   border: 2px solid var(--accent-color);
+  background-color: var(--accent-color);
 }
 
 .header .btn-getstarted:hover,
 .header .btn-getstarted:focus:hover {
-  color: var(--default-color);
-  background: var(--accent-color);
+  color: var(--contrast-color);
+  background: color-mix(in srgb, var(--accent-color), transparent 20%);
+  border-color: color-mix(in srgb, var(--accent-color), transparent 20%);
 }
 
 @media (max-width: 1200px) {
@@ -214,13 +218,13 @@ h6 {
 /* Index Page Header
 ------------------------------*/
 .index-page .header {
-  --background-color: rgba(0, 0, 0, 0);
+  --background-color: rgba(28, 28, 28, 0);
 }
 
 /* Index Page Header on Scroll
 ------------------------------*/
 .index-page.scrolled .header {
-  --background-color: rgba(0, 0, 0, 0.8);
+  --background-color: rgba(28, 28, 28, 0.9);
 }
 
 /*--------------------------------------------------------------
@@ -310,7 +314,7 @@ h6 {
   .navmenu .dropdown ul a:hover,
   .navmenu .dropdown ul .active:hover,
   .navmenu .dropdown ul li:hover>a {
-    background-color: var(--nav-dropdown-hover-color);
+    color: var(--nav-dropdown-hover-color);
   }
 
   .navmenu .dropdown:hover>ul {
@@ -401,7 +405,7 @@ h6 {
   .navmenu a:hover,
   .navmenu .active,
   .navmenu .active:focus {
-    background-color: var(--nav-dropdown-hover-color);
+    color: var(--nav-dropdown-hover-color);
   }
 
   .navmenu .active i,
@@ -422,12 +426,12 @@ h6 {
   }
 
   .navmenu .dropdown ul ul {
-    background-color: rgba(33, 37, 41, 0.1);
+    background-color: rgba(40, 40, 40, 0.1);
   }
 
   .navmenu .dropdown>.dropdown-active {
     display: block;
-    background-color: rgba(33, 37, 41, 0.03);
+    background-color: rgba(40, 40, 40, 0.03);
   }
 
   .mobile-nav-active {
@@ -448,7 +452,7 @@ h6 {
     position: fixed;
     overflow: hidden;
     inset: 0;
-    background: rgba(33, 37, 41, 0.8);
+    background: rgba(28, 28, 28, 0.8);
     transition: 0.3s;
   }
 
@@ -469,7 +473,7 @@ h6 {
 
 .footer .footer-top {
   padding: 50px 0;
-  background-color: color-mix(in srgb, var(--footer-background-color) 90%, white 10%);
+  background-color: color-mix(in srgb, var(--background-color), transparent 10%);
 }
 
 .footer .footer-about .logo {
@@ -493,6 +497,7 @@ h6 {
 .footer .footer-about p {
   font-size: 14px;
   font-family: var(--heading-font);
+  color: var(--default-color);
 }
 
 .footer .social-links a {
@@ -519,6 +524,7 @@ h6 {
   font-weight: bold;
   position: relative;
   padding-bottom: 12px;
+  color: var(--heading-color);
 }
 
 .footer .footer-links {
@@ -542,6 +548,7 @@ h6 {
   padding: 10px 0;
   display: flex;
   align-items: center;
+  color: var(--default-color);
 }
 
 .footer .footer-links ul li:first-child {
@@ -560,6 +567,7 @@ h6 {
 
 .footer .footer-contact p {
   margin-bottom: 5px;
+  color: var(--default-color);
 }
 
 .footer .footer-newsletter .newsletter-form {
@@ -570,7 +578,7 @@ h6 {
   border-radius: 4px;
   border: 1px solid color-mix(in srgb, var(--default-color), transparent 80%);
   display: flex;
-  background-color: color-mix(in srgb, var(--footer-background-color) 90%, white 15%);
+  background-color: color-mix(in srgb, var(--surface-color), transparent 15%);
   transition: 0.3s;
 }
 
@@ -582,7 +590,7 @@ h6 {
   border: 0;
   padding: 4px;
   width: 100%;
-  background-color: color-mix(in srgb, var(--footer-background-color) 90%, white 15%);
+  background-color: color-mix(in srgb, var(--surface-color), transparent 15%);
   color: var(--default-color);
 }
 
@@ -607,17 +615,19 @@ h6 {
 
 .footer .copyright {
   padding: 30px 0;
+  background-color: color-mix(in srgb, var(--background-color), transparent 5%);
 }
 
 .footer .copyright p {
   margin-bottom: 0;
+  color: var(--default-color);
 }
 
 .footer .credits {
   margin-top: 5px;
   font-size: 13px;
+  color: var(--default-color);
 }
-
 /*--------------------------------------------------------------
 # Preloader
 --------------------------------------------------------------*/
