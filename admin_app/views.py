@@ -1000,7 +1000,35 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from firebase_admin import firestore, messaging
 from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+def get_twilio_error_message(twilio_exception):
+    """
+    Convert Twilio error codes to user-friendly messages
+    """
+    error_messages = {
+        20003: "Authentication failed. Please check Twilio credentials.",
+        21211: "Invalid phone number format. Please use format: +1234567890",
+        21408: "Permission denied. This feature is not enabled.",
+        21610: "Phone number is not verified. Please verify your number.",
+        30007: "Delivery failed. The destination number cannot receive messages.",
+        14101: "Invalid To phone number. Please check the number format.",
+        13225: "Max price parameter is invalid.",
+        13224: "Message delivery failed.",
+        21612: "Cannot send SMS to this country.",
+        21614: "This phone number is not currently reachable.",
+        21217: "Phone number is too short.",
+        21216: "Phone number is too long.",
+        21215: "Invalid phone number.",
+        14103: "Call cannot be completed.",
+        13227: "Phone number is blacklisted.",
+    }
+    
+    return error_messages.get(twilio_exception.code, f"Twilio error: {twilio_exception.msg}")
 
 @ensure_csrf_cookie
 def send_notification(request, qr_id):
@@ -1043,13 +1071,6 @@ def send_notification(request, qr_id):
                 user_phone = data.get('user_phone', '')
                 notification_method = data.get('notification_method', 'push')
                 
-                # Validate plate digits
-                # if plate_digits != vehicle_data.get('registrationNumber', '')[-4:]:
-                #     return JsonResponse({
-                #         'status': 'error', 
-                #         'message': 'The plate number does not match. Please check you are entering the right plate number.'
-                #     })
-                
                 # Handle different notification methods
                 if notification_method == 'push':
                     # Existing push notification code
@@ -1081,13 +1102,33 @@ def send_notification(request, qr_id):
                             'message': 'We have sent your message to the vehicle owner.'
                         })
                     except Exception as e:
+                        logger.error(f"FCM Error: {str(e)}")
                         return JsonResponse({
                             'status': 'error', 
-                            'message': f'Failed to send notification: {str(e)}'
+                            'message': f'Failed to send push notification: {str(e)}'
                         })
                 
                 elif notification_method in ['call', 'sms']:
                     try:
+                        # Validate Twilio configuration
+                        if not hasattr(settings, 'TWILIO_ACCOUNT_SID') or not settings.TWILIO_ACCOUNT_SID:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+                        
+                        if not hasattr(settings, 'TWILIO_AUTH_TOKEN') or not settings.TWILIO_AUTH_TOKEN:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+                        
+                        if not hasattr(settings, 'TWILIO_PHONE_NUMBER') or not settings.TWILIO_PHONE_NUMBER:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+
                         # Initialize Twilio client
                         twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
                         owner_phone = user_data.get('contactNumber', '')
@@ -1098,6 +1139,13 @@ def send_notification(request, qr_id):
                                 'message': 'Owner does not have a valid phone number registered.'
                             })
                         
+                        # Validate phone number format
+                        if not owner_phone.startswith('+'):
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Owner phone number must include country code (e.g., +91 for India).'
+                            })
+
                         if notification_method == 'sms':
                             # Send SMS
                             message = twilio_client.messages.create(
@@ -1105,6 +1153,7 @@ def send_notification(request, qr_id):
                                 from_=settings.TWILIO_PHONE_NUMBER,
                                 to=owner_phone
                             )
+                            logger.info(f"SMS sent successfully: {message.sid}")
                             return JsonResponse({
                                 'status': 'success',
                                 'message': 'SMS sent successfully to the vehicle owner.'
@@ -1117,15 +1166,36 @@ def send_notification(request, qr_id):
                                 from_=settings.TWILIO_PHONE_NUMBER,
                                 to=owner_phone
                             )
+                            logger.info(f"Call initiated successfully: {call.sid}")
                             return JsonResponse({
                                 'status': 'success',
                                 'message': 'Phone call initiated successfully to the vehicle owner.'
                             })
                     
-                    except Exception as e:
+                    except TwilioRestException as e:
+                        logger.error(f"Twilio Error {e.code}: {e.msg}")
+                        user_message = get_twilio_error_message(e)
+                        
+                        # Special handling for common errors
+                        if e.code == 20003:
+                            user_message = "SMS/Call service is temporarily unavailable. Please try push notification instead."
+                        elif e.code == 21211:
+                            user_message = "Invalid phone number format. The owner's phone number needs to include country code."
+                        elif e.code in [21408, 21610]:
+                            user_message = "SMS/Call feature is not available for this number. Please try push notification."
+                        elif e.code == 30007:
+                            user_message = "Unable to deliver message to the owner's phone number. It may be inactive or blocked."
+                        
                         return JsonResponse({
                             'status': 'error',
-                            'message': f'Failed to send {notification_method}: {str(e)}'
+                            'message': user_message
+                        })
+                        
+                    except Exception as e:
+                        logger.error(f"Unexpected Twilio error: {str(e)}")
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f'Failed to send {notification_method}. Please try again or use push notification.'
                         })
 
         # Render the initial page with vehicle data
@@ -1139,8 +1209,9 @@ def send_notification(request, qr_id):
         return render(request, 'send_notification.html', context)
     
     except Exception as e:
+        logger.error(f"General error in send_notification: {str(e)}")
         return render(request, 'error.html', {'error': str(e)})
-
+    
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator

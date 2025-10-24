@@ -515,6 +515,38 @@
       background-color: var(--notification-red);
     }
 
+    /* Error Details Modal */
+    .error-details {
+      background-color: var(--primary-block);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .error-title {
+      font-size: 0.8rem;
+      color: var(--accent-orange);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .error-message {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.4;
+    }
+
+    .toggle-error {
+      background: none;
+      border: none;
+      color: var(--accent-orange);
+      font-size: 0.7rem;
+      cursor: pointer;
+      margin-top: 8px;
+      text-decoration: underline;
+    }
+
     /* Responsive Design */
     @media (max-width: 480px) {
       .main-content {
@@ -539,13 +571,19 @@
         margin: 10px;
       }
     }
+
+    /* Loading Spinner */
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+    }
   </style>
 </head>
 
 <body>
   <!-- Header -->
   <header class="header">
-    <a href="https://sudo-70852.firebaseapp.com" class="brand-logo">SudoTag</a>.
+    <a href="https://sudo-70852.firebaseapp.com" class="brand-logo">SudoTag</a>
     <h1 class="header-title">CONTACT VEHICLE OWNER</h1>
   </header>
 
@@ -662,16 +700,36 @@
   </div>
 
   <!-- Success Modal -->
-  <div class="modal-overlay" id="successModal">
+<div class="modal-overlay" id="successModal">
     <div class="success-modal">
       <div class="success-icon">
         <i class="bi bi-check-circle-fill"></i>
       </div>
-      <h3 class="success-title">Notification Sent!</h3>
-      <p class="success-text">The vehicle owner has been notified about your message.</p>
-      <button class="action-btn call-btn" id="continueBtn" style="margin-top: 8px;">
+      <h3 class="success-title" id="successTitle">Notification Sent!</h3>
+      <p class="success-text" id="successMessage">The vehicle owner has been notified about your message.</p>
+      <button class="action-btn call-btn" id="continueBtn" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto;">
         OK
       </button>
+    </div>
+</div>
+
+  <!-- Error Details Modal -->
+  <div class="modal-overlay" id="errorModal">
+    <div class="notification-methods">
+      <h3 class="methods-title" style="color: var(--notification-red);">
+        <i class="bi bi-exclamation-triangle-fill"></i> Unable to Send
+      </h3>
+      <p class="methods-subtitle" id="errorMainMessage">There was an issue sending your notification.</p>
+      
+      <div class="error-details">
+        <div class="error-title" id="errorTitle">Error Details</div>
+        <div class="error-message" id="errorDetailedMessage"></div>
+      </div>
+
+      <div class="method-actions" style="margin-top: 15px;">
+        <button class="method-action-btn cancel-btn" id="errorCloseBtn">Close</button>
+        <button class="method-action-btn confirm-btn" id="errorRetryBtn">Try Again</button>
+      </div>
     </div>
   </div>
 
@@ -700,10 +758,19 @@
     const charCount = document.getElementById('charCount');
     const successModal = document.getElementById('successModal');
     const continueBtn = document.getElementById('continueBtn');
+    const successTitle = document.getElementById('successTitle');
+    const successMessage = document.getElementById('successMessage');
+    const errorModal = document.getElementById('errorModal');
+    const errorMainMessage = document.getElementById('errorMainMessage');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorDetailedMessage = document.getElementById('errorDetailedMessage');
+    const errorCloseBtn = document.getElementById('errorCloseBtn');
+    const errorRetryBtn = document.getElementById('errorRetryBtn');
     
     // Selected reason and method
     let selectedReason = '';
     let selectedMethod = '';
+    let lastNotificationData = null;
 
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function() {
@@ -801,6 +868,19 @@
         return;
       }
       
+      // Validate phone number for SMS/Call
+      if ((selectedMethod === 'sms' || selectedMethod === 'call') && userPhone.value.trim()) {
+        const phone = userPhone.value.trim();
+        if (!phone.startsWith('+')) {
+          showToast('Please enter your phone number with country code (e.g., +1234567890)', 'error');
+          return;
+        }
+        if (phone.length < 10) {
+          showToast('Please enter a valid phone number', 'error');
+          return;
+        }
+      }
+      
       methodModal.style.display = 'none';
       
       // Prepare the message to send
@@ -808,6 +888,13 @@
       if (selectedReason === 'custom') {
         messageToSend = customMessage.value.trim();
       }
+      
+      // Store notification data for retry
+      lastNotificationData = {
+        message: messageToSend,
+        phone: userPhone.value.trim(),
+        method: selectedMethod
+      };
       
       // Send notification
       sendNotification(messageToSend);
@@ -828,6 +915,20 @@
       charCount.textContent = '0';
       userPhone.value = '';
       selectedMethod = '';
+      lastNotificationData = null;
+    });
+
+    // Error modal close button
+    errorCloseBtn.addEventListener('click', function() {
+      errorModal.style.display = 'none';
+    });
+
+    // Error modal retry button
+    errorRetryBtn.addEventListener('click', function() {
+      errorModal.style.display = 'none';
+      if (lastNotificationData) {
+        sendNotification(lastNotificationData.message);
+      }
     });
 
     // Function to show toast notification
@@ -846,21 +947,41 @@
       
       setTimeout(() => {
         toastNotification.classList.remove('show');
-      }, 3000);
+      }, 4000);
+    }
+
+    // Function to show detailed error modal
+    function showErrorModal(mainMessage, detailedMessage, errorType = 'general') {
+      errorMainMessage.textContent = mainMessage;
+      errorDetailedMessage.textContent = detailedMessage;
+      
+      // Set appropriate title based on error type
+      if (errorType === 'twilio') {
+        errorTitle.textContent = 'Twilio Service Error';
+      } else if (errorType === 'network') {
+        errorTitle.textContent = 'Network Connection Issue';
+      } else if (errorType === 'server') {
+        errorTitle.textContent = 'Server Error';
+      } else {
+        errorTitle.textContent = 'Error Details';
+      }
+      
+      errorModal.style.display = 'flex';
     }
 
     // Function to send notification to server
     function sendNotification(message) {
-      const csrfToken = "{{ csrf_token }}";
+      const csrfToken = getCSRFToken();
       const phoneNumber = userPhone.value.trim();
       
       if (!csrfToken) {
         console.error('CSRF token not found');
-        showToast('Security error. Please refresh', 'error');
+        showToast('Security error. Please refresh the page', 'error');
         return;
       }
       
       // Show loading state
+      const originalText = methodConfirmBtn.innerHTML;
       methodConfirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
       methodConfirmBtn.disabled = true;
       
@@ -879,26 +1000,94 @@
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          // Handle HTTP errors
+          if (response.status === 500) {
+            throw new Error('Server error. Please try again later.');
+          } else if (response.status === 400) {
+            throw new Error('Invalid request. Please check your input.');
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
         }
         return response.json();
       })
       .then(data => {
         if (data.status === 'success') {
-          // Show success modal
+          // Show success modal with method-specific message
+          let successMsg = 'The vehicle owner has been notified about your message.';
+          if (selectedMethod === 'sms') {
+            successMsg = 'SMS sent successfully to the vehicle owner.';
+          } else if (selectedMethod === 'call') {
+            successMsg = 'Phone call initiated successfully to the vehicle owner.';
+          } else if (selectedMethod === 'push') {
+            successMsg = 'Push notification sent successfully to the vehicle owner.';
+          }
+          successMessage.textContent = successMsg;
           successModal.style.display = 'flex';
         } else {
-          throw new Error(data.message || 'Unknown error occurred');
+          // Handle server-side errors with detailed messages
+          let errorType = 'server';
+          let detailedMessage = data.message || 'Unknown server error occurred.';
+          
+          // Detect Twilio errors from server response
+          if (data.message && data.message.toLowerCase().includes('twilio')) {
+            errorType = 'twilio';
+          }
+          
+          showErrorModal(
+            'Failed to send notification', 
+            detailedMessage,
+            errorType
+          );
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        showToast(error.message || 'Failed to send notification', 'error');
+        
+        // Determine error type for better messaging
+        let errorType = 'network';
+        let detailedMessage = error.message;
+        
+        if (error.message.includes('Network') || error.message.includes('fetch')) {
+          detailedMessage = 'Network connection failed. Please check your internet connection and try again.';
+          errorType = 'network';
+        } else if (error.message.includes('Server')) {
+          errorType = 'server';
+        }
+        
+        showErrorModal(
+          'Failed to send notification', 
+          detailedMessage,
+          errorType
+        );
       })
       .finally(() => {
-        methodConfirmBtn.innerHTML = 'Continue';
+        methodConfirmBtn.innerHTML = originalText;
         methodConfirmBtn.disabled = false;
       });
+    }
+
+    // Function to get CSRF token
+    function getCSRFToken() {
+      const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (csrfTokenElement) {
+        return csrfTokenElement.value;
+      }
+      
+      // Alternative method to get CSRF token from cookie
+      const name = 'csrftoken';
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
     }
   </script>
 </body>
