@@ -30,7 +30,7 @@ ALLOWED_HOSTS = ['*']  # temporarily allow everything
 # Custom 404 page
 handler404 = 'admin_app.views.custom_404'
 
-CSRF_TRUSTED_ORIGINS = ['http://43.205.192.146', 'https://sudotag.duckdns.org']
+CSRF_TRUSTED_ORIGINS = ['http://43.205.192.146', 'https://sudotag.com']
 # Cookies
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
@@ -38,7 +38,7 @@ SESSION_COOKIE_HTTPONLY = False
 
 CORS_ALLOWED_ORIGINS = [
     'http://43.205.192.146',
-    'https://sudotag.duckdns.org',
+    'https://sudotag.com',
     'sudo-admin.onrender.com',
 ]
 
@@ -204,7 +204,7 @@ DEFAULT_FROM_EMAIL = 'sudotagonline@gmail.com'  # Sender email (same as HOST_USE
 SERVER_EMAIL = 'sudotagonline@gmail.com'  # For server error notifications
 EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
-BASE_DOMAIN='https://sudotag.duckdns.org'
+BASE_DOMAIN='https://sudotag.com'
 
 TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
 TWILIO_AUTH_TOKEN = '34fbd4cdc8c73b0097911a6d4b9e916d'    # Get from Twilio console
