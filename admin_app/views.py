@@ -1081,7 +1081,7 @@ def send_notification(request, qr_id):
                     if not fcm_token:
                         return JsonResponse({
                             'status': 'error', 
-                            'message': 'User does not have a valid FCM token.'
+                            'message': 'User is not registered on app.'
                         })
 
                     message = messaging.Message(
