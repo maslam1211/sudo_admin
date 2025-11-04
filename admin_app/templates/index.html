@@ -1031,13 +1031,84 @@ document.getElementById('whatsappSubscriptionForm').addEventListener('submit', f
     </div>
   
     <div class="copyright">
-      <div class="container text-center">
-        <p>© <span>Copyright</span> <strong class="px-1 sitename">SudoTag</strong> <span>All Rights Reserved</span></p>
-        <div class="credits">
-          Designed by <a href="#" style="pointer-events: none; cursor: default;">SudoTag Team</a>
-        </div>
+  <div class="container text-center">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename">SudoTag</strong> <span>All Rights Reserved</span></p>
+    <div class="credits">
+      <div class="legal-links">
+        <a href="{% url 'privacy' %}" class="legal-link">
+          <i class="bi bi-shield-lock"></i>
+          Privacy Policy
+        </a>
+        <span class="divider"></span>
+        <a href="{% url 'terms' %}" class="legal-link">
+          <i class="bi bi-file-earmark-text"></i>
+          Terms & Conditions
+        </a>
+        <span class="divider"></span>
+        <span class="design-credit">
+          <i class="bi bi-heart-fill"></i>
+          Designed by SudoTag Team
+        </span>
       </div>
     </div>
+  </div>
+</div>
+
+<style>
+.legal-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.legal-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 8px 15px;
+  border-radius: 25px;
+  font-size: 14px;
+}
+
+.legal-link:hover {
+  color: #E58147;
+  background: rgba(229, 129, 71, 0.1);
+  transform: translateY(-2px);
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,0.3);
+}
+
+.design-credit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+}
+
+.design-credit i {
+  color: #E58147;
+}
+
+@media (max-width: 768px) {
+  .legal-links {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .divider {
+    display: none;
+  }
+}
+</style>
   
   </footer>
   

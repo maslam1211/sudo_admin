@@ -1,0 +1,967 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Terms & Conditions - SudoTag</title>
+  <meta name="description" content="SudoTag Terms and Conditions">
+  <meta name="keywords" content="">
+
+  <!-- Favicons -->
+  <link href="{% static 'landing/img/logo22.png' %}" rel="icon">
+  <link href="{% static 'landing/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+
+  <style>
+    /* Background Animation */
+    .animated-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .floating-shape {
+      position: absolute;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(229, 129, 71, 0.1) 0%, rgba(21, 21, 21, 0.05) 100%);
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .shape-1 {
+      width: 200px;
+      height: 200px;
+      top: 10%;
+      left: 5%;
+      animation-delay: 0s;
+    }
+
+    .shape-2 {
+      width: 150px;
+      height: 150px;
+      top: 60%;
+      right: 10%;
+      animation-delay: 2s;
+    }
+
+    .shape-3 {
+      width: 100px;
+      height: 100px;
+      bottom: 20%;
+      left: 15%;
+      animation-delay: 4s;
+    }
+
+    .shape-4 {
+      width: 120px;
+      height: 120px;
+      top: 20%;
+      right: 20%;
+      animation-delay: 1s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+
+    .pulse-dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #E58147;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .dot-1 { top: 30%; left: 20%; animation-delay: 0s; }
+    .dot-2 { top: 70%; right: 25%; animation-delay: 1s; }
+    .dot-3 { bottom: 40%; left: 30%; animation-delay: 0.5s; }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(2); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Main Content Styles */
+    .terms-content {
+      padding: 100px 0 60px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .terms-header {
+      background: linear-gradient(135deg, rgba(21, 21, 21, 0.95) 0%, rgba(49, 47, 47, 0.95) 100%);
+      color: white;
+      padding: 100px 0 80px;
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terms-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url("{% static 'landing/img/qr-code-pattern.png' %}") repeat;
+      opacity: 0.1;
+      animation: slideBackground 20s linear infinite;
+    }
+
+    @keyframes slideBackground {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100px); }
+    }
+    
+    .terms-header h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      color: #E58147;
+      position: relative;
+      animation: titleGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes titleGlow {
+      0% { text-shadow: 0 0 10px rgba(229, 129, 71, 0.5); }
+      100% { text-shadow: 0 0 20px rgba(229, 129, 71, 0.8), 0 0 30px rgba(229, 129, 71, 0.6); }
+    }
+    
+    .terms-header p {
+      font-size: 18px;
+      opacity: 0.9;
+      position: relative;
+    }
+
+    .warning-banner {
+  background: linear-gradient(135deg, #E58147 0%, #1b1a1a 100%);
+  padding: 20px;
+  border-radius: 15px;
+  margin: 30px auto;
+  max-width: 800px;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 10px 30px rgba(229, 129, 71, 0.3);
+  animation: pulseWarning 2s ease-in-out infinite;
+}
+    @keyframes pulseWarning {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    .warning-banner h3 {
+      color: white;
+      margin-bottom: 10px;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .warning-banner p {
+      color: white;
+      margin: 0;
+      opacity: 0.9;
+      text-align: center;
+    }
+    
+    .last-updated {
+      background: rgba(229, 129, 71, 0.2);
+      padding: 10px 20px;
+      border-radius: 25px;
+      display: inline-block;
+      margin-top: 15px;
+      border: 1px solid rgba(229, 129, 71, 0.3);
+    }
+    
+    .terms-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .terms-section {
+      margin-bottom: 50px;
+      padding: 40px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      border-left: 5px solid #E58147;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terms-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(229, 129, 71, 0.1), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .terms-section:hover::before {
+      left: 100%;
+    }
+    
+    .terms-section:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+    
+    .section-number {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: #E58147;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      box-shadow: 0 5px 15px rgba(229, 129, 71, 0.3);
+    }
+    
+    .terms-section h2 {
+      color: #151515;
+      margin-bottom: 25px;
+      font-size: 28px;
+      padding-right: 60px;
+      position: relative;
+    }
+
+    .terms-section h2::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: #E58147;
+      border-radius: 2px;
+    }
+    
+    .terms-section h3 {
+      color: #E58147;
+      margin: 30px 0 20px;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .terms-section h3 i {
+      font-size: 20px;
+    }
+    
+    .terms-section p, .terms-section li {
+      color: #444444;
+      line-height: 1.8;
+      font-size: 16px;
+    }
+    
+    .terms-section ul {
+      padding-left: 25px;
+    }
+    
+    .terms-section li {
+      margin-bottom: 12px;
+      position: relative;
+      padding-left: 10px;
+    }
+
+    .terms-section li::before {
+      content: '•';
+      color: #E58147;
+      font-weight: bold;
+      position: absolute;
+      left: -15px;
+    }
+
+    .agreement-list {
+      background: rgba(229, 129, 71, 0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      border-left: 4px solid #E58147;
+    }
+
+    .agreement-list li {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      border-left: 3px solid #E58147;
+    }
+    
+    .highlight-box {
+      background: linear-gradient(135deg, #fff8f0 0%, #fff0e0 100%);
+      border-left: 4px solid #E58147;
+      padding: 25px;
+      margin: 25px 0;
+      border-radius: 0 12px 12px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .highlight-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("{% static 'landing/img/pattern.png' %}") repeat;
+      opacity: 0.05;
+    }
+
+    .legal-notice {
+      background: linear-gradient(135deg, #ffeb3b 0%, #fbc02d 100%);
+      border-left: 4px solid #f57c00;
+      color: #5d4037;
+    }
+
+    .legal-notice h3 {
+      color: #d84315;
+    }
+    
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 25px 0;
+    }
+
+    .service-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      border-left: 4px solid #E58147;
+      transition: all 0.3s ease;
+    }
+
+    .service-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .service-card h4 {
+      color: #E58147;
+      margin-bottom: 10px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .service-card p {
+      color: #666;
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .back-to-home {
+      text-align: center;
+      margin-top: 60px;
+    }
+    
+    .back-to-home a {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #E58147 0%, #d46c2c 100%);
+      color: white;
+      padding: 15px 35px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 18px;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(229, 129, 71, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .back-to-home a::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .back-to-home a:hover::before {
+      left: 100%;
+    }
+    
+    .back-to-home a:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(229, 129, 71, 0.4);
+    }
+
+    /* Progress Indicator */
+    .progress-indicator {
+      position: fixed;
+      top: 80px;
+      right: 30px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+      z-index: 1000;
+      max-width: 250px;
+    }
+
+    .progress-indicator h4 {
+      color: #151515;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .progress-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .progress-item:hover {
+      background: rgba(229, 129, 71, 0.1);
+      color: #E58147;
+    }
+
+    .progress-item.active {
+      background: #E58147;
+      color: white;
+    }
+
+    /* Floating Action Button */
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #E58147 0%, #d46c2c 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      box-shadow: 0 5px 20px rgba(229, 129, 71, 0.4);
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      animation: pulse 2s infinite;
+    }
+
+    .fab:hover {
+      transform: scale(1.1) rotate(90deg);
+      box-shadow: 0 8px 25px rgba(229, 129, 71, 0.6);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .terms-header h1 {
+        font-size: 36px;
+      }
+      
+      .terms-section {
+        padding: 25px;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .progress-indicator {
+        display: none;
+      }
+
+      .fab {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body class="index-page">
+
+  <!-- Background Animation -->
+  <div class="animated-bg">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+    <div class="pulse-dot dot-1"></div>
+    <div class="pulse-dot dot-2"></div>
+    <div class="pulse-dot dot-3"></div>
+  </div>
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+
+      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0">
+        <h1 class="sitename">SudoTag</h1>
+        <span>.</span>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="{% url 'index' %}">Home</a></li>
+          <li><a href="{% url 'index' %}#about">About</a></li>
+          <li><a href="{% url 'index' %}#how-it-works">How It Works</a></li>
+          <li><a href="{% url 'index' %}#contact">Contact</a></li>          
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+      <a class="btn-getstarted" href="{% url 'index' %}#about">Get Started</a>
+
+    </div>
+  </header>
+
+  <!-- Progress Indicator -->
+  <div class="progress-indicator" data-aos="fade-left">
+    <h4>Quick Navigation</h4>
+    <div class="progress-items">
+      <div class="progress-item" data-section="agreement">Your Agreement</div>
+      <div class="progress-item" data-section="eligibility">Who Can Use</div>
+      <div class="progress-item" data-section="services">What We Offer</div>
+      <div class="progress-item" data-section="account">Account Responsibilities</div>
+      <div class="progress-item" data-section="conduct">Rules of Conduct</div>
+      <div class="progress-item" data-section="qr-terms">QR Code Terms</div>
+      <div class="progress-item" data-section="payments">Payments & Fees</div>
+      <div class="progress-item" data-section="disputes">Dispute Resolution</div>
+      <div class="progress-item" data-section="contact">Contact Us</div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <!-- <div class="fab" onclick="scrollToTop()">
+    <i class="bi bi-arrow-up"></i>
+  </div> -->
+
+  <main class="main">
+    <!-- Terms Header -->
+    <section class="terms-header" data-aos="fade-down">
+      <div class="container">
+        <h1>Terms & Conditions</h1>
+        <p>Understanding your rights and responsibilities when using SudoTag</p>
+        <div class="last-updated" data-aos="fade-up" data-aos-delay="200">
+          Last Updated: November 4, 2025
+        </div>
+      </div>
+    </section>
+
+    <!-- Terms Content -->
+    <section class="terms-content">
+      <div class="terms-container">
+        <div class="warning-banner" data-aos="zoom-in">
+          <h3><i class="bi bi-exclamation-triangle"></i> IMPORTANT LEGAL NOTICE</h3>
+          <p>THIS IS A LEGAL AGREEMENT. BY USING THE SUDOTAG SERVICE, YOU AGREE TO BE BOUND BY THESE TERMS, INCLUDING A MANDATORY ARBITRATION CLAUSE AND A CLASS ACTION WAIVER IN SECTION 16. PLEASE READ THEM CAREFULLY.</p>
+        </div>
+
+        <div class="terms-section" id="agreement" data-aos="fade-up">
+          <div class="section-number">1</div>
+          <h2>Your Agreement with Sudotag</h2>
+          <p>Welcome to Sudotag. These Terms and Conditions ("Terms") are a contract between you ("User," "you") and Sudotag ("Company," "we," "us," "our"). They govern your access to and use of the Sudotag mobile application, website, and all related services (collectively, the "Service").</p>
+          
+          <div class="agreement-list">
+            <p><strong>By downloading, installing, accessing, or using the Service, you confirm that:</strong></p>
+            <ul>
+              <li>You have read, understood, and agree to be bound by these Terms.</li>
+              <li>You are at least 18 years old and have the legal capacity to enter into a contract.</li>
+              <li>You agree to the mandatory arbitration and class action waiver in Section 16.</li>
+            </ul>
+          </div>
+          
+          <p>If you do not agree with any part of these Terms, you must immediately stop using the Service and delete the application from your device.</p>
+        </div>
+
+        <div class="terms-section" id="eligibility" data-aos="fade-up" data-aos-delay="100">
+          <div class="section-number">2</div>
+          <h2>Who Can Use Sudotag</h2>
+          <p>You must be at least 18 years old to use the Service. The Service is designed for users within the Republic of India. By using the Service, you confirm that you are physically located in India. We do not claim the Service is appropriate or available for use in other locations.</p>
+        </div>
+
+        <div class="terms-section" id="services" data-aos="fade-up" data-aos-delay="200">
+          <div class="section-number">3</div>
+          <h2>What Sudotag Offers</h2>
+          <p>Sudotag is a comprehensive vehicle management platform. Our services include:</p>
+          
+          <div class="services-grid">
+            <div class="service-card">
+              <h4><i class="bi bi-car-front"></i> Digital Vehicle Management</h4>
+              <p>Register and manage your vehicle profiles with comprehensive details and documentation.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-qr-code"></i> QR Code Ecosystem</h4>
+              <p>Generate, activate, and scan unique QR codes for your vehicles with secure authentication.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-shield-lock"></i> Digital Vault</h4>
+              <p>Securely store your vehicle documents (e.g., RC, Insurance, PUC) with encrypted protection.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-bell"></i> Smart Alert System</h4>
+              <p>Receive automated reminders for renewals, servicing, and important vehicle maintenance.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-geo-alt"></i> Location-Based Features</h4>
+              <p>Mark your parking spot and use location-based directories for enhanced convenience.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-chat"></i> In-App Communication</h4>
+              <p>Message other registered users securely through our encrypted chat system.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-credit-card"></i> Payment Integration</h4>
+              <p>Order and pay for physical QR codes via trusted partners like Razorpay with secure transactions.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="terms-section" id="account" data-aos="fade-up" data-aos-delay="300">
+          <div class="section-number">4</div>
+          <h2>Your Account Responsibilities</h2>
+          <p>To use all features, you must register for an account with accurate and complete information, including your mobile number and vehicle details.</p>
+          
+          <h3><i class="bi bi-shield-check"></i> You are solely responsible for:</h3>
+          <ul>
+            <li>Maintaining the confidentiality of your account credentials</li>
+            <li>All activities that occur under your account</li>
+            <li>Promptly notifying us at support@sudotag.com of any unauthorized use</li>
+          </ul>
+          
+          <p>We reserve the right to disable your account if we reasonably believe you have violated these Terms.</p>
+        </div>
+
+        <div class="terms-section" id="conduct" data-aos="fade-up" data-aos-delay="400">
+          <div class="section-number">5</div>
+          <h2>Rules of Conduct</h2>
+          <p>You agree to use the Service lawfully and respectfully. You are strictly prohibited from:</p>
+          
+          <div class="agreement-list">
+            <ul>
+              <li>Using the Service for any illegal purpose or activity</li>
+              <li>Harassing, abusing, or harming others through the platform</li>
+              <li>Uploading false or misleading information, especially about vehicle ownership</li>
+              <li>Introducing viruses, malware, or any other harmful code</li>
+              <li>Attempting to gain unauthorized access to our systems or other user accounts</li>
+              <li>Reverse engineering, decompiling, or disassembling any part of the Service</li>
+            </ul>
+          </div>
+          
+          <p>You affirm that you are the legal owner or authorized user of every vehicle you register.</p>
+        </div>
+
+        <div class="terms-section" id="qr-terms" data-aos="fade-up" data-aos-delay="500">
+          <div class="section-number">6</div>
+          <h2>QR Code Terms</h2>
+          
+          <div class="services-grid">
+            <div class="service-card">
+              <h4><i class="bi bi-shield"></i> Ownership</h4>
+              <p>The QR codes you generate are our intellectual property, licensed to you for use with your registered vehicle.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-truck"></i> Physical Orders</h4>
+              <p>When you order a physical QR code, you must provide a correct delivery address. The risk of loss passes to you once we deliver the item to the carrier.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-arrow-left-right"></i> Activation & Transfer</h4>
+              <p>You must activate the QR code in the app. If you sell or transfer your vehicle, you must deactivate the QR code link.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="terms-section" id="payments" data-aos="fade-up" data-aos-delay="600">
+          <div class="section-number">7</div>
+          <h2>Payments and Fees</h2>
+          
+          <div class="services-grid">
+            <div class="service-card">
+              <h4><i class="bi bi-credit-card-2-front"></i> Processing</h4>
+              <p>All payments are securely processed by third-party providers like Razorpay. We do not store your complete payment card details.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-currency-rupee"></i> Currency</h4>
+              <p>All fees are in Indian Rupees (INR) and include applicable taxes unless stated otherwise.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-arrow-counterclockwise"></i> Refunds</h4>
+              <p>Payments for digital services are typically non-refundable. Refunds for physical products are governed by our separate Refund Policy.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="700">
+          <div class="section-number">8</div>
+          <h2>Intellectual Property</h2>
+          <p>The Sudotag Service, including all content, features, and trademarks, is our property and is protected by intellectual property laws. We grant you a limited, non-exclusive, non-transferable license to use the Service for personal purposes.</p>
+          <p>You own the content you upload. By uploading it, you grant us a worldwide, royalty-free license to host and display that content to provide the Service to you.</p>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="800">
+          <div class="section-number">9</div>
+          <h2>Privacy</h2>
+          <p>Your privacy is important to us. Our Privacy Policy explains how we collect, use, and protect your information. By using the Service, you consent to the practices described in our Privacy Policy.</p>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="900">
+          <div class="section-number">10</div>
+          <h2>Third-Party Services</h2>
+          <p>The Service may contain links to third-party websites or services. We do not control and are not responsible for their content, privacy policies, or practices. Your interactions with these third parties are solely between you and them.</p>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="1000">
+          <div class="section-number">11</div>
+          <h2>Disclaimer of Warranties</h2>
+          <div class="highlight-box legal-notice">
+            <h3><i class="bi bi-exclamation-octagon"></i> IMPORTANT DISCLAIMER</h3>
+            <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+          </div>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="1100">
+          <div class="section-number">12</div>
+          <h2>Limitation of Liability</h2>
+          <div class="highlight-box legal-notice">
+            <h3><i class="bi bi-shield-exclamation"></i> LIABILITY LIMITATION</h3>
+            <p>TO THE FULLEST EXTENT PERMITTED BY LAW, SUDOTAG, ITS DIRECTORS, EMPLOYEES, AND AGENTS WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM YOUR USE OF THE SERVICE.</p>
+            <p>OUR TOTAL LIABILITY TO YOU FOR ANY AND ALL CLAIMS WILL NOT EXCEED THE GREATER OF THE AMOUNT YOU PAID US IN THE PAST TWELVE MONTHS OR TEN THOUSAND INDIAN RUPEES (INR 10,000).</p>
+          </div>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="1200">
+          <div class="section-number">13</div>
+          <h2>You Agree to Compensate Us (Indemnification)</h2>
+          <p>You agree to defend, indemnify, and hold harmless Sudotag, its affiliates, and their respective officers and employees from any claims, losses, or expenses (including legal fees) arising from your violation of these Terms or your misuse of the Service.</p>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="1300">
+          <div class="section-number">14</div>
+          <h2>Termination</h2>
+          <p>You can terminate your account at any time by contacting us. We may suspend or terminate your access to the Service immediately, without notice, for any breach of these Terms.</p>
+          <p>Upon termination, your right to use the Service ends immediately. Sections that by their nature should survive (like Intellectual Property, Disclaimer, Limitation of Liability, and Indemnification) will continue to apply.</p>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="1400">
+          <div class="section-number">15</div>
+          <h2>Governing Law</h2>
+          <p>These Terms are governed by the laws of the Republic of India. Any disputes not subject to arbitration will be handled by the courts located in [Your City, State], India.</p>
+        </div>
+
+        <div class="terms-section" id="disputes" data-aos="fade-up" data-aos-delay="1500">
+          <div class="section-number">16</div>
+          <h2>Resolving Disputes (Arbitration & Class Action Waiver)</h2>
+          <div class="highlight-box legal-notice">
+            <h3><i class="bi bi-megaphone"></i> PLEASE READ THIS SECTION CAREFULLY</h3>
+            <p>IT REQUIRES ARBITRATION FOR DISPUTES AND LIMITS YOUR ABILITY TO SUE OR BRING CLASS ACTIONS.</p>
+          </div>
+          
+          <div class="services-grid">
+            <div class="service-card">
+              <h4><i class="bi bi-chat-dots"></i> Step 1: Talk to Us</h4>
+              <p>You and Sudotag agree to try to resolve any dispute informally for at least 30 days before starting arbitration.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-shield-check"></i> Step 2: Binding Arbitration</h4>
+              <p>If informal resolution fails, any dispute will be finally settled by binding arbitration under the Indian Arbitration and Conciliation Act, 1996.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-person"></i> No Class Actions</h4>
+              <p>YOU AND SUDOTAG AGREE TO RESOLVE DISPUTES ONLY ON AN INDIVIDUAL BASIS. THERE WILL BE NO CLASS ARBITRATIONS OR CLASS ACTIONS.</p>
+            </div>
+            <div class="service-card">
+              <h4><i class="bi bi-envelope"></i> Opt-Out</h4>
+              <p>You can opt out of this arbitration agreement by emailing a clear notice to support@sudotag.com within 30 days of first accepting these Terms.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="terms-section" data-aos="fade-up" data-aos-delay="1600">
+          <div class="section-number">17</div>
+          <h2>Changes to the Terms</h2>
+          <p>We may update these Terms. If changes are significant, we will provide at least 30 days' notice before they take effect. By continuing to use the Service after the changes are effective, you agree to the new Terms.</p>
+        </div>
+
+        <div class="terms-section" id="contact" data-aos="fade-up" data-aos-delay="1700">
+          <div class="section-number">18</div>
+          <h2>Contact Us</h2>
+          <p>For any questions about these Terms, please contact us at:</p>
+          <div class="highlight-box">
+            <h3><i class="bi bi-envelope-at"></i> Email Support</h3>
+            <p style="font-size: 18px; margin: 0;">support@sudotag.com</p>
+          </div>
+        </div>
+
+        <div class="highlight-box" data-aos="fade-up" data-aos-delay="1800" style="color: #151515;">
+          <h3 style="color: #5d4037;"><i class="bi bi-check-circle"></i> YOUR ACKNOWLEDGMENT</h3>
+          <p>BY USING THE SUDOTAG SERVICE, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THESE TERMS AND CONDITIONS.</p>
+          <p>Version: 1.0<br>Effective Date: November 4, 2025<br>© 2025 Sudotag. All Rights Reserved.</p>
+        </div>
+
+        <div class="back-to-home" data-aos="fade-up" data-aos-delay="1900">
+          <a href="{% url 'index' %}"><i class="bi bi-arrow-left"></i> Back to Home</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="footer dark-background">
+    <div class="container">
+      <div class="copyright text-center">
+        <p>© <span>Copyright</span> <strong class="px-1 sitename">SudoTag</strong> <span>All Rights Reserved</span></p>
+        <div class="credits">
+          <a href="{% url 'privacy' %}">Privacy Policy</a> | 
+          <a href="{% url 'terms' %}">Terms & Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'landing/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'landing/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'landing/js/main.js' %}"></script>
+
+  <script>
+    // Scroll to top function
+    function scrollToTop() {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    // Progress indicator functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const sections = document.querySelectorAll('.terms-section');
+      const progressItems = document.querySelectorAll('.progress-item');
+      
+      // Update active progress item on scroll
+      function updateProgressIndicator() {
+        let currentSection = '';
+        
+        sections.forEach(section => {
+          const sectionTop = section.offsetTop - 100;
+          const sectionHeight = section.clientHeight;
+          if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
+            currentSection = section.id;
+          }
+        });
+        
+        progressItems.forEach(item => {
+          item.classList.remove('active');
+          if (item.dataset.section === currentSection) {
+            item.classList.add('active');
+          }
+        });
+      }
+      
+      // Scroll to section when progress item is clicked
+      progressItems.forEach(item => {
+        item.addEventListener('click', function() {
+          const sectionId = this.dataset.section;
+          const section = document.getElementById(sectionId);
+          if (section) {
+            window.scrollTo({
+              top: section.offsetTop - 80,
+              behavior: 'smooth'
+            });
+          }
+        });
+      });
+      
+      window.addEventListener('scroll', updateProgressIndicator);
+      updateProgressIndicator(); // Initial call
+    });
+
+    // Add intersection observer for animations
+    document.addEventListener('DOMContentLoaded', function() {
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
+
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }
+        });
+      }, observerOptions);
+
+      // Observe all terms sections
+      document.querySelectorAll('.terms-section').forEach(section => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(20px)';
+        section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(section);
+      });
+    });
+  </script>
+
+</body>
+</html>
