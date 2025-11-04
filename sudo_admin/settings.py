@@ -207,7 +207,7 @@ EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 BASE_DOMAIN='https://sudotag.com'
 
 TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
-TWILIO_AUTH_TOKEN = '34fbd4cdc8c73b0097911a6d4b9e916d'    # Get from Twilio console
+TWILIO_AUTH_TOKEN = '27630a3a5edbe5d2421600ccc609bbdc'    # Get from Twilio console
 TWILIO_PHONE_NUMBER = '+19895205533'      # Your Twilio phone number
 
 
