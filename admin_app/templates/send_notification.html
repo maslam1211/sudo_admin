@@ -497,104 +497,85 @@
       background-color: var(--notification-red);
     }
 
-    /* Daily Limit Snackbar - Modern Material Design Style */
-    .daily-limit-snackbar {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: linear-gradient(135deg, #FF6B6B 0%, #FF4500 100%);
-      color: white;
-      padding: 16px 24px;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(255, 69, 0, 0.4),
-                  0 4px 16px rgba(0, 0, 0, 0.3);
-      z-index: 1200;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 280px;
-      max-width: 90%;
-      opacity: 0;
-      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      animation: pulse 2s infinite;
-    }
-
-    .daily-limit-snackbar.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .daily-limit-snackbar-icon {
-      font-size: 1.5rem;
-      flex-shrink: 0;
-      animation: shake 0.5s ease-in-out;
-    }
-
-    .daily-limit-snackbar-content {
-      flex: 1;
+    /* Daily Limit Modal */
+    .daily-limit-modal {
+      background: linear-gradient(135deg, rgba(229, 129, 71, 0.1) 0%, rgba(40, 40, 40, 0.95) 100%);
+      border: 1px solid rgba(229, 129, 71, 0.35);
+      border-radius: 16px;
+      padding: 28px 26px;
+      margin: 20px;
+      width: min(420px, calc(100% - 40px));
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      animation: slideUp 0.45s ease-out;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 16px;
     }
 
-    .daily-limit-snackbar-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-      margin: 0;
-    }
-
-    .daily-limit-snackbar-message {
-      font-size: 0.85rem;
-      opacity: 0.95;
-      line-height: 1.4;
-      margin: 0;
-    }
-
-    .daily-limit-snackbar-close {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      width: 28px;
-      height: 28px;
+    .daily-limit-modal-icon {
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
-      cursor: pointer;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.3s ease;
-      font-size: 1.2rem;
-      padding: 0;
+      background: rgba(255, 69, 0, 0.15);
+      color: #FF8A50;
+      font-size: 2rem;
+      animation: pulse 2.2s infinite;
     }
 
-    .daily-limit-snackbar-close:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: scale(1.1);
+    .daily-limit-modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-white);
+      margin: 0;
     }
 
-    @keyframes shake {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-10deg); }
-      75% { transform: rotate(10deg); }
+    .daily-limit-modal-message {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.85);
+      margin: 0;
     }
 
-    @keyframes slideInUp {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(100px);
+    .daily-limit-modal-button {
+      margin-top: 4px;
+    }
+
+    .daily-limit-modal-subcopy {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    @media (max-width: 480px) {
+      .daily-limit-modal {
+        padding: 24px 20px;
+        gap: 14px;
       }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
+
+      .daily-limit-modal-title {
+        font-size: 1.1rem;
+      }
+
+      .daily-limit-modal-message {
+        font-size: 0.9rem;
       }
     }
 
-    /* Warning Snackbar for Daily Limit */
-    .daily-limit-warning {
-      background: linear-gradient(135deg, #FFA726 0%, #FB8C00 100%);
-      box-shadow: 0 8px 32px rgba(255, 167, 38, 0.4),
-                  0 4px 16px rgba(0, 0, 0, 0.3);
+    @media (max-width: 360px) {
+      .daily-limit-modal {
+        padding: 22px 18px;
+        border-radius: 14px;
+      }
+
+      .daily-limit-modal-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.8rem;
+      }
     }
 
     /* Error Details Modal */
@@ -668,29 +649,18 @@
     }
 
     @media (max-width: 420px) {
-      .daily-limit-snackbar {
+      .daily-limit-modal {
         width: calc(100% - 32px);
-        min-width: unset;
-        left: 16px;
-        right: 16px;
-        transform: translateY(100px);
-        padding: 14px 16px;
+        margin: 16px;
+        padding: 20px 18px;
       }
 
-      .daily-limit-snackbar.show {
-        transform: translateY(0);
+      .daily-limit-modal-title {
+        font-size: 1.05rem;
       }
 
-      .daily-limit-snackbar-icon {
-        font-size: 1.25rem;
-      }
-
-      .daily-limit-snackbar-title {
+      .daily-limit-modal-message {
         font-size: 0.85rem;
-      }
-
-      .daily-limit-snackbar-message {
-        font-size: 0.78rem;
       }
 
       .action-btn {
@@ -855,16 +825,17 @@
     <span id="toastMessage">Notification sent successfully!</span>
   </div>
 
-  <!-- Daily Limit Snackbar -->
-  <div class="daily-limit-snackbar" id="dailyLimitSnackbar">
-    <i class="bi bi-exclamation-triangle-fill daily-limit-snackbar-icon"></i>
-    <div class="daily-limit-snackbar-content">
-      <div class="daily-limit-snackbar-title" id="limitSnackbarTitle">Daily Limit Reached</div>
-      <div class="daily-limit-snackbar-message" id="limitSnackbarMessage"></div>
+  <!-- Daily Limit Modal -->
+  <div class="modal-overlay" id="dailyLimitModal">
+    <div class="daily-limit-modal">
+      <div class="daily-limit-modal-icon">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <h3 class="daily-limit-modal-title" id="limitModalTitle">Daily Limit Reached</h3>
+      <p class="daily-limit-modal-message" id="limitModalMessage"></p>
+      <div class="daily-limit-modal-subcopy" id="limitModalSubcopy"></div>
+      <button class="phone-action-btn confirm-btn daily-limit-modal-button" id="limitModalClose">Got it</button>
     </div>
-    <button class="daily-limit-snackbar-close" id="limitSnackbarClose">
-      <i class="bi bi-x"></i>
-    </button>
   </div>
 
   <!-- Vendor JS Files -->
@@ -896,19 +867,30 @@
     const errorDetailedMessage = document.getElementById('errorDetailedMessage');
     const errorCloseBtn = document.getElementById('errorCloseBtn');
     const errorRetryBtn = document.getElementById('errorRetryBtn');
-    const limitSnackbarClose = document.getElementById('limitSnackbarClose');
+    const dailyLimitModal = document.getElementById('dailyLimitModal');
+    const limitModalTitle = document.getElementById('limitModalTitle');
+    const limitModalMessage = document.getElementById('limitModalMessage');
+    const limitModalSubcopy = document.getElementById('limitModalSubcopy');
+    const limitModalClose = document.getElementById('limitModalClose');
     
-    // Function to close daily limit snackbar
-    function closeDailyLimitSnackbar() {
-      const snackbar = document.getElementById('dailyLimitSnackbar');
-      if (snackbar) {
-        snackbar.classList.remove('show');
+    // Function to close daily limit modal
+    function closeDailyLimitModal() {
+      if (dailyLimitModal) {
+        dailyLimitModal.style.display = 'none';
       }
     }
     
-    // Initialize snackbar close button
-    if (limitSnackbarClose) {
-      limitSnackbarClose.addEventListener('click', closeDailyLimitSnackbar);
+    // Initialize daily limit modal close button
+    if (limitModalClose) {
+      limitModalClose.addEventListener('click', closeDailyLimitModal);
+    }
+
+    if (dailyLimitModal) {
+      dailyLimitModal.addEventListener('click', function(event) {
+        if (event.target === dailyLimitModal) {
+          closeDailyLimitModal();
+        }
+      });
     }
     
     // Selected reason and method
@@ -1188,7 +1170,7 @@
             data.message.toLowerCase().includes('limit reached') ||
             data.message.toLowerCase().includes('daily') && data.message.toLowerCase().includes('limit')
           )) {
-            showDailyLimitSnackbar(detailedMessage, selectedMethod);
+            showDailyLimitModal(detailedMessage, selectedMethod);
             return;
           }
           
@@ -1243,33 +1225,38 @@
     }
 
     // Function to show daily limit snackbar
-    function showDailyLimitSnackbar(message, method) {
-      const snackbar = document.getElementById('dailyLimitSnackbar');
-      const title = document.getElementById('limitSnackbarTitle');
-      const messageEl = document.getElementById('limitSnackbarMessage');
-      
-      // Determine method type for better messaging
-      let methodType = 'notification';
-      if (method === 'call') {
-        methodType = 'call';
-        title.textContent = 'Daily Call Limit Reached';
-      } else if (method === 'sms') {
-        methodType = 'SMS';
-        title.textContent = 'Daily SMS Limit Reached';
-      } else if (method === 'push') {
-        methodType = 'push notification';
-        title.textContent = 'Daily Push Notification Limit Reached';
+    function showDailyLimitModal(message, method) {
+      if (!dailyLimitModal) {
+        return;
       }
-      
-      messageEl.textContent = message;
-      
-      // Show the snackbar
-      snackbar.classList.add('show');
-      
-      // Auto-hide after 8 seconds
-      setTimeout(() => {
-        closeDailyLimitSnackbar();
-      }, 8000);
+
+      let titleText = 'Daily Limit Reached';
+      let subcopy = 'You can try a different method or come back tomorrow when the limit resets.';
+
+      if (method === 'call') {
+        titleText = 'Daily Call Limit Reached';
+        subcopy = 'Please try sending an SMS or push notification instead.';
+      } else if (method === 'sms') {
+        titleText = 'Daily SMS Limit Reached';
+        subcopy = 'You can still try calling or using push notifications.';
+      } else if (method === 'push') {
+        titleText = 'Daily Push Notification Limit Reached';
+        subcopy = 'Please try contacting the owner via SMS or call.';
+      }
+
+      if (limitModalTitle) {
+        limitModalTitle.textContent = titleText;
+      }
+
+      if (limitModalMessage) {
+        limitModalMessage.textContent = message;
+      }
+
+      if (limitModalSubcopy) {
+        limitModalSubcopy.textContent = subcopy;
+      }
+
+      dailyLimitModal.style.display = 'flex';
     }
 
     // Function to get CSRF token
