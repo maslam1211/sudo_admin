@@ -238,6 +238,7 @@
       gap: 10px;
       margin-bottom: 15px;
       animation: fadeIn 0.8s ease-out 0.5s both;
+      flex-wrap: wrap;
     }
 
     .action-btn {
@@ -512,7 +513,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      min-width: 300px;
+      min-width: 280px;
       max-width: 90%;
       opacity: 0;
       transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -663,6 +664,38 @@
       
       .btn-text {
         font-size: 0.65rem;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .daily-limit-snackbar {
+        width: calc(100% - 32px);
+        min-width: unset;
+        left: 16px;
+        right: 16px;
+        transform: translateY(100px);
+        padding: 14px 16px;
+      }
+
+      .daily-limit-snackbar.show {
+        transform: translateY(0);
+      }
+
+      .daily-limit-snackbar-icon {
+        font-size: 1.25rem;
+      }
+
+      .daily-limit-snackbar-title {
+        font-size: 0.85rem;
+      }
+
+      .daily-limit-snackbar-message {
+        font-size: 0.78rem;
+      }
+
+      .action-btn {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 140px;
       }
     }
 
