@@ -476,6 +476,7 @@
       gap: 8px;
       opacity: 0;
       transition: all 0.4s ease;
+      max-width: 90%;
     }
 
     .toast.show {
@@ -493,6 +494,106 @@
 
     .toast-error {
       background-color: var(--notification-red);
+    }
+
+    /* Daily Limit Snackbar - Modern Material Design Style */
+    .daily-limit-snackbar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: linear-gradient(135deg, #FF6B6B 0%, #FF4500 100%);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(255, 69, 0, 0.4),
+                  0 4px 16px rgba(0, 0, 0, 0.3);
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 300px;
+      max-width: 90%;
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      animation: pulse 2s infinite;
+    }
+
+    .daily-limit-snackbar.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .daily-limit-snackbar-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      animation: shake 0.5s ease-in-out;
+    }
+
+    .daily-limit-snackbar-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .daily-limit-snackbar-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .daily-limit-snackbar-message {
+      font-size: 0.85rem;
+      opacity: 0.95;
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    .daily-limit-snackbar-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+      font-size: 1.2rem;
+      padding: 0;
+    }
+
+    .daily-limit-snackbar-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-10deg); }
+      75% { transform: rotate(10deg); }
+    }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* Warning Snackbar for Daily Limit */
+    .daily-limit-warning {
+      background: linear-gradient(135deg, #FFA726 0%, #FB8C00 100%);
+      box-shadow: 0 8px 32px rgba(255, 167, 38, 0.4),
+                  0 4px 16px rgba(0, 0, 0, 0.3);
     }
 
     /* Error Details Modal */
@@ -721,6 +822,18 @@
     <span id="toastMessage">Notification sent successfully!</span>
   </div>
 
+  <!-- Daily Limit Snackbar -->
+  <div class="daily-limit-snackbar" id="dailyLimitSnackbar">
+    <i class="bi bi-exclamation-triangle-fill daily-limit-snackbar-icon"></i>
+    <div class="daily-limit-snackbar-content">
+      <div class="daily-limit-snackbar-title" id="limitSnackbarTitle">Daily Limit Reached</div>
+      <div class="daily-limit-snackbar-message" id="limitSnackbarMessage"></div>
+    </div>
+    <button class="daily-limit-snackbar-close" id="limitSnackbarClose">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+
   <!-- Vendor JS Files -->
   <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
@@ -750,6 +863,20 @@
     const errorDetailedMessage = document.getElementById('errorDetailedMessage');
     const errorCloseBtn = document.getElementById('errorCloseBtn');
     const errorRetryBtn = document.getElementById('errorRetryBtn');
+    const limitSnackbarClose = document.getElementById('limitSnackbarClose');
+    
+    // Function to close daily limit snackbar
+    function closeDailyLimitSnackbar() {
+      const snackbar = document.getElementById('dailyLimitSnackbar');
+      if (snackbar) {
+        snackbar.classList.remove('show');
+      }
+    }
+    
+    // Initialize snackbar close button
+    if (limitSnackbarClose) {
+      limitSnackbarClose.addEventListener('click', closeDailyLimitSnackbar);
+    }
     
     // Selected reason and method
     let selectedReason = '';
@@ -1023,6 +1150,15 @@
           let errorType = 'server';
           let detailedMessage = data.message || 'Unknown server error occurred.';
           
+          // Check if it's a daily limit error - show snackbar instead of modal
+          if (data.message && (
+            data.message.toLowerCase().includes('limit reached') ||
+            data.message.toLowerCase().includes('daily') && data.message.toLowerCase().includes('limit')
+          )) {
+            showDailyLimitSnackbar(detailedMessage, selectedMethod);
+            return;
+          }
+          
           // Detect Twilio errors from server response
           if (data.message && data.message.toLowerCase().includes('twilio')) {
             errorType = 'twilio';
@@ -1071,6 +1207,36 @@
         case 'call': return callBtn;
         default: return pushBtn;
       }
+    }
+
+    // Function to show daily limit snackbar
+    function showDailyLimitSnackbar(message, method) {
+      const snackbar = document.getElementById('dailyLimitSnackbar');
+      const title = document.getElementById('limitSnackbarTitle');
+      const messageEl = document.getElementById('limitSnackbarMessage');
+      
+      // Determine method type for better messaging
+      let methodType = 'notification';
+      if (method === 'call') {
+        methodType = 'call';
+        title.textContent = 'Daily Call Limit Reached';
+      } else if (method === 'sms') {
+        methodType = 'SMS';
+        title.textContent = 'Daily SMS Limit Reached';
+      } else if (method === 'push') {
+        methodType = 'push notification';
+        title.textContent = 'Daily Push Notification Limit Reached';
+      }
+      
+      messageEl.textContent = message;
+      
+      // Show the snackbar
+      snackbar.classList.add('show');
+      
+      // Auto-hide after 8 seconds
+      setTimeout(() => {
+        closeDailyLimitSnackbar();
+      }, 8000);
     }
 
     // Function to get CSRF token
