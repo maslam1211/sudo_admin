@@ -1,7 +1,7 @@
 import base64
 import datetime
 import uuid, os
-import secrets
+import random
 import string
 import json
 
@@ -675,33 +675,10 @@ def get_message_list(request):
     } for message in messages.get_messages(request)]
 
 
-def generate_random_password(length=12):
-    """Generate a cryptographically secure random password suitable for Firebase Auth."""
-    if length < 4:
-        raise ValueError("Password length must be at least 4 characters.")
-
-    uppercase = string.ascii_uppercase
-    lowercase = string.ascii_lowercase
-    digits = string.digits
-    special = "!@#$%^&*"
-
-    required_chars = [
-        secrets.choice(uppercase),
-        secrets.choice(lowercase),
-        secrets.choice(digits),
-        secrets.choice(special),
-    ]
-
-    all_chars = uppercase + lowercase + digits + special
-    remaining_chars = [
-        secrets.choice(all_chars)
-        for _ in range(length - len(required_chars))
-    ]
-
-    password_chars = required_chars + remaining_chars
-    secrets.SystemRandom().shuffle(password_chars)
-
-    return ''.join(password_chars)
+def generate_random_password(length=7):
+    """Generate a random password"""
+    chars = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(random.choice(chars) for _ in range(length))
 
 def check_id_enabled(request, qr_id):
     try:
