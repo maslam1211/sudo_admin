@@ -1,7 +1,7 @@
 import base64
 import datetime
 import uuid, os
-import random
+import secrets
 import string
 import json
 
@@ -675,10 +675,16 @@ def get_message_list(request):
     } for message in messages.get_messages(request)]
 
 
-def generate_random_password(length=7):
-    """Generate a random password"""
-    chars = string.ascii_letters + string.digits + "!@#$%^&*"
-    return ''.join(random.choice(chars) for _ in range(length))
+def generate_random_password():
+    """
+    Generate a password that matches the mobile app validation pattern:
+    Example: Aslam@1234 (1 uppercase, 4 lowercase, '@', 4 digits)
+    """
+    uppercase_letter = secrets.choice(string.ascii_uppercase)
+    lowercase_segment = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
+    numeric_segment = ''.join(secrets.choice(string.digits) for _ in range(4))
+
+    return f"{uppercase_letter}{lowercase_segment}@{numeric_segment}"
 
 def check_id_enabled(request, qr_id):
     try:
@@ -910,7 +916,9 @@ def activate_id(request, qr_id):
                             'enableIdCheck': True,
                             'createdAt': firestore.SERVER_TIMESTAMP,
                             'profilePicture': 'default_profile.png',
-                            'role': 0
+                            'role': 0,
+                            'roleId': 0,
+                            'fcmToken': ''
                         }
                         
                         user_ref = db.collection('users').document(user.uid)
@@ -1453,6 +1461,7 @@ def external_user_registration(request):
                 'city': city,
                 'createdAt': datetime.datetime.now(),
                 'role': 0,  # Regular user role
+                'roleId': 0,
                 'profilePicture': 'default_profile.png',
                 'fcmToken': '',  # Will be set when user installs the app
                 'enableIdCheck': False
