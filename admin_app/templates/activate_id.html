@@ -389,6 +389,7 @@
       
       <div id="activationFormContainer">
         <form id="activationForm">
+          <input type="hidden" id="adminAddedUser" value="true">
           <!-- Vehicle Information -->
           <div class="form-group">
             <label for="make" class="form-label">Vehicle Brand</label>
@@ -655,7 +656,8 @@
           fullName: document.getElementById('fullName').value.trim(),
           contactNumber: '+91' + document.getElementById('contactNumber').value.trim(),
           emailAddress: document.getElementById('emailAddress').value.trim(),
-          city: document.getElementById('city').value.trim()
+          city: document.getElementById('city').value.trim(),
+          adminAddedUser: document.getElementById('adminAddedUser').value === 'true'
         };
         
         // Show loading spinner

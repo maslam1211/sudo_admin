@@ -814,6 +814,7 @@ def activate_id(request, qr_id):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 import json
                 data = json.loads(request.body)
+                admin_added_user = str(data.get('adminAddedUser', 'false')).lower() == 'true'
                 
                 # Validate required fields
                 required_fields = {
@@ -864,6 +865,10 @@ def activate_id(request, qr_id):
                         user_doc = user_query[0]
                         user_data = user_doc.to_dict()
                         user_id = user_doc.id
+                        if admin_added_user:
+                            db.collection('users').document(user_id).update({'adminAddedUser': True})
+                        else:
+                            db.collection('users').document(user_id).update({'adminAddedUser': False})
                         
                         # Verify phone matches existing user
                         if user_data.get('contactNumber', '').replace(' ', '') != data['contactNumber'].replace(' ', ''):
@@ -918,12 +923,15 @@ def activate_id(request, qr_id):
                             'profilePicture': 'default_profile.png',
                             'role': 0,
                             'roleId': 0,
-                            'fcmToken': ''
+                            'fcmToken': '',
+                            'adminAddedUser': admin_added_user
                         }
                         
                         user_ref = db.collection('users').document(user.uid)
                         user_ref.set(user_data)
                         user_id = user.uid
+                        if admin_added_user:
+                            user_ref.update({'adminAddedUser': True})
                         
                         # Send welcome email only for new users
                         send_welcome_email_for_id(
@@ -955,7 +963,8 @@ def activate_id(request, qr_id):
                         'vehicleType': data.get('vehicleType'),
                         'createdAt': firestore.SERVER_TIMESTAMP,
                         'isQrGenerated': True,
-                        'qrCodeId': qr_id
+                        'qrCodeId': qr_id,
+                        'adminAddedUser': admin_added_user
                     }
                     
                     vehicle_ref = db.collection('vehicles').document(vehicle_id)
@@ -1464,7 +1473,8 @@ def external_user_registration(request):
                 'roleId': 0,
                 'profilePicture': 'default_profile.png',
                 'fcmToken': '',  # Will be set when user installs the app
-                'enableIdCheck': False
+                 'enableIdCheck': False,
+                 'adminAddedUser': False
             }
             
             # Save to Firestore
