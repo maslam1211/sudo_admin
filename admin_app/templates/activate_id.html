@@ -150,21 +150,18 @@
 
     /* Phone input specific styling */
     .phone-input-container {
-      position: relative;
+      display: flex;
+      gap: 8px;
     }
 
-    .phone-prefix {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-white);
-      font-size: 0.8rem;
-      pointer-events: none;
+    .country-code-select {
+      width: 100px;
+      flex-shrink: 0;
+      text-transform: none;
     }
 
     .phone-input {
-      padding-left: 45px !important;
+      flex: 1;
       text-transform: none;
     }
 
@@ -429,8 +426,34 @@
           <div class="form-group">
             <label for="contactNumber" class="form-label">Mobile Number</label>
             <div class="phone-input-container">
-              <span class="phone-prefix">+91</span>
-              <input type="tel" class="form-control phone-input" id="contactNumber" placeholder="9876543210" maxlength="10" required>
+              <select class="form-control country-code-select" id="countryCode">
+                <option value="+91">+91 (India)</option>
+                <option value="+1">+1 (USA)</option>
+                <option value="+44">+44 (UK)</option>
+                <option value="+971">+971 (UAE)</option>
+                <option value="+65">+65 (Singapore)</option>
+                <option value="+60">+60 (Malaysia)</option>
+                <option value="+966">+966 (Saudi Arabia)</option>
+                <option value="+974">+974 (Qatar)</option>
+                <option value="+973">+973 (Bahrain)</option>
+                <option value="+968">+968 (Oman)</option>
+                <option value="+20">+20 (Egypt)</option>
+                <option value="+27">+27 (South Africa)</option>
+                <option value="+61">+61 (Australia)</option>
+                <option value="+64">+64 (New Zealand)</option>
+                <option value="+33">+33 (France)</option>
+                <option value="+49">+49 (Germany)</option>
+                <option value="+39">+39 (Italy)</option>
+                <option value="+34">+34 (Spain)</option>
+                <option value="+7">+7 (Russia)</option>
+                <option value="+81">+81 (Japan)</option>
+                <option value="+82">+82 (South Korea)</option>
+                <option value="+86">+86 (China)</option>
+                <option value="+852">+852 (Hong Kong)</option>
+                <option value="+853">+853 (Macau)</option>
+                <option value="+886">+886 (Taiwan)</option>
+              </select>
+              <input type="tel" class="form-control phone-input" id="contactNumber" placeholder="9876543210" required>
             </div>
           </div>
           
@@ -549,6 +572,71 @@
       const successTitle = document.getElementById('successTitle');
       const successText = document.getElementById('successText');
       const contactNumber = document.getElementById('contactNumber');
+      const countryCode = document.getElementById('countryCode');
+
+      // Phone number validation patterns by country code
+      const phonePatterns = {
+        '+91': /^\d{10}$/, // India: 10 digits
+        '+1': /^\d{10}$/, // USA/Canada: 10 digits
+        '+44': /^\d{10,11}$/, // UK: 10-11 digits
+        '+971': /^\d{9}$/, // UAE: 9 digits
+        '+65': /^\d{8}$/, // Singapore: 8 digits
+        '+60': /^\d{9,10}$/, // Malaysia: 9-10 digits
+        '+966': /^\d{9}$/, // Saudi Arabia: 9 digits
+        '+974': /^\d{8}$/, // Qatar: 8 digits
+        '+973': /^\d{8}$/, // Bahrain: 8 digits
+        '+968': /^\d{8}$/, // Oman: 8 digits
+        '+20': /^\d{10}$/, // Egypt: 10 digits
+        '+27': /^\d{9}$/, // South Africa: 9 digits
+        '+61': /^\d{9}$/, // Australia: 9 digits
+        '+64': /^\d{8,9}$/, // New Zealand: 8-9 digits
+        '+33': /^\d{9}$/, // France: 9 digits
+        '+49': /^\d{10,11}$/, // Germany: 10-11 digits
+        '+39': /^\d{9,10}$/, // Italy: 9-10 digits
+        '+34': /^\d{9}$/, // Spain: 9 digits
+        '+7': /^\d{10}$/, // Russia: 10 digits
+        '+81': /^\d{10}$/, // Japan: 10 digits
+        '+82': /^\d{9,10}$/, // South Korea: 9-10 digits
+        '+86': /^\d{11}$/, // China: 11 digits
+        '+852': /^\d{8}$/, // Hong Kong: 8 digits
+        '+853': /^\d{8}$/, // Macau: 8 digits
+        '+886': /^\d{9}$/ // Taiwan: 9 digits
+      };
+
+      // Phone number placeholder examples by country code
+      const phonePlaceholders = {
+        '+91': '9876543210',
+        '+1': '5551234567',
+        '+44': '7911123456',
+        '+971': '501234567',
+        '+65': '91234567',
+        '+60': '123456789',
+        '+966': '512345678',
+        '+974': '33123456',
+        '+973': '36123456',
+        '+968': '92123456',
+        '+20': '1001234567',
+        '+27': '821234567',
+        '+61': '412345678',
+        '+64': '211234567',
+        '+33': '612345678',
+        '+49': '15123456789',
+        '+39': '3123456789',
+        '+34': '612345678',
+        '+7': '9123456789',
+        '+81': '9012345678',
+        '+82': '1023456789',
+        '+86': '13123456789',
+        '+852': '51234567',
+        '+853': '66123456',
+        '+886': '912345678'
+      };
+
+      // Update phone placeholder when country code changes
+      countryCode.addEventListener('change', function() {
+        const selectedCode = this.value;
+        contactNumber.placeholder = phonePlaceholders[selectedCode] || 'Phone Number';
+      });
 
       // Auto-capitalization for text inputs
       const textInputs = document.querySelectorAll('input[type="text"]');
@@ -562,20 +650,35 @@
         });
       });
 
-      // Phone number formatting - automatically add +91 and restrict to 10 digits
+      // Phone number formatting - restrict to digits only
       contactNumber.addEventListener('input', function(e) {
         // Remove any non-digit characters
         let value = this.value.replace(/\D/g, '');
         
-        // Limit to 10 digits
-        if (value.length > 10) {
-          value = value.substring(0, 10);
+        // Get the selected country code
+        const selectedCode = countryCode.value;
+        
+        // Get the maximum length for this country (if defined)
+        const pattern = phonePatterns[selectedCode];
+        let maxLength = 15; // Default maximum
+        
+        if (pattern) {
+          // Extract max length from pattern (approximate)
+          const match = pattern.toString().match(/\d{(\d+),?(\d+)?}/);
+          if (match) {
+            maxLength = match[2] ? parseInt(match[2]) : parseInt(match[1]);
+          }
+        }
+        
+        // Limit to maxLength digits
+        if (value.length > maxLength) {
+          value = value.substring(0, maxLength);
         }
         
         this.value = value;
       });
 
-      // Prevent any modification of +91 prefix
+      // Prevent any non-digit input in phone field
       contactNumber.addEventListener('keydown', function(e) {
         // Allow: backspace, delete, tab, escape, enter, and numbers
         if ([46, 8, 9, 27, 13, 110].includes(e.keyCode) ||
@@ -635,11 +738,33 @@
           isValid = false;
         }
         
-        // Validate phone number format (exactly 10 digits)
+        // Validate phone number format based on country code
+        const selectedCountryCode = countryCode.value;
+        const phonePattern = phonePatterns[selectedCountryCode];
         const phone = document.getElementById('contactNumber');
-        if (phone.value && !/^\d{10}$/.test(phone.value)) {
-          showFieldError(phone, 'Enter a valid 10-digit mobile number');
-          isValid = false;
+        
+        if (phone.value) {
+          if (phonePattern && !phonePattern.test(phone.value)) {
+            let errorMessage = 'Enter a valid phone number';
+            
+            // Provide specific error messages for common countries
+            if (selectedCountryCode === '+91') {
+              errorMessage = 'Enter a valid 10-digit mobile number';
+            } else if (selectedCountryCode === '+1') {
+              errorMessage = 'Enter a valid 10-digit phone number';
+            } else if (selectedCountryCode === '+44') {
+              errorMessage = 'Enter a valid UK phone number (10-11 digits)';
+            }
+            
+            showFieldError(phone, errorMessage);
+            isValid = false;
+          } else if (!phonePattern) {
+            // For countries without a specific pattern, just check it has digits
+            if (!/^\d+$/.test(phone.value)) {
+              showFieldError(phone, 'Enter a valid phone number');
+              isValid = false;
+            }
+          }
         }
         
         if (!isValid) {
@@ -647,14 +772,14 @@
           return;
         }
         
-        // Prepare data for submission (add +91 prefix to phone)
+        // Prepare data for submission (append country code to phone)
         const formData = {
           make: document.getElementById('make').value.trim(),
           model: document.getElementById('model').value.trim(),
           registrationNumber: document.getElementById('registrationNumber').value.trim(),
           vehicleType: document.getElementById('vehicleType').value,
           fullName: document.getElementById('fullName').value.trim(),
-          contactNumber: '+91' + document.getElementById('contactNumber').value.trim(),
+          contactNumber: selectedCountryCode + document.getElementById('contactNumber').value.trim(),
           emailAddress: document.getElementById('emailAddress').value.trim(),
           city: document.getElementById('city').value.trim(),
           adminAddedUser: document.getElementById('adminAddedUser').value === 'true'
