@@ -36,7 +36,13 @@ urlpatterns = [
     path('add-ad/', views.add_ad, name='add_ad'),
     path('update-ad/', views.update_ad, name='update_ad'),
     path('delete-ad/', views.delete_ad, name='delete_ad'),
-    path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),   
+    path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),  
+    # Feedback URLs
+    path('feedback/', views.feedback_page, name='feedback_page'),
+    path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
+    path('view-feedback/', views.view_feedback, name='view_feedback'),
+    path('delete-feedback/<str:feedback_id>/', views.delete_feedback, name='delete_feedback'),
+    path('bulk-delete-feedback/', views.bulk_delete_feedback, name='bulk_delete_feedback'), 
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
 ]

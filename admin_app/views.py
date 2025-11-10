@@ -101,7 +101,9 @@ def dashboard(request):
 
     ADMIN_EMAIL = "w@w.com"
     ist = pytz.timezone('Asia/Kolkata')
-    today = datetime.now(ist).date()
+    
+    # Use Django's timezone-aware now()
+    today = now().astimezone(ist).date()
     week_ago = today - timedelta(days=7)
     
     # Users data
@@ -125,7 +127,15 @@ def dashboard(request):
         if hasattr(order_date, 'date'):
             order_date = order_date.date()
         elif isinstance(order_date, str):
-            order_date = datetime.strptime(order_date, "%B %d, %Y at %I:%M:%S %p UTC%z").date()
+            try:
+                order_date = datetime.datetime.strptime(order_date, "%B %d, %Y at %I:%M:%S %p UTC%z").date()
+            except ValueError:
+                # Try alternative format
+                try:
+                    order_date = datetime.datetime.strptime(order_date, "%B %d, %Y at %I:%M:%S %p").date()
+                except ValueError:
+                    # Skip if date format is unknown
+                    continue
         
         status = order.get('orderStatus', 0)
         status_counts[status] = status_counts.get(status, 0) + 1
@@ -159,6 +169,7 @@ def dashboard(request):
     }
     return render(request, 'dashboard.html', context)
 
+    
 from django.shortcuts import render, redirect
 from io import BytesIO
 import qrcode
@@ -3120,3 +3131,114 @@ def send_feedback_email(feedback_data):
     except Exception as e:
         logger.error(f"Failed to send feedback email: {str(e)}")
         return False
+
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+def view_feedback(request):
+    """View all feedback submissions"""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    try:
+        # Get all feedback from Firestore
+        feedback_ref = db.collection('feedback')
+        feedback_docs = feedback_ref.stream()
+        
+        feedback_list = []
+        for doc in feedback_docs:
+            feedback_data = doc.to_dict()
+            feedback_data['id'] = doc.id
+            
+            # Convert Firestore timestamp to readable format
+            if hasattr(feedback_data.get('timestamp'), 'strftime'):
+                feedback_data['timestamp'] = feedback_data['timestamp'].strftime("%B %d, %Y at %I:%M:%S %p")
+            elif isinstance(feedback_data.get('timestamp'), str):
+                # Already a string
+                pass
+            else:
+                feedback_data['timestamp'] = 'Unknown date'
+            
+            feedback_list.append(feedback_data)
+        
+        # Sort by timestamp (newest first)
+        feedback_list.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Calculate statistics
+        total_feedback = len(feedback_list)
+        average_rating = sum(fb.get('rating', 0) for fb in feedback_list) / total_feedback if total_feedback > 0 else 0
+        rating_counts = {i: 0 for i in range(1, 6)}
+        for fb in feedback_list:
+            rating = fb.get('rating', 0)
+            if 1 <= rating <= 5:
+                rating_counts[rating] += 1
+        
+    except Exception as e:
+        messages.error(request, f'Error loading feedback: {str(e)}')
+        feedback_list = []
+        total_feedback = 0
+        average_rating = 0
+        rating_counts = {i: 0 for i in range(1, 6)}
+    
+    # Pagination
+    page = request.GET.get('page', 1)
+    items_per_page = 10
+    
+    paginator = Paginator(feedback_list, items_per_page)
+    
+    try:
+        feedback_page = paginator.page(page)
+    except PageNotAnInteger:
+        feedback_page = paginator.page(1)
+    except EmptyPage:
+        feedback_page = paginator.page(paginator.num_pages)
+    
+    context = {
+        'feedback_list': feedback_page,
+        'total_feedback': total_feedback,
+        'average_rating': round(average_rating, 1),
+        'rating_counts': rating_counts,
+        'paginator': paginator,
+    }
+    
+    return render(request, 'view_feedback.html', context)
+
+def delete_feedback(request, feedback_id):
+    """Delete a specific feedback entry"""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    try:
+        db.collection('feedback').document(feedback_id).delete()
+        messages.success(request, 'Feedback deleted successfully')
+    except Exception as e:
+        messages.error(request, f'Error deleting feedback: {str(e)}')
+    
+    return redirect('view_feedback')
+
+@csrf_exempt
+def bulk_delete_feedback(request):
+    """Bulk delete feedback entries"""
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'})
+    
+    if request.method == 'POST':
+        try:
+            feedback_ids = request.POST.getlist('feedback_ids[]')
+            deleted_count = 0
+            
+            for feedback_id in feedback_ids:
+                try:
+                    db.collection('feedback').document(feedback_id).delete()
+                    deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Error deleting feedback {feedback_id}: {str(e)}")
+            
+            messages.success(request, f'Successfully deleted {deleted_count} feedback entries')
+            return JsonResponse({'success': True, 'deleted_count': deleted_count})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
