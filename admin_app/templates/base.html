@@ -50,6 +50,35 @@
         background-color: #4e73df;
         border-radius: 0.25rem;
     }
+    
+    /* Feedback specific styles */
+    .feedback-rating {
+        color: #ffc107;
+    }
+    .feedback-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .feedback-card:hover {
+        transform: translateY(-2px);
+    }
+    .rating-stars {
+        font-size: 1.1rem;
+    }
+    .badge-rating {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        color: #000;
+        font-weight: bold;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
 </style>
 <body class="d-flex flex-column min-vh-100">
 
@@ -68,31 +97,32 @@
                     <li class="nav-item {% if request.path == '/generate_qr/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'generate_qr' %}">Generate QR</a>
                     </li>
-                    <!-- <li class="nav-item {% if request.path == '/register_user/' %}active{% endif %}">
-                        <a class="nav-link" href="{% url 'register_user' %}">Register User</a>
-                    </li> -->
                     <li class="nav-item {% if request.path == '/manage_users/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'manage_users' %}">Manage Users</a>
                     </li>
-                    <!-- In your navigation bar -->
                     <li class="nav-item {% if request.path == '/manage-qrs/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'manage_qrs' %}">Manage QR Codes</a>
                     </li>
-                    
-                    <!-- Add this new item -->
                     <li class="nav-item {% if request.path == '/assign-qr/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'assign_qr' %}">Assign QR Code</a>
                     </li>
                     <li class="nav-item {% if request.path == '/view-orders/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'view_orders' %}">View Orders</a>
                     </li>
+                    
+                    <!-- New Feedback Section -->
+                    <li class="nav-item {% if request.path == '/view-feedback/' %}active{% endif %}">
+                        <a class="nav-link" href="{% url 'view_feedback' %}">
+                            <i class="fas fa-comments me-1"></i> Feedback
+                        </a>
+                    </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'manage_ads' %}">
-                            <!-- <i class="fas fa-ad me-2"></i> -->
                             Manage Ads
                         </a>
                     </li>
-                    <!-- Delete Data Link - Added with warning color -->
+                    <!-- Delete Data Link -->
                     <li class="nav-item {% if request.path == '/delete-data/' %}active{% endif %}">
                         <a class="nav-link text-warning" href="{% url 'delete_data' %}">
                             <i class="fas fa-exclamation-triangle"></i> Delete Data

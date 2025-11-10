@@ -1,43 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>New Feedback Received</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #FFD700; padding: 15px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .rating { color: #FFD700; font-size: 18px; margin: 10px 0; }
-        .feedback { background-color: white; padding: 15px; border-left: 4px solid #FFD700; margin: 15px 0; }
-        .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #E58147, #D46C35);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 0 0 10px 10px;
+        }
+        .rating {
+            color: #E58147;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .feedback-box {
+            background: white;
+            border-left: 4px solid #E58147;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .info-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        .label {
+            font-weight: bold;
+            color: #E58147;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>New Feedback Received</h2>
+    <div class="header">
+        <h1>🚗 New Feedback Received</h1>
+        <p>SudoTag Feedback System</p>
+    </div>
+    
+    <div class="content">
+        <div class="info-item">
+            <span class="label">Rating:</span> 
+            <span class="rating">{{ rating }}/5 ⭐</span>
         </div>
-        <div class="content">
-            <p><strong>From:</strong> {{ name }} &lt;{{ email }}&gt;</p>
-            <p><strong>Vehicle:</strong> {{ vehicle }}</p>
-            <div class="rating">
-                Rating: 
-                {% for i in "12345" %}
-                    {% if forloop.counter <= rating %}
-                        ★
-                    {% else %}
-                        ☆
-                    {% endif %}
-                {% endfor %}
-                ({{ rating }}/5)
-            </div>
-            <div class="feedback">
-                <p><strong>Feedback:</strong></p>
-                <p>{{ feedback|linebreaks }}</p>
-            </div>
+        
+        {% if name %}
+        <div class="info-item">
+            <span class="label">Name:</span> {{ name }}
         </div>
-        <div class="footer">
-            <p>This email was sent from the Sudo Vehicle QR Activation System</p>
+        {% endif %}
+        
+        {% if email %}
+        <div class="info-item">
+            <span class="label">Email:</span> {{ email }}
+        </div>
+        {% endif %}
+        
+        {% if vehicle %}
+        <div class="info-item">
+            <span class="label">Vehicle:</span> {{ vehicle }}
+        </div>
+        {% endif %}
+        
+        {% if notification_method %}
+        <div class="info-item">
+            <span class="label">Notification Method:</span> {{ notification_method }}
+        </div>
+        {% endif %}
+        
+        <div class="feedback-box">
+            <strong>Feedback:</strong><br>
+            {{ feedback|linebreaks }}
+        </div>
+        
+        <div class="info-item">
+            <span class="label">Timestamp:</span> {{ timestamp }}
         </div>
     </div>
 </body>

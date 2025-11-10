@@ -40,6 +40,8 @@
       --secondary-gray: #282828;
       --text-white: #FFFFFF;
       --notification-red: #FF4500;
+      --success-green: #4CAF50;
+      --info-blue: #2196F3;
     }
 
     * {
@@ -307,6 +309,75 @@
       font-weight: 600;
     }
 
+    /* Success Modal */
+    .success-modal {
+      background-color: var(--secondary-gray);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 15px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.4s ease-out;
+    }
+
+    .success-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      animation: pulse 2s infinite;
+    }
+
+    .success-icon.push {
+      color: var(--info-blue);
+    }
+
+    .success-icon.sms {
+      color: var(--success-green);
+    }
+
+    .success-icon.call {
+      color: var(--accent-orange);
+    }
+
+    .success-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-white);
+      margin-bottom: 10px;
+    }
+
+    .success-text {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .success-details {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 15px 0;
+      text-align: left;
+    }
+
+    .success-detail-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 0.8rem;
+    }
+
+    .success-detail-label {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .success-detail-value {
+      color: var(--text-white);
+      font-weight: 500;
+    }
+
     /* Optional Phone Modal */
     .phone-modal {
       background-color: var(--secondary-gray);
@@ -426,40 +497,6 @@
       animation: fadeIn 0.3s ease-out;
     }
 
-    /* Success Modal */
-    .success-modal {
-      background-color: var(--secondary-gray);
-      border-radius: 12px;
-      padding: 25px;
-      margin: 15px;
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      animation: slideUp 0.4s ease-out;
-    }
-
-    .success-icon {
-      font-size: 2.5rem;
-      color: #4CAF50;
-      margin-bottom: 15px;
-      animation: pulse 2s infinite;
-    }
-
-    .success-title {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: var(--text-white);
-      margin-bottom: 10px;
-    }
-
-    .success-text {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 20px;
-      line-height: 1.4;
-    }
-
     /* Toast Notification */
     .toast {
       position: fixed;
@@ -490,7 +527,7 @@
     }
 
     .toast-success {
-      background-color: #4CAF50;
+      background-color: var(--success-green);
     }
 
     .toast-error {
@@ -550,34 +587,6 @@
       color: rgba(255, 255, 255, 0.55);
     }
 
-    @media (max-width: 480px) {
-      .daily-limit-modal {
-        padding: 24px 20px;
-        gap: 14px;
-      }
-
-      .daily-limit-modal-title {
-        font-size: 1.1rem;
-      }
-
-      .daily-limit-modal-message {
-        font-size: 0.9rem;
-      }
-    }
-
-    @media (max-width: 360px) {
-      .daily-limit-modal {
-        padding: 22px 18px;
-        border-radius: 14px;
-      }
-
-      .daily-limit-modal-icon {
-        width: 60px;
-        height: 60px;
-        font-size: 1.8rem;
-      }
-    }
-
     /* Error Details Modal */
     .error-details {
       background-color: var(--primary-block);
@@ -598,6 +607,33 @@
       font-size: 0.75rem;
       color: rgba(255, 255, 255, 0.7);
       line-height: 1.4;
+    }
+
+    .suggestion-box {
+      background-color: rgba(229, 129, 71, 0.1);
+      border: 1px solid rgba(229, 129, 71, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .suggestion-title {
+      font-size: 0.8rem;
+      color: var(--accent-orange);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .suggestion-text {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.4;
+    }
+
+    /* Loading Spinner */
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
     }
 
     /* Responsive Design */
@@ -647,33 +683,6 @@
         font-size: 0.65rem;
       }
     }
-
-    @media (max-width: 420px) {
-      .daily-limit-modal {
-        width: calc(100% - 32px);
-        margin: 16px;
-        padding: 20px 18px;
-      }
-
-      .daily-limit-modal-title {
-        font-size: 1.05rem;
-      }
-
-      .daily-limit-modal-message {
-        font-size: 0.85rem;
-      }
-
-      .action-btn {
-        flex: 1 1 calc(50% - 8px);
-        min-width: 140px;
-      }
-    }
-
-    /* Loading Spinner */
-    .spinner-border-sm {
-      width: 1rem;
-      height: 1rem;
-    }
   </style>
 </head>
 
@@ -689,7 +698,7 @@
     {% if vehicle_data %}
     <!-- Vehicle Info -->
     <div class="vehicle-info">
-      <div class="vehicle-model">{{ vehicle_data.model }}</div>
+      <div class="vehicle-model">{{ vehicle_data.make }} {{ vehicle_data.model }}</div>
       <div class="plate-number">{{ vehicle_data.registrationNumber }}</div>
     </div>
 
@@ -788,11 +797,27 @@
   <!-- Success Modal -->
   <div class="modal-overlay" id="successModal">
     <div class="success-modal">
-      <div class="success-icon">
+      <div class="success-icon" id="successIcon">
         <i class="bi bi-check-circle-fill"></i>
       </div>
       <h3 class="success-title" id="successTitle">Notification Sent!</h3>
       <p class="success-text" id="successMessage">The vehicle owner has been notified about your message.</p>
+      
+      <div class="success-details" id="successDetails">
+        <div class="success-detail-item">
+          <span class="success-detail-label">Method:</span>
+          <span class="success-detail-value" id="detailMethod">Push Notification</span>
+        </div>
+        <div class="success-detail-item">
+          <span class="success-detail-label">Message:</span>
+          <span class="success-detail-value" id="detailMessage">Your message here</span>
+        </div>
+        <div class="success-detail-item" id="detailPhoneContainer" style="display: none;">
+          <span class="success-detail-label">Your Number:</span>
+          <span class="success-detail-value" id="detailPhone">+1234567890</span>
+        </div>
+      </div>
+      
       <button class="action-btn call-btn" id="continueBtn" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto; padding: 12px 24px;">
         OK
       </button>
@@ -812,17 +837,16 @@
         <div class="error-message" id="errorDetailedMessage"></div>
       </div>
 
+      <div class="suggestion-box" id="suggestionBox">
+        <div class="suggestion-title">💡 Suggestion</div>
+        <div class="suggestion-text" id="suggestionText">Please try a different notification method.</div>
+      </div>
+
       <div class="phone-actions" style="margin-top: 15px;">
         <button class="phone-action-btn skip-btn" id="errorCloseBtn">Close</button>
         <button class="phone-action-btn confirm-btn" id="errorRetryBtn">Try Again</button>
       </div>
     </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div class="toast" id="toastNotification">
-    <i class="bi bi-check-circle-fill toast-icon"></i>
-    <span id="toastMessage">Notification sent successfully!</span>
   </div>
 
   <!-- Daily Limit Modal -->
@@ -836,6 +860,12 @@
       <div class="daily-limit-modal-subcopy" id="limitModalSubcopy"></div>
       <button class="phone-action-btn confirm-btn daily-limit-modal-button" id="limitModalClose">Got it</button>
     </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastNotification">
+    <i class="bi bi-check-circle-fill toast-icon"></i>
+    <span id="toastMessage">Notification sent successfully!</span>
   </div>
 
   <!-- Vendor JS Files -->
@@ -861,37 +891,25 @@
     const continueBtn = document.getElementById('continueBtn');
     const successTitle = document.getElementById('successTitle');
     const successMessage = document.getElementById('successMessage');
+    const successIcon = document.getElementById('successIcon');
+    const successDetails = document.getElementById('successDetails');
+    const detailMethod = document.getElementById('detailMethod');
+    const detailMessage = document.getElementById('detailMessage');
+    const detailPhone = document.getElementById('detailPhone');
+    const detailPhoneContainer = document.getElementById('detailPhoneContainer');
     const errorModal = document.getElementById('errorModal');
     const errorMainMessage = document.getElementById('errorMainMessage');
     const errorTitle = document.getElementById('errorTitle');
     const errorDetailedMessage = document.getElementById('errorDetailedMessage');
     const errorCloseBtn = document.getElementById('errorCloseBtn');
     const errorRetryBtn = document.getElementById('errorRetryBtn');
+    const suggestionBox = document.getElementById('suggestionBox');
+    const suggestionText = document.getElementById('suggestionText');
     const dailyLimitModal = document.getElementById('dailyLimitModal');
     const limitModalTitle = document.getElementById('limitModalTitle');
     const limitModalMessage = document.getElementById('limitModalMessage');
     const limitModalSubcopy = document.getElementById('limitModalSubcopy');
     const limitModalClose = document.getElementById('limitModalClose');
-    
-    // Function to close daily limit modal
-    function closeDailyLimitModal() {
-      if (dailyLimitModal) {
-        dailyLimitModal.style.display = 'none';
-      }
-    }
-    
-    // Initialize daily limit modal close button
-    if (limitModalClose) {
-      limitModalClose.addEventListener('click', closeDailyLimitModal);
-    }
-
-    if (dailyLimitModal) {
-      dailyLimitModal.addEventListener('click', function(event) {
-        if (event.target === dailyLimitModal) {
-          closeDailyLimitModal();
-        }
-      });
-    }
     
     // Selected reason and method
     let selectedReason = '';
@@ -1067,7 +1085,7 @@
     }
 
     // Function to show detailed error modal
-    function showErrorModal(mainMessage, detailedMessage, errorType = 'general') {
+    function showErrorModal(mainMessage, detailedMessage, errorType = 'general', suggestion = '') {
       errorMainMessage.textContent = mainMessage;
       errorDetailedMessage.textContent = detailedMessage;
       
@@ -1078,8 +1096,20 @@
         errorTitle.textContent = 'Network Connection Issue';
       } else if (errorType === 'server') {
         errorTitle.textContent = 'Server Error';
+      } else if (errorType === 'user_not_registered') {
+        errorTitle.textContent = 'Owner Not Registered';
+      } else if (errorType === 'no_phone_number') {
+        errorTitle.textContent = 'No Phone Number';
       } else {
         errorTitle.textContent = 'Error Details';
+      }
+      
+      // Show suggestion if provided
+      if (suggestion) {
+        suggestionText.textContent = suggestion;
+        suggestionBox.style.display = 'block';
+      } else {
+        suggestionBox.style.display = 'none';
       }
       
       errorModal.style.display = 'flex';
@@ -1149,40 +1179,46 @@
       })
       .then(data => {
         if (data.status === 'success') {
-          // Show success modal with method-specific message
-          let successMsg = 'The vehicle owner has been notified about your message.';
-          if (selectedMethod === 'sms') {
-            successMsg = 'SMS sent successfully to the vehicle owner.';
-          } else if (selectedMethod === 'call') {
-            successMsg = 'Phone call initiated successfully to the vehicle owner.';
-          } else if (selectedMethod === 'push') {
-            successMsg = 'Push notification sent successfully to the vehicle owner.';
-          }
-          successMessage.textContent = successMsg;
-          successModal.style.display = 'flex';
+          // Show success modal with method-specific styling
+          showSuccessModal(data.notification_type, message, phoneNumber, data.message);
         } else {
           // Handle server-side errors with detailed messages
-          let errorType = 'server';
+          let errorType = data.error_type || 'server';
           let detailedMessage = data.message || 'Unknown server error occurred.';
+          let suggestion = '';
           
-          // Check if it's a daily limit error - show snackbar instead of modal
-          if (data.message && (
-            data.message.toLowerCase().includes('limit reached') ||
-            data.message.toLowerCase().includes('daily') && data.message.toLowerCase().includes('limit')
-          )) {
-            showDailyLimitModal(detailedMessage, selectedMethod);
+          // Check if it's a daily limit error
+          if (errorType === 'daily_limit_reached') {
+            showDailyLimitModal(detailedMessage, selectedMethod, data.current_count, data.limit);
             return;
           }
           
-          // Detect Twilio errors from server response
-          if (data.message && data.message.toLowerCase().includes('twilio')) {
-            errorType = 'twilio';
+          // Provide specific suggestions based on error type
+          switch(errorType) {
+            case 'user_not_registered':
+              suggestion = 'Try using SMS or Call instead. The owner might not have the mobile app installed.';
+              break;
+            case 'no_phone_number':
+              suggestion = 'Try using push notification instead. The owner hasn\'t registered a phone number.';
+              break;
+            case 'push_failed':
+              suggestion = 'Try using SMS or Call instead. The owner might not have the app installed or notifications disabled.';
+              break;
+            case 'service_unavailable':
+              suggestion = 'Try using push notification instead. The SMS/Call service is temporarily down.';
+              break;
+            case 'twilio_error':
+              suggestion = 'Try using push notification instead. There seems to be an issue with the phone service.';
+              break;
+            default:
+              suggestion = 'Please try a different notification method or try again later.';
           }
           
           showErrorModal(
             'Failed to send notification', 
             detailedMessage,
-            errorType
+            errorType,
+            suggestion
           );
         }
       })
@@ -1192,18 +1228,21 @@
         // Determine error type for better messaging
         let errorType = 'network';
         let detailedMessage = error.message;
+        let suggestion = 'Please check your internet connection and try again.';
         
         if (error.message.includes('Network') || error.message.includes('fetch')) {
           detailedMessage = 'Network connection failed. Please check your internet connection and try again.';
           errorType = 'network';
         } else if (error.message.includes('Server')) {
           errorType = 'server';
+          suggestion = 'Server is temporarily unavailable. Please try again in a few minutes.';
         }
         
         showErrorModal(
           'Failed to send notification', 
           detailedMessage,
-          errorType
+          errorType,
+          suggestion
         );
       })
       .finally(() => {
@@ -1212,6 +1251,65 @@
         activeButton.innerHTML = originalText;
         activeButton.disabled = false;
       });
+    }
+
+    // Show success modal with method-specific styling
+    function showSuccessModal(method, message, phone, customMessage = '') {
+      // Set method-specific styling and content
+      let iconClass = '';
+      let title = '';
+      let messageText = customMessage;
+      
+      switch(method) {
+        case 'push':
+          iconClass = 'push';
+          title = '📱 Push Notification Sent!';
+          if (!messageText) messageText = 'The owner will receive an alert on their phone.';
+          break;
+        case 'sms':
+          iconClass = 'sms';
+          title = '💬 SMS Sent Successfully!';
+          if (!messageText) messageText = 'The owner will receive your message shortly.';
+          break;
+        case 'call':
+          iconClass = 'call';
+          title = '📞 Call Initiated!';
+          if (!messageText) messageText = 'The owner is receiving your message via automated call.';
+          break;
+        default:
+          iconClass = 'push';
+          title = 'Notification Sent!';
+          if (!messageText) messageText = 'The vehicle owner has been notified about your message.';
+      }
+      
+      // Update success modal content
+      successIcon.className = `success-icon ${iconClass}`;
+      successIcon.innerHTML = `<i class="bi bi-check-circle-fill"></i>`;
+      successTitle.textContent = title;
+      successMessage.textContent = messageText;
+      
+      // Update details
+      detailMethod.textContent = getMethodDisplayName(method);
+      detailMessage.textContent = message.length > 50 ? message.substring(0, 50) + '...' : message;
+      
+      if (phone) {
+        detailPhone.textContent = phone;
+        detailPhoneContainer.style.display = 'flex';
+      } else {
+        detailPhoneContainer.style.display = 'none';
+      }
+      
+      successModal.style.display = 'flex';
+    }
+
+    // Get display name for notification method
+    function getMethodDisplayName(method) {
+      switch(method) {
+        case 'push': return 'Push Notification';
+        case 'sms': return 'SMS Message';
+        case 'call': return 'Phone Call';
+        default: return 'Notification';
+      }
     }
 
     // Get the active button based on selected method
@@ -1225,23 +1323,23 @@
     }
 
     // Function to show daily limit snackbar
-    function showDailyLimitModal(message, method) {
+    function showDailyLimitModal(message, method, currentCount, limit) {
       if (!dailyLimitModal) {
         return;
       }
 
       let titleText = 'Daily Limit Reached';
-      let subcopy = 'You can try a different method or come back tomorrow when the limit resets.';
+      let subcopy = `You have used ${currentCount} out of ${limit} attempts today. You can try a different method or come back tomorrow when the limit resets.`;
 
       if (method === 'call') {
-        titleText = 'Daily Call Limit Reached';
-        subcopy = 'Please try sending an SMS or push notification instead.';
+        titleText = '📞 Daily Call Limit Reached';
+        subcopy = `You have used ${currentCount} out of ${limit} calls today. Please try sending an SMS or push notification instead.`;
       } else if (method === 'sms') {
-        titleText = 'Daily SMS Limit Reached';
-        subcopy = 'You can still try calling or using push notifications.';
+        titleText = '💬 Daily SMS Limit Reached';
+        subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. You can still try calling or using push notifications.`;
       } else if (method === 'push') {
-        titleText = 'Daily Push Notification Limit Reached';
-        subcopy = 'Please try contacting the owner via SMS or call.';
+        titleText = '📱 Daily Push Limit Reached';
+        subcopy = `You have used ${currentCount} out of ${limit} push notifications today. Please try contacting the owner via SMS or call.`;
       }
 
       if (limitModalTitle) {
@@ -1257,6 +1355,26 @@
       }
 
       dailyLimitModal.style.display = 'flex';
+    }
+
+    // Function to close daily limit modal
+    function closeDailyLimitModal() {
+      if (dailyLimitModal) {
+        dailyLimitModal.style.display = 'none';
+      }
+    }
+    
+    // Initialize daily limit modal close button
+    if (limitModalClose) {
+      limitModalClose.addEventListener('click', closeDailyLimitModal);
+    }
+
+    if (dailyLimitModal) {
+      dailyLimitModal.addEventListener('click', function(event) {
+        if (event.target === dailyLimitModal) {
+          closeDailyLimitModal();
+        }
+      });
     }
 
     // Function to get CSRF token

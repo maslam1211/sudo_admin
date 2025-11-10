@@ -2997,3 +2997,126 @@ def get_active_ads(request, ad_type):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+import logging
+import datetime  # Add this import
+from django.utils.timezone import now  # Better alternative
+
+logger = logging.getLogger(__name__)
+
+def feedback_page(request):
+    """Render the feedback page"""
+    return render(request, 'feedback.html')
+
+@csrf_exempt
+def submit_feedback(request):
+    """Handle feedback submission"""
+    if request.method == 'POST':
+        try:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # AJAX request
+                data = json.loads(request.body)
+            else:
+                # Form submission
+                data = request.POST
+            
+            # Validate required fields
+            if not data.get('rating'):
+                return JsonResponse({
+                    'status': 'error', 
+                    'message': 'Please provide a rating'
+                })
+            
+            # Prepare feedback data
+            feedback_data = {
+                'name': data.get('name', '').strip(),
+                'email': data.get('email', '').strip(),
+                'vehicle': data.get('vehicle', ''),
+                'rating': int(data.get('rating', 0)),
+                'feedback': data.get('feedback', '').strip(),
+                'notification_method': data.get('notification_method', ''),
+                'timestamp': now()  # Use Django's timezone-aware now()
+            }
+            
+            # Send email
+            email_sent = send_feedback_email(feedback_data)
+            
+            # Also save to Firestore for record keeping
+            try:
+                feedback_id = str(uuid.uuid4())
+                db.collection('feedback').document(feedback_id).set({
+                    **feedback_data,
+                    'id': feedback_id,
+                    'timestamp': firestore.SERVER_TIMESTAMP
+                })
+            except Exception as e:
+                logger.error(f"Failed to save feedback to Firestore: {str(e)}")
+                # Continue even if Firestore save fails
+            
+            if email_sent:
+                return JsonResponse({
+                    'status': 'success', 
+                    'message': 'Thank you for your feedback! We appreciate your input.'
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error', 
+                    'message': 'Failed to send feedback. Please try again.'
+                })
+                
+        except Exception as e:
+            logger.error(f"Error in submit_feedback: {str(e)}")
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'An error occurred. Please try again.'
+            })
+    
+    return JsonResponse({
+        'status': 'error', 
+        'message': 'Invalid request method'
+    })
+
+def send_feedback_email(feedback_data):
+    """Send feedback email to admin"""
+    subject = f"New Feedback Received - Rating: {feedback_data['rating']}/5"
+    
+    # Use timezone-aware timestamp
+    current_time = now()
+    
+    html_message = render_to_string('feedback_email.html', {
+        'name': feedback_data.get('name', 'Anonymous'),
+        'email': feedback_data.get('email', 'Not provided'),
+        'vehicle': feedback_data.get('vehicle', 'Not specified'),
+        'rating': feedback_data.get('rating', 0),
+        'feedback': feedback_data.get('feedback', 'No feedback provided'),
+        'timestamp': current_time.strftime("%B %d, %Y at %I:%M:%S %p"),
+        'notification_method': feedback_data.get('notification_method', 'Not specified')
+    })
+    
+    plain_message = f"""
+    New Feedback Received
+    
+    Name: {feedback_data.get('name', 'Anonymous')}
+    Email: {feedback_data.get('email', 'Not provided')}
+    Vehicle: {feedback_data.get('vehicle', 'Not specified')}
+    Rating: {feedback_data.get('rating', 0)}/5
+    Notification Method: {feedback_data.get('notification_method', 'Not specified')}
+    
+    Feedback:
+    {feedback_data.get('feedback', 'No feedback provided')}
+    
+    Timestamp: {current_time.strftime("%B %d, %Y at %I:%M:%S %p")}
+    """
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            html_message=html_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[getattr(settings, 'FEEDBACK_EMAIL', 'admin@sudo.com')],  # Safe fallback
+            fail_silently=False
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send feedback email: {str(e)}")
+        return False

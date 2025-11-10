@@ -1,0 +1,682 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback - SudoTag</title>
+    <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
+    <link href="{% static 'assets/img/WhatsApp Image 2025-11-05 at 02.37.19_e40cf66b.jpg' %}" rel="apple-touch-icon">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-black: #1C1C1C;
+            --accent-orange: #E58147;
+            --secondary-gray: #282828;
+            --text-white: #FFFFFF;
+            --success-green: #4CAF50;
+            --error-red: #FF4500;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--primary-black);
+            color: var(--text-white);
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--secondary-gray);
+            padding: 12px 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .brand-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-orange);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .brand-dot {
+            color: var(--text-white);
+            font-weight: 800;
+        }
+
+        .header-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-white);
+            margin: 3px 0 0 0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+            overflow-y: auto;
+        }
+
+        .main-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .main-content {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--secondary-gray);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-white);
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+            color: var(--text-white);
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background-color: var(--primary-black);
+            color: var(--text-white);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 2px rgba(229, 129, 71, 0.2);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Rating Stars */
+        .rating-section {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .rating-title {
+            font-size: 1rem;
+            color: var(--text-white);
+            margin-bottom: 15px;
+        }
+
+        .stars-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .star {
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .star:hover,
+        .star.active {
+            color: var(--accent-orange);
+            transform: scale(1.1);
+        }
+
+        .rating-text {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-orange);
+            color: var(--text-white);
+            box-shadow: 0 4px 15px rgba(229, 129, 71, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #D46C35;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 129, 71, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background-color: rgba(229, 129, 71, 0.5);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        /* Success Message */
+        .success-message {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .success-icon {
+            font-size: 3.5rem;
+            color: var(--success-green);
+            margin-bottom: 15px;
+            animation: bounce 1s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .success-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-white);
+            margin-bottom: 10px;
+        }
+
+        .success-text {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--secondary-gray);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.4s ease;
+            max-width: 90%;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-icon {
+            font-size: 1.1rem;
+        }
+
+        .toast-success {
+            background-color: var(--success-green);
+        }
+
+        .toast-error {
+            background-color: var(--error-red);
+        }
+
+        /* Loading Spinner */
+        .spinner-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner-container.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--secondary-gray);
+            border-top-color: var(--accent-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Character Count */
+        .char-count {
+            text-align: right;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+        }
+
+        /* Optional Fields Note */
+        .optional-note {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .form-control {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .star {
+                font-size: 1.8rem;
+            }
+            
+            .btn {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .card {
+                padding: 15px;
+            }
+            
+            .stars-container {
+                gap: 5px;
+            }
+            
+            .star {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
+        <h1 class="header-title">SHARE YOUR FEEDBACK</h1>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="card">
+            <h2 class="card-title">We Value Your Feedback</h2>
+            <p class="card-subtitle">Help us improve your experience with SudoTag</p>
+            
+            <div id="feedbackFormContainer">
+                <form id="feedbackForm">
+                    <!-- Rating Section -->
+                    <div class="rating-section">
+                        <div class="rating-title">How would you rate your experience?</div>
+                        <div class="stars-container">
+                            <i class="bi bi-star star" data-rating="1"></i>
+                            <i class="bi bi-star star" data-rating="2"></i>
+                            <i class="bi bi-star star" data-rating="3"></i>
+                            <i class="bi bi-star star" data-rating="4"></i>
+                            <i class="bi bi-star star" data-rating="5"></i>
+                        </div>
+                        <div class="rating-text" id="ratingText">Tap to rate</div>
+                        <input type="hidden" id="rating" name="rating" required>
+                    </div>
+
+                    <!-- Personal Information (Optional) -->
+                    <div class="form-group">
+                        <label for="name" class="form-label">Your Name (Optional)</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter your name">
+                        <div class="optional-note">This helps us personalize our response</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address (Optional)</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="your@email.com">
+                        <div class="optional-note">If you'd like us to follow up with you</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vehicle" class="form-label">Vehicle Information (Optional)</label>
+                        <input type="text" class="form-control" id="vehicle" name="vehicle" placeholder="Vehicle make/model or license plate">
+                    </div>
+
+                    <!-- Feedback Message -->
+                    <div class="form-group">
+                        <label for="feedback" class="form-label">Your Feedback *</label>
+                        <textarea class="form-control" id="feedback" name="feedback" placeholder="Please share your thoughts, suggestions, or any issues you encountered..." required maxlength="500"></textarea>
+                        <div class="char-count"><span id="charCount">0</span>/500 characters</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+                        <i class="bi bi-send-fill"></i> Submit Feedback
+                    </button>
+                </form>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="success-message" style="display: none;">
+                <div class="success-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h3 class="success-title">Thank You!</h3>
+                <p class="success-text" id="successMessageText">
+                    Your feedback has been received. We appreciate you taking the time to help us improve.
+                </p>
+                <button class="btn btn-primary" id="newFeedbackBtn">
+                    <i class="bi bi-plus-circle"></i> Submit Another Feedback
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Spinner -->
+    <div class="spinner-container" id="loadingSpinner">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toastNotification">
+        <i class="bi bi-check-circle-fill toast-icon"></i>
+        <span id="toastMessage">Feedback submitted successfully!</span>
+    </div>
+
+    <!-- Vendor JS Files -->
+    <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const feedbackForm = document.getElementById('feedbackForm');
+            const feedbackFormContainer = document.getElementById('feedbackFormContainer');
+            const successMessage = document.getElementById('successMessage');
+            const successMessageText = document.getElementById('successMessageText');
+            const newFeedbackBtn = document.getElementById('newFeedbackBtn');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const toastNotification = document.getElementById('toastNotification');
+            const toastMessage = document.getElementById('toastMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            const stars = document.querySelectorAll('.star');
+            const ratingInput = document.getElementById('rating');
+            const ratingText = document.getElementById('ratingText');
+            const feedbackTextarea = document.getElementById('feedback');
+            const charCount = document.getElementById('charCount');
+
+            // Rating stars functionality
+            let currentRating = 0;
+            const ratingLabels = {
+                1: "Poor",
+                2: "Fair", 
+                3: "Good",
+                4: "Very Good",
+                5: "Excellent"
+            };
+
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    setRating(rating);
+                });
+
+                star.addEventListener('mouseenter', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    highlightStars(rating);
+                    ratingText.textContent = ratingLabels[rating] || "Tap to rate";
+                });
+            });
+
+            // Reset stars on mouse leave
+            document.querySelector('.stars-container').addEventListener('mouseleave', function() {
+                highlightStars(currentRating);
+                ratingText.textContent = currentRating ? ratingLabels[currentRating] : "Tap to rate";
+            });
+
+            function setRating(rating) {
+                currentRating = rating;
+                ratingInput.value = rating;
+                highlightStars(rating);
+                ratingText.textContent = ratingLabels[rating];
+            }
+
+            function highlightStars(rating) {
+                stars.forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.add('active');
+                        star.classList.remove('bi-star');
+                        star.classList.add('bi-star-fill');
+                    } else {
+                        star.classList.remove('active');
+                        star.classList.remove('bi-star-fill');
+                        star.classList.add('bi-star');
+                    }
+                });
+            }
+
+            // Character counter for feedback
+            feedbackTextarea.addEventListener('input', function() {
+                const length = this.value.length;
+                charCount.textContent = length;
+                
+                if (length > 450) {
+                    charCount.style.color = 'var(--accent-orange)';
+                } else {
+                    charCount.style.color = 'rgba(255, 255, 255, 0.5)';
+                }
+            });
+
+            // Form submission
+            feedbackForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validate form
+                if (!currentRating) {
+                    showToast('Please provide a rating', 'error');
+                    return;
+                }
+
+                if (!feedbackTextarea.value.trim()) {
+                    showToast('Please provide your feedback', 'error');
+                    return;
+                }
+
+                // Prepare form data
+                const formData = {
+                    rating: currentRating,
+                    name: document.getElementById('name').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    vehicle: document.getElementById('vehicle').value.trim(),
+                    feedback: feedbackTextarea.value.trim()
+                };
+
+                // Show loading spinner
+                loadingSpinner.classList.add('active');
+                submitBtn.disabled = true;
+
+                // Submit feedback
+                fetch('{% url "submit_feedback" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show success message
+                        feedbackFormContainer.style.display = 'none';
+                        successMessage.style.display = 'block';
+                        successMessageText.textContent = data.message;
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    showToast(error.message || 'Failed to submit feedback. Please try again.', 'error');
+                })
+                .finally(() => {
+                    loadingSpinner.classList.remove('active');
+                    submitBtn.disabled = false;
+                });
+            });
+
+            // New feedback button
+            newFeedbackBtn.addEventListener('click', function() {
+                // Reset form
+                feedbackForm.reset();
+                setRating(0);
+                charCount.textContent = '0';
+                charCount.style.color = 'rgba(255, 255, 255, 0.5)';
+                
+                // Show form, hide success message
+                feedbackFormContainer.style.display = 'block';
+                successMessage.style.display = 'none';
+            });
+
+            // Helper function to show toast notification
+            function showToast(message, type = 'success') {
+                toastNotification.className = 'toast';
+                toastNotification.classList.add(`toast-${type}`);
+                toastMessage.textContent = message;
+                
+                if (type === 'success') {
+                    toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+                } else {
+                    toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+                }
+                
+                toastNotification.classList.add('show');
+                
+                setTimeout(() => {
+                    toastNotification.classList.remove('show');
+                }, 4000);
+            }
+
+            // Helper function to get CSRF token
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -37,4 +37,6 @@ urlpatterns = [
     path('update-ad/', views.update_ad, name='update_ad'),
     path('delete-ad/', views.delete_ad, name='delete_ad'),
     path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),   
+    path('feedback/', views.feedback_page, name='feedback_page'),
+    path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
 ]
