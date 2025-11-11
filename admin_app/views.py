@@ -1045,7 +1045,7 @@ DAILY_SMS_LIMIT = 2
 def get_today_date_string():
     """Return today's date string in Asia/Kolkata timezone (YYYY-MM-DD)."""
     ist = pytz.timezone('Asia/Kolkata')
-    return datetime.now(ist).strftime('%Y-%m-%d')
+    return now().astimezone(ist).strftime('%Y-%m-%d')
 
 
 def check_daily_limit(qr_id, action_type):
@@ -1072,7 +1072,19 @@ def check_daily_limit(qr_id, action_type):
             return True, 0, limit
 
         usage_data = usage_doc.to_dict() or {}
-        current_count = usage_data.get(count_field, 0)
+        current_count = usage_data.get(count_field, 0) or 0
+
+        try:
+            current_count = int(current_count)
+        except (TypeError, ValueError):
+            logger.warning(
+                "daily_usage document %s has non-integer %s=%r; resetting to 0",
+                usage_ref.id,
+                count_field,
+                current_count,
+            )
+            current_count = 0
+            usage_ref.update({count_field: 0})
 
         return current_count < limit, current_count, limit
 
@@ -1096,7 +1108,6 @@ def increment_daily_count(qr_id, action_type):
 
         today = get_today_date_string()
         usage_ref = db.collection('daily_usage').document(f"{qr_id}_{today}")
-        usage_doc = usage_ref.get()
 
         if action_type == 'call':
             count_field = 'calls_count'
@@ -1105,23 +1116,16 @@ def increment_daily_count(qr_id, action_type):
         else:
             return
 
-        ist = pytz.timezone('Asia/Kolkata')
+        # Ensure the document exists and has the basic metadata.
+        usage_ref.set({
+            'qr_id': qr_id,
+            'date': today,
+        }, merge=True)
 
-        if not usage_doc.exists:
-            usage_ref.set({
-                'qr_id': qr_id,
-                'date': today,
-                'calls_count': 1 if action_type == 'call' else 0,
-                'sms_count': 1 if action_type == 'sms' else 0,
-                'last_updated': datetime.now(ist),
-            })
-        else:
-            usage_data = usage_doc.to_dict() or {}
-            current_count = usage_data.get(count_field, 0)
-            usage_ref.update({
-                count_field: current_count + 1,
-                'last_updated': datetime.now(ist),
-            })
+        usage_ref.update({
+            count_field: firestore.Increment(1),
+            'last_updated': firestore.SERVER_TIMESTAMP,
+        })
 
     except Exception as exc:
         logger.error(f"Error incrementing daily count: {exc}")
@@ -1272,7 +1276,10 @@ def send_notification(request, qr_id):
                             if not is_allowed:
                                 return JsonResponse({
                                     'status': 'error',
-                                    'message': f'Daily SMS limit reached. You have used {current_count} out of {limit} SMS messages today. Please try again tomorrow.'
+                                    'error_type': 'daily_limit_reached',
+                                    'message': f'Daily SMS limit reached. You have used {current_count} out of {limit} SMS messages today. Please try again tomorrow.',
+                                    'current_count': current_count,
+                                    'limit': limit,
                                 })
 
                             message = twilio_client.messages.create(
@@ -1293,7 +1300,10 @@ def send_notification(request, qr_id):
                             if not is_allowed:
                                 return JsonResponse({
                                     'status': 'error',
-                                    'message': f'Daily call limit reached. You have used {current_count} out of {limit} calls today. Please try again tomorrow.'
+                                    'error_type': 'daily_limit_reached',
+                                    'message': f'Daily call limit reached. You have used {current_count} out of {limit} calls today. Please try again tomorrow.',
+                                    'current_count': current_count,
+                                    'limit': limit,
                                 })
 
                             call = twilio_client.calls.create(

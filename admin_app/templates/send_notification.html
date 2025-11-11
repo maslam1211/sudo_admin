@@ -536,55 +536,216 @@
 
     /* Daily Limit Modal */
     .daily-limit-modal {
-      background: linear-gradient(135deg, rgba(229, 129, 71, 0.1) 0%, rgba(40, 40, 40, 0.95) 100%);
-      border: 1px solid rgba(229, 129, 71, 0.35);
-      border-radius: 16px;
-      padding: 28px 26px;
-      margin: 20px;
-      width: min(420px, calc(100% - 40px));
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-      animation: slideUp 0.45s ease-out;
+      background: linear-gradient(160deg, rgba(38, 38, 38, 0.95) 0%, rgba(20, 20, 20, 0.98) 60%, rgba(229, 129, 71, 0.25) 100%);
+      border: 1px solid rgba(229, 129, 71, 0.4);
+      border-radius: 20px;
+      padding: clamp(22px, 5vw, 30px);
+      margin: clamp(16px, 4vw, 24px);
+      width: min(440px, calc(100% - clamp(32px, 8vw, 48px)));
+      max-height: calc(100vh - clamp(48px, 12vh, 96px));
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+      animation: slideUp 0.42s ease-out;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 22px;
+      position: relative;
+      overflow: hidden;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 138, 80, 0.5) transparent;
+    }
+
+    .daily-limit-modal::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .daily-limit-modal::-webkit-scrollbar-thumb {
+      background: rgba(255, 138, 80, 0.45);
+      border-radius: 999px;
+    }
+
+    .daily-limit-modal::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(229, 129, 71, 0.25), transparent 45%);
+      pointer-events: none;
     }
 
     .daily-limit-modal-icon {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      margin: 0 auto;
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 69, 0, 0.15);
-      color: #FF8A50;
-      font-size: 2rem;
-      animation: pulse 2.2s infinite;
+      background: linear-gradient(140deg, rgba(255, 138, 80, 0.18), rgba(255, 99, 71, 0.05));
+      color: #FF9E65;
+      font-size: 2.2rem;
+      animation: pulse 2.8s infinite;
+      border: 1px solid rgba(255, 138, 80, 0.4);
+      box-shadow: 0 12px 30px rgba(255, 138, 80, 0.22);
     }
 
     .daily-limit-modal-title {
-      font-size: 1.25rem;
-      font-weight: 600;
+      font-size: 1.35rem;
+      font-weight: 700;
       color: var(--text-white);
-      margin: 0;
+      margin: 0 0 6px 0;
     }
 
     .daily-limit-modal-message {
-      font-size: 0.95rem;
-      line-height: 1.5;
+      font-size: 1rem;
+      line-height: 1.55;
       color: rgba(255, 255, 255, 0.85);
       margin: 0;
     }
 
     .daily-limit-modal-button {
-      margin-top: 4px;
+      margin-top: 6px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #FF8A50 0%, #FF6A3D 100%);
+      border: none;
+      box-shadow: 0 15px 35px rgba(255, 138, 80, 0.35);
     }
 
     .daily-limit-modal-subcopy {
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: left;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .daily-limit-header {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .daily-limit-content {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .daily-limit-progress {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .daily-limit-progress-bar {
+      height: 10px;
+      background: linear-gradient(90deg, #FF8A50 0%, #FF6F61 100%);
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .daily-limit-usage {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    .daily-limit-alt {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .daily-limit-alt-label {
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .daily-limit-alt-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .daily-limit-alt-button {
+      flex: 1 1 calc(50% - 12px);
+      min-width: 140px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+
+    .daily-limit-alt-button:hover {
+      border-color: rgba(255, 138, 80, 0.6);
+      color: #FF9E65;
+      background: rgba(255, 138, 80, 0.12);
+      box-shadow: 0 15px 35px rgba(255, 138, 80, 0.25);
+    }
+
+    @media (max-width: 520px) {
+      .daily-limit-modal {
+        width: calc(100% - 28px);
+        margin: 14px;
+        gap: 18px;
+        max-height: calc(100vh - 28px);
+      }
+
+      .daily-limit-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .daily-limit-modal-icon {
+        width: 64px;
+        height: 64px;
+      }
+
+      .daily-limit-content {
+        align-items: flex-start;
+      }
+
+      .daily-limit-alt-buttons {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .daily-limit-alt-button {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .daily-limit-modal-button {
+        width: 100%;
+      }
+    }
+
+    @media (max-height: 620px) {
+      .daily-limit-modal {
+        max-height: calc(100vh - 30px);
+        gap: 16px;
+      }
+
+      .daily-limit-alt {
+        gap: 10px;
+      }
     }
 
     /* Error Details Modal */
@@ -852,11 +1013,36 @@
   <!-- Daily Limit Modal -->
   <div class="modal-overlay" id="dailyLimitModal">
     <div class="daily-limit-modal">
-      <div class="daily-limit-modal-icon">
-        <i class="bi bi-exclamation-triangle-fill"></i>
+      <div class="daily-limit-header">
+        <div class="daily-limit-modal-icon" id="limitModalIcon">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="daily-limit-content">
+          <h3 class="daily-limit-modal-title" id="limitModalTitle">Daily Limit Reached</h3>
+          <p class="daily-limit-modal-message" id="limitModalMessage"></p>
+        </div>
       </div>
-      <h3 class="daily-limit-modal-title" id="limitModalTitle">Daily Limit Reached</h3>
-      <p class="daily-limit-modal-message" id="limitModalMessage"></p>
+
+      <div class="daily-limit-usage">
+        <span id="limitModalUsage">0 of 0 used</span>
+        <span id="limitModalPercent">0%</span>
+      </div>
+      <div class="daily-limit-progress">
+        <div class="daily-limit-progress-bar" id="limitModalProgress"></div>
+      </div>
+
+      <div class="daily-limit-alt">
+        <div class="daily-limit-alt-label">Try another way</div>
+        <div class="daily-limit-alt-buttons">
+          <button class="daily-limit-alt-button" id="limitAltPrimary">
+            <i class="bi bi-chat-dots"></i> Send SMS Instead
+          </button>
+          <button class="daily-limit-alt-button" id="limitAltSecondary">
+            <i class="bi bi-bell"></i> Use Push Notification
+          </button>
+        </div>
+      </div>
+
       <div class="daily-limit-modal-subcopy" id="limitModalSubcopy"></div>
       <button class="phone-action-btn confirm-btn daily-limit-modal-button" id="limitModalClose">Got it</button>
     </div>
@@ -910,6 +1096,12 @@
     const limitModalMessage = document.getElementById('limitModalMessage');
     const limitModalSubcopy = document.getElementById('limitModalSubcopy');
     const limitModalClose = document.getElementById('limitModalClose');
+    const limitModalIcon = document.getElementById('limitModalIcon');
+    const limitModalUsage = document.getElementById('limitModalUsage');
+    const limitModalPercent = document.getElementById('limitModalPercent');
+    const limitModalProgress = document.getElementById('limitModalProgress');
+    const limitAltPrimary = document.getElementById('limitAltPrimary');
+    const limitAltSecondary = document.getElementById('limitAltSecondary');
     
     // Selected reason and method
     let selectedReason = '';
@@ -1328,17 +1520,21 @@
         return;
       }
 
-      let titleText = 'Daily Limit Reached';
+      const emojiMap = {
+        call: { icon: 'bi-telephone-x-fill', title: 'Daily Call Limit Reached' },
+        sms: { icon: 'bi-chat-square-dots-fill', title: 'Daily SMS Limit Reached' },
+        push: { icon: 'bi-bell-slash-fill', title: 'Daily Push Limit Reached' },
+        default: { icon: 'bi-exclamation-triangle-fill', title: 'Daily Limit Reached' }
+      };
+
+      let titleText = emojiMap[method]?.title || emojiMap.default.title;
       let subcopy = `You have used ${currentCount} out of ${limit} attempts today. You can try a different method or come back tomorrow when the limit resets.`;
 
       if (method === 'call') {
-        titleText = '📞 Daily Call Limit Reached';
         subcopy = `You have used ${currentCount} out of ${limit} calls today. Please try sending an SMS or push notification instead.`;
       } else if (method === 'sms') {
-        titleText = '💬 Daily SMS Limit Reached';
         subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. You can still try calling or using push notifications.`;
       } else if (method === 'push') {
-        titleText = '📱 Daily Push Limit Reached';
         subcopy = `You have used ${currentCount} out of ${limit} push notifications today. Please try contacting the owner via SMS or call.`;
       }
 
@@ -1354,6 +1550,58 @@
         limitModalSubcopy.textContent = subcopy;
       }
 
+      if (limitModalIcon) {
+        const iconClass = emojiMap[method]?.icon || emojiMap.default.icon;
+        limitModalIcon.innerHTML = `<i class="bi ${iconClass}"></i>`;
+      }
+
+      const usageText = limit ? `${currentCount} of ${limit} used today` : `${currentCount} used today`;
+      if (limitModalUsage) {
+        limitModalUsage.textContent = usageText;
+      }
+
+      if (limitModalPercent) {
+        const percent = limit ? Math.min(100, Math.round((currentCount / limit) * 100)) : 100;
+        limitModalPercent.textContent = `${percent}%`;
+      }
+
+      if (limitModalProgress) {
+        const percent = limit ? Math.min(100, Math.round((currentCount / limit) * 100)) : 100;
+        limitModalProgress.style.width = `${percent}%`;
+      }
+
+      const altConfigs = {
+        call: [
+          { method: 'sms', label: 'Send SMS Instead', icon: 'bi-chat-dots' },
+          { method: 'push', label: 'Use Push Notification', icon: 'bi-bell' }
+        ],
+        sms: [
+          { method: 'call', label: 'Call Owner', icon: 'bi-telephone' },
+          { method: 'push', label: 'Use Push Notification', icon: 'bi-bell' }
+        ],
+        push: [
+          { method: 'sms', label: 'Send SMS', icon: 'bi-chat-dots' },
+          { method: 'call', label: 'Call Owner', icon: 'bi-telephone' }
+        ]
+      };
+
+      const [primaryAction, secondaryAction] = altConfigs[method] || altConfigs.call;
+
+      const configureAltButton = (button, action) => {
+        if (!button) return;
+        if (!action) {
+          button.style.display = 'none';
+          button.dataset.method = '';
+          return;
+        }
+        button.style.display = 'inline-flex';
+        button.dataset.method = action.method;
+        button.innerHTML = `<i class="bi ${action.icon}"></i> ${action.label}`;
+      };
+
+      configureAltButton(limitAltPrimary, primaryAction);
+      configureAltButton(limitAltSecondary, secondaryAction);
+
       dailyLimitModal.style.display = 'flex';
     }
 
@@ -1363,11 +1611,44 @@
         dailyLimitModal.style.display = 'none';
       }
     }
+
+    function handleDailyLimitAlternative(method) {
+      if (!method) {
+        return;
+      }
+      closeDailyLimitModal();
+
+      if (method === 'push') {
+        selectedMethod = 'push';
+        sendNotificationDirectly();
+        return;
+      }
+
+      if (method === 'sms') {
+        selectedMethod = 'sms';
+        showPhoneModal('Send SMS');
+        return;
+      }
+
+      if (method === 'call') {
+        selectedMethod = 'call';
+        showPhoneModal('Make Call');
+      }
+    }
     
     // Initialize daily limit modal close button
     if (limitModalClose) {
       limitModalClose.addEventListener('click', closeDailyLimitModal);
     }
+
+    [limitAltPrimary, limitAltSecondary].forEach(button => {
+      if (!button) return;
+      button.addEventListener('click', function(event) {
+        event.preventDefault();
+        const method = this.dataset.method;
+        handleDailyLimitAlternative(method);
+      });
+    });
 
     if (dailyLimitModal) {
       dailyLimitModal.addEventListener('click', function(event) {
