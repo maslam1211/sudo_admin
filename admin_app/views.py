@@ -2805,7 +2805,7 @@ def add_ad(request):
                 'message': message,
                 'link': link_url,
                 'image_url': image_url,  # This line ensures ALL ad types get image_url
-                'timestamp': datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30"),
+                'timestamp': datetime.datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30"),
                 'is_active': True
             }
             
@@ -2912,7 +2912,7 @@ def update_ad(request):
                                 except Exception as upload_error:
                                     return JsonResponse({'success': False, 'error': f'Image upload failed: {str(upload_error)}'})
                             
-                            ad['timestamp'] = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                            ad['timestamp'] = datetime.datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
                             updated = True
                             target_doc_id = doc.id
                             break
