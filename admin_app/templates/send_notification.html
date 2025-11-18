@@ -1383,8 +1383,7 @@
       .then(data => {
         if (data.status === 'success') {
           // Show success modal with method-specific styling
-          // For calls, pass callback info if available
-          showSuccessModal(data.notification_type, message, phoneNumber, data.message, data.callback_number, data.tel_link);
+          showSuccessModal(data.notification_type, message, phoneNumber, data.message);
         } else {
           // Handle server-side errors with detailed messages
           let errorType = data.error_type || 'server';
@@ -1458,12 +1457,11 @@
     }
 
     // Show success modal with method-specific styling
-    function showSuccessModal(method, message, phone, customMessage = '', callbackNumber = null, telLink = null) {
+    function showSuccessModal(method, message, phone, customMessage = '') {
       // Set method-specific styling and content
       let iconClass = '';
       let title = '';
       let messageText = customMessage;
-      let additionalContent = '';
       
       switch(method) {
         case 'push':
@@ -1478,28 +1476,8 @@
           break;
         case 'call':
           iconClass = 'call';
-          title = '📞 Callback Request Sent!';
-          if (!messageText) messageText = 'Owner has been notified to call back.';
-          
-          // Add callback link if available
-          if (callbackNumber && telLink) {
-            additionalContent = `
-              <div style="margin-top: 15px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
-                <p style="margin-bottom: 10px; font-weight: 500;">Owner will call back to:</p>
-                <a href="${telLink}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: 500; font-size: 16px;">
-                  📞 ${callbackNumber}
-                </a>
-                <p style="margin-top: 10px; font-size: 12px; color: #666;">Click the button above to call directly (FREE)</p>
-              </div>
-            `;
-          } else if (callbackNumber) {
-            additionalContent = `
-              <div style="margin-top: 15px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
-                <p style="margin-bottom: 5px; font-weight: 500;">Callback number:</p>
-                <p style="font-size: 18px; font-weight: 600; color: #4CAF50;">${callbackNumber}</p>
-              </div>
-            `;
-          }
+          title = '📞 Call Initiated with Privacy Protection!';
+          if (!messageText) messageText = 'Calling vehicle owner with number masking. Both numbers are protected for privacy (like NGF132/Sampark).';
           break;
         default:
           iconClass = 'push';
@@ -1512,25 +1490,6 @@
       successIcon.innerHTML = `<i class="bi bi-check-circle-fill"></i>`;
       successTitle.textContent = title;
       successMessage.textContent = messageText;
-      
-      // Add additional content (callback link) if available
-      if (additionalContent) {
-        // Check if additional content container exists, if not create it
-        let additionalContainer = successMessage.nextElementSibling;
-        if (!additionalContainer || !additionalContainer.classList.contains('callback-container')) {
-          additionalContainer = document.createElement('div');
-          additionalContainer.className = 'callback-container';
-          successMessage.parentNode.insertBefore(additionalContainer, successMessage.nextSibling);
-        }
-        additionalContainer.innerHTML = additionalContent;
-        additionalContainer.style.display = 'block';
-      } else {
-        // Hide additional content if it exists
-        let additionalContainer = successMessage.nextElementSibling;
-        if (additionalContainer && additionalContainer.classList.contains('callback-container')) {
-          additionalContainer.style.display = 'none';
-        }
-      }
       
       // Update details
       detailMethod.textContent = getMethodDisplayName(method);

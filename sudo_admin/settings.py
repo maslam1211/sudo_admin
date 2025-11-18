@@ -208,12 +208,25 @@ BASE_DOMAIN='https://sudotag.com'
 
 TWILIO_ACCOUNT_SID = 'AC839fda2710fe54d9be8894c82daceb0f'  # Get from Twilio console
 TWILIO_AUTH_TOKEN = '4d39ae44422aaf1357272ee8bde9674f'    # Get from Twilio console
-TWILIO_PHONE_NUMBER = '+18076999994'      # Your Twilio phone number
+TWILIO_PHONE_NUMBER = '+18076999994'      # Your Twilio phone number (used as masked number)
+
+# Number Masking System (Like NGF132/Sampark)
+# The masked number is what the receiver sees - protects privacy of both parties
+# You can add multiple numbers here for a pool of masked numbers
+MASKED_NUMBERS_POOL = [
+    '+18076999994',  # Primary masked number
+    # Add more Twilio numbers here if you have them
+    # '+18071234567',
+    # '+18079876543',
+]
 
 # Optional: Support phone number for call forwarding (real person-to-person calls)
 # If set, vehicle owners will be connected directly to this number when they answer
 # Leave empty to use default call handling
 SUPPORT_PHONE_NUMBER = ''  # e.g., '+1234567890' - Set your support/help desk number here
+
+# Masked call session expiry (in hours)
+MASKED_CALL_SESSION_EXPIRY_HOURS = 24  # Session expires after 24 hours
 
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
