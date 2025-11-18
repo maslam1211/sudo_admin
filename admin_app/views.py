@@ -1333,14 +1333,22 @@ def send_notification(request, qr_id):
 
                             # Real direct call to owner - use callback URL for proper call handling
                             # This creates a real call (not automated TTS) that the owner can answer
+                            # IMPORTANT: Call will come FROM the Twilio number (+18076999994)
                             callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
                             
-                            logger.info(f"Attempting to create call: from={settings.TWILIO_PHONE_NUMBER}, to={owner_phone}, callback={callback_url}")
+                            # Ensure Twilio phone number is in correct format (E.164)
+                            twilio_from_number = settings.TWILIO_PHONE_NUMBER.strip()
+                            if not twilio_from_number.startswith('+'):
+                                twilio_from_number = '+' + twilio_from_number.lstrip('+')
                             
+                            logger.info(f"Creating call FROM Twilio number: {twilio_from_number}, TO owner: {owner_phone}, callback: {callback_url}")
+                            
+                            # Create call - this will show the Twilio number as caller ID
+                            # The 'from_' parameter determines what number shows on the recipient's caller ID
                             call = twilio_client.calls.create(
                                 url=callback_url,  # Use URL for dynamic TwiML generation
-                                from_=settings.TWILIO_PHONE_NUMBER,
-                                to=owner_phone,
+                                from_=twilio_from_number,  # This is the number that will show as caller ID (+18076999994)
+                                to=owner_phone,  # Owner's phone number
                                 method='GET'
                             )
                             logger.info(f"Direct call initiated successfully: {call.sid}")
