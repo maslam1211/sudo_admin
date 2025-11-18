@@ -21,8 +21,9 @@ env/
 .idea/
 .vscode/
 
-# Django migrations
-*/migrations/*
+# Django migrations (ignore only cache, keep migration files)
+*/migrations/__pycache__/
+*/migrations/*.pyc
 
 # IDEs
 .vscode/
