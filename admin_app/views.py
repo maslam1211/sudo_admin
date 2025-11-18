@@ -1327,6 +1327,7 @@ def send_notification(request, qr_id):
                                 'message': 'Call initiated to the vehicle owner.'
                             })
                     
+                    
                     except TwilioRestException as e:
                         logger.error(f"Twilio Error {e.code}: {e.msg}")
                         user_message = get_twilio_error_message(e)
