@@ -206,9 +206,14 @@ EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
 BASE_DOMAIN='https://sudotag.com'
 
-TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
-TWILIO_AUTH_TOKEN = 'e089576a6945d1c1534d9b23ca8b24d7'    # Get from Twilio console
-TWILIO_PHONE_NUMBER = '+19895205533'      # Your Twilio phone number
+TWILIO_ACCOUNT_SID = 'AC839fda2710fe54d9be8894c82daceb0f'  # Get from Twilio console
+TWILIO_AUTH_TOKEN = 'ad78b803dc9ffc9886db69b5f14badd1'    # Get from Twilio console
+TWILIO_PHONE_NUMBER = '+18076999994'      # Your Twilio phone number
+
+# Optional: Support phone number for call forwarding (real person-to-person calls)
+# If set, vehicle owners will be connected directly to this number when they answer
+# Leave empty to use default call handling
+SUPPORT_PHONE_NUMBER = ''  # e.g., '+1234567890' - Set your support/help desk number here
 
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'

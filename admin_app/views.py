@@ -1222,7 +1222,8 @@ def send_notification(request, qr_id):
                     try:
                         response = messaging.send(message)
                         return JsonResponse({
-                            'status': 'success', 
+                            'status': 'success',
+                            'notification_type': 'push',
                             'message': 'We have sent your message to the vehicle owner.'
                         })
                     except Exception as e:
@@ -1291,6 +1292,7 @@ def send_notification(request, qr_id):
                             increment_daily_count(qr_id, 'sms')
                             return JsonResponse({
                                 'status': 'success',
+                                'notification_type': 'sms',
                                 'message': 'SMS sent successfully to the vehicle owner.'
                             })
                         
@@ -1306,16 +1308,23 @@ def send_notification(request, qr_id):
                                     'limit': limit,
                                 })
 
+                            # Real direct call to owner - use callback URL for proper call handling
+                            # This creates a real call (not automated TTS) that the owner can answer
+                            callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
+                            
                             call = twilio_client.calls.create(
-                                twiml=f'<Response><Say>Hello, this is an important message about your vehicle. {reason}. The person trying to reach you provided this number: {user_phone or "not provided"}. Thank you from Sudo.</Say></Response>',
+                                url=callback_url,  # Use URL for dynamic TwiML generation
                                 from_=settings.TWILIO_PHONE_NUMBER,
-                                to=owner_phone
+                                to=owner_phone,
+                                method='GET'
                             )
-                            logger.info(f"Call initiated successfully: {call.sid}")
+                            logger.info(f"Direct call initiated successfully: {call.sid}")
                             increment_daily_count(qr_id, 'call')
+                            
                             return JsonResponse({
                                 'status': 'success',
-                                'message': 'Phone call initiated successfully to the vehicle owner.'
+                                'notification_type': 'call',
+                                'message': 'Call initiated to the vehicle owner.'
                             })
                     
                     except TwilioRestException as e:
@@ -1345,11 +1354,14 @@ def send_notification(request, qr_id):
                         })
 
         # Render the initial page with vehicle data
+        owner_phone = user_data.get('contactNumber', '')
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
-                'registrationNumber': vehicle_data.get('registrationNumber', '')
-            }
+                'registrationNumber': vehicle_data.get('registrationNumber', ''),
+                'make': vehicle_data.get('make', '')
+            },
+            'owner_phone': owner_phone
         }
         
         return render(request, 'send_notification.html', context)
@@ -1357,11 +1369,58 @@ def send_notification(request, qr_id):
     except Exception as e:
         logger.error(f"General error in send_notification: {str(e)}")
         return render(request, 'error.html', {'error': str(e)})
-    
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-import json
+
+
+@csrf_exempt
+def call_handler(request):
+    """
+    Twilio callback handler for real carrier-to-carrier calls.
+    This endpoint is called by Twilio when the owner answers the phone.
+    Returns TwiML for a real call connection via carrier.
+    """
+    try:
+        reason = request.GET.get('reason', 'Vehicle issue')
+        
+        # Check if support number is configured for call forwarding
+        support_number = getattr(settings, 'SUPPORT_PHONE_NUMBER', '').strip()
+        twilio_phone = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
+        
+        logger.info(f"Call handler called - Support number: {support_number}, Twilio phone: {twilio_phone}")
+        
+        if support_number and twilio_phone:
+            # Real carrier call: Connect owner directly to support number
+            # This creates a real person-to-person call via carrier
+            twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Dial callerId="{twilio_phone}" timeout="30" record="false">
+        <Number>{support_number}</Number>
+    </Dial>
+</Response>'''
+        else:
+            # No support number configured - return simple TwiML that connects the call
+            # This is a real carrier call, but there's no one to connect to
+            # The call will connect and then hang up gracefully
+            twiml = '''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Hangup/>
+</Response>'''
+        
+        response = HttpResponse(twiml, content_type='text/xml')
+        response['Content-Type'] = 'text/xml; charset=utf-8'
+        logger.info(f"Returning TwiML: {twiml[:100]}...")
+        return response
+        
+    except Exception as e:
+        # Log the error and return safe TwiML
+        logger.error(f"Error in call_handler: {str(e)}", exc_info=True)
+        # Return minimal TwiML that won't cause errors
+        safe_twiml = '''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Hangup/>
+</Response>'''
+        response = HttpResponse(safe_twiml, content_type='text/xml')
+        response['Content-Type'] = 'text/xml; charset=utf-8'
+        return response
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Define status mapping
