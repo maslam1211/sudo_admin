@@ -226,3 +226,6 @@ CLOUDINARY_CONFIG = {
 }
 
 cloudinary.config(**CLOUDINARY_CONFIG)
+
+# Webhook secret for deletion archive (optional; set in environment for security)
+DELETION_WEBHOOK_SECRET = "QWERTY123"

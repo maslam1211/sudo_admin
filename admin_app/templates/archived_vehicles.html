@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Archived Vehicles{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Archived Vehicles</h2>
+    <div>
+      <form class="d-flex" method="get" action="">
+        <input type="text" name="q" value="{{ query }}" class="form-control me-2" placeholder="Search reg no, make, model, ids">
+        <button class="btn btn-primary me-2" type="submit"><i class="fas fa-search"></i> Search</button>
+        <a class="btn btn-success" href="{% url 'export_archived_vehicles_csv' %}{% if query %}?q={{ query }}{% endif %}">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </a>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow">
+    <div class="card-body table-responsive">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Vehicle ID</th>
+            <th>Owner ID</th>
+            <th>Registration</th>
+            <th>Make</th>
+            <th>Model</th>
+            <th>Type</th>
+            <th>QR</th>
+            <th>Archived At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in vehicles %}
+          <tr>
+            <td><code>{{ v.vehicle_id }}</code></td>
+            <td><code>{{ v.owner_id }}</code></td>
+            <td>{{ v.registration_number }}</td>
+            <td>{{ v.make }}</td>
+            <td>{{ v.model }}</td>
+            <td>{{ v.vehicle_type }}</td>
+            <td>{{ v.qr_code_id }}</td>
+            <td>{{ v.archived_at|date:"Y-m-d H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+              No archived vehicles found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if paginator.num_pages > 1 %}
+      <nav>
+        <ul class="pagination justify-content-center">
+          {% if vehicles.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ vehicles.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Previous</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ vehicles.number }} of {{ paginator.num_pages }}</span></li>
+          {% if vehicles.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ vehicles.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Next</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

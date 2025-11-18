@@ -45,4 +45,17 @@ urlpatterns = [
     path('bulk-delete-feedback/', views.bulk_delete_feedback, name='bulk_delete_feedback'), 
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
+
+    # Archive (deletion webhook + unified UI + CSV export)
+    path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
+    path('archived/data/', views.view_archived_data, name='view_archived_data'),
+    path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
+    path('archived/user/<str:user_id>/delete/', views.delete_archived_user, name='delete_archived_user'),
+    path('archived/vehicle/<str:vehicle_id>/delete/', views.delete_archived_vehicle, name='delete_archived_vehicle'),
+    path('archived/bulk-delete/', views.bulk_delete_archived, name='bulk_delete_archived'),
+    # Legacy redirects for backward compatibility
+    path('archived/users/', views.view_archived_users, name='view_archived_users'),
+    path('archived/vehicles/', views.view_archived_vehicles, name='view_archived_vehicles'),
+    path('archived/users/export/', views.export_archived_users_csv, name='export_archived_users_csv'),
+    path('archived/vehicles/export/', views.export_archived_vehicles_csv, name='export_archived_vehicles_csv'),
 ]

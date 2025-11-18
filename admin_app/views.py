@@ -1460,6 +1460,461 @@ def update_order_status(request):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+# =========================
+# Archiving (Deleted Users)
+# =========================
+from .models import ArchivedUser, ArchivedVehicle
+from django.db import transaction
+from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+import datetime as _dt
+from django.http import HttpResponse
+import csv
+
+
+def _to_datetime_or_none(value):
+    try:
+        if hasattr(value, "to_datetime"):
+            return value.to_datetime()
+        if isinstance(value, (_dt.datetime, )):
+            return value
+        if hasattr(value, "strftime"):
+            return value  # assume datetime-like
+    except Exception:
+        pass
+    return None
+
+
+def _safe_str(value, default=''):
+    """Safely convert value to string, handling None."""
+    if value is None:
+        return default
+    return str(value) if value else default
+
+
+def _serialize_firestore_data(data):
+    """
+    Convert Firestore data to JSON-serializable format.
+    Handles DatetimeWithNanoseconds and other Firestore types.
+    """
+    if data is None:
+        return None
+    
+    # Handle Firestore datetime objects
+    if hasattr(data, 'to_datetime'):
+        try:
+            dt = data.to_datetime()
+            return dt.isoformat() if dt else None
+        except:
+            return str(data)
+    
+    # Handle Python datetime objects
+    if isinstance(data, _dt.datetime):
+        return data.isoformat()
+    
+    # Handle dictionaries (recursive)
+    if isinstance(data, dict):
+        return {k: _serialize_firestore_data(v) for k, v in data.items()}
+    
+    # Handle lists (recursive)
+    if isinstance(data, list):
+        return [_serialize_firestore_data(item) for item in data]
+    
+    # Handle other types that might not be JSON serializable
+    try:
+        import json
+        json.dumps(data)  # Test if serializable
+        return data
+    except (TypeError, ValueError):
+        return str(data)  # Fallback to string representation
+
+
+@csrf_exempt
+def archive_deleted_user_webhook(request):
+    """
+    Receive a webhook when a user deletes the account from the mobile app.
+    
+    User ID can be provided in two ways:
+    1. URL parameter: ?user_id=<USER_ID> (easiest for testing)
+    2. JSON body: { "user_id": "<USER_ID>" }
+    
+    Auth: header X-Webhook-Token must equal settings.DELETION_WEBHOOK_SECRET (if set).
+    Or use query parameter: ?token=<SECRET>
+    
+    Example URLs:
+    - /admin/api/archive-deleted-user/?user_id=ABC123&token=1234567890
+    - /admin/api/archive-deleted-user/ (with JSON body and header)
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+    # Simple shared-secret validation (optional if secret is unset)
+    expected = getattr(settings, 'DELETION_WEBHOOK_SECRET', '') or ''
+    
+    # Try multiple ways to get the token (Django converts headers to HTTP_X_WEBHOOK_TOKEN)
+    provided = (
+        request.headers.get('X-Webhook-Token') or 
+        request.headers.get('x-webhook-token') or
+        request.META.get('HTTP_X_WEBHOOK_TOKEN') or
+        request.GET.get('token') or 
+        ''
+    )
+    
+    if expected:
+        if not provided:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Unauthorized: Missing X-Webhook-Token header or token parameter'
+            }, status=401)
+        if provided != expected:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Unauthorized: Invalid token'
+            }, status=401)
+
+    # Get user_id from URL parameter (for easy testing) or JSON body
+    user_id = request.GET.get('user_id') or request.GET.get('uid') or request.GET.get('userId')
+    
+    # If not in URL, try JSON body
+    if not user_id:
+        try:
+            data = json.loads(request.body or '{}')
+            user_id = data.get('user_id') or data.get('uid') or data.get('userId')
+        except json.JSONDecodeError:
+            # If JSON is invalid but we have URL param, that's okay
+            pass
+    
+    if not user_id:
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Missing user_id. Provide it as URL parameter (?user_id=...) or in JSON body.'
+        }, status=400)
+
+    try:
+        # Fetch user and vehicles from Firestore
+        user_doc = db.collection('users').document(user_id).get()
+        user_dict = user_doc.to_dict() if user_doc.exists else {}
+
+        vehicles_stream = db.collection('vehicles').where('ownerId', '==', user_id).stream()
+        vehicles = []
+        for vdoc in vehicles_stream:
+            v = vdoc.to_dict() or {}
+            v['_doc_id'] = vdoc.id
+            vehicles.append(v)
+
+        # Archive into SQLite
+        with transaction.atomic():
+            # Always archive user (even if user_dict is empty, we still want to record the deletion)
+            user_dict = user_dict or {}  # Ensure it's never None
+            serialized_user = _serialize_firestore_data(user_dict)
+            
+            ArchivedUser.objects.update_or_create(
+                user_id=user_id,
+                defaults={
+                    'email': _safe_str(user_dict.get('emailAddress'), ''),
+                    'full_name': _safe_str(user_dict.get('fullName'), ''),
+                    'phone': _safe_str(user_dict.get('contactNumber'), ''),
+                    'original_created_at': _to_datetime_or_none(user_dict.get('createdAt')),
+                    'raw': serialized_user or {},
+                }
+            )
+
+            saved_vehicle_count = 0
+            for v in vehicles:
+                # Serialize Firestore data to JSON-serializable format
+                serialized_vehicle = _serialize_firestore_data(v)
+                
+                # Get vehicle_id safely
+                vehicle_id = _safe_str(v.get('_doc_id') or v.get('vehicleId'), '')
+                if not vehicle_id:
+                    vehicle_id = f"unknown_{saved_vehicle_count}"  # Fallback ID
+                
+                ArchivedVehicle.objects.update_or_create(
+                    vehicle_id=vehicle_id,
+                    defaults={
+                        'owner_id': user_id,
+                        'registration_number': _safe_str(v.get('registrationNumber'), ''),
+                        'make': _safe_str(v.get('make'), ''),
+                        'model': _safe_str(v.get('model'), ''),
+                        'vehicle_type': _safe_str(v.get('vehicleType'), ''),
+                        'owner_contact': _safe_str(v.get('ownerContact'), ''),
+                        'qr_code_id': _safe_str(v.get('qrCodeId') or v.get('qrId'), ''),
+                        'original_created_at': _to_datetime_or_none(v.get('createdAt')),
+                        'raw': serialized_vehicle or {},
+                    }
+                )
+                saved_vehicle_count += 1
+
+        return JsonResponse({
+            'status': 'success',
+            'archived_user': True,  # Always true since we always archive
+            'archived_vehicle_count': saved_vehicle_count,
+        })
+
+    except Exception as e:
+        logger.error(f"Archive webhook error: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+def _paginate_queryset(request, qs, per_page=20):
+    paginator = Paginator(qs, per_page)
+    page = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+    return page_obj, paginator
+
+
+def view_archived_data(request):
+    """
+    Unified view showing archived users with their vehicles together.
+    Each user row shows their details, and below it lists all their vehicles.
+    """
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+
+    q = request.GET.get('q', '').strip()
+    users = ArchivedUser.objects.all().order_by('-archived_at')
+    
+    if q:
+        users = users.filter(
+            Q(user_id__icontains=q) |
+            Q(full_name__icontains=q) |
+            Q(email__icontains=q) |
+            Q(phone__icontains=q)
+        )
+    
+    # For each user, fetch their vehicles
+    user_data = []
+    for user in users:
+        vehicles = ArchivedVehicle.objects.filter(owner_id=user.user_id).order_by('-archived_at')
+        user_data.append({
+            'user': user,
+            'vehicles': list(vehicles),
+            'vehicle_count': vehicles.count(),
+        })
+    
+    # Pagination for list (not queryset)
+    paginator = Paginator(user_data, per_page=10)
+    page = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+    
+    return render(request, 'archived_data.html', {
+        'user_data': page_obj,
+        'paginator': paginator,
+        'query': q,
+        'total_users': ArchivedUser.objects.count(),
+        'total_vehicles': ArchivedVehicle.objects.count(),
+    })
+
+
+def export_archived_data_csv(request):
+    """
+    Export all archived users and their vehicles in a single CSV file.
+    Each row represents a user-vehicle combination (one row per vehicle per user).
+    """
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    q = request.GET.get('q', '').strip()
+    users = ArchivedUser.objects.all().order_by('-archived_at')
+    
+    if q:
+        users = users.filter(
+            Q(user_id__icontains=q) |
+            Q(full_name__icontains=q) |
+            Q(email__icontains=q) |
+            Q(phone__icontains=q)
+        )
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="archived_users_and_vehicles.csv"'
+    writer = csv.writer(response)
+    
+    # Header row with both user and vehicle columns
+    writer.writerow([
+        'User ID', 'User Full Name', 'User Email', 'User Phone', 'User Created At', 'User Archived At',
+        'Vehicle ID', 'Vehicle Registration', 'Vehicle Make', 'Vehicle Model', 'Vehicle Type',
+        'Owner Contact', 'QR Code ID', 'Vehicle Created At', 'Vehicle Archived At'
+    ])
+    
+    # Write data: one row per vehicle (if user has no vehicles, write one row with user data only)
+    for user in users:
+        vehicles = ArchivedVehicle.objects.filter(owner_id=user.user_id).order_by('-archived_at')
+        
+        if vehicles.exists():
+            # User has vehicles: write one row per vehicle
+            for vehicle in vehicles:
+                writer.writerow([
+                    user.user_id,
+                    user.full_name,
+                    user.email,
+                    user.phone,
+                    user.original_created_at.isoformat() if user.original_created_at else '',
+                    user.archived_at.isoformat() if user.archived_at else '',
+                    vehicle.vehicle_id,
+                    vehicle.registration_number,
+                    vehicle.make,
+                    vehicle.model,
+                    vehicle.vehicle_type,
+                    vehicle.owner_contact,
+                    vehicle.qr_code_id,
+                    vehicle.original_created_at.isoformat() if vehicle.original_created_at else '',
+                    vehicle.archived_at.isoformat() if vehicle.archived_at else '',
+                ])
+        else:
+            # User has no vehicles: write one row with user data only
+            writer.writerow([
+                user.user_id,
+                user.full_name,
+                user.email,
+                user.phone,
+                user.original_created_at.isoformat() if user.original_created_at else '',
+                user.archived_at.isoformat() if user.archived_at else '',
+                '',  # Vehicle ID
+                '',  # Registration
+                '',  # Make
+                '',  # Model
+                '',  # Type
+                '',  # Owner Contact
+                '',  # QR Code ID
+                '',  # Vehicle Created At
+                '',  # Vehicle Archived At
+            ])
+    
+    return response
+
+
+@csrf_exempt
+def delete_archived_user(request, user_id):
+    """Delete an archived user and all their vehicles"""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+    
+    try:
+        user = ArchivedUser.objects.get(user_id=user_id)
+        user_name = user.full_name or user.email or user_id
+        
+        # Delete all vehicles associated with this user
+        vehicle_count = ArchivedVehicle.objects.filter(owner_id=user_id).delete()[0]
+        
+        # Delete the user
+        user.delete()
+        
+        messages.success(request, f'Successfully deleted archived user "{user_name}" and {vehicle_count} vehicle(s).')
+        return JsonResponse({
+            'success': True,
+            'message': f'Deleted user and {vehicle_count} vehicle(s)'
+        })
+    except ArchivedUser.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error deleting archived user: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def delete_archived_vehicle(request, vehicle_id):
+    """Delete an individual archived vehicle"""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+    
+    try:
+        vehicle = ArchivedVehicle.objects.get(vehicle_id=vehicle_id)
+        reg_number = vehicle.registration_number or vehicle_id
+        vehicle.delete()
+        
+        messages.success(request, f'Successfully deleted archived vehicle "{reg_number}".')
+        return JsonResponse({
+            'success': True,
+            'message': 'Vehicle deleted successfully'
+        })
+    except ArchivedVehicle.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Vehicle not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error deleting archived vehicle: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def bulk_delete_archived(request):
+    """Bulk delete archived users and/or vehicles"""
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+    
+    try:
+        data = json.loads(request.body or '{}')
+        user_ids = data.get('user_ids', [])
+        vehicle_ids = data.get('vehicle_ids', [])
+        
+        deleted_users = 0
+        deleted_vehicles = 0
+        
+        # Delete users (and their vehicles)
+        if user_ids:
+            for user_id in user_ids:
+                try:
+                    user = ArchivedUser.objects.get(user_id=user_id)
+                    # Delete associated vehicles
+                    ArchivedVehicle.objects.filter(owner_id=user_id).delete()
+                    user.delete()
+                    deleted_users += 1
+                except ArchivedUser.DoesNotExist:
+                    continue
+        
+        # Delete individual vehicles
+        if vehicle_ids:
+            deleted_vehicles = ArchivedVehicle.objects.filter(vehicle_id__in=vehicle_ids).delete()[0]
+        
+        message = f'Successfully deleted {deleted_users} user(s) and {deleted_vehicles} vehicle(s).'
+        messages.success(request, message)
+        
+        return JsonResponse({
+            'success': True,
+            'deleted_users': deleted_users,
+            'deleted_vehicles': deleted_vehicles,
+            'message': message
+        })
+    except Exception as e:
+        logger.error(f"Error in bulk delete: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Keep old views for backward compatibility (redirect to unified view)
+def view_archived_users(request):
+    return redirect('view_archived_data')
+
+def view_archived_vehicles(request):
+    return redirect('view_archived_data')
+
+def export_archived_users_csv(request):
+    return redirect('export_archived_data_csv')
+
+def export_archived_vehicles_csv(request):
+    return redirect('export_archived_data_csv')
 def external_user_registration(request):
     if request.method == 'POST':
         # Get form data
