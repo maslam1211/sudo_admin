@@ -1333,37 +1333,55 @@ def send_notification(request, qr_id):
 
                             # Real direct call to owner - use callback URL for proper call handling
                             # This creates a real call (not automated TTS) that the owner can answer
-                            # IMPORTANT: Call will come FROM the Twilio number (+18076999994)
-                            # The caller's original number will NOT be exposed - only Twilio number shows
+                            # CRITICAL: Call will come FROM the Twilio number ONLY - caller's number is HIDDEN
                             callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
                             
-                            # Ensure Twilio phone number is in correct format (E.164)
-                            # This is the ONLY number that will show as caller ID - original caller number is hidden
-                            twilio_from_number = settings.TWILIO_PHONE_NUMBER.strip()
-                            if not twilio_from_number.startswith('+'):
-                                twilio_from_number = '+' + twilio_from_number.lstrip('+')
+                            # Get Twilio phone number from settings - this is the ONLY number that will show
+                            # The caller's personal number is NEVER used or exposed
+                            twilio_from_number = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
                             
-                            # Validate Twilio number is set
-                            if not twilio_from_number or twilio_from_number == '+':
-                                logger.error("TWILIO_PHONE_NUMBER is not properly configured")
+                            # Validate and format Twilio number (must be E.164 format: +18076999994)
+                            if not twilio_from_number:
+                                logger.error("TWILIO_PHONE_NUMBER is not set in settings")
                                 return JsonResponse({
                                     'status': 'error',
                                     'message': 'Call service is not properly configured. Please contact administrator.'
                                 })
                             
-                            logger.info(f"Creating call FROM Twilio number (caller ID): {twilio_from_number}, TO owner: {owner_phone}")
-                            logger.info(f"Original caller's number is HIDDEN - only Twilio number will show")
+                            # Ensure number starts with + (E.164 format)
+                            if not twilio_from_number.startswith('+'):
+                                twilio_from_number = '+' + twilio_from_number.lstrip('+')
                             
-                            # Create call - this will show ONLY the Twilio number as caller ID
-                            # The 'from_' parameter is CRITICAL - it sets what number shows on recipient's phone
-                            # Original caller's number is completely hidden and not exposed
+                            # Final validation - ensure it's a valid format
+                            if len(twilio_from_number) < 10 or not twilio_from_number[1:].isdigit():
+                                logger.error(f"Invalid TWILIO_PHONE_NUMBER format: {twilio_from_number}")
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': 'Call service configuration error. Please contact administrator.'
+                                })
+                            
+                            # IMPORTANT: Do NOT use user_phone or any caller's number
+                            # ONLY use the Twilio number from settings
+                            # The caller's number is completely hidden and never exposed
+                            logger.info(f"=== CALL CREATION ===")
+                            logger.info(f"FROM (Caller ID - Twilio Number): {twilio_from_number}")
+                            logger.info(f"TO (Owner): {owner_phone}")
+                            logger.info(f"Caller's original number: HIDDEN (not used)")
+                            logger.info(f"Callback URL: {callback_url}")
+                            
+                            # Create call using ONLY Twilio number as caller ID
+                            # The 'from_' parameter is what shows on the recipient's phone
+                            # This completely hides the original caller's number
                             call = twilio_client.calls.create(
-                                url=callback_url,  # Use URL for dynamic TwiML generation
-                                from_=twilio_from_number,  # CRITICAL: This is the ONLY number that shows as caller ID
-                                to=owner_phone,  # Owner's phone number
+                                url=callback_url,
+                                from_=twilio_from_number,  # ONLY Twilio number shows - caller's number is hidden
+                                to=owner_phone,
                                 method='GET'
                             )
-                            logger.info(f"Direct call initiated successfully: {call.sid}")
+                            
+                            logger.info(f"Call created successfully - SID: {call.sid}")
+                            logger.info(f"Caller ID shown to recipient: {twilio_from_number} (Twilio number)")
+                            logger.info(f"Original caller number: HIDDEN")
                             increment_daily_count(qr_id, 'call')
                             
                             return JsonResponse({
