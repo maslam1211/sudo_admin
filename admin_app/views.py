@@ -1340,9 +1340,17 @@ def send_notification(request, qr_id):
                             # The caller's personal number is NEVER used or exposed
                             twilio_from_number = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
                             
+                            # Print to console for immediate visibility
+                            print("\n" + "="*60)
+                            print("CALL CREATION - VERIFYING TWILIO NUMBER")
+                            print("="*60)
+                            print(f"Twilio number from settings: {twilio_from_number}")
+                            
                             # Validate and format Twilio number (must be E.164 format: +18076999994)
                             if not twilio_from_number:
-                                logger.error("TWILIO_PHONE_NUMBER is not set in settings")
+                                error_msg = "TWILIO_PHONE_NUMBER is not set in settings"
+                                print(f"ERROR: {error_msg}")
+                                logger.error(error_msg)
                                 return JsonResponse({
                                     'status': 'error',
                                     'message': 'Call service is not properly configured. Please contact administrator.'
@@ -1351,10 +1359,13 @@ def send_notification(request, qr_id):
                             # Ensure number starts with + (E.164 format)
                             if not twilio_from_number.startswith('+'):
                                 twilio_from_number = '+' + twilio_from_number.lstrip('+')
+                                print(f"Formatted Twilio number: {twilio_from_number}")
                             
                             # Final validation - ensure it's a valid format
                             if len(twilio_from_number) < 10 or not twilio_from_number[1:].isdigit():
-                                logger.error(f"Invalid TWILIO_PHONE_NUMBER format: {twilio_from_number}")
+                                error_msg = f"Invalid TWILIO_PHONE_NUMBER format: {twilio_from_number}"
+                                print(f"ERROR: {error_msg}")
+                                logger.error(error_msg)
                                 return JsonResponse({
                                     'status': 'error',
                                     'message': 'Call service configuration error. Please contact administrator.'
@@ -1363,6 +1374,15 @@ def send_notification(request, qr_id):
                             # IMPORTANT: Do NOT use user_phone or any caller's number
                             # ONLY use the Twilio number from settings
                             # The caller's number is completely hidden and never exposed
+                            print(f"\n=== CALL CREATION DETAILS ===")
+                            print(f"FROM (Caller ID - Twilio Number): {twilio_from_number}")
+                            print(f"TO (Owner): {owner_phone}")
+                            print(f"Caller's original number: HIDDEN (not used)")
+                            print(f"Callback URL: {callback_url}")
+                            # Note: user_phone is from the request but is NOT used for caller ID
+                            # Only Twilio number is used
+                            print("="*60 + "\n")
+                            
                             logger.info(f"=== CALL CREATION ===")
                             logger.info(f"FROM (Caller ID - Twilio Number): {twilio_from_number}")
                             logger.info(f"TO (Owner): {owner_phone}")
@@ -1372,6 +1392,7 @@ def send_notification(request, qr_id):
                             # Create call using ONLY Twilio number as caller ID
                             # The 'from_' parameter is what shows on the recipient's phone
                             # This completely hides the original caller's number
+                            print(f"Creating Twilio call with from_={twilio_from_number}, to={owner_phone}")
                             call = twilio_client.calls.create(
                                 url=callback_url,
                                 from_=twilio_from_number,  # ONLY Twilio number shows - caller's number is hidden
@@ -1379,7 +1400,24 @@ def send_notification(request, qr_id):
                                 method='GET'
                             )
                             
+                            print(f"\n✓ Call created successfully!")
+                            print(f"  Call SID: {call.sid}")
+                            print(f"  Call From (what recipient sees): {call.from_}")
+                            print(f"  Call To: {call.to}")
+                            print(f"  Call Status: {call.status}")
+                            print(f"  Expected Caller ID: {twilio_from_number}")
+                            
+                            # Verify the call is using the correct number
+                            if call.from_ != twilio_from_number:
+                                print(f"\n⚠ WARNING: Call 'from_' ({call.from_}) does not match Twilio number ({twilio_from_number})!")
+                                logger.warning(f"Call 'from_' ({call.from_}) does not match Twilio number ({twilio_from_number})")
+                            else:
+                                print(f"  ✓ Verified: Call is using Twilio number as caller ID")
+                            
+                            print(f"  Original caller number: HIDDEN\n")
+                            
                             logger.info(f"Call created successfully - SID: {call.sid}")
+                            logger.info(f"Call from_: {call.from_}, to: {call.to}, status: {call.status}")
                             logger.info(f"Caller ID shown to recipient: {twilio_from_number} (Twilio number)")
                             logger.info(f"Original caller number: HIDDEN")
                             increment_daily_count(qr_id, 'call')
