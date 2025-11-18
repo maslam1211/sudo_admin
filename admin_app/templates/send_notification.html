@@ -874,7 +874,7 @@
     <div class="reasons-list">
       <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on.')">
         <i class="bi bi-lightbulb-fill" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">The lights of this car is on.</span>
+        <span class="reason-text">The ligaahts of this car is on.</span>
       </div>
       
       <div class="reason-item" onclick="selectReason(this, 'The car is in no parking.')">
@@ -1476,8 +1476,8 @@
           break;
         case 'call':
           iconClass = 'call';
-          title = '📞 Call Initiated with Privacy Protection!';
-          if (!messageText) messageText = 'Calling vehicle owner with number masking. Both numbers are protected for privacy (like NGF132/Sampark).';
+          title = '📞 Call Initiated!';
+          if (!messageText) messageText = 'Calling vehicle owner from Twilio number. Your personal number is hidden.';
           break;
         default:
           iconClass = 'push';

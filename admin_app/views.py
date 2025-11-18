@@ -1032,10 +1032,7 @@ from firebase_admin import firestore, messaging
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
 import logging
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -1335,105 +1332,94 @@ def send_notification(request, qr_id):
                                 })
 
                             # NUMBER MASKING SYSTEM (Like NGF132/Sampark)
-                            # Protects privacy: Receiver sees masked number, not real numbers
-                            # Both caller's and receiver's real numbers are hidden
-            
-                            # Get masked number from pool (what receiver will see)
-                            masked_numbers = getattr(settings, 'MASKED_NUMBERS_POOL', [])
-                            if not masked_numbers:
-                                # Fallback to single Twilio number
-                                masked_numbers = [getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()]
+                            # Uses Twilio number as masked number - owner sees Twilio number, not caller's number
+                            # This protects caller's privacy - their real number is never exposed
                             
-                            if not masked_numbers or not masked_numbers[0]:
-                                error_msg = "MASKED_NUMBERS_POOL or TWILIO_PHONE_NUMBER is not configured"
+                            print("\n" + "="*60)
+                            print("NUMBER MASKING CALL - Like NGF132/Sampark")
+                            print("="*60)
+                            print(f"Caller's real number: HIDDEN (masked)")
+                            print(f"Owner's real number: {owner_phone}")
+                            print(f"Owner will see: TWILIO MASKED NUMBER (not caller's number)")
+                            print("="*60 + "\n")
+                            
+                            # Get Twilio phone number - this acts as the masked number
+                            # Owner will see this number, not the caller's personal number
+                            twilio_masked_number = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
+                            
+                            # Validate Twilio number
+                            if not twilio_masked_number:
+                                error_msg = "TWILIO_PHONE_NUMBER is not set in settings"
+                                print(f"ERROR: {error_msg}")
                                 logger.error(error_msg)
                                 return JsonResponse({
                                     'status': 'error',
                                     'message': 'Call service is not properly configured. Please contact administrator.'
                                 })
                             
-                            # Select a masked number (round-robin or random)
-                            import random
-                            masked_number = random.choice(masked_numbers).strip()
-                            if not masked_number.startswith('+'):
-                                masked_number = '+' + masked_number.lstrip('+')
+                            # Ensure number starts with + (E.164 format)
+                            if not twilio_masked_number.startswith('+'):
+                                twilio_masked_number = '+' + twilio_masked_number.lstrip('+')
                             
-                            # Create unique session ID for this call
-                            session_id = f"mask-{uuid.uuid4().hex[:12]}"
+                            # Final validation
+                            if len(twilio_masked_number) < 10 or not twilio_masked_number[1:].isdigit():
+                                error_msg = f"Invalid TWILIO_PHONE_NUMBER format: {twilio_masked_number}"
+                                print(f"ERROR: {error_msg}")
+                                logger.error(error_msg)
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': 'Call service configuration error. Please contact administrator.'
+                                })
                             
-                            # Calculate expiry time
-                            expiry_hours = getattr(settings, 'MASKED_CALL_SESSION_EXPIRY_HOURS', 24)
-                            expires_at = timezone.now() + timedelta(hours=expiry_hours)
+                            # IMPORTANT: Caller's personal number is NEVER used
+                            # Only Twilio number is used as caller ID
+                            # This masks the caller's real number - owner sees Twilio number only
+                            logger.info(f"=== NUMBER MASKING CALL ===")
+                            logger.info(f"FROM (Masked Number - Twilio): {twilio_masked_number}")
+                            logger.info(f"TO (Owner): {owner_phone}")
+                            logger.info(f"Caller's real number: HIDDEN (masked)")
+                            logger.info(f"Owner sees: {twilio_masked_number} (masked number, not caller's number)")
                             
-                            # Create masked call session to track this call
-                            masked_session = MaskedCallSession.objects.create(
-                                session_id=session_id,
-                                masked_number=masked_number,  # What receiver sees
-                                caller_real_number=user_phone if user_phone else '',  # Hidden from receiver
-                                receiver_real_number=owner_phone,  # Hidden from caller
-                                qr_id=qr_id,
-                                reason=reason,
-                                status='initiated',
-                                expires_at=expires_at
-                            )
+                            # Create call with Twilio number as masked caller ID
+                            # This is exactly like NGF132/Sampark - owner sees masked number
+                            callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
                             
-                            # Create callback URL with session ID
-                            callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?session_id={session_id}&reason={reason.replace(' ', '%20')}"
+                            print(f"Creating masked call:")
+                            print(f"  From (masked): {twilio_masked_number}")
+                            print(f"  To: {owner_phone}")
+                            print(f"  Caller's real number: HIDDEN")
                             
-                            # Print to console for visibility
-                            print("\n" + "="*60)
-                            print("NUMBER MASKING SYSTEM - PRIVACY PROTECTED CALL")
-                            print("="*60)
-                            print(f"Session ID: {session_id}")
-                            print(f"Masked Number (what receiver sees): {masked_number}")
-                            print(f"Receiver Real Number: {owner_phone} (HIDDEN from caller)")
-                            print(f"Caller Real Number: {user_phone if user_phone else 'Not provided'} (HIDDEN from receiver)")
-                            print(f"Privacy: Both numbers are protected")
-                            print("="*60 + "\n")
-                            
-                            logger.info(f"=== MASKED CALL CREATION ===")
-                            logger.info(f"Session ID: {session_id}")
-                            logger.info(f"Masked Number (receiver sees): {masked_number}")
-                            logger.info(f"Receiver Real Number: {owner_phone} (HIDDEN)")
-                            logger.info(f"Caller Real Number: {user_phone if user_phone else 'N/A'} (HIDDEN)")
-                            logger.info(f"Callback URL: {callback_url}")
-                            
-                            # Create call using MASKED number as caller ID
-                            # Receiver will see the masked number, not the caller's real number
-                            print(f"Creating masked call: from_={masked_number} (masked), to={owner_phone}")
                             call = twilio_client.calls.create(
                                 url=callback_url,
-                                from_=masked_number,  # Masked number - what receiver sees
+                                from_=twilio_masked_number,  # Masked number - owner sees this, not caller's number
                                 to=owner_phone,
                                 method='GET'
                             )
                             
-                            # Update session with call SID
-                            masked_session.call_sid = call.sid
-                            masked_session.save()
-                            
-                            print(f"\n✓ Masked call created successfully!")
-                            print(f"  Session ID: {session_id}")
+                            print(f"\n✓ Masked Call Created Successfully!")
                             print(f"  Call SID: {call.sid}")
-                            print(f"  Masked Number (receiver sees): {call.from_}")
-                            print(f"  Receiver Real Number: {call.to} (HIDDEN)")
-                            print(f"  Call Status: {call.status}")
-                            print(f"  ✓ Privacy Protected: Both numbers are masked")
+                            print(f"  Owner sees: {call.from_} (masked Twilio number)")
+                            print(f"  Caller's real number: HIDDEN ✓")
+                            print(f"  Number masking: ACTIVE (like NGF132/Sampark)")
+                            
+                            # Verify masking is working
+                            if call.from_ == twilio_masked_number:
+                                print(f"  ✓ Verified: Number masking is active")
+                                print(f"  ✓ Owner will see masked number, not caller's number")
+                            else:
+                                print(f"  ⚠ Warning: Call from_ ({call.from_}) differs from expected ({twilio_masked_number})")
+                            
                             print(f"\n")
                             
-                            logger.info(f"Masked call created - Session: {session_id}, SID: {call.sid}")
-                            logger.info(f"Receiver sees: {masked_number} (masked number)")
-                            logger.info(f"Caller's real number: HIDDEN")
-                            logger.info(f"Receiver's real number: HIDDEN")
-                            
+                            logger.info(f"Masked call created - SID: {call.sid}")
+                            logger.info(f"Call from_: {call.from_} (masked), to: {call.to}")
+                            logger.info(f"Number masking: ACTIVE - Caller's number is HIDDEN")
                             increment_daily_count(qr_id, 'call')
                             
                             return JsonResponse({
                                 'status': 'success',
                                 'notification_type': 'call',
-                                'message': 'Calling vehicle owner with privacy protection (number masking)...',
-                                'session_id': session_id,
-                                'masked_number': masked_number
+                                'message': 'Calling vehicle owner with number masking (like NGF132/Sampark)...'
                             })
                     
                     
@@ -1490,61 +1476,47 @@ def send_notification(request, qr_id):
 @csrf_exempt
 def call_handler(request):
     """
-    Twilio callback handler for masked calls (Number Masking System).
+    Twilio callback handler for real carrier-to-carrier calls.
     This endpoint is called by Twilio when the owner answers the phone.
-    Returns TwiML for a real call connection with privacy protection.
+    Returns TwiML for a real call connection via carrier.
     """
     try:
-        session_id = request.GET.get('session_id', '')
         reason = request.GET.get('reason', 'Vehicle issue')
-        
-        # Look up masked call session
-        masked_session = None
-        if session_id:
-            try:
-                masked_session = MaskedCallSession.objects.get(session_id=session_id)
-                # Update session status
-                masked_session.status = 'connected'
-                masked_session.save()
-                
-                logger.info(f"Masked call handler - Session: {session_id}, Masked: {masked_session.masked_number}")
-                logger.info(f"Receiver real number: {masked_session.receiver_real_number} (HIDDEN)")
-                logger.info(f"Caller real number: {masked_session.caller_real_number} (HIDDEN)")
-            except MaskedCallSession.DoesNotExist:
-                logger.warning(f"Masked session not found: {session_id}")
         
         # Check if support number is configured for call forwarding
         support_number = getattr(settings, 'SUPPORT_PHONE_NUMBER', '').strip()
-        masked_number = masked_session.masked_number if masked_session else getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
+        twilio_phone = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
         
-        if support_number and masked_number:
-            # Connect owner to support number (real person-to-person call)
-            # Caller ID shows masked number, not real numbers
+        logger.info(f"Call handler called - Support number: {support_number}, Twilio phone: {twilio_phone}")
+        
+        if support_number and twilio_phone:
+            # Real carrier call: Connect owner directly to support number
+            # This creates a real person-to-person call via carrier
             twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Dial callerId="{masked_number}" timeout="30" record="false">
+    <Dial callerId="{twilio_phone}" timeout="30" record="false">
         <Number>{support_number}</Number>
     </Dial>
 </Response>'''
-            logger.info(f"Connecting to support number: {support_number} (masked caller ID: {masked_number})")
         else:
-            # Keep call open for real conversation
-            # Owner receives call from masked number, can speak directly
-            # Privacy: Both real numbers remain hidden
+            # Real carrier call without support number
+            # Keep the call open for real conversation - owner can speak directly
+            # This is a real carrier-to-carrier call from Twilio number
+            # Use simple, valid TwiML that keeps the call connected (10 minutes)
             twiml = '''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Pause length="600"/>
 </Response>'''
-            logger.info(f"Keeping call open (masked number: {masked_number})")
         
         response = HttpResponse(twiml, content_type='text/xml; charset=utf-8')
-        logger.info(f"Returning TwiML for masked call (session: {session_id})")
+        logger.info(f"Returning TwiML: {twiml[:200]}...")
         return response
         
     except Exception as e:
         # Log the error and return safe TwiML
-        logger.error(f"Error in masked call_handler: {str(e)}", exc_info=True)
+        logger.error(f"Error in call_handler: {str(e)}", exc_info=True)
         # Return minimal, valid TwiML that won't cause errors
+        # Simple pause to keep call open
         safe_twiml = '''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Pause length="600"/>
@@ -1653,7 +1625,7 @@ def update_order_status(request):
 # =========================
 # Archiving (Deleted Users)
 # =========================
-from .models import ArchivedUser, ArchivedVehicle, MaskedCallSession
+from .models import ArchivedUser, ArchivedVehicle
 from django.db import transaction
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
