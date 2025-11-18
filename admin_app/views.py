@@ -1254,8 +1254,31 @@ def send_notification(request, qr_id):
                                 'message': 'SMS/Call service is not configured. Please try push notification instead.'
                             })
 
+                        # Validate Twilio credentials
+                        if not hasattr(settings, 'TWILIO_ACCOUNT_SID') or not settings.TWILIO_ACCOUNT_SID:
+                            logger.error("TWILIO_ACCOUNT_SID not configured")
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+                        
+                        if not hasattr(settings, 'TWILIO_AUTH_TOKEN') or not settings.TWILIO_AUTH_TOKEN:
+                            logger.error("TWILIO_AUTH_TOKEN not configured")
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+                        
                         # Initialize Twilio client
-                        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                        try:
+                            twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                        except Exception as e:
+                            logger.error(f"Failed to initialize Twilio client: {str(e)}")
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is temporarily unavailable. Please try push notification instead.'
+                            })
+                        
                         owner_phone = user_data.get('contactNumber', '')
                         
                         if not owner_phone:
@@ -1312,6 +1335,8 @@ def send_notification(request, qr_id):
                             # This creates a real call (not automated TTS) that the owner can answer
                             callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
                             
+                            logger.info(f"Attempting to create call: from={settings.TWILIO_PHONE_NUMBER}, to={owner_phone}, callback={callback_url}")
+                            
                             call = twilio_client.calls.create(
                                 url=callback_url,  # Use URL for dynamic TwiML generation
                                 from_=settings.TWILIO_PHONE_NUMBER,
@@ -1324,34 +1349,40 @@ def send_notification(request, qr_id):
                             return JsonResponse({
                                 'status': 'success',
                                 'notification_type': 'call',
-                                'message': 'Call initiated to the vehicle owner.'
+                                'message': 'Calling vehicle owner...'
                             })
                     
                     
                     except TwilioRestException as e:
-                        logger.error(f"Twilio Error {e.code}: {e.msg}")
+                        logger.error(f"Twilio Error {e.code}: {e.msg} | Full error: {str(e)}", exc_info=True)
                         user_message = get_twilio_error_message(e)
                         
                         # Special handling for common errors
                         if e.code == 20003:
-                            user_message = "SMS/Call service is temporarily unavailable. Please try push notification instead."
+                            user_message = "SMS/Call service authentication failed. Please check Twilio credentials."
                         elif e.code == 21211:
                             user_message = "Invalid phone number format. The owner's phone number needs to include country code."
                         elif e.code in [21408, 21610]:
                             user_message = "SMS/Call feature is not available for this number. Please try push notification."
                         elif e.code == 30007:
                             user_message = "Unable to deliver message to the owner's phone number. It may be inactive or blocked."
+                        elif e.code == 21614:
+                            user_message = "Invalid callback URL. Please check server configuration."
                         
                         return JsonResponse({
                             'status': 'error',
+                            'error_type': 'twilio_error',
+                            'error_code': e.code,
                             'message': user_message
                         })
                         
                     except Exception as e:
-                        logger.error(f"Unexpected Twilio error: {str(e)}")
+                        logger.error(f"Unexpected error in send_notification: {str(e)}", exc_info=True)
+                        error_type = type(e).__name__
                         return JsonResponse({
                             'status': 'error',
-                            'message': f'Failed to send {notification_method}. Please try again or use push notification.'
+                            'error_type': 'unexpected_error',
+                            'message': f'Failed to send {notification_method}. Error: {error_type}. Please try again or use push notification.'
                         })
 
         # Render the initial page with vehicle data
@@ -1398,29 +1429,29 @@ def call_handler(request):
     </Dial>
 </Response>'''
         else:
-            # No support number configured - return simple TwiML that connects the call
-            # This is a real carrier call, but there's no one to connect to
-            # The call will connect and then hang up gracefully
+            # Real carrier call without support number
+            # Keep the call open for real conversation - owner can speak directly
+            # This is a real carrier-to-carrier call from Twilio number
+            # Use simple, valid TwiML that keeps the call connected (10 minutes)
             twiml = '''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Hangup/>
+    <Pause length="600"/>
 </Response>'''
         
-        response = HttpResponse(twiml, content_type='text/xml')
-        response['Content-Type'] = 'text/xml; charset=utf-8'
-        logger.info(f"Returning TwiML: {twiml[:100]}...")
+        response = HttpResponse(twiml, content_type='text/xml; charset=utf-8')
+        logger.info(f"Returning TwiML: {twiml[:200]}...")
         return response
         
     except Exception as e:
         # Log the error and return safe TwiML
         logger.error(f"Error in call_handler: {str(e)}", exc_info=True)
-        # Return minimal TwiML that won't cause errors
+        # Return minimal, valid TwiML that won't cause errors
+        # Simple pause to keep call open
         safe_twiml = '''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Hangup/>
+    <Pause length="600"/>
 </Response>'''
-        response = HttpResponse(safe_twiml, content_type='text/xml')
-        response['Content-Type'] = 'text/xml; charset=utf-8'
+        response = HttpResponse(safe_twiml, content_type='text/xml; charset=utf-8')
         return response
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
