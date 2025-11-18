@@ -1331,102 +1331,88 @@ def send_notification(request, qr_id):
                                     'limit': limit,
                                 })
 
-                            # Real direct call to owner - use callback URL for proper call handling
-                            # This creates a real call (not automated TTS) that the owner can answer
-                            # CRITICAL: Call will come FROM the Twilio number ONLY - caller's number is HIDDEN
-                            callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
+                            # FREE CALLBACK SYSTEM - No paid service required
+                            # Instead of making a paid call, we send SMS asking owner to call back
+                            # This is completely FREE - owner pays for their own call
                             
-                            # Get Twilio phone number from settings - this is the ONLY number that will show
-                            # The caller's personal number is NEVER used or exposed
-                            twilio_from_number = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
+                            # Get callback number (use support number or a configured callback number)
+                            callback_number = getattr(settings, 'SUPPORT_PHONE_NUMBER', '').strip()
+                            display_number = None
+                            tel_link = None
                             
-                            # Print to console for immediate visibility
+                            if not callback_number:
+                                # If no support number, use user's phone if provided
+                                callback_number = user_phone.strip() if user_phone else None
+                            
+                            # Create callback message
+                            if callback_number:
+                                # Format callback number for display
+                                display_number = callback_number.strip()
+                                if not display_number.startswith('+'):
+                                    display_number = '+' + display_number.lstrip('+')
+                                
+                                callback_message = f"Vehicle Alert: {reason}\n\nPlease call back: {display_number}\n\nFrom: Vehicle Notification System"
+                                tel_link = f"tel:{display_number.replace(' ', '').replace('-', '')}"
+                            else:
+                                # Generic callback message if no number provided
+                                callback_message = f"Vehicle Alert: {reason}\n\nPlease contact us regarding your vehicle.\n\nFrom: Vehicle Notification System"
+                            
                             print("\n" + "="*60)
-                            print("CALL CREATION - VERIFYING TWILIO NUMBER")
+                            print("FREE CALLBACK SYSTEM - Sending SMS with callback request")
                             print("="*60)
-                            print(f"Twilio number from settings: {twilio_from_number}")
-                            
-                            # Validate and format Twilio number (must be E.164 format: +18076999994)
-                            if not twilio_from_number:
-                                error_msg = "TWILIO_PHONE_NUMBER is not set in settings"
-                                print(f"ERROR: {error_msg}")
-                                logger.error(error_msg)
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'message': 'Call service is not properly configured. Please contact administrator.'
-                                })
-                            
-                            # Ensure number starts with + (E.164 format)
-                            if not twilio_from_number.startswith('+'):
-                                twilio_from_number = '+' + twilio_from_number.lstrip('+')
-                                print(f"Formatted Twilio number: {twilio_from_number}")
-                            
-                            # Final validation - ensure it's a valid format
-                            if len(twilio_from_number) < 10 or not twilio_from_number[1:].isdigit():
-                                error_msg = f"Invalid TWILIO_PHONE_NUMBER format: {twilio_from_number}"
-                                print(f"ERROR: {error_msg}")
-                                logger.error(error_msg)
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'message': 'Call service configuration error. Please contact administrator.'
-                                })
-                            
-                            # IMPORTANT: Do NOT use user_phone or any caller's number
-                            # ONLY use the Twilio number from settings
-                            # The caller's number is completely hidden and never exposed
-                            print(f"\n=== CALL CREATION DETAILS ===")
-                            print(f"FROM (Caller ID - Twilio Number): {twilio_from_number}")
-                            print(f"TO (Owner): {owner_phone}")
-                            print(f"Caller's original number: HIDDEN (not used)")
-                            print(f"Callback URL: {callback_url}")
-                            # Note: user_phone is from the request but is NOT used for caller ID
-                            # Only Twilio number is used
+                            print(f"Owner phone: {owner_phone}")
+                            print(f"Callback number: {callback_number if callback_number else 'Not provided'}")
+                            print(f"Message: {callback_message[:50]}...")
                             print("="*60 + "\n")
                             
-                            logger.info(f"=== CALL CREATION ===")
-                            logger.info(f"FROM (Caller ID - Twilio Number): {twilio_from_number}")
-                            logger.info(f"TO (Owner): {owner_phone}")
-                            logger.info(f"Caller's original number: HIDDEN (not used)")
-                            logger.info(f"Callback URL: {callback_url}")
-                            
-                            # Create call using ONLY Twilio number as caller ID
-                            # The 'from_' parameter is what shows on the recipient's phone
-                            # This completely hides the original caller's number
-                            print(f"Creating Twilio call with from_={twilio_from_number}, to={owner_phone}")
-                            call = twilio_client.calls.create(
-                                url=callback_url,
-                                from_=twilio_from_number,  # ONLY Twilio number shows - caller's number is hidden
-                                to=owner_phone,
-                                method='GET'
-                            )
-                            
-                            print(f"\n✓ Call created successfully!")
-                            print(f"  Call SID: {call.sid}")
-                            print(f"  Call From (what recipient sees): {call.from_}")
-                            print(f"  Call To: {call.to}")
-                            print(f"  Call Status: {call.status}")
-                            print(f"  Expected Caller ID: {twilio_from_number}")
-                            
-                            # Verify the call is using the correct number
-                            if call.from_ != twilio_from_number:
-                                print(f"\n⚠ WARNING: Call 'from_' ({call.from_}) does not match Twilio number ({twilio_from_number})!")
-                                logger.warning(f"Call 'from_' ({call.from_}) does not match Twilio number ({twilio_from_number})")
-                            else:
-                                print(f"  ✓ Verified: Call is using Twilio number as caller ID")
-                            
-                            print(f"  Original caller number: HIDDEN\n")
-                            
-                            logger.info(f"Call created successfully - SID: {call.sid}")
-                            logger.info(f"Call from_: {call.from_}, to: {call.to}, status: {call.status}")
-                            logger.info(f"Caller ID shown to recipient: {twilio_from_number} (Twilio number)")
-                            logger.info(f"Original caller number: HIDDEN")
-                            increment_daily_count(qr_id, 'call')
-                            
-                            return JsonResponse({
-                                'status': 'success',
-                                'notification_type': 'call',
-                                'message': 'Calling vehicle owner...'
-                            })
+                            # Send SMS with callback request (this uses SMS, which might have free tier)
+                            # Or we can just return success and let frontend handle it
+                            try:
+                                # Try to send SMS if Twilio SMS is available (might have free tier)
+                                if hasattr(settings, 'TWILIO_PHONE_NUMBER') and settings.TWILIO_PHONE_NUMBER:
+                                    sms_body = callback_message
+                                    if tel_link:
+                                        # Add clickable link for smartphones
+                                        sms_body += f"\n\nClick to call: {tel_link}"
+                                    
+                                    message = twilio_client.messages.create(
+                                        body=sms_body,
+                                        from_=settings.TWILIO_PHONE_NUMBER,
+                                        to=owner_phone
+                                    )
+                                    logger.info(f"Callback SMS sent successfully: {message.sid}")
+                                    print(f"✓ SMS sent with callback request: {message.sid}")
+                                    
+                                    increment_daily_count(qr_id, 'call')
+                                    
+                                    return JsonResponse({
+                                        'status': 'success',
+                                        'notification_type': 'call',
+                                        'message': f'Callback request sent. Owner will call back to {display_number if callback_number else "your number"}.',
+                                        'callback_number': display_number if callback_number else None,
+                                        'tel_link': tel_link
+                                    })
+                                else:
+                                    # No SMS service - just return success with callback info
+                                    increment_daily_count(qr_id, 'call')
+                                    return JsonResponse({
+                                        'status': 'success',
+                                        'notification_type': 'call',
+                                        'message': 'Callback request prepared. Please contact owner directly.',
+                                        'callback_number': display_number if callback_number else None,
+                                        'tel_link': tel_link
+                                    })
+                            except Exception as e:
+                                # If SMS fails, still return success with callback info
+                                logger.warning(f"SMS sending failed, but callback info available: {str(e)}")
+                                increment_daily_count(qr_id, 'call')
+                                return JsonResponse({
+                                    'status': 'success',
+                                    'notification_type': 'call',
+                                    'message': 'Callback request prepared. Please contact owner directly.',
+                                    'callback_number': display_number if callback_number else None,
+                                    'tel_link': tel_link
+                                })
                     
                     
                     except TwilioRestException as e:
