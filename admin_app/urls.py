@@ -46,8 +46,6 @@ urlpatterns = [
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
 
-    # Call handler for real calls (Twilio callback)
-    path('api/call-handler/', views.call_handler, name='call_handler'),
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),

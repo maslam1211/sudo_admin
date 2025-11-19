@@ -1222,8 +1222,7 @@ def send_notification(request, qr_id):
                     try:
                         response = messaging.send(message)
                         return JsonResponse({
-                            'status': 'success',
-                            'notification_type': 'push',
+                            'status': 'success', 
                             'message': 'We have sent your message to the vehicle owner.'
                         })
                     except Exception as e:
@@ -1254,31 +1253,8 @@ def send_notification(request, qr_id):
                                 'message': 'SMS/Call service is not configured. Please try push notification instead.'
                             })
 
-                        # Validate Twilio credentials
-                        if not hasattr(settings, 'TWILIO_ACCOUNT_SID') or not settings.TWILIO_ACCOUNT_SID:
-                            logger.error("TWILIO_ACCOUNT_SID not configured")
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
-                            })
-                        
-                        if not hasattr(settings, 'TWILIO_AUTH_TOKEN') or not settings.TWILIO_AUTH_TOKEN:
-                            logger.error("TWILIO_AUTH_TOKEN not configured")
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
-                            })
-                        
                         # Initialize Twilio client
-                        try:
-                            twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                        except Exception as e:
-                            logger.error(f"Failed to initialize Twilio client: {str(e)}")
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'SMS/Call service is temporarily unavailable. Please try push notification instead.'
-                            })
-                        
+                        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
                         owner_phone = user_data.get('contactNumber', '')
                         
                         if not owner_phone:
@@ -1315,7 +1291,6 @@ def send_notification(request, qr_id):
                             increment_daily_count(qr_id, 'sms')
                             return JsonResponse({
                                 'status': 'success',
-                                'notification_type': 'sms',
                                 'message': 'SMS sent successfully to the vehicle owner.'
                             })
                         
@@ -1331,139 +1306,50 @@ def send_notification(request, qr_id):
                                     'limit': limit,
                                 })
 
-                            # NUMBER MASKING SYSTEM (Like NGF132/Sampark)
-                            # Uses Twilio number as masked number - owner sees Twilio number, not caller's number
-                            # This protects caller's privacy - their real number is never exposed
-                            
-                            print("\n" + "="*60)
-                            print("NUMBER MASKING CALL - Like NGF132/Sampark")
-                            print("="*60)
-                            print(f"Caller's real number: HIDDEN (masked)")
-                            print(f"Owner's real number: {owner_phone}")
-                            print(f"Owner will see: TWILIO MASKED NUMBER (not caller's number)")
-                            print("="*60 + "\n")
-                            
-                            # Get Twilio phone number - this acts as the masked number
-                            # Owner will see this number, not the caller's personal number
-                            twilio_masked_number = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
-                            
-                            # Validate Twilio number
-                            if not twilio_masked_number:
-                                error_msg = "TWILIO_PHONE_NUMBER is not set in settings"
-                                print(f"ERROR: {error_msg}")
-                                logger.error(error_msg)
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'message': 'Call service is not properly configured. Please contact administrator.'
-                                })
-                            
-                            # Ensure number starts with + (E.164 format)
-                            if not twilio_masked_number.startswith('+'):
-                                twilio_masked_number = '+' + twilio_masked_number.lstrip('+')
-                            
-                            # Final validation
-                            if len(twilio_masked_number) < 10 or not twilio_masked_number[1:].isdigit():
-                                error_msg = f"Invalid TWILIO_PHONE_NUMBER format: {twilio_masked_number}"
-                                print(f"ERROR: {error_msg}")
-                                logger.error(error_msg)
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'message': 'Call service configuration error. Please contact administrator.'
-                                })
-                            
-                            # IMPORTANT: Caller's personal number is NEVER used
-                            # Only Twilio number is used as caller ID
-                            # This masks the caller's real number - owner sees Twilio number only
-                            logger.info(f"=== NUMBER MASKING CALL ===")
-                            logger.info(f"FROM (Masked Number - Twilio): {twilio_masked_number}")
-                            logger.info(f"TO (Owner): {owner_phone}")
-                            logger.info(f"Caller's real number: HIDDEN (masked)")
-                            logger.info(f"Owner sees: {twilio_masked_number} (masked number, not caller's number)")
-                            
-                            # Create call with Twilio number as masked caller ID
-                            # This is exactly like NGF132/Sampark - owner sees masked number
-                            callback_url = f"{settings.BASE_DOMAIN}/admin/api/call-handler/?reason={reason.replace(' ', '%20')}"
-                            
-                            print(f"Creating masked call:")
-                            print(f"  From (masked): {twilio_masked_number}")
-                            print(f"  To: {owner_phone}")
-                            print(f"  Caller's real number: HIDDEN")
-                            
                             call = twilio_client.calls.create(
-                                url=callback_url,
-                                from_=twilio_masked_number,  # Masked number - owner sees this, not caller's number
-                                to=owner_phone,
-                                method='GET'
+                                twiml=f'<Response><Say>Hello, this is an important message about your vehicle. {reason}. The person trying to reach you provided this number: {user_phone or "not provided"}. Thank you from Sudo.</Say></Response>',
+                                from_=settings.TWILIO_PHONE_NUMBER,
+                                to=owner_phone
                             )
-                            
-                            print(f"\n✓ Masked Call Created Successfully!")
-                            print(f"  Call SID: {call.sid}")
-                            print(f"  Owner sees: {call.from_} (masked Twilio number)")
-                            print(f"  Caller's real number: HIDDEN ✓")
-                            print(f"  Number masking: ACTIVE (like NGF132/Sampark)")
-                            
-                            # Verify masking is working
-                            if call.from_ == twilio_masked_number:
-                                print(f"  ✓ Verified: Number masking is active")
-                                print(f"  ✓ Owner will see masked number, not caller's number")
-                            else:
-                                print(f"  ⚠ Warning: Call from_ ({call.from_}) differs from expected ({twilio_masked_number})")
-                            
-                            print(f"\n")
-                            
-                            logger.info(f"Masked call created - SID: {call.sid}")
-                            logger.info(f"Call from_: {call.from_} (masked), to: {call.to}")
-                            logger.info(f"Number masking: ACTIVE - Caller's number is HIDDEN")
+                            logger.info(f"Call initiated successfully: {call.sid}")
                             increment_daily_count(qr_id, 'call')
-                            
                             return JsonResponse({
                                 'status': 'success',
-                                'notification_type': 'call',
-                                'message': 'Calling vehicle owner with number masking (like NGF132/Sampark)...'
+                                'message': 'Phone call initiated successfully to the vehicle owner.'
                             })
                     
-                    
                     except TwilioRestException as e:
-                        logger.error(f"Twilio Error {e.code}: {e.msg} | Full error: {str(e)}", exc_info=True)
+                        logger.error(f"Twilio Error {e.code}: {e.msg}")
                         user_message = get_twilio_error_message(e)
                         
                         # Special handling for common errors
                         if e.code == 20003:
-                            user_message = "SMS/Call service authentication failed. Please check Twilio credentials."
+                            user_message = "SMS/Call service is temporarily unavailable. Please try push notification instead."
                         elif e.code == 21211:
                             user_message = "Invalid phone number format. The owner's phone number needs to include country code."
                         elif e.code in [21408, 21610]:
                             user_message = "SMS/Call feature is not available for this number. Please try push notification."
                         elif e.code == 30007:
                             user_message = "Unable to deliver message to the owner's phone number. It may be inactive or blocked."
-                        elif e.code == 21614:
-                            user_message = "Invalid callback URL. Please check server configuration."
                         
                         return JsonResponse({
                             'status': 'error',
-                            'error_type': 'twilio_error',
-                            'error_code': e.code,
                             'message': user_message
                         })
                         
                     except Exception as e:
-                        logger.error(f"Unexpected error in send_notification: {str(e)}", exc_info=True)
-                        error_type = type(e).__name__
+                        logger.error(f"Unexpected Twilio error: {str(e)}")
                         return JsonResponse({
                             'status': 'error',
-                            'error_type': 'unexpected_error',
-                            'message': f'Failed to send {notification_method}. Error: {error_type}. Please try again or use push notification.'
+                            'message': f'Failed to send {notification_method}. Please try again or use push notification.'
                         })
 
         # Render the initial page with vehicle data
-        owner_phone = user_data.get('contactNumber', '')
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
-                'registrationNumber': vehicle_data.get('registrationNumber', ''),
-                'make': vehicle_data.get('make', '')
-            },
-            'owner_phone': owner_phone
+                'registrationNumber': vehicle_data.get('registrationNumber', '')
+            }
         }
         
         return render(request, 'send_notification.html', context)
@@ -1471,58 +1357,11 @@ def send_notification(request, qr_id):
     except Exception as e:
         logger.error(f"General error in send_notification: {str(e)}")
         return render(request, 'error.html', {'error': str(e)})
-
-
-@csrf_exempt
-def call_handler(request):
-    """
-    Twilio callback handler for real carrier-to-carrier calls.
-    This endpoint is called by Twilio when the owner answers the phone.
-    Returns TwiML for a real call connection via carrier.
-    """
-    try:
-        reason = request.GET.get('reason', 'Vehicle issue')
-        
-        # Check if support number is configured for call forwarding
-        support_number = getattr(settings, 'SUPPORT_PHONE_NUMBER', '').strip()
-        twilio_phone = getattr(settings, 'TWILIO_PHONE_NUMBER', '').strip()
-        
-        logger.info(f"Call handler called - Support number: {support_number}, Twilio phone: {twilio_phone}")
-        
-        if support_number and twilio_phone:
-            # Real carrier call: Connect owner directly to support number
-            # This creates a real person-to-person call via carrier
-            twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Dial callerId="{twilio_phone}" timeout="30" record="false">
-        <Number>{support_number}</Number>
-    </Dial>
-</Response>'''
-        else:
-            # Real carrier call without support number
-            # Keep the call open for real conversation - owner can speak directly
-            # This is a real carrier-to-carrier call from Twilio number
-            # Use simple, valid TwiML that keeps the call connected (10 minutes)
-            twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Pause length="600"/>
-</Response>'''
-        
-        response = HttpResponse(twiml, content_type='text/xml; charset=utf-8')
-        logger.info(f"Returning TwiML: {twiml[:200]}...")
-        return response
-        
-    except Exception as e:
-        # Log the error and return safe TwiML
-        logger.error(f"Error in call_handler: {str(e)}", exc_info=True)
-        # Return minimal, valid TwiML that won't cause errors
-        # Simple pause to keep call open
-        safe_twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Pause length="600"/>
-</Response>'''
-        response = HttpResponse(safe_twiml, content_type='text/xml; charset=utf-8')
-        return response
+    
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Define status mapping

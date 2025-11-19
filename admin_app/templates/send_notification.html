@@ -254,8 +254,6 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-decoration: none;
-      color: inherit;
       gap: 5px;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -874,7 +872,7 @@
     <div class="reasons-list">
       <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on.')">
         <i class="bi bi-lightbulb-fill" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">The ligaahts of this car is on.</span>
+        <span class="reason-text">The lights of this car is on.</span>
       </div>
       
       <div class="reason-item" onclick="selectReason(this, 'The car is in no parking.')">
@@ -915,17 +913,10 @@
 
     <!-- Action Buttons - Horizontal Layout -->
     <div class="action-buttons">
-      {% if owner_phone %}
-      <a href="tel:{{ owner_phone }}" class="action-btn call-btn" id="callBtn">
-        <i class="bi bi-telephone-fill btn-icon"></i>
-        <span class="btn-text">Call Owner</span>
-      </a>
-      {% else %}
-      <button class="action-btn call-btn" id="callBtn" disabled>
+      <button class="action-btn call-btn" id="callBtn">
         <i class="bi bi-telephone-fill btn-icon"></i>
         <span class="btn-text">Call Owner</span>
       </button>
-      {% endif %}
       <button class="action-btn sms-btn" id="smsBtn">
         <i class="bi bi-chat-text-fill btn-icon"></i>
         <span class="btn-text">Send SMS</span>
@@ -1183,23 +1174,22 @@
       showPhoneModal('Send SMS');
     });
 
-    // Call button click - Direct tel: link (opens phone dialer)
-    // No reason required for calls - direct real voice call
-    {% if owner_phone %}
-    // For calls, no validation needed - direct call, user can tell anything
-    callBtn.addEventListener('click', function(e) {
-      // Allow the tel: link to work naturally - browser will open phone dialer
-      // User can choose their calling app (Phone, WhatsApp, etc.) and speak directly
+    // Call button click
+    callBtn.addEventListener('click', function() {
+      if (!selectedReason) {
+        showToast('Please select a reason first', 'error');
+        return;
+      }
+      
+      // If custom reason is selected but no message
+      if (selectedReason === 'custom' && customMessage.value.trim() === '') {
+        showToast('Please type your message', 'error');
+        return;
+      }
+
       selectedMethod = 'call';
-      // No reason validation - direct call
+      showPhoneModal('Make Call');
     });
-    {% else %}
-    // If no phone number, show error
-    callBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      showToast('Owner phone number not available', 'error');
-    });
-    {% endif %}
 
     // Show phone modal
     function showPhoneModal(action) {
@@ -1339,8 +1329,7 @@
     // Function to send notification to server
     function sendNotification(message) {
       const csrfToken = getCSRFToken();
-      // For calls, don't send phone number. For SMS, use phone from modal if provided
-      const phoneNumber = (selectedMethod === 'call') ? '' : userPhone.value.trim();
+      const phoneNumber = userPhone.value.trim();
       
       if (!csrfToken) {
         console.error('CSRF token not found');
@@ -1477,7 +1466,7 @@
         case 'call':
           iconClass = 'call';
           title = '📞 Call Initiated!';
-          if (!messageText) messageText = 'Calling vehicle owner from Twilio number. Your personal number is hidden.';
+          if (!messageText) messageText = 'The owner is receiving your message via automated call.';
           break;
         default:
           iconClass = 'push';
@@ -1643,8 +1632,7 @@
 
       if (method === 'call') {
         selectedMethod = 'call';
-        // Call directly without phone modal
-        sendNotificationDirectly();
+        showPhoneModal('Make Call');
       }
     }
     

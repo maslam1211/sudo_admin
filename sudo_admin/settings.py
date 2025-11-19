@@ -210,11 +210,6 @@ TWILIO_ACCOUNT_SID = 'AC839fda2710fe54d9be8894c82daceb0f'  # Get from Twilio con
 TWILIO_AUTH_TOKEN = '4d39ae44422aaf1357272ee8bde9674f'    # Get from Twilio console
 TWILIO_PHONE_NUMBER = '+18076999994'      # Your Twilio phone number
 
-# Optional: Support phone number for call forwarding (real person-to-person calls)
-# If set, vehicle owners will be connected directly to this number when they answer
-# Leave empty to use default call handling
-SUPPORT_PHONE_NUMBER = ''  # e.g., '+1234567890' - Set your support/help desk number here
-
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
 
