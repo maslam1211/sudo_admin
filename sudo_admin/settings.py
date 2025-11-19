@@ -206,8 +206,10 @@ EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
 BASE_DOMAIN='https://sudotag.com'
 
-# Phone call functionality now uses free system dialer (no API keys needed)
-# See admin_app/call.py for implementation
+TWILIO_ACCOUNT_SID = 'AC839fda2710fe54d9be8894c82daceb0f'  # Get from Twilio console
+TWILIO_AUTH_TOKEN = '4d39ae44422aaf1357272ee8bde9674f'    # Get from Twilio console
+TWILIO_PHONE_NUMBER = '+18076999994'      # Your Twilio phone number
+
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
 

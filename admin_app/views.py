@@ -1029,9 +1029,10 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from firebase_admin import firestore, messaging
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 from django.conf import settings
 import logging
-from .call import make_call
 
 logger = logging.getLogger(__name__)
 
@@ -1129,29 +1130,29 @@ def increment_daily_count(qr_id, action_type):
     except Exception as exc:
         logger.error(f"Error incrementing daily count: {exc}")
 
-def validate_phone_number(phone_number):
+def get_twilio_error_message(twilio_exception):
     """
-    Validate phone number format
-    Returns: (is_valid, error_message)
+    Convert Twilio error codes to user-friendly messages
     """
-    if not phone_number:
-        return False, "Phone number is required."
+    error_messages = {
+        20003: "Authentication failed. Please check Twilio credentials.",
+        21211: "Invalid phone number format. Please use format: +1234567890",
+        21408: "Permission denied. This feature is not enabled.",
+        21610: "Phone number is not verified. Please verify your number.",
+        30007: "Delivery failed. The destination number cannot receive messages.",
+        14101: "Invalid To phone number. Please check the number format.",
+        13225: "Max price parameter is invalid.",
+        13224: "Message delivery failed.",
+        21612: "Cannot send SMS to this country.",
+        21614: "This phone number is not currently reachable.",
+        21217: "Phone number is too short.",
+        21216: "Phone number is too long.",
+        21215: "Invalid phone number.",
+        14103: "Call cannot be completed.",
+        13227: "Phone number is blacklisted.",
+    }
     
-    # Remove spaces, dashes, parentheses for validation
-    cleaned = phone_number.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-    
-    if not cleaned:
-        return False, "Phone number cannot be empty."
-    
-    # Basic validation - should have at least 10 digits
-    digits_only = ''.join(filter(str.isdigit, cleaned))
-    if len(digits_only) < 10:
-        return False, "Phone number must have at least 10 digits."
-    
-    if len(digits_only) > 15:
-        return False, "Phone number is too long (maximum 15 digits)."
-    
-    return True, None
+    return error_messages.get(twilio_exception.code, f"Twilio error: {twilio_exception.msg}")
 
 @ensure_csrf_cookie
 def send_notification(request, qr_id):
@@ -1231,8 +1232,29 @@ def send_notification(request, qr_id):
                             'message': f'Failed to send push notification: {str(e)}'
                         })
                 
-                elif notification_method == 'call':
+                elif notification_method in ['call', 'sms']:
                     try:
+                        # Validate Twilio configuration
+                        if not hasattr(settings, 'TWILIO_ACCOUNT_SID') or not settings.TWILIO_ACCOUNT_SID:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+                        
+                        if not hasattr(settings, 'TWILIO_AUTH_TOKEN') or not settings.TWILIO_AUTH_TOKEN:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+                        
+                        if not hasattr(settings, 'TWILIO_PHONE_NUMBER') or not settings.TWILIO_PHONE_NUMBER:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
+                            })
+
+                        # Initialize Twilio client
+                        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
                         owner_phone = user_data.get('contactNumber', '')
                         
                         if not owner_phone:
@@ -1242,54 +1264,85 @@ def send_notification(request, qr_id):
                             })
                         
                         # Validate phone number format
-                        is_valid, error_msg = validate_phone_number(owner_phone)
-                        if not is_valid:
+                        if not owner_phone.startswith('+'):
                             return JsonResponse({
                                 'status': 'error',
-                                'message': error_msg
+                                'message': 'Owner phone number must include country code (e.g., +91 for India).'
                             })
 
-                        # Check daily limit
-                        is_allowed, current_count, limit = check_daily_limit(qr_id, 'call')
+                        if notification_method == 'sms':
+                            is_allowed, current_count, limit = check_daily_limit(qr_id, 'sms')
 
-                        if not is_allowed:
+                            if not is_allowed:
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'error_type': 'daily_limit_reached',
+                                    'message': f'Daily SMS limit reached. You have used {current_count} out of {limit} SMS messages today. Please try again tomorrow.',
+                                    'current_count': current_count,
+                                    'limit': limit,
+                                })
+
+                            message = twilio_client.messages.create(
+                                body=f"Vehicle Alert: {reason}\n\nFrom: {user_phone or 'Anonymous'}",
+                                from_=settings.TWILIO_PHONE_NUMBER,
+                                to=owner_phone
+                            )
+                            logger.info(f"SMS sent successfully: {message.sid}")
+                            increment_daily_count(qr_id, 'sms')
                             return JsonResponse({
-                                'status': 'error',
-                                'error_type': 'daily_limit_reached',
-                                'message': f'Daily call limit reached. You have used {current_count} out of {limit} calls today. Please try again tomorrow.',
-                                'current_count': current_count,
-                                'limit': limit,
+                                'status': 'success',
+                                'message': 'SMS sent successfully to the vehicle owner.'
                             })
-
-                        # Use free phone call solution - opens system dialer
-                        success = make_call("Sudo Tag", owner_phone)
                         
-                        if success:
-                            logger.info(f"Phone dialer opened successfully for {owner_phone}")
+                        elif notification_method == 'call':
+                            is_allowed, current_count, limit = check_daily_limit(qr_id, 'call')
+
+                            if not is_allowed:
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'error_type': 'daily_limit_reached',
+                                    'message': f'Daily call limit reached. You have used {current_count} out of {limit} calls today. Please try again tomorrow.',
+                                    'current_count': current_count,
+                                    'limit': limit,
+                                })
+
+                            call = twilio_client.calls.create(
+                                twiml=f'<Response><Say>Hello, this is an important message about your vehicle. {reason}. The person trying to reach you provided this number: {user_phone or "not provided"}. Thank you from Sudo.</Say></Response>',
+                                from_=settings.TWILIO_PHONE_NUMBER,
+                                to=owner_phone
+                            )
+                            logger.info(f"Call initiated successfully: {call.sid}")
                             increment_daily_count(qr_id, 'call')
                             return JsonResponse({
                                 'status': 'success',
-                                'message': 'Phone dialer opened successfully. Please click "Call" in the dialer to contact the vehicle owner.'
-                            })
-                        else:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'Failed to open phone dialer. Please ensure your device has a phone dialer application installed.'
+                                'message': 'Phone call initiated successfully to the vehicle owner.'
                             })
                     
-                    except Exception as e:
-                        logger.error(f"Error opening phone dialer: {str(e)}")
+                    except TwilioRestException as e:
+                        logger.error(f"Twilio Error {e.code}: {e.msg}")
+                        user_message = get_twilio_error_message(e)
+                        
+                        # Special handling for common errors
+                        if e.code == 20003:
+                            user_message = "SMS/Call service is temporarily unavailable. Please try push notification instead."
+                        elif e.code == 21211:
+                            user_message = "Invalid phone number format. The owner's phone number needs to include country code."
+                        elif e.code in [21408, 21610]:
+                            user_message = "SMS/Call feature is not available for this number. Please try push notification."
+                        elif e.code == 30007:
+                            user_message = "Unable to deliver message to the owner's phone number. It may be inactive or blocked."
+                        
                         return JsonResponse({
                             'status': 'error',
-                            'message': f'Failed to open phone dialer: {str(e)}. Please try again or use push notification.'
+                            'message': user_message
                         })
-                
-                elif notification_method == 'sms':
-                    # SMS functionality removed - free solution only supports calls via system dialer
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'SMS functionality is not available with the free solution. Please use push notification or call instead.'
-                    })
+                        
+                    except Exception as e:
+                        logger.error(f"Unexpected Twilio error: {str(e)}")
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f'Failed to send {notification_method}. Please try again or use push notification.'
+                        })
 
         # Render the initial page with vehicle data
         context = {
