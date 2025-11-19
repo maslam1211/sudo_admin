@@ -1282,8 +1282,8 @@
       errorDetailedMessage.textContent = detailedMessage;
       
       // Set appropriate title based on error type
-      if (errorType === 'twilio') {
-        errorTitle.textContent = 'Twilio Service Error';
+      if (errorType === 'phone_service') {
+        errorTitle.textContent = 'Phone Service Error';
       } else if (errorType === 'network') {
         errorTitle.textContent = 'Network Connection Issue';
       } else if (errorType === 'server') {
@@ -1399,8 +1399,8 @@
             case 'service_unavailable':
               suggestion = 'Try using push notification instead. The SMS/Call service is temporarily down.';
               break;
-            case 'twilio_error':
-              suggestion = 'Try using push notification instead. There seems to be an issue with the phone service.';
+            case 'phone_service_error':
+              suggestion = 'Try using push notification instead. There seems to be an issue with the phone dialer.';
               break;
             default:
               suggestion = 'Please try a different notification method or try again later.';
