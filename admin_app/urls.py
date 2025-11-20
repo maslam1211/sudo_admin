@@ -2,13 +2,17 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('login/', views.admin_login, name='login'),
+    path('verify-auth-pin/', views.verify_auth_pin, name='verify_auth_pin'),
+    path('login/', views.admin_login, name='admin_login'),
+    path('register-admin/', views.register_admin, name='register_admin'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('generate-qr/', views.generate_qr, name='generate_qr'),
     path('download-qr-pdf/', views.download_qr_pdf, name='download_qr_pdf'),
     path('register-user/', views.register_user, name='register_user'),
     path('manage-users/', views.manage_users, name='manage_users'),
+    path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
     path('view-orders/', views.view_orders, name='view_orders'),
+    path('view-payments/', views.view_payments, name='view_payments'),
     path('update_order_status/', views.update_order_status, name='update_order_status'),
     path('export_orders_with_qr/', views.export_orders_with_qr, name='export_orders_with_qr'),
     path('logout/', views.admin_logout, name='logout'),
@@ -26,11 +30,16 @@ urlpatterns = [
     path('search-qr-codes/', views.search_qr_codes, name='search_qr_codes'),
     path('search-users/', views.search_users, name='search_users'),
     # Delete data URLs
+    path('verify-delete-pin/', views.verify_delete_pin, name='verify_delete_pin'),
     path('delete-data/', views.delete_data, name='delete_data'),
     path('delete-collection/<str:collection_name>/', views.delete_collection, name='delete_collection'),
     path('delete-document/<str:collection_name>/<str:document_id>/', views.delete_document, name='delete_document'),
     path('bulk-delete/', views.bulk_delete, name='bulk_delete'),
     path('view-collection/<str:collection_name>/', views.view_collection, name='view_collection'),
+    # Firebase Auth user management
+    path('view-auth-users/', views.view_auth_users, name='view_auth_users'),
+    path('delete-auth-user/<str:uid>/', views.delete_auth_user, name='delete_auth_user'),
+    path('bulk-delete-auth-users/', views.bulk_delete_auth_users, name='bulk_delete_auth_users'),
     # Ads management URLs
     path('manage-ads/', views.manage_ads, name='manage_ads'),
     path('add-ad/', views.add_ad, name='add_ad'),

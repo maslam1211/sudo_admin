@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Daily Usage Management - Admin Panel{% endblock %}
+{% block page_title %}Daily Usage Management{% endblock %}
+
+{% block content %}
+<!-- CSRF Token for JavaScript -->
+{% csrf_token %}
+<style>
+    .usage-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .usage-header {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+    .table-custom {
+        font-size: 0.875rem;
+    }
+    .table-custom thead th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        padding: 0.75rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .table-custom tbody td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    .id-cell {
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        word-break: break-all;
+        cursor: pointer;
+        color: #0d6efd;
+    }
+    .id-cell:hover {
+        text-decoration: underline;
+    }
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .user-name {
+        font-weight: 600;
+        color: #1e293b;
+    }
+    .user-email {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+    .user-id-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        background: #e0e7ff;
+        color: #3730a3;
+        border-radius: 0.25rem;
+        display: inline-block;
+        margin-top: 0.25rem;
+    }
+    .count-input {
+        width: 90px;
+        text-align: center;
+        padding: 0.375rem 0.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+    .count-input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        outline: none;
+    }
+    .update-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    .stats-badge {
+        font-size: 0.875rem;
+        padding: 0.5em 0.75em;
+    }
+    .identifier-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    .badge-user {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    .badge-qr {
+        background: #fef3c7;
+        color: #92400e;
+    }
+</style>
+
+<!-- Hidden form for CSRF token -->
+{% csrf_token %}
+
+<!-- Search and Filter Section -->
+<div class="usage-card mb-4">
+    <div class="usage-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Search & Filter</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{% url 'manage_daily_usage' %}" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Search by User ID, QR ID, Name, or Email</label>
+                <input type="text" 
+                       class="form-control" 
+                       name="search" 
+                       value="{{ search_term }}"
+                       placeholder="Enter User ID, QR ID, Name, or Email">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Filter by Date (YYYY-MM-DD)</label>
+                <input type="date" 
+                       class="form-control" 
+                       name="date" 
+                       value="{{ search_date }}"
+                       placeholder="YYYY-MM-DD">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i> Search
+                </button>
+            </div>
+        </form>
+        {% if search_term or search_date %}
+        <div class="mt-3">
+            <a href="{% url 'manage_daily_usage' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times me-1"></i> Clear Filters
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Daily Usage Table -->
+<div class="usage-card">
+    <div class="usage-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Daily Usage Records</h5>
+            <span class="badge bg-primary stats-badge">
+                Total Records: {{ paginator.count|default:0 }}
+            </span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if daily_usage %}
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th width="18%">User / QR Info</th>
+                            <th width="10%">Type</th>
+                            <th width="10%">Date</th>
+                            <th width="12%">Calls</th>
+                            <th width="12%">SMS</th>
+                            <th width="12%">Chat Messages</th>
+                            <th width="16%">Last Updated</th>
+                            <th width="10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usage in daily_usage %}
+                        <tr data-doc-id="{{ usage.doc_id }}">
+                            <td>
+                                {% if usage.user %}
+                                    <div class="user-info">
+                                        <span class="user-name">{{ usage.user.fullName|default:"N/A" }}</span>
+                                        <span class="user-email">{{ usage.user.emailAddress|default:"No email" }}</span>
+                                        <span class="id-cell user-id-badge" onclick="copyToClipboard('{{ usage.userId }}', this)" title="Click to copy User ID">
+                                            <i class="fas fa-user me-1"></i>{{ usage.userId|truncatechars:20 }}
+                                        </span>
+                                    </div>
+                                {% elif usage.qr_id %}
+                                    <div>
+                                        <span class="id-cell" onclick="copyToClipboard('{{ usage.qr_id }}', this)" title="Click to copy QR ID">
+                                            <i class="fas fa-qrcode me-1"></i>{{ usage.qr_id }}
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <span class="id-cell" onclick="copyToClipboard('{{ usage.doc_id }}', this)" title="Click to copy Document ID">
+                                        {{ usage.doc_id|truncatechars:25 }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge identifier-badge {% if usage.userId %}badge-user{% else %}badge-qr{% endif %}">
+                                    {{ usage.identifier_type }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if usage.date %}
+                                    <span class="badge bg-info">{{ usage.date }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="calls_count_{{ usage.doc_id }}" 
+                                       class="count-input calls-count" 
+                                       data-doc-id="{{ usage.doc_id }}"
+                                       value="{{ usage.calls_count|default:0 }}"
+                                       min="0"
+                                       required>
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="sms_count_{{ usage.doc_id }}" 
+                                       class="count-input sms-count" 
+                                       data-doc-id="{{ usage.doc_id }}"
+                                       value="{{ usage.sms_count|default:0 }}"
+                                       min="0"
+                                       required>
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="dailyChatMessageCount_{{ usage.doc_id }}" 
+                                       class="count-input chat-count" 
+                                       data-doc-id="{{ usage.doc_id }}"
+                                       value="{{ usage.dailyChatMessageCount|default:0 }}"
+                                       min="0"
+                                       required>
+                            </td>
+                            <td>
+                                {% if usage.lastUpdated %}
+                                    {{ usage.lastUpdated|to_ist|date:"M d, Y g:i A" }}
+                                {% elif usage.last_updated %}
+                                    {{ usage.last_updated|to_ist|date:"M d, Y g:i A" }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-primary btn-sm update-btn" 
+                                        onclick="updateUsage('{{ usage.doc_id }}', '{{ usage.identifier }}', '{{ usage.identifier_type }}')"
+                                        title="Update Usage">
+                                    <i class="fas fa-save me-1"></i> Update
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if paginator.num_pages > 1 %}
+            <div class="card-body border-top">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if daily_usage.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if search_term %}&search={{ search_term }}{% endif %}{% if search_date %}&date={{ search_date }}{% endif %}">First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ daily_usage.previous_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if search_date %}&date={{ search_date }}{% endif %}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ daily_usage.number }} of {{ paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if daily_usage.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ daily_usage.next_page_number }}{% if search_term %}&search={{ search_term }}{% endif %}{% if search_date %}&date={{ search_date }}{% endif %}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ paginator.num_pages }}{% if search_term %}&search={{ search_term }}{% endif %}{% if search_date %}&date={{ search_date }}{% endif %}">Last</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Daily Usage Records Found</h4>
+                <p class="text-muted">
+                    {% if search_term or search_date %}
+                        No records match your search criteria.
+                    {% else %}
+                        There are no daily usage records in the system.
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Copy ID to clipboard
+function copyToClipboard(text, element) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = element.textContent;
+        element.textContent = 'Copied!';
+        element.style.color = '#10b981';
+        setTimeout(() => {
+            element.textContent = originalText;
+            element.style.color = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+
+// Update usage for a specific record
+function updateUsage(docId, identifier, identifierType) {
+    const row = document.querySelector(`tr[data-doc-id="${docId}"]`);
+    if (!row) return;
+    
+    const callsInput = row.querySelector('.calls-count');
+    const smsInput = row.querySelector('.sms-count');
+    const chatInput = row.querySelector('.chat-count');
+    
+    if (!callsInput || !smsInput || !chatInput) return;
+    
+    const callsCount = callsInput.value || 0;
+    const smsCount = smsInput.value || 0;
+    const chatCount = chatInput.value || 0;
+    
+    const confirmMsg = `Update daily usage for ${identifierType}: ${identifier}?\n\n` +
+                      `Calls: ${callsCount}\n` +
+                      `SMS: ${smsCount}\n` +
+                      `Chat Messages: ${chatCount}`;
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
+    // Create a form with all values
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "manage_daily_usage" %}';
+    
+    // Get CSRF token from cookie or hidden input
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    let csrfToken = getCookie('csrftoken');
+    if (!csrfToken) {
+        // Fallback to hidden input
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfInput) {
+            csrfToken = csrfInput.value;
+        }
+    }
+    
+    if (!csrfToken) {
+        alert('CSRF token not found. Please refresh the page.');
+        return;
+    }
+    
+    const csrfInputField = document.createElement('input');
+    csrfInputField.type = 'hidden';
+    csrfInputField.name = 'csrfmiddlewaretoken';
+    csrfInputField.value = csrfToken;
+    form.appendChild(csrfInputField);
+    
+    const updateInput = document.createElement('input');
+    updateInput.type = 'hidden';
+    updateInput.name = 'update_usage';
+    updateInput.value = '1';
+    form.appendChild(updateInput);
+    
+    const docIdInput = document.createElement('input');
+    docIdInput.type = 'hidden';
+    docIdInput.name = 'doc_id';
+    docIdInput.value = docId;
+    form.appendChild(docIdInput);
+    
+    const callsInputField = document.createElement('input');
+    callsInputField.type = 'hidden';
+    callsInputField.name = 'calls_count';
+    callsInputField.value = callsCount;
+    form.appendChild(callsInputField);
+    
+    const smsInputField = document.createElement('input');
+    smsInputField.type = 'hidden';
+    smsInputField.name = 'sms_count';
+    smsInputField.value = smsCount;
+    form.appendChild(smsInputField);
+    
+    const chatInputField = document.createElement('input');
+    chatInputField.type = 'hidden';
+    chatInputField.name = 'dailyChatMessageCount';
+    chatInputField.value = chatCount;
+    form.appendChild(chatInputField);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Auto-submit on Enter key in input fields
+document.addEventListener('DOMContentLoaded', function() {
+    const countInputs = document.querySelectorAll('.count-input');
+    countInputs.forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const docId = this.getAttribute('data-doc-id');
+                const row = this.closest('tr');
+                const identifier = row.querySelector('.id-cell, .user-id-badge')?.textContent.trim() || docId;
+                const identifierType = row.querySelector('.identifier-badge')?.textContent.trim() || 'Record';
+                updateUsage(docId, identifier, identifierType);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -2,357 +2,220 @@
 {% load humanize %}
 {% load custom_filters %}
 {% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
-        <div class="small">
-            <span class="text-muted">{{ current_datetime|date:"l, F j, Y" }}</span>
-        </div>
-    </div>
-
-    <!-- Row 1: Summary Cards -->
-    <div class="row">
-        <!-- Users Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Users</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_users }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'manage_users' %}" class="text-primary small font-weight-bold">
-                        View Details <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Orders Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Total Orders</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_orders }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'view_orders' %}" class="text-success small font-weight-bold">
-                        View Details <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Earnings Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Earnings</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ total_earnings|intcomma }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'view_orders' %}" class="text-info small font-weight-bold">
-                        View Details <i class="fas fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-    <div class="card border-left-warning shadow h-100 py-2">
-        <div class="card-body">
-            <div class="row no-gutters align-items-center">
-                <div class="col mr-2">
-                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                        QR Codes</div>
-                    <div class="row no-gutters align-items-center">
-                        <div class="col-auto">
-                            <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ total_qr }}</div>
-                        </div>
-                        <div class="col">
-                            <div class="progress progress-sm mr-2">
-                                <div class="progress-bar bg-warning" role="progressbar"
-                                    style="width: {{ active_qr|percentage:total_qr }}%" 
-                                    aria-valuenow="{{ active_qr|percentage:total_qr }}" 
-                                    aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <small class="text-muted">{{ active_qr }} Active / {{ inactive_qr }} Inactive</small>
-                </div>
-                <div class="col-auto">
-                    <i class="fas fa-qrcode fa-2x text-gray-300"></i>
-                </div>
-            </div>
-        </div>
-        <div class="card-footer bg-transparent">
-            <a href="{% url 'manage_qrs' %}" class="text-warning small font-weight-bold">
-                View Details <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-</div>
-    </div>
-
-    <!-- Row 2: Today's Stats -->
-    <div class="row">
-        <!-- Today's Orders -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Today's Orders</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_orders }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Today's Earnings -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Today's Earnings</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ today_earnings|intcomma }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Last Week Orders -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Last 7 Days Orders</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ week_orders }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-week fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Order Status Summary -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Order Status</div>
-                            <div class="h6 mb-0 text-gray-800">
-                                {% for status, count in status_counts.items %}
-                                    {% if count > 0 %}
-                                        <span class="badge badge-pill 
-                                            {% if status == 3 %}badge-success
-                                            {% elif status == 0 %}badge-secondary
-                                            {% elif status == 4 %}badge-danger
-                                            {% else %}badge-info{% endif %}">
-                                            {{ STATUS_MAPPING|get_item:status }}: {{ count }}
-                                        </span>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Row 3: Charts -->
-    <div class="row">
-        <!-- Order Status Pie Chart -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Order Status Distribution</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-pie pt-4 pb-2">
-                        <canvas id="orderStatusChart"></canvas>
-                    </div>
-                    <div class="mt-4 text-center small">
-                        {% for status, count in status_counts.items %}
-                            {% if count > 0 %}
-                                <span class="mr-2">
-                                    <i class="fas fa-circle 
-                                        {% if status == 3 %}text-success
-                                        {% elif status == 0 %}text-secondary
-                                        {% elif status == 4 %}text-danger
-                                        {% else %}text-info{% endif %}"></i> 
-                                    {{ STATUS_MAPPING|get_item:status }}
-                                </span>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Orders Table -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Orders</h6>
-                    <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+<!-- Main Stats Cards -->
+<div class="row g-4 mb-4">
+    <!-- Total Users -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Total Users</div>
+                        <div class="h3 mb-0 fw-bold">{{ total_users }}</div>
+                        <a href="{% url 'manage_users' %}" class="text-decoration-none small text-primary mt-2 d-inline-block">
+                            View Details <i class="fas fa-arrow-right ms-1"></i>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                            aria-labelledby="dropdownMenuLink">
-                            <a class="dropdown-item" href="{% url 'view_orders' %}">View All Orders</a>
-                        </div>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="fas fa-users"></i>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in all_orders|slice:":5" %}
-                                <tr>
-                                    <td>{{ order.id|truncatechars:8 }}</td>
-                                    <td>{{ order.fullName }}</td>
-                                    <td>₹{{ order.amount }}</td>
-                                    <td>
-                                        <span class="badge 
-                                            {% if order.orderStatus == 3 %}badge-success
-                                            {% elif order.orderStatus == 0 %}badge-secondary
-                                            {% elif order.orderStatus == 4 %}badge-danger
-                                            {% else %}badge-info{% endif %}">
-                                            {{ STATUS_MAPPING|get_item:order.orderStatus }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Orders -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Total Orders</div>
+                        <div class="h3 mb-0 fw-bold">{{ total_orders }}</div>
+                        <a href="{% url 'view_orders' %}" class="text-decoration-none small text-success mt-2 d-inline-block">
+                            View Details <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Earnings -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Total Earnings</div>
+                        <div class="h3 mb-0 fw-bold">₹{{ total_earnings|intcomma }}</div>
+                        <a href="{% url 'view_orders' %}" class="text-decoration-none small text-info mt-2 d-inline-block">
+                            View Details <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Codes -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">QR Codes</div>
+                        <div class="h3 mb-0 fw-bold">{{ total_qr }}</div>
+                        <div class="small text-muted mt-1">
+                            <span class="text-success">{{ active_qr }} Active</span> / 
+                            <span class="text-muted">{{ inactive_qr }} Inactive</span>
+                        </div>
+                        <a href="{% url 'manage_qrs' %}" class="text-decoration-none small text-warning mt-2 d-inline-block">
+                            View Details <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="fas fa-qrcode"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<!-- Page level plugins -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Today's Stats -->
+<div class="row g-4 mb-4">
+    <!-- Today's Orders -->
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Today's Orders</div>
+                        <div class="h4 mb-0 fw-bold text-primary">{{ today_orders }}</div>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script>
-// Order Status Pie Chart
-var ctx = document.getElementById("orderStatusChart");
-var orderStatusChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-        labels: [
-            {% for status, count in status_counts.items %}
-                {% if count > 0 %}"{{ STATUS_MAPPING|get_item:status }}",{% endif %}
-            {% endfor %}
-        ],
-        datasets: [{
-            data: [
-                {% for status, count in status_counts.items %}
-                    {% if count > 0 %}{{ count }},{% endif %}
-                {% endfor %}
-            ],
-            backgroundColor: [
-                {% for status, count in status_counts.items %}
-                    {% if count > 0 %}
-                        {% if status == 3 %}'#1cc88a',
-                        {% elif status == 0 %}'#858796',
-                        {% elif status == 4 %}'#e74a3b',
-                        {% else %}'#36b9cc',
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            ],
-            hoverBackgroundColor: [
-                {% for status, count in status_counts.items %}
-                    {% if count > 0 %}
-                        {% if status == 3 %}'#17a673',
-                        {% elif status == 0 %}'#6c757d',
-                        {% elif status == 4 %}'#be2617',
-                        {% else %}'#2c9faf',
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            ],
-            hoverBorderColor: "rgba(234, 236, 244, 1)",
-        }],
-    },
-    options: {
-        maintainAspectRatio: false,
-        tooltips: {
-            backgroundColor: "rgb(255,255,255)",
-            bodyFontColor: "#858796",
-            borderColor: '#dddfeb',
-            borderWidth: 1,
-            xPadding: 15,
-            yPadding: 15,
-            displayColors: false,
-            caretPadding: 10,
-        },
-        legend: {
-            display: false
-        },
-        cutoutPercentage: 80,
-    },
-});
-</script>
+    <!-- Today's Earnings -->
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Today's Earnings</div>
+                        <div class="h4 mb-0 fw-bold text-success">₹{{ today_earnings|intcomma }}</div>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Last 7 Days Orders -->
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Last 7 Days Orders</div>
+                        <div class="h4 mb-0 fw-bold text-info">{{ week_orders }}</div>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Recent Orders</h5>
+                <a href="{% url 'view_orders' %}" class="btn btn-sm btn-primary">
+                    View All <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in all_orders|slice:":10" %}
+                            <tr>
+                                <td>
+                                    <span class="font-monospace small" style="word-break: break-all;">{{ order.id }}</span>
+                                </td>
+                                <td>{{ order.fullName|default:"N/A" }}</td>
+                                <td class="fw-bold">₹{{ order.amount|default:0 }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if order.orderStatus == 3 %}bg-success
+                                        {% elif order.orderStatus == 0 %}bg-secondary
+                                        {% elif order.orderStatus == 4 %}bg-danger
+                                        {% else %}bg-info{% endif %}">
+                                        {{ STATUS_MAPPING|get_item:order.orderStatus|default:"Unknown" }}
+                                    </span>
+                                </td>
+                                <td class="text-muted small">
+                                    {% if order.timestamp %}
+                                        {{ order.timestamp|to_ist|date:"M d, Y" }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                    No orders found
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .font-monospace {
+        font-family: 'Courier New', monospace;
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+</style>
 {% endblock %}

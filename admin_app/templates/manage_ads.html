@@ -1,41 +1,141 @@
 <!-- templates/manage_ads.html -->
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_filters %}
 
-{% block title %}Manage Ads - Sudo Admin{% endblock %}
+{% block title %}Manage Ads - Admin Panel{% endblock %}
+{% block page_title %}Manage Ads{% endblock %}
 
 {% block extra_head %}
 <style>
-    .ad-section {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    .manage-ads-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .card-header-custom {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .card-header-custom h4 {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.25rem;
+    }
+    .card-body-custom {
+        padding: 2rem;
+    }
+    .nav-tabs {
+        border-bottom: 2px solid #e5e7eb;
+        margin-bottom: 2rem;
+    }
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs .nav-link:hover {
+        color: #0d6efd;
+        border-bottom-color: #dee2e6;
+    }
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        background: transparent;
+        border-bottom-color: #0d6efd;
+        font-weight: 600;
     }
     .ad-card {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background: #f8f9fa;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        background: #fff;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+    .ad-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
     }
     .ad-card img {
         max-width: 100%;
-        border-radius: 5px;
+        border-radius: 0.5rem;
         max-height: 200px;
         object-fit: cover;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1rem;
     }
-    .nav-tabs .nav-link.active {
-        background: #4e73df;
-        color: white;
+    .ad-card h6 {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+    }
+    .ad-card .small {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    .btn-primary {
+        background: #0d6efd;
         border: none;
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
     }
-    .nav-tabs .nav-link {
-        color: #4e73df;
+    .btn-primary:hover {
+        background: #0b5ed7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
     }
     .badge {
-        font-size: 0.75em;
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+    }
+    .tab-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .tab-header h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    @media (max-width: 768px) {
+        .card-body-custom {
+            padding: 1.5rem;
+        }
+        .tab-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .tab-header .btn {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -44,15 +144,15 @@
 <div class="row">
      <!-- <h1 class="mt-4 mb-4">Ad Management</h1> -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-dark text-white">
-                <h4 class="mb-0">Manage Advertisement</h4>
+        <div class="manage-ads-card">
+            <div class="card-header-custom">
+                <h4><i class="fas fa-ad me-2"></i>Manage Advertisement</h4>
             </div>
-            <div class="card-body">
+            <div class="card-body-custom">
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
+                        <div class="alert alert-{% if message.class %}{{ message.class }}{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                            {% if message.text %}{{ message.text }}{% elif message.message %}{{ message.message }}{% else %}{{ message }}{% endif %}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     {% endfor %}
@@ -82,7 +182,7 @@
                     
                     <!-- Banner Ads Tab -->
                     <div class="tab-pane fade show active" id="banner" role="tabpanel">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="tab-header">
                             <h5>Banner Advertisement</h5>
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBannerModal">
                                 <i class="fas fa-plus me-1"></i>Add Banner Ad
@@ -98,7 +198,7 @@
                                     {% endif %}
                                     <h6>{{ ad.message|default:"No message" }}</h6>
                                     <p class="small mb-1"><strong>Link:</strong> {{ ad.link|default:"No link" }}</p>
-                                    <p class="small mb-2"><strong>Created:</strong> {{ ad.timestamp }}</p>
+                                    <p class="small mb-2"><strong>Created:</strong> {{ ad.timestamp|to_ist|date:"M d, Y g:i A" }}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="badge bg-{% if ad.is_active %}success{% else %}danger{% endif %}">
                                             {% if ad.is_active %}Active{% else %}Inactive{% endif %}
@@ -122,10 +222,11 @@
                                 </div>
                             </div>
                             {% empty %}
-                            <div class="col-12 text-center py-4">
-                                <div class="text-muted">
-                                    <i class="fas fa-image fa-3x mb-3"></i>
-                                    <p>No banner ads found. Add your first banner ad!</p>
+                            <div class="col-12">
+                                <div class="empty-state">
+                                    <i class="fas fa-image"></i>
+                                    <h6 class="text-muted">No banner ads found</h6>
+                                    <p class="text-muted mb-0">Add your first banner ad to get started!</p>
                                 </div>
                             </div>
                             {% endfor %}
@@ -135,7 +236,7 @@
                     <!-- Marquee Ads Tab -->
 <!-- Marquee Ads Tab -->
 <div class="tab-pane fade" id="marquee" role="tabpanel">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="tab-header">
         <h5>Marquee Advertisement</h5>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMarqueeModal">
             <i class="fas fa-plus me-1"></i>Add Marquee Ad
@@ -175,10 +276,11 @@
             </div>
         </div>
         {% empty %}
-        <div class="col-12 text-center py-4">
-            <div class="text-muted">
-                <i class="fas fa-scroll fa-3x mb-3"></i>
-                <p>No marquee ads found. Add your first marquee ad!</p>
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="fas fa-scroll"></i>
+                <h6 class="text-muted">No marquee ads found</h6>
+                <p class="text-muted mb-0">Add your first marquee ad to get started!</p>
             </div>
         </div>
         {% endfor %}
@@ -187,7 +289,7 @@
 
                     <!-- Popup Ads Tab -->
                     <div class="tab-pane fade" id="popup" role="tabpanel">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="tab-header">
                             <h5>Popup Advertisement</h5>
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPopupModal">
                                 <i class="fas fa-plus me-1"></i>Add Popup Ad
@@ -203,7 +305,7 @@
                                     {% endif %}
                                     <h6>{{ ad.message|default:"No message" }}</h6>
                                     <p class="small mb-1"><strong>Link:</strong> {{ ad.link|default:"No link" }}</p>
-                                    <p class="small mb-2"><strong>Created:</strong> {{ ad.timestamp }}</p>
+                                    <p class="small mb-2"><strong>Created:</strong> {{ ad.timestamp|to_ist|date:"M d, Y g:i A" }}</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="badge bg-{% if ad.is_active %}success{% else %}danger{% endif %}">
                                             {% if ad.is_active %}Active{% else %}Inactive{% endif %}
@@ -227,10 +329,11 @@
                                 </div>
                             </div>
                             {% empty %}
-                            <div class="col-12 text-center py-4">
-                                <div class="text-muted">
-                                    <i class="fas fa-window-restore fa-3x mb-3"></i>
-                                    <p>No popup ads found. Add your first popup ad!</p>
+                            <div class="col-12">
+                                <div class="empty-state">
+                                    <i class="fas fa-window-restore"></i>
+                                    <h6 class="text-muted">No popup ads found</h6>
+                                    <p class="text-muted mb-0">Add your first popup ad to get started!</p>
                                 </div>
                             </div>
                             {% endfor %}

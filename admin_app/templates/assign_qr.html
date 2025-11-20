@@ -1,19 +1,138 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_filters %}
 
-{% block title %}Assign QR Code - Sudo Admin{% endblock %}
+{% block title %}Assign QR Code - Admin Panel{% endblock %}
+{% block page_title %}Assign QR Code{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<style>
+    .assign-qr-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .card-header-custom {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .card-header-custom h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.1rem;
+    }
+    .card-body-custom {
+        padding: 2rem;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    .form-control,
+    .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d5db;
+        padding: 0.75rem;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        outline: none;
+    }
+    .info-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .info-card-header {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .info-card-header h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1rem;
+    }
+    .info-card-body {
+        padding: 1.5rem;
+    }
+    .preview-card {
+        border: 2px solid #0d6efd;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        background: #f8f9ff;
+    }
+    .preview-header {
+        background: #0d6efd;
+        color: white;
+        padding: 1rem 1.5rem;
+    }
+    .preview-header h6 {
+        margin: 0;
+        font-weight: 600;
+    }
+    .preview-body {
+        padding: 1.5rem;
+    }
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0d6efd;
+    }
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .btn-primary {
+        background: #0d6efd;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+        background: #0b5ed7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .btn-secondary {
+        background: #6c757d;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+    }
+    .btn-secondary:hover {
+        background: #5c636a;
+    }
+    @media (max-width: 768px) {
+        .card-body-custom {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
     <!-- Toast Container -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
         {% for message in messages %}
-        <div class="toast align-items-center text-white bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} border-0" 
+        <div class="toast align-items-center text-white bg-{% if message.class == 'error' or message.class == 'danger' %}danger{% elif message.class == 'success' %}success{% elif message.class == 'warning' %}warning{% else %}info{% endif %} border-0" 
              role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
             <div class="d-flex">
                 <div class="toast-body">
-                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
-                    {{ message }}
+                    <i class="fas fa-{% if message.class == 'success' %}check-circle{% elif message.class == 'error' or message.class == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message.text }}
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
@@ -21,14 +140,13 @@
         {% endfor %}
     </div>
 
-
     <div class="row">
         <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Assign QR Code to User Vehicle</h6>
+            <div class="assign-qr-card">
+                <div class="card-header-custom">
+                    <h5><i class="fas fa-link me-2"></i>Assign QR Code to User Vehicle</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body-custom">
                     <form method="POST" id="assignQrForm">
                         {% csrf_token %}
                         
@@ -39,10 +157,10 @@
                                 <select class="form-select" id="qr_id" name="qr_id" required>
                                     <option value="">Choose a QR Code...</option>
                                     {% for qr in unassigned_qrs %}
-                                    <option value="{{ qr.id }}" data-full-id="{{ qr.id }}">
+                                    <option value="{{ qr.id }}" data-full-id="{{ qr.id }}" {% if request.GET.qr_id == qr.id %}selected{% endif %}>
                                         {{ qr.id }} 
                                         {% if qr.createdDateTime %}
-                                        (Created: {{ qr.createdDateTime|date:"M d, Y H:i" }})
+                                        (Created: {{ qr.createdDateTime|to_ist|date:"M d, Y g:i A" }})
                                         {% endif %}
                                     </option>
                                     {% empty %}
@@ -95,24 +213,24 @@
                         </div>
 
                         <!-- Preview Section -->
-                        <div class="card border-primary mb-4" id="previewSection" style="display: none;">
-                            <div class="card-header bg-primary text-white">
+                        <div class="preview-card mb-4" id="previewSection" style="display: none;">
+                            <div class="preview-header">
                                 <h6 class="mb-0"><i class="fas fa-eye me-2"></i>Assignment Preview</h6>
                             </div>
-                            <div class="card-body">
-                                <div class="row">
+                            <div class="preview-body">
+                                <div class="row g-3">
                                     <div class="col-md-4">
-                                        <strong class="text-primary">QR Code:</strong>
-                                        <div class="mt-1" id="previewQr">
-                                            <code class="bg-light p-1 rounded d-block text-sm"></code>
+                                        <strong class="text-primary d-block mb-2">QR Code:</strong>
+                                        <div id="previewQr">
+                                            <code class="bg-white p-2 rounded d-block text-sm border" style="word-break: break-all;"></code>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <strong class="text-primary">User:</strong>
+                                        <strong class="text-primary d-block mb-2">User:</strong>
                                         <div class="mt-1" id="previewUser"></div>
                                     </div>
                                     <div class="col-md-4">
-                                        <strong class="text-primary">Vehicle:</strong>
+                                        <strong class="text-primary d-block mb-2">Vehicle:</strong>
                                         <div class="mt-1" id="previewVehicle"></div>
                                     </div>
                                 </div>
@@ -132,40 +250,40 @@
 
         <!-- Information Card -->
         <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Assignment Information</h6>
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h6><i class="fas fa-info-circle me-2"></i>Assignment Information</h6>
                 </div>
-                <div class="card-body">
-                    <h6 class="text-primary">How it works:</h6>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-check text-success me-2"></i>Select an unassigned QR code</li>
-                        <li><i class="fas fa-check text-success me-2"></i>Choose a user with vehicles</li>
-                        <li><i class="fas fa-check text-success me-2"></i>Select the target vehicle</li>
-                        <li><i class="fas fa-check text-success me-2"></i>Complete the assignment</li>
+                <div class="info-card-body">
+                    <h6 class="mb-3" style="color: #0d6efd; font-weight: 600;">How it works:</h6>
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an unassigned QR code</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose a user with vehicles</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select the target vehicle</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Complete the assignment</li>
                     </ul>
                     
-                    <hr>
+                    <hr class="my-4">
                     
-                    <h6 class="text-primary">Statistics:</h6>
-                    <div class="row text-center">
+                    <h6 class="mb-3" style="color: #0d6efd; font-weight: 600;">Statistics:</h6>
+                    <div class="row text-center mb-4">
                         <div class="col-6">
-                            <div class="text-primary fw-bold h5">{{ unassigned_qrs|length }}</div>
-                            <small class="text-muted">Available QR Codes</small>
+                            <div class="stat-number">{{ unassigned_qrs|length }}</div>
+                            <div class="stat-label">Available QR Codes</div>
                         </div>
                         <div class="col-6">
-                            <div class="text-success fw-bold h5">{{ users_with_vehicles|length }}</div>
-                            <small class="text-muted">Users with Vehicles</small>
+                            <div class="stat-number text-success">{{ users_with_vehicles|length }}</div>
+                            <div class="stat-label">Users with Vehicles</div>
                         </div>
                     </div>
                     
-                    <hr>
+                    <hr class="my-4">
                     
-                    <h6 class="text-primary">Quick Tips:</h6>
+                    <h6 class="mb-3" style="color: #0d6efd; font-weight: 600;">Quick Tips:</h6>
                     <ul class="list-unstyled small">
-                        <li><i class="fas fa-search me-2 text-info"></i>Use search to filter QR codes and users</li>
-                        <li><i class="fas fa-id-card me-2 text-info"></i>Full QR code IDs are displayed for accuracy</li>
-                        <li><i class="fas fa-sync me-2 text-info"></i>Vehicles load dynamically when user is selected</li>
+                        <li class="mb-2"><i class="fas fa-search me-2" style="color: #0d6efd;"></i>Use search to filter QR codes and users</li>
+                        <li class="mb-2"><i class="fas fa-id-card me-2" style="color: #0d6efd;"></i>Full QR code IDs are displayed for accuracy</li>
+                        <li class="mb-2"><i class="fas fa-sync me-2" style="color: #0d6efd;"></i>Vehicles load dynamically when user is selected</li>
                     </ul>
                 </div>
             </div>
@@ -454,6 +572,20 @@ document.getElementById('resetBtn').addEventListener('click', function() {
 document.getElementById('qr_id').addEventListener('change', updatePreview);
 document.getElementById('user_id').addEventListener('change', updatePreview);
 document.getElementById('vehicle_id').addEventListener('change', updatePreview);
+
+// Handle pre-selected QR code from URL parameter
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const qrId = urlParams.get('qr_id');
+    if (qrId) {
+        const qrSelect = document.getElementById('qr_id');
+        qrSelect.value = qrId;
+        // Trigger change event to update preview
+        qrSelect.dispatchEvent(new Event('change'));
+        // Scroll to form
+        qrSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
 
 // Initial state
 updatePreview();

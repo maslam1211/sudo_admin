@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Firebase Auth Users - Admin Panel{% endblock %}
+{% block page_title %}Firebase Authentication Users{% endblock %}
+
+{% block content %}
+<style>
+    .auth-users-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .auth-users-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        border-radius: 0.75rem 0.75rem 0 0;
+        border-bottom: none;
+    }
+    .table-custom {
+        font-size: 0.875rem;
+    }
+    .table-custom thead th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        padding: 0.75rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .table-custom tbody td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    .uid-cell {
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        word-break: break-all;
+        cursor: pointer;
+        color: #0d6efd;
+    }
+    .uid-cell:hover {
+        text-decoration: underline;
+    }
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Firebase Authentication Users</h2>
+        <p class="text-muted mb-0">Total Users: <strong>{{ total_count }}</strong></p>
+    </div>
+    <div>
+        <a href="{% url 'delete_data' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Data Management
+        </a>
+    </div>
+</div>
+
+<div class="auth-users-card">
+    <div class="auth-users-header">
+        <h5 class="mb-0">
+            <i class="fas fa-users-cog me-2"></i>Authentication Users List
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if auth_users %}
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th width="4%">
+                                <input type="checkbox" id="selectAllAuth" title="Select All">
+                            </th>
+                            <th width="25%">UID</th>
+                            <th width="20%">Email</th>
+                            <th width="15%">Display Name</th>
+                            <th width="12%">Phone</th>
+                            <th width="8%">Status</th>
+                            <th width="8%">Verified</th>
+                            <th width="8%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in auth_users %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="auth-user-checkbox" value="{{ user.uid }}" name="selected_auth_users">
+                            </td>
+                            <td>
+                                <span class="uid-cell" onclick="copyToClipboard('{{ user.uid }}', this)" title="Click to copy">
+                                    {{ user.uid }}
+                                </span>
+                            </td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.display_name }}</td>
+                            <td>{{ user.phone_number }}</td>
+                            <td>
+                                {% if user.disabled %}
+                                    <span class="badge bg-danger status-badge">Disabled</span>
+                                {% else %}
+                                    <span class="badge bg-success status-badge">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.email_verified %}
+                                    <span class="badge bg-success status-badge">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-warning status-badge">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="deleteAuthUser('{{ user.uid }}', '{{ user.email }}')"
+                                        title="Delete User">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Bulk Delete Section -->
+            <div class="card-body border-top">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="authConfirmText" class="form-label">
+                                Type <strong>DELETE ALL</strong> to confirm bulk deletion:
+                            </label>
+                            <input type="text" class="form-control" id="authConfirmText" 
+                                   placeholder="Type DELETE ALL here">
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button type="button" class="btn btn-danger" onclick="confirmBulkDeleteAuth()">
+                            <i class="fas fa-bomb me-1"></i> Delete Selected Users
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Authentication Users Found</h4>
+                <p class="text-muted">There are no Firebase Authentication users in the system.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Are you sure you want to delete this user?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Copy UID to clipboard
+function copyToClipboard(text, element) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = element.textContent;
+        element.textContent = 'Copied!';
+        element.style.color = '#10b981';
+        setTimeout(() => {
+            element.textContent = originalText;
+            element.style.color = '#0d6efd';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+
+// Delete individual auth user
+function deleteAuthUser(uid, email) {
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const modalMessage = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    modalMessage.textContent = `Are you sure you want to delete Firebase Auth user "${email}" (UID: ${uid})? This action cannot be undone.`;
+    
+    confirmBtn.onclick = function() {
+        window.location.href = `/admin/delete-auth-user/${uid}/`;
+    };
+    
+    modal.show();
+}
+
+// Select all checkbox
+document.getElementById('selectAllAuth')?.addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.auth-user-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Bulk delete auth users
+function confirmBulkDeleteAuth() {
+    const selectedUids = Array.from(document.querySelectorAll('.auth-user-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+    
+    const confirmText = document.getElementById('authConfirmText').value;
+    
+    if (selectedUids.length === 0) {
+        alert('Please select at least one user.');
+        return;
+    }
+    
+    if (confirmText !== 'DELETE ALL') {
+        alert('Please type "DELETE ALL" to confirm the deletion.');
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const modalMessage = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    modalMessage.textContent = `Are you sure you want to delete ${selectedUids.length} Firebase Auth user(s)? This will permanently delete these users and cannot be undone.`;
+    
+    confirmBtn.onclick = function() {
+        // Submit bulk delete via AJAX
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('confirm_text', confirmText);
+        
+        selectedUids.forEach(uid => {
+            formData.append('uids[]', uid);
+        });
+        
+        fetch('{% url "bulk_delete_auth_users" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+        
+        modal.hide();
+    };
+    
+    modal.show();
+}
+</script>
+{% endblock %}
+

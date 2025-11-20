@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block title %}Archived Users{% endblock %}
 {% block content %}
 <div class="container-fluid">
@@ -35,8 +36,8 @@
             <td>{{ u.full_name }}</td>
             <td>{{ u.email }}</td>
             <td>{{ u.phone }}</td>
-            <td>{{ u.original_created_at|date:"Y-m-d H:i" }}</td>
-            <td>{{ u.archived_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ u.original_created_at|to_ist|date:"Y-m-d g:i A" }}</td>
+            <td>{{ u.archived_at|to_ist|date:"Y-m-d g:i A" }}</td>
           </tr>
           {% empty %}
           <tr>

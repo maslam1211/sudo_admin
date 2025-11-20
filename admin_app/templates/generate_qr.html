@@ -1,89 +1,243 @@
 {% extends 'base.html' %}
 
+{% block title %}Generate QR Codes - Admin Panel{% endblock %}
+{% block page_title %}Generate QR Codes{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0 text-center">Generate QR Codes</h4>
+<style>
+    .generate-qr-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .card-header-custom {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .card-header-custom h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.1rem;
+    }
+    .card-body-custom {
+        padding: 2rem;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    .form-control,
+    .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d5db;
+        padding: 0.75rem;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        outline: none;
+    }
+    .btn-generate {
+        background: #0d6efd;
+        border: none;
+        color: white;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    .btn-generate:hover {
+        background: #0b5ed7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .generated-qr-header {
+        background: #f8f9fa;
+        color: #212529;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+    }
+    .generated-qr-header h4 {
+        margin: 0;
+        font-weight: 600;
+        color: #212529;
+    }
+    .generated-qr-header p {
+        margin: 0.5rem 0 0 0;
+        color: #6c757d;
+    }
+    .qr-result-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: #fff;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    .qr-result-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px -1px rgba(0, 0, 0, 0.15);
+    }
+    .qr-result-card .card-header {
+        background: #f8fafc;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .qr-result-card .card-body {
+        padding: 2rem;
+        text-align: center;
+    }
+    .qr-result-card img {
+        width: 100%;
+        max-width: 250px;
+        height: auto;
+        border: 3px solid #212529;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .qr-id-display {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        color: #212529;
+        margin-top: 1rem;
+        word-break: break-all;
+        background: #f8f9fa;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    .qr-id-display strong {
+        color: #495057;
+        font-size: 0.85rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    .qr-id-display span {
+        font-weight: 600;
+        color: #212529;
+        font-size: 1rem;
+    }
+    .input-group-custom {
+        position: relative;
+    }
+    .input-group-custom .form-control {
+        padding-right: 3rem;
+    }
+    .input-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+    }
+    @media (max-width: 768px) {
+        .card-body-custom {
+            padding: 1.5rem;
+        }
+        .qr-type-card {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="generate-qr-card">
+            <div class="card-body-custom">
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                <div class="card-body">
-                    {% if error %}
-                    <div class="alert alert-danger">{{ error }}</div>
-                    {% endif %}
+                {% endif %}
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="qr_type" value="user">
                     
-                    <form method="POST">
-                        {% csrf_token %}
-                        
+                    <div id="userFields">
                         <div class="mb-4">
-                            <h5 class="mb-3">Select QR Code Type:</h5>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="qr_type" id="user_qr" value="user" checked>
-                                <label class="form-check-label" for="user_qr">
-                                    <i class="bi bi-person-plus-fill"></i> Normal QR
-                                </label>
+                            <label for="count" class="form-label">
+                                <i class="fas fa-hashtag me-2"></i>Number of QR Codes
+                            </label>
+                            <div class="input-group-custom">
+                                <input type="number" id="count" name="count" class="form-control" required min="1" max="100" value="1" placeholder="Enter number of QR codes to generate">
+                                <i class="fas fa-qrcode input-icon"></i>
                             </div>
-                            <!-- <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="qr_type" id="external_qr" value="external">
-                                <label class="form-check-label" for="external_qr">
-                                    <i class="bi bi-link-45deg"></i> External QR
-                                </label>
-                            </div> -->
+                            <small class="text-muted">You can generate between 1 and 100 QR codes at once</small>
                         </div>
+                    </div>
 
-                        <div id="userFields">
-                            <div class="mb-3">
-                                <label for="count" class="form-label">Number of QR Codes</label>
-                                <input type="number" id="count" name="count" class="form-control" required min="1" value="1">
-                            </div>
-                        </div>
-
-                        <div id="externalFields" style="display: none;">
-                            <div class="mb-3">
-                                <label for="external_count" class="form-label">Number of QR Codes</label>
-                                <input type="number" id="external_count" name="external_count" class="form-control" min="1" value="1">
+                    <div id="externalFields" style="display: none;">
+                        <div class="mb-4">
+                            <label for="external_count" class="form-label">
+                                <i class="fas fa-hashtag me-2"></i>Number of QR Codes
+                            </label>
+                            <div class="input-group-custom">
+                                <input type="number" id="external_count" name="external_count" class="form-control" min="1" max="100" value="1" placeholder="Enter number of QR codes to generate">
+                                <i class="fas fa-qrcode input-icon"></i>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-qr-code"></i> Generate QR Codes
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-generate">
+                            <i class="fas fa-qrcode me-2"></i>Generate QR Codes
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
     {% if qr_data %}
     <div class="mt-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0">Generated QR Codes</h4>
-            <a href="{% url 'download_qr_pdf' %}" class="btn btn-success">
-                <i class="bi bi-file-earmark-pdf"></i> Download PDF
-            </a>
+        <div class="generated-qr-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h4 class="mb-1"><i class="fas fa-check-circle me-2 text-success"></i>Generated QR Codes</h4>
+                    <p class="mb-0">Successfully generated {{ qr_data|length }} QR code{{ qr_data|length|pluralize }}</p>
+                </div>
+                <a href="{% url 'download_qr_pdf' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-file-pdf me-2"></i>Download PDF
+                </a>
+            </div>
         </div>
         
-        <div class="row row-cols-1 row-cols-md-3 g-4">
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             {% for qr in qr_data %}
             <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-header bg-light">
+                <div class="qr-result-card h-100">
+                    <div class="card-header">
                         <h6 class="mb-0 text-center">
                             {% if qr.type == 'user' %}
-                            <i class="bi bi-person-fill"></i> QR Code
+                            <i class="fas fa-user me-2"></i>User QR Code
                             {% else %}
-                            <i class="bi bi-link-45deg"></i> External Registration
+                            <i class="fas fa-link me-2"></i>External Registration
                             {% endif %}
                         </h6>
                     </div>
-                    <div class="card-body text-center">
-                        <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                    <div class="card-body d-flex flex-column align-items-center">
+                        <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" alt="QR Code" class="img-fluid mb-3">
                         {% if qr.type == 'user' %}
-                        <div class="mt-3">
-                            <p class="small text-muted mb-0">QR ID: {{ qr.qrId }}</p>
+                        <div class="qr-id-display text-center w-100">
+                            <strong>QR ID:</strong>
+                            <span>{{ qr.qrId }}</span>
                         </div>
                         {% endif %}
                     </div>
@@ -113,28 +267,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     userQrRadio.addEventListener('change', toggleFields);
-    externalQrRadio.addEventListener('change', toggleFields);
+    if (externalQrRadio) {
+        externalQrRadio.addEventListener('change', toggleFields);
+    }
     toggleFields(); // Initialize
 });
-</script>
 
-<style>
-    .card {
-        border-radius: 15px;
-        overflow: hidden;
-    }
-    .card-header {
-        padding: 1rem 1.5rem;
-    }
-    .form-check-input:checked {
-        background-color: #4361ee;
-        border-color: #4361ee;
-    }
-    .qr-card {
-        transition: transform 0.3s ease;
-    }
-    .qr-card:hover {
-        transform: translateY(-5px);
-    }
-</style>
+</script>
 {% endblock %}

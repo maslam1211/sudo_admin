@@ -59,8 +59,8 @@
                                 {% for document in documents %}
                                 <tr>
                                     <td>
-                                        <div class="font-monospace small" title="{{ document.id }}">
-                                            {{ document.id|truncatechars:30 }}
+                                        <div class="font-monospace small" title="{{ document.id }}" style="word-break: break-all; cursor: pointer;" onclick="copyToClipboard('{{ document.id }}', this)">
+                                            {{ document.id }}
                                         </div>
                                         <small class="text-muted">Click to copy</small>
                                     </td>
@@ -254,22 +254,20 @@ function exportData(format) {
 }
 
 // Copy document ID to clipboard
-document.addEventListener('DOMContentLoaded', function() {
-    const docIdCells = document.querySelectorAll('td .font-monospace');
-    docIdCells.forEach(cell => {
-        cell.style.cursor = 'pointer';
-        cell.addEventListener('click', function() {
-            const docId = this.getAttribute('title');
-            navigator.clipboard.writeText(docId).then(() => {
-                const originalText = this.textContent;
-                this.textContent = 'Copied!';
-                setTimeout(() => {
-                    this.textContent = originalText;
-                }, 2000);
-            });
-        });
+function copyToClipboard(text, element) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = element.textContent;
+        element.textContent = 'Copied!';
+        element.style.color = '#10b981';
+        setTimeout(() => {
+            element.textContent = originalText;
+            element.style.color = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
     });
-});
+}
 
 // Search functionality (optional enhancement)
 function setupSearch() {

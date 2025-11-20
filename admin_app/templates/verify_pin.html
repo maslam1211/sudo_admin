@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify PIN - Admin Panel{% endblock %}
+{% block page_title %}PIN Verification Required{% endblock %}
+
+{% block content %}
+<style>
+    .pin-container {
+        max-width: 450px;
+        margin: 3rem auto;
+    }
+    .pin-card {
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        padding: 2.5rem;
+        border: 1px solid #e5e7eb;
+    }
+    .pin-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+    }
+    .pin-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    .pin-subtitle {
+        color: #64748b;
+        text-align: center;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+    .pin-input {
+        font-size: 1.25rem;
+        text-align: center;
+        letter-spacing: 0.5rem;
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+    .pin-input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        outline: none;
+    }
+    .pin-submit-btn {
+        width: 100%;
+        padding: 0.875rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        transition: all 0.2s;
+    }
+    .pin-submit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .error-message {
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #fecaca;
+        font-size: 0.875rem;
+    }
+    .back-link {
+        text-align: center;
+        margin-top: 1.5rem;
+    }
+    .back-link a {
+        color: #64748b;
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: color 0.2s;
+    }
+    .back-link a:hover {
+        color: #0d6efd;
+    }
+</style>
+
+<div class="pin-container">
+    <div class="pin-card">
+        <div class="pin-icon">
+            <i class="fas fa-lock"></i>
+        </div>
+        
+        <h2 class="pin-title">PIN Verification</h2>
+        <p class="pin-subtitle">Enter your PIN to access the Delete Data page</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="POST" action="{% url 'verify_delete_pin' %}" id="pinForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <input type="password" 
+                       class="form-control pin-input" 
+                       name="pin" 
+                       id="pinInput"
+                       placeholder="Enter PIN" 
+                       required 
+                       autofocus
+                       maxlength="20">
+            </div>
+            
+            <input type="hidden" name="next" value="{{ request.GET.next|default:'/admin/delete-data/' }}">
+            
+            <button type="submit" class="btn btn-primary pin-submit-btn">
+                <i class="fas fa-unlock me-2"></i>Verify & Continue
+            </button>
+        </form>
+        
+        <div class="back-link">
+            <a href="{% url 'dashboard' %}">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('pinForm').addEventListener('submit', function(e) {
+    const pinInput = document.getElementById('pinInput');
+    if (!pinInput.value.trim()) {
+        e.preventDefault();
+        alert('Please enter a PIN');
+        return false;
+    }
+});
+
+// Auto-focus and select on load
+document.addEventListener('DOMContentLoaded', function() {
+    const pinInput = document.getElementById('pinInput');
+    if (pinInput) {
+        pinInput.focus();
+    }
+});
+</script>
+{% endblock %}
+
