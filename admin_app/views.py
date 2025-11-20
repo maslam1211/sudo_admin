@@ -3761,8 +3761,33 @@ def manage_daily_usage(request):
             
             usage_ref.update(update_data)
             messages.success(request, f'Daily usage updated successfully for {doc_id}')
+            # Redirect to prevent duplicate submissions and ensure messages show on correct page
+            # Preserve search parameters if they exist
+            redirect_url = 'manage_daily_usage'
+            if request.GET.get('search') or request.GET.get('date') or request.GET.get('page'):
+                from urllib.parse import urlencode
+                params = {}
+                if request.GET.get('search'):
+                    params['search'] = request.GET.get('search')
+                if request.GET.get('date'):
+                    params['date'] = request.GET.get('date')
+                if params:
+                    redirect_url = f"{redirect_url}?{urlencode(params)}"
+            return redirect(redirect_url)
         except Exception as e:
             messages.error(request, f'Error updating daily usage: {str(e)}')
+            # Redirect even on error to show message on correct page
+            redirect_url = 'manage_daily_usage'
+            if request.GET.get('search') or request.GET.get('date'):
+                from urllib.parse import urlencode
+                params = {}
+                if request.GET.get('search'):
+                    params['search'] = request.GET.get('search')
+                if request.GET.get('date'):
+                    params['date'] = request.GET.get('date')
+                if params:
+                    redirect_url = f"{redirect_url}?{urlencode(params)}"
+            return redirect(redirect_url)
     
     # Get search/filter parameters
     search_term = request.GET.get('search', '').strip()
@@ -3895,6 +3920,7 @@ def manage_daily_usage(request):
             'paginator': paginator,
             'search_term': search_term,
             'search_date': search_date,
+            'messages': get_message_list(request),
         }
         return render(request, 'manage_daily_usage.html', context)
     
@@ -3905,6 +3931,7 @@ def manage_daily_usage(request):
             'paginator': None,
             'search_term': '',
             'search_date': '',
+            'messages': get_message_list(request),
         })
 
 def view_collection(request, collection_name):

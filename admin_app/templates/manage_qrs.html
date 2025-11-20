@@ -268,8 +268,8 @@
     
     <!-- QR Codes Table -->
     <div class="qr-table-wrapper">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
                 <thead>
                         <tr>
                             <th width="8%">QR Code</th>
@@ -286,8 +286,8 @@
                         <tr>
                             <td>
                                 <div class="qr-code-display position-relative">
-                                    <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" 
-                                         alt="QR Code" 
+                                <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" 
+                                     alt="QR Code" 
                                          class="qr-code-image"
                                          id="qr-image-{{ forloop.counter }}">
                                     <button type="button" class="copy-qr-btn" onclick="copyQRCode('{{ qr.qr_code_base64 }}', this)" title="Copy QR Code">
@@ -299,7 +299,7 @@
                                 <div class="qr-id-container">
                                     <span class="font-monospace" style="word-break: break-all; font-size: 0.8rem; flex: 1; min-width: 0;" title="{{ qr.doc_id }}">
                                         {{ qr.doc_id }}
-                                    </span>
+                                </span>
                                     <button type="button" class="copy-btn" onclick="copyToClipboard('{{ qr.doc_id }}', this)" title="Copy QR ID">
                                         <i class="fas fa-copy"></i>
                                     </button>
@@ -351,8 +351,8 @@
                             <td>
                                 <div class="action-buttons-container">
                                     <a class="action-btn action-btn-download" 
-                                       href="{% url 'regenerate_qr' qr_id=qr.doc_id %}"
-                                       title="Download QR Code">
+                                   href="{% url 'regenerate_qr' qr_id=qr.doc_id %}"
+                                   title="Download QR Code">
                                         <i class="fas fa-download me-1"></i>
                                         <span>Download</span>
                                     </a>
@@ -362,7 +362,7 @@
                                        title="Assign QR Code">
                                         <i class="fas fa-link me-1"></i>
                                         <span>Assign</span>
-                                    </a>
+                                </a>
                                     {% else %}
                                     <span class="action-badge">
                                         <i class="fas fa-check-circle me-1"></i>
@@ -383,9 +383,9 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Pagination -->
     {% if qrs.paginator.num_pages > 1 %}

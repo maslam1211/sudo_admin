@@ -7,6 +7,19 @@
 {% block content %}
 <!-- CSRF Token for JavaScript -->
 {% csrf_token %}
+
+<!-- Notification Messages -->
+{% if messages %}
+<div class="mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.class %}{{ message.class }}{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+        {% if message.text %}{{ message.text }}{% elif message.message %}{{ message.message }}{% else %}{{ message }}{% endif %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <style>
     .usage-card {
         background: #fff;
@@ -350,7 +363,17 @@ function updateUsage(docId, identifier, identifierType) {
     // Create a form with all values
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '{% url "manage_daily_usage" %}';
+    // Preserve current URL parameters (search, date, page)
+    const currentUrl = new URL(window.location.href);
+    const params = new URLSearchParams();
+    if (currentUrl.searchParams.get('search')) {
+        params.append('search', currentUrl.searchParams.get('search'));
+    }
+    if (currentUrl.searchParams.get('date')) {
+        params.append('date', currentUrl.searchParams.get('date'));
+    }
+    const queryString = params.toString();
+    form.action = '{% url "manage_daily_usage" %}' + (queryString ? '?' + queryString : '');
     
     // Get CSRF token from cookie or hidden input
     function getCookie(name) {
