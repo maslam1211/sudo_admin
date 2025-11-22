@@ -21,6 +21,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from dotenv import load_dotenv
+from .serializers import CallWebhookSerializer
 # from google.cloud import firestore
 
 
@@ -4537,3 +4538,100 @@ def bulk_delete_feedback(request):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def validate_api_key(request):
+    """
+    Validate API key from request headers.
+    API key should be passed in X-API-Key header or Authorization header.
+    Expected API key: SudoTag001
+    """
+    api_key = 'SudoTag001'
+    
+    # Try to get API key from various header formats
+    provided_key = (
+        request.headers.get('X-API-Key') or
+        request.headers.get('x-api-key') or
+        request.META.get('HTTP_X_API_KEY') or
+        request.META.get('HTTP_AUTHORIZATION', '').replace('Bearer ', '').replace('ApiKey ', '') or
+        request.GET.get('api_key') or
+        ''
+    )
+    
+    # Remove 'Bearer ' or 'ApiKey ' prefix if present
+    if provided_key.startswith('Bearer '):
+        provided_key = provided_key.replace('Bearer ', '')
+    if provided_key.startswith('ApiKey '):
+        provided_key = provided_key.replace('ApiKey ', '')
+    
+    return provided_key == api_key
+
+
+@csrf_exempt
+def call_webhook(request):
+    """
+    Call webhook API endpoint.
+    
+    Request:
+    - Method: POST
+    - Headers: 
+      - Content-Type: application/json
+      - X-API-Key: SudoTag001 (or Authorization: ApiKey SudoTag001)
+    - Body:
+      {
+        "from_number": "1234567890",
+        "did_number": "1234567890",
+        "to_number": "9846098460"
+      }
+    
+    Response:
+    {
+      "status": "1",
+      "destination": "9846098460"
+    }
+    
+    All phone numbers must be exactly 10 digits (no +91 or other prefixes).
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'error': 'Method not allowed. Use POST.'
+        }, status=405)
+    
+    # Validate API key
+    if not validate_api_key(request):
+        return JsonResponse({
+            'error': 'Unauthorized. Invalid or missing API key.'
+        }, status=401)
+    
+    # Parse JSON body
+    try:
+        if request.content_type == 'application/json':
+            body_data = json.loads(request.body)
+        else:
+            # Try to get from POST data if not JSON
+            body_data = request.POST.dict()
+    except (json.JSONDecodeError, ValueError) as e:
+        return JsonResponse({
+            'error': 'Invalid JSON format in request body.'
+        }, status=400)
+    
+    # Validate request data using serializer
+    serializer = CallWebhookSerializer(body_data)
+    
+    if not serializer.is_valid():
+        return JsonResponse({
+            'error': 'Validation failed',
+            'errors': serializer.errors
+        }, status=400)
+    
+    # Get validated data
+    validated_data = serializer.validated_data
+    to_number = validated_data.get('to_number')
+    
+    # Return response in the exact format specified
+    response_data = {
+        'status': '1',
+        'destination': to_number
+    }
+    
+    return JsonResponse(response_data, status=200)
