@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 class CallWebhookSerializer:
     """
     Serializer for call webhook API requests.
-    Validates from_number, did_number, and to_number fields.
+    Validates from, did, and to fields.
     """
     
     def __init__(self, data):
@@ -20,39 +20,40 @@ class CallWebhookSerializer:
         """
         Validate all fields in the request data.
         Returns True if valid, False otherwise.
+        Accepts both new parameter names (from, did, to) and old names (from_number, did_number, to_number).
         """
         self.errors = {}
         self.validated_data = {}
         
-        # Validate from_number
-        from_number = self.data.get('from_number')
+        # Validate from (accept both 'from' and 'from_number' for backward compatibility)
+        from_number = self.data.get('from') or self.data.get('from_number')
         if not from_number:
-            self.errors['from_number'] = ['This field is required.']
+            self.errors['from'] = ['This field is required.']
         elif not self._validate_phone_number(from_number):
-            self.errors['from_number'] = ['Must be exactly 10 digits (with or without +91 prefix).']
+            self.errors['from'] = ['Must be exactly 10 digits (with or without +91 prefix).']
         else:
             # Extract 10-digit number (remove +91 if present)
-            self.validated_data['from_number'] = self._extract_phone_number(from_number)
+            self.validated_data['from'] = self._extract_phone_number(from_number)
         
-        # Validate did_number
-        did_number = self.data.get('did_number')
+        # Validate did (accept both 'did' and 'did_number' for backward compatibility)
+        did_number = self.data.get('did') or self.data.get('did_number')
         if not did_number:
-            self.errors['did_number'] = ['This field is required.']
+            self.errors['did'] = ['This field is required.']
         elif not self._validate_phone_number(did_number):
-            self.errors['did_number'] = ['Must be exactly 10 digits (with or without +91 prefix).']
+            self.errors['did'] = ['Must be exactly 10 digits (with or without +91 prefix).']
         else:
             # Extract 10-digit number (remove +91 if present)
-            self.validated_data['did_number'] = self._extract_phone_number(did_number)
+            self.validated_data['did'] = self._extract_phone_number(did_number)
         
-        # Validate to_number
-        to_number = self.data.get('to_number')
+        # Validate to (accept both 'to' and 'to_number' for backward compatibility)
+        to_number = self.data.get('to') or self.data.get('to_number')
         if not to_number:
-            self.errors['to_number'] = ['This field is required.']
+            self.errors['to'] = ['This field is required.']
         elif not self._validate_phone_number(to_number):
-            self.errors['to_number'] = ['Must be exactly 10 digits (with or without +91 prefix).']
+            self.errors['to'] = ['Must be exactly 10 digits (with or without +91 prefix).']
         else:
             # Extract 10-digit number (remove +91 if present)
-            self.validated_data['to_number'] = self._extract_phone_number(to_number)
+            self.validated_data['to'] = self._extract_phone_number(to_number)
         
         return len(self.errors) == 0
     

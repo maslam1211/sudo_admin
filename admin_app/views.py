@@ -4579,9 +4579,9 @@ def call_webhook(request):
       - X-API-Key: SudoTag001 (or Authorization: ApiKey SudoTag001)
     - Body:
       {
-        "from_number": "1234567890",
-        "did_number": "1234567890",
-        "to_number": "9846098460"
+        "from": "1234567890",
+        "did": "1234567890",
+        "to": "9846098460"
       }
     
     Response:
@@ -4590,7 +4590,7 @@ def call_webhook(request):
       "destination": "9846098460"
     }
     
-    All phone numbers must be exactly 10 digits (no +91 or other prefixes).
+    All phone numbers must be exactly 10 digits (with or without +91 prefix).
     """
     if request.method != 'POST':
         return JsonResponse({
@@ -4603,17 +4603,40 @@ def call_webhook(request):
             'error': 'Unauthorized. Invalid or missing API key.'
         }, status=401)
     
-    # Parse JSON body
-    try:
-        if request.content_type == 'application/json':
+    # Parse data from multiple sources: JSON body, form data, or query parameters
+    body_data = {}
+    
+    # Priority 1: Check query parameters (for GET/POST with ?from=...&did=...&to=...)
+    if request.GET:
+        body_data = request.GET.dict()
+        print("=" * 50)
+        print("Call Webhook API - Received from QUERY PARAMETERS:")
+        print("=" * 50)
+    
+    # Priority 2: Check form data (for POST with form-urlencoded)
+    elif request.POST:
+        body_data = request.POST.dict()
+        print("=" * 50)
+        print("Call Webhook API - Received from FORM DATA:")
+        print("=" * 50)
+    
+    # Priority 3: Check JSON body
+    elif request.content_type == 'application/json':
+        try:
             body_data = json.loads(request.body)
-        else:
-            # Try to get from POST data if not JSON
-            body_data = request.POST.dict()
-    except (json.JSONDecodeError, ValueError) as e:
-        return JsonResponse({
-            'error': 'Invalid JSON format in request body.'
-        }, status=400)
+            print("=" * 50)
+            print("Call Webhook API - Received from JSON BODY:")
+            print("=" * 50)
+        except (json.JSONDecodeError, ValueError) as e:
+            return JsonResponse({
+                'error': 'Invalid JSON format in request body.'
+            }, status=400)
+    
+    # Print/log the received parameters (raw values)
+    print(f"from: {body_data.get('from') or body_data.get('from_number', 'Not provided')}")
+    print(f"did: {body_data.get('did') or body_data.get('did_number', 'Not provided')}")
+    print(f"to: {body_data.get('to') or body_data.get('to_number', 'Not provided')}")
+    print("=" * 50)
     
     # Validate request data using serializer
     serializer = CallWebhookSerializer(body_data)
@@ -4626,7 +4649,16 @@ def call_webhook(request):
     
     # Get validated data
     validated_data = serializer.validated_data
-    to_number = validated_data.get('to_number')
+    from_number = validated_data.get('from')
+    did_number = validated_data.get('did')
+    to_number = validated_data.get('to')
+    
+    # Print the validated/processed numbers
+    print("Validated/Processed Numbers:")
+    print(f"from: {from_number}")
+    print(f"did: {did_number}")
+    print(f"to: {to_number}")
+    print("=" * 50)
     
     # Return response in the exact format specified
     response_data = {
