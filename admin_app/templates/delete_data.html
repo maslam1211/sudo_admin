@@ -161,6 +161,17 @@
     </div>
 </div>
 
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-white fw-bold">Deleting data... Please wait</p>
+        <p class="text-white-50 small">This may take a few moments</p>
+    </div>
+</div>
+
 <!-- Confirmation Modal -->
 <div class="modal fade" id="confirmationModal" tabindex="-1">
     <div class="modal-dialog">
@@ -181,6 +192,16 @@
 </div>
 
 <script>
+// Toasts disabled on delete data page - messages are not shown
+
+function showLoader() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoader() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
 function deleteCollection(collectionName) {
     const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
     const modalMessage = document.getElementById('modalMessage');
@@ -189,10 +210,17 @@ function deleteCollection(collectionName) {
     modalMessage.textContent = `Are you sure you want to delete the entire "${collectionName}" collection? This action cannot be undone.`;
     
     confirmBtn.onclick = function() {
+        modal.hide();
+        showLoader();
         window.location.href = `/admin/delete-collection/${collectionName}/`;
     };
     
     modal.show();
+}
+
+function showToast(type, message) {
+    // Toasts disabled on delete data page - do nothing
+    return;
 }
 
 function confirmBulkDelete() {
@@ -218,6 +246,9 @@ function confirmBulkDelete() {
     modalMessage.textContent = `Are you sure you want to delete ${selectedCollections.length} collections? This will permanently delete all documents in: ${selectedCollections.join(', ')}`;
     
     confirmBtn.onclick = function() {
+        modal.hide();
+        showLoader();
+        
         // Submit bulk delete via AJAX
         const formData = new FormData();
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -233,6 +264,7 @@ function confirmBulkDelete() {
         })
         .then(response => response.json())
         .then(data => {
+            hideLoader();
             if (data.success) {
                 alert(data.message);
                 location.reload();
@@ -241,10 +273,9 @@ function confirmBulkDelete() {
             }
         })
         .catch(error => {
+            hideLoader();
             alert('Error: ' + error);
         });
-        
-        modal.hide();
     };
     
     modal.show();
@@ -265,6 +296,10 @@ document.getElementById('documentDeleteForm').addEventListener('submit', functio
     if (!confirm(`Are you sure you want to delete document "${documentId}" from collection "${collection}"? This action cannot be undone.`)) {
         return;
     }
+    
+    // Note: Toast will be shown after page reload from server-side messages
+    
+    showLoader();
     
     // Create a form and submit via POST
     const form = document.createElement('form');
@@ -330,6 +365,30 @@ document.getElementById('documentDeleteForm').addEventListener('submit', functio
 .badge {
     font-size: 0.875rem;
     padding: 0.5em 0.75em;
+}
+
+/* Loading Overlay Styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    flex-direction: column;
+}
+
+.loading-content {
+    text-align: center;
+    color: white;
+}
+
+.loading-content .spinner-border {
+    border-width: 0.3em;
 }
 </style>
 {% endblock %}

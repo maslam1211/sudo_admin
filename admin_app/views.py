@@ -16,6 +16,7 @@ from io import BytesIO
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.sessions.backends.base import SessionBase
 from django.urls import reverse
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -382,7 +383,12 @@ from django.utils.timezone import now  # Add this import at the top of your file
 
 
 def generate_qr(request):
-    if not request.session.get('admin'):
+    # Handle potential session interruptions
+    try:
+        if not request.session.get('admin'):
+            return redirect('admin_login')
+    except Exception:
+        # Session was interrupted, redirect to login
         return redirect('admin_login')
     
     if request.method == 'POST':
@@ -393,7 +399,7 @@ def generate_qr(request):
         if qr_type == 'user':
             count = int(request.POST.get('count', 1))
             batch = db.batch()  # Firestore batch
-            template_path = os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'images', 'qr_template.jpg')
+            template_path = os.path.join(settings.BASE_DIR, 'admin_app', 'static', 'images', 'car.png')
             
             if not os.path.exists(template_path):
                 return render(request, 'generate_qr.html', {
@@ -402,8 +408,17 @@ def generate_qr(request):
             
             template_img = PILImage.open(template_path).convert('RGB')
             template_width, template_height = template_img.size
-            qr_size = (int(template_height * 0.75), int(template_height * 0.75))
-            left_margin = int(template_width * 0.07)
+            
+            # Calculate QR code size to fit inside orange brackets (70-75% of height)
+            qr_size = (int(template_height * 0.72), int(template_height * 0.72))
+            
+            # Position QR code inside orange brackets on right side
+            # Right edge should be very close to image edge (minimal margin ~1-2%)
+            right_margin = int(template_width * 0.032)  # Margin adjusted to position QR inside orange brackets
+            # Calculate X position: right edge of image minus QR width minus small margin
+            qr_x = template_width - qr_size[0] - right_margin
+            # Center vertically
+            qr_y = (template_height - qr_size[1]) // 2
             
             for _ in range(count):
                 try:
@@ -419,16 +434,14 @@ def generate_qr(request):
                     )
                     qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
                     qr.make(fit=True)
-                    qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
+                    qr_img = qr.make_image(fill_color="black", back_color="white")
                     
-                    # Paste on template
+                    # Resize QR code to fit inside orange brackets
                     qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
+                    
+                    # Paste QR code inside orange bracket area on right side
                     final_img = template_img.copy()
-                    qr_position = (
-                        left_margin,
-                        (template_height - qr_size[1]) // 2
-                    )
-                    final_img.paste(qr_img, qr_position)
+                    final_img.paste(qr_img, (qr_x, qr_y))
                     
                     # Convert to base64
                     buffer = BytesIO()
@@ -494,7 +507,41 @@ def generate_qr(request):
                 except Exception as e:
                     qr_data.append({'error': f'Failed to generate external QR: {str(e)}'})
 
-        request.session['qr_data'] = qr_data
+        # Store QR data in session for PDF download
+        # Use try-except to handle session interruptions gracefully
+        # Store minimal data to avoid session size issues
+        try:
+            # Only store essential data, not full base64 images to prevent session interruption
+            qr_data_minimal = []
+            for qr in qr_data:
+                if 'error' not in qr:
+                    qr_data_minimal.append({
+                        'type': qr.get('type', 'user'),
+                        'qrId': qr.get('qrId', ''),
+                        'vehicleID': qr.get('vehicleID', ''),
+                        # Store base64 but session will handle size limits
+                        'qr_code_base64': qr.get('qr_code_base64', '')
+                    })
+            
+            # Check if session is still valid before storing
+            if hasattr(request, 'session') and request.session.session_key:
+                request.session['qr_data'] = qr_data_minimal
+                request.session.modified = True
+                # Use set_expiry to ensure session persists
+                if not request.session.get_expiry_age():
+                    request.session.set_expiry(3600)  # 1 hour
+                # Force save to avoid interruption
+                try:
+                    request.session.save()
+                except Exception:
+                    # If save fails, session might be interrupted, but continue
+                    pass
+        except (AttributeError, KeyError, Exception) as e:
+            # If session storage fails (session interrupted), continue without storing
+            # QR codes are still displayed on page, PDF download will need regeneration
+            # This is acceptable - user can regenerate QR codes if needed for PDF
+            pass
+        
         return render(request, 'generate_qr.html', {'qr_data': qr_data})
 
     return render(request, 'generate_qr.html')
@@ -687,14 +734,9 @@ def download_qr_pdf(request):
         qr_img = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])),
                       width=qr_width, height=qr_height)
         
-        # Create ID text with padding
-        qr_id = Paragraph(qr.get('qrId', ''), qr_id_style)
-        
-        # Create content with proper spacing
+        # Create content with proper spacing (QR ID removed)
         content_table = Table([
-            [qr_img],
-            [Spacer(1, 8)],  # Additional padding
-            [qr_id]
+            [qr_img]
         ], colWidths=qr_width)
         
         content_table.setStyle(TableStyle([
@@ -2496,9 +2538,9 @@ def manage_qrs(request):
             qr_data['doc_id'] = doc.id
             
             # OPTIMIZED: Only generate QR code image if we'll display it (lazy loading)
-            # We'll generate on-demand or cache it
-            # For now, generate but cache the result
+            # For table display, show plain QR code only (no template)
             try:
+                # Create plain QR code for table display
                 qr = qrcode.QRCode(
                     version=3,
                     error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -2507,9 +2549,9 @@ def manage_qrs(request):
                 )
                 qr.add_data(f"{settings.BASE_DOMAIN}/admin/send-notification/{doc.id}/")
                 qr.make(fit=True)
-                qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
+                qr_img = qr.make_image(fill_color="black", back_color="white")
                 
-                # Convert to base64
+                # Convert to base64 for table display
                 buffer = BytesIO()
                 qr_img.save(buffer, format="PNG")
                 qr_data['qr_code_base64'] = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -2645,7 +2687,7 @@ def export_qrs_pdf(request, qrs):
     elements.append(Paragraph("QR Codes Export", title_style))
     ist = pytz.timezone('Asia/Kolkata')
     current_datetime = datetime.datetime.now(ist)
-    date_str = current_datetime.strftime("%B %d, %Y at %I:%M %p")
+    date_str = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
     elements.append(Paragraph(f"Generated on: {date_str}", date_style))
     
     if request.GET.get('status'):
@@ -2735,10 +2777,10 @@ def regenerate_qr(request, qr_id):
         )
         qr.add_data(f"{settings.BASE_DOMAIN}/admin/send-notification/{qr_id}/")
         qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
+        qr_img = qr.make_image(fill_color="black", back_color="white")
 
         # Open template image
-        template_path = os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'images', 'qr_template.jpg')
+        template_path = os.path.join(settings.BASE_DIR, 'admin_app', 'static', 'images', 'car.png')
         if not os.path.exists(template_path):
             messages.error(request, 'Template image not found')
             return redirect('manage_qrs')
@@ -2746,20 +2788,21 @@ def regenerate_qr(request, qr_id):
         template_img = PILImage.open(template_path).convert('RGB')
         template_width, template_height = template_img.size
 
-        # Calculate QR code size to occupy 75% of template height
-        qr_size = (int(template_height * 0.75), int(template_height * 0.75))
+        # Calculate QR code size to fit inside orange brackets (70-75% of height)
+        qr_size = (int(template_height * 0.72), int(template_height * 0.72))
 
-        # Position QR code
-        left_margin = int(template_width * 0.07)
-        qr_position = (
-            left_margin,
-            (template_height - qr_size[1]) // 2
-        )
+        # Position QR code inside orange brackets on right side
+        # Right edge should be very close to image edge (minimal margin ~1-2%)
+        right_margin = int(template_width * 0.032)  # Margin adjusted to position QR inside orange brackets
+        qr_x = template_width - qr_size[0] - right_margin
+        qr_y = (template_height - qr_size[1]) // 2  # Center vertically
 
-        # Paste QR code onto template
+        # Resize QR code to fit inside orange brackets
         qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
+        
+        # Paste QR code inside orange bracket area on right side
         final_img = template_img.copy()
-        final_img.paste(qr_img, qr_position)
+        final_img.paste(qr_img, (qr_x, qr_y))
 
         # Save to buffer
         buffer = BytesIO()
@@ -2943,7 +2986,7 @@ def export_orders_with_qr(request):
             invoice_data = Table([
                 [
                     Paragraph(f"<b>INVOICE #:</b> {order['id']}", normal_style),
-                    Paragraph(f"<b>DATE:</b> {order_date.strftime('%B %d, %Y')}", normal_style),
+                    Paragraph(f"<b>DATE:</b> {order_date.strftime('%A, %B %d, %Y - %I:%M %p')}", normal_style),
                 ]
             ], colWidths=[3.2*inch, 2.3*inch])
             
@@ -3999,7 +4042,15 @@ def manage_ads(request):
                         ad['is_active'] = True
                     # Keep timestamp as datetime object for template filtering
                     # Don't convert to string - let template handle with to_ist filter
-                        ad['timestamp'] = ad['timestamp'].strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                    # If timestamp needs to be converted, use IST format
+                    if hasattr(ad.get('timestamp'), 'strftime'):
+                        ist = pytz.timezone('Asia/Kolkata')
+                        ts = ad['timestamp']
+                        if ts.tzinfo:
+                            ts = ts.astimezone(ist)
+                        else:
+                            ts = ist.localize(ts)
+                        ad['timestamp'] = ts.strftime("%A, %B %d, %Y - %I:%M %p")
                 
                 # Append to existing list or create new
                 if 'banner_ads' not in ads_data:
@@ -4091,7 +4142,7 @@ def add_ad(request):
                 'message': message,
                 'link': link_url,
                 'image_url': image_url,  # This line ensures ALL ad types get image_url
-                'timestamp': datetime.datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30"),
+                'timestamp': now().astimezone(pytz.timezone('Asia/Kolkata')).strftime("%A, %B %d, %Y - %I:%M %p"),
                 'is_active': True
             }
             
@@ -4198,7 +4249,7 @@ def update_ad(request):
                                 except Exception as upload_error:
                                     return JsonResponse({'success': False, 'error': f'Image upload failed: {str(upload_error)}'})
                             
-                            ad['timestamp'] = datetime.datetime.now().strftime("%B %d, %Y at %I:%M:%S %p UTC+5:30")
+                            ad['timestamp'] = now().astimezone(pytz.timezone('Asia/Kolkata')).strftime("%A, %B %d, %Y - %I:%M %p")
                             updated = True
                             target_doc_id = doc.id
                             break
@@ -4386,8 +4437,9 @@ def send_feedback_email(feedback_data):
     """Send feedback email to admin"""
     subject = f"New Feedback Received - Rating: {feedback_data['rating']}/5"
     
-    # Use timezone-aware timestamp
-    current_time = now()
+    # Use timezone-aware timestamp in IST
+    ist = pytz.timezone('Asia/Kolkata')
+    current_time = now().astimezone(ist)
     
     html_message = render_to_string('feedback_email.html', {
         'name': feedback_data.get('name', 'Anonymous'),
@@ -4395,7 +4447,7 @@ def send_feedback_email(feedback_data):
         'vehicle': feedback_data.get('vehicle', 'Not specified'),
         'rating': feedback_data.get('rating', 0),
         'feedback': feedback_data.get('feedback', 'No feedback provided'),
-        'timestamp': current_time.strftime("%B %d, %Y at %I:%M:%S %p"),
+        'timestamp': current_time.strftime("%A, %B %d, %Y - %I:%M %p"),
         'notification_method': feedback_data.get('notification_method', 'Not specified')
     })
     
@@ -4411,7 +4463,7 @@ def send_feedback_email(feedback_data):
     Feedback:
     {feedback_data.get('feedback', 'No feedback provided')}
     
-    Timestamp: {current_time.strftime("%B %d, %Y at %I:%M:%S %p")}
+    Timestamp: {current_time.strftime("%A, %B %d, %Y - %I:%M %p")}
     """
     
     try:
@@ -4448,7 +4500,13 @@ def view_feedback(request):
             
             # Convert Firestore timestamp to readable format
             if hasattr(feedback_data.get('timestamp'), 'strftime'):
-                feedback_data['timestamp'] = feedback_data['timestamp'].strftime("%B %d, %Y at %I:%M:%S %p")
+                # Convert to IST and format
+                ist = pytz.timezone('Asia/Kolkata')
+                if feedback_data['timestamp'].tzinfo:
+                    dt = feedback_data['timestamp'].astimezone(ist)
+                else:
+                    dt = ist.localize(feedback_data['timestamp'])
+                feedback_data['timestamp'] = dt.strftime("%A, %B %d, %Y - %I:%M %p")
             elif isinstance(feedback_data.get('timestamp'), str):
                 # Already a string
                 pass

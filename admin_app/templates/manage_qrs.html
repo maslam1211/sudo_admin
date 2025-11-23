@@ -252,10 +252,19 @@
     {% if messages %}
     <div class="mb-4">
         {% for message in messages %}
-        <div class="alert alert-{{ message.class }} alert-dismissible fade show" role="alert">
-            {{ message.text }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+            {% comment %}Filter out deletion messages from Firestore delete operations{% endcomment %}
+            {% with msg_lower=message.text|lower %}
+                {% if "successfully deleted" in msg_lower and "documents from" in msg_lower %}
+                    {% comment %}Skip bulk deletion messages{% endcomment %}
+                {% elif "successfully deleted document" in msg_lower and "from" in msg_lower %}
+                    {% comment %}Skip single document deletion messages{% endcomment %}
+                {% else %}
+                <div class="alert alert-{{ message.class }} alert-dismissible fade show" role="alert">
+                    {{ message.text }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+            {% endwith %}
         {% endfor %}
     </div>
     {% endif %}
@@ -335,14 +344,11 @@
                             <td>
                                 <small class="text-muted">
                                     {% if qr.lastUpdated %}
-                                        {{ qr.lastUpdated|to_ist|date:"d M Y" }}<br>
-                                        <span style="font-size: 0.75rem;">{{ qr.lastUpdated|to_ist|date:"g:i A" }}</span>
+                                        {{ qr.lastUpdated|to_ist_format }}
                                     {% elif qr.last_updated %}
-                                        {{ qr.last_updated|to_ist|date:"d M Y" }}<br>
-                                        <span style="font-size: 0.75rem;">{{ qr.last_updated|to_ist|date:"g:i A" }}</span>
+                                        {{ qr.last_updated|to_ist_format }}
                                     {% elif qr.createdDateTime %}
-                                        {{ qr.createdDateTime|to_ist|date:"d M Y" }}<br>
-                                        <span style="font-size: 0.75rem;">{{ qr.createdDateTime|to_ist|date:"g:i A" }}</span>
+                                        {{ qr.createdDateTime|to_ist_format }}
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}

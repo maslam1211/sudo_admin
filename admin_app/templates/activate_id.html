@@ -165,9 +165,10 @@
       text-transform: none;
     }
 
-    /* Email and phone should not be capitalized */
+    /* Email, phone, and name should not be capitalized */
     input[type="email"],
-    input[type="tel"] {
+    input[type="tel"],
+    .name-input {
       text-transform: none;
     }
 
@@ -270,41 +271,7 @@
       border-top: 1px solid var(--border-color);
     }
 
-    /* Toast Notification */
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: var(--secondary-gray);
-      color: white;
-      padding: 10px 18px;
-      border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-      z-index: 1100;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      opacity: 0;
-      transition: all 0.4s ease;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .toast-icon {
-      font-size: 1.1rem;
-    }
-
-    .toast-success {
-      background-color: #4CAF50;
-    }
-
-    .toast-error {
-      background-color: var(--notification-red);
-    }
+    /* Toast notifications removed - using inline error messages instead */
 
     /* Loading Spinner */
     .spinner-container {
@@ -390,17 +357,17 @@
           <!-- Vehicle Information -->
           <div class="form-group">
             <label for="make" class="form-label">Vehicle Brand</label>
-            <input type="text" class="form-control" id="make" placeholder="TOYOTA, HONDA, etc." required>
+            <input type="text" class="form-control" id="make" placeholder="Enter vehicle brand (e.g., Toyota, Honda, Maruti)" required>
           </div>
           
           <div class="form-group">
             <label for="model" class="form-label">Vehicle Model</label>
-            <input type="text" class="form-control" id="model" placeholder="CAMRY, CIVIC, etc." required>
+            <input type="text" class="form-control" id="model" placeholder="Enter vehicle model (e.g., Camry, Civic, Swift)" required>
           </div>
           
           <div class="form-group">
             <label for="registrationNumber" class="form-label">License Plate Number</label>
-            <input type="text" class="form-control" id="registrationNumber" placeholder="KL11AB1234" required>
+            <input type="text" class="form-control" id="registrationNumber" placeholder="Enter license plate number (e.g., KL11AB1234)" required>
           </div>
           
           <div class="form-group">
@@ -420,7 +387,7 @@
           <!-- Owner Information -->
           <div class="form-group">
             <label for="fullName" class="form-label">Your Full Name</label>
-            <input type="text" class="form-control" id="fullName" placeholder="ENTER YOUR FULL NAME" required>
+            <input type="text" class="form-control name-input" id="fullName" placeholder="Enter your full name (e.g., John Smith)" required>
           </div>
           
           <div class="form-group">
@@ -453,18 +420,18 @@
                 <option value="+853">+853 (Macau)</option>
                 <option value="+886">+886 (Taiwan)</option>
               </select>
-              <input type="tel" class="form-control phone-input" id="contactNumber" placeholder="9876543210" required>
+              <input type="tel" class="form-control phone-input" id="contactNumber" placeholder="Enter mobile number (e.g., 9876543210)" required>
             </div>
           </div>
           
           <div class="form-group">
             <label for="emailAddress" class="form-label">Email Address</label>
-            <input type="email" class="form-control" id="emailAddress" placeholder="your@email.com" required>
+            <input type="email" class="form-control" id="emailAddress" placeholder="Enter your email address (e.g., john.smith@email.com)" required>
           </div>
           
           <div class="form-group">
             <label for="city" class="form-label">City</label>
-            <input type="text" class="form-control" id="city" placeholder="YOUR CITY" required>
+            <input type="text" class="form-control" id="city" placeholder="Enter your city name (e.g., Mumbai, Delhi, Bangalore)" required>
           </div>
           
           <div class="form-check">
@@ -550,11 +517,7 @@
     <div class="spinner"></div>
   </div>
 
-  <!-- Toast Notification -->
-  <div class="toast" id="toastNotification">
-    <i class="bi bi-check-circle-fill toast-icon"></i>
-    <span id="toastMessage">Notification sent successfully!</span>
-  </div>
+  <!-- Toast notifications removed - using inline error messages instead -->
 
   <!-- Vendor JS Files -->
   <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
@@ -564,8 +527,6 @@
       // DOM Elements
       const activationForm = document.getElementById('activationForm');
       const loadingSpinner = document.getElementById('loadingSpinner');
-      const toastNotification = document.getElementById('toastNotification');
-      const toastMessage = document.getElementById('toastMessage');
       const activationFormContainer = document.getElementById('activationFormContainer');
       const successMessage = document.getElementById('successMessage');
       const continueBtn = document.getElementById('continueBtn');
@@ -635,11 +596,17 @@
       // Update phone placeholder when country code changes
       countryCode.addEventListener('change', function() {
         const selectedCode = this.value;
-        contactNumber.placeholder = phonePlaceholders[selectedCode] || 'Phone Number';
+        const exampleNumber = phonePlaceholders[selectedCode] || '1234567890';
+        contactNumber.placeholder = `Enter mobile number (e.g., ${exampleNumber})`;
       });
+      
+      // Set initial placeholder
+      const initialCode = countryCode.value;
+      const initialExample = phonePlaceholders[initialCode] || '9876543210';
+      contactNumber.placeholder = `Enter mobile number (e.g., ${initialExample})`;
 
-      // Auto-capitalization for text inputs
-      const textInputs = document.querySelectorAll('input[type="text"]');
+      // Auto-capitalization for text inputs (except name field)
+      const textInputs = document.querySelectorAll('input[type="text"]:not(.name-input)');
       textInputs.forEach(input => {
         input.addEventListener('input', function(e) {
           this.value = this.value.toUpperCase();
@@ -648,6 +615,29 @@
         input.addEventListener('blur', function(e) {
           this.value = this.value.toUpperCase();
         });
+      });
+
+      // Capitalize first letter of each word for name field
+      const nameInput = document.getElementById('fullName');
+      nameInput.addEventListener('input', function(e) {
+        const words = this.value.split(' ');
+        const capitalizedWords = words.map(word => {
+          if (word.length === 0) return word;
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        });
+        const cursorPosition = this.selectionStart;
+        this.value = capitalizedWords.join(' ');
+        // Restore cursor position
+        this.setSelectionRange(cursorPosition, cursorPosition);
+      });
+      
+      nameInput.addEventListener('blur', function(e) {
+        const words = this.value.split(' ');
+        const capitalizedWords = words.map(word => {
+          if (word.length === 0) return word;
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        });
+        this.value = capitalizedWords.join(' ');
       });
 
       // Phone number formatting - restrict to digits only
@@ -768,7 +758,12 @@
         }
         
         if (!isValid) {
-          showToast('Please fill all required fields correctly', 'error');
+          // Scroll to first error field
+          const firstError = document.querySelector('.is-invalid');
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstError.focus();
+          }
           return;
         }
         
@@ -841,9 +836,25 @@
                 showFieldError(element, errorData.errors[field]);
               }
             });
-            showToast(errorData.message || 'Please correct the errors', 'error');
+            // Scroll to first error field
+            const firstError = document.querySelector('.is-invalid');
+            if (firstError) {
+              firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              firstError.focus();
+            }
           } else {
-            showToast(errorData.message || 'Registration failed. Please try again.', 'error');
+            // Show general error message at top of form
+            const formContainer = document.getElementById('activationFormContainer');
+            let generalError = formContainer.querySelector('.general-error-message');
+            if (!generalError) {
+              generalError = document.createElement('div');
+              generalError.className = 'general-error-message invalid-feedback';
+              generalError.style.display = 'block';
+              generalError.style.marginBottom = '15px';
+              formContainer.insertBefore(generalError, formContainer.firstChild);
+            }
+            generalError.textContent = errorData.message || 'Registration failed. Please check all fields and try again.';
+            generalError.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         })
         .finally(() => {
@@ -853,6 +864,12 @@
 
       // Helper function to show field errors
       function showFieldError(element, message) {
+        // Remove existing error for this field
+        const existingError = element.parentNode.querySelector('.invalid-feedback');
+        if (existingError) {
+          existingError.remove();
+        }
+        
         element.classList.add('is-invalid');
         const errorDiv = document.createElement('div');
         errorDiv.className = 'invalid-feedback';
@@ -876,24 +893,7 @@
         return cookieValue;
       }
 
-      // Function to show toast notification
-      function showToast(message, type = 'success') {
-        toastNotification.className = 'toast';
-        toastNotification.classList.add(`toast-${type}`);
-        toastMessage.textContent = message;
-        
-        if (type === 'success') {
-          toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
-        } else if (type === 'error') {
-          toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
-        }
-        
-        toastNotification.classList.add('show');
-        
-        setTimeout(() => {
-          toastNotification.classList.remove('show');
-        }, 3000);
-      }
+      // Toast notifications disabled - using inline error messages instead
     });
   </script>
 </body>
