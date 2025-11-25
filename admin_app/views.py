@@ -58,13 +58,22 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 def custom_404(request, exception):
-    # Return JSON for API requests, HTML for regular requests
+    """
+    Custom 404 handler that returns appropriate error responses.
+    - API requests get JSON error response
+    - Regular requests get HTML 404 page
+    No redirections - just show the error.
+    """
+    # Return JSON for API requests
     if request.path.startswith('/admin/api/') or request.path.startswith('/api/'):
         return JsonResponse({
             'status': '0',
             'error': 'API endpoint not found.',
-            'path': request.path
+            'path': request.path,
+            'message': 'The requested API endpoint does not exist.'
         }, status=404)
+    
+    # For regular requests, show 404 error page (no redirect)
     return render(request, '404.html', status=404)
 
 def verify_auth_pin(request):
