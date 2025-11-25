@@ -1174,22 +1174,82 @@
       showPhoneModal('Send SMS');
     });
 
-    // Call button click
+    // Flag to track if we're in call mode
+    let isCallMode = false;
+    
+    // Call button click - Directly call the API without reason selection
     callBtn.addEventListener('click', function() {
-      if (!selectedReason) {
-        showToast('Please select a reason first', 'error');
+      // Get QR ID from URL
+      const urlPath = window.location.pathname;
+      const qrIdMatch = urlPath.match(/\/send-notification-final\/([^\/]+)/);
+      const qrId = qrIdMatch ? qrIdMatch[1] : null;
+      
+      if (!qrId) {
+        showToast('QR code ID not found in URL', 'error');
         return;
       }
       
-      // If custom reason is selected but no message
-      if (selectedReason === 'custom' && customMessage.value.trim() === '') {
-        showToast('Please type your message', 'error');
+      // Set call mode flag
+      isCallMode = true;
+      
+      // Show phone modal to get caller's number
+      phoneModalTitle.textContent = 'Your Phone Number';
+      phoneModalSubtitle.textContent = 'Enter your phone number to make the call';
+      userPhone.value = '';
+      phoneModal.style.display = 'flex';
+      userPhone.focus();
+    });
+    
+    // Function to directly call the initiate_call API
+    function initiateCallDirectly(callerPhone) {
+      // Get QR ID from URL
+      const urlPath = window.location.pathname;
+      const qrIdMatch = urlPath.match(/\/send-notification-final\/([^\/]+)/);
+      const qrId = qrIdMatch ? qrIdMatch[1] : null;
+      
+      if (!qrId) {
+        showToast('QR code ID not found', 'error');
         return;
       }
-
-      selectedMethod = 'call';
-      showPhoneModal('Make Call');
-    });
+      
+      // Show loading state
+      const originalText = callBtn.innerHTML;
+      callBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+      callBtn.disabled = true;
+      
+      // Prepare payload
+      const payload = {
+        from: callerPhone || '0000000000',
+        did: '8049649451', // Fixed DID number
+        qr_id: qrId
+      };
+      
+      // Call the API
+      fetch('/admin/api/initiate-call/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => {
+        callBtn.innerHTML = originalText;
+        callBtn.disabled = false;
+        
+        if (data.status === '1') {
+          showToast('Call initiated successfully! Destination: ' + data.destination, 'success');
+        } else {
+          showToast(data.error || 'Failed to initiate call', 'error');
+        }
+      })
+      .catch(error => {
+        callBtn.innerHTML = originalText;
+        callBtn.disabled = false;
+        console.error('Error:', error);
+        showToast('Failed to initiate call. Please try again.', 'error');
+      });
+    }
 
     // Show phone modal
     function showPhoneModal(action) {
@@ -1204,26 +1264,46 @@
     skipPhoneBtn.addEventListener('click', function() {
       phoneModal.style.display = 'none';
       userPhone.value = '';
-      sendNotificationDirectly();
+      
+      if (isCallMode) {
+        // Call mode - initiate call without caller number
+        isCallMode = false;
+        initiateCallDirectly('');
+      } else {
+        // Normal mode - send notification
+        sendNotificationDirectly();
+      }
     });
 
     // Phone modal confirm button
     phoneConfirmBtn.addEventListener('click', function() {
       const phone = userPhone.value.trim();
       
-      // Validate phone number if provided
-      if (phone && !phone.startsWith('+')) {
-        showToast('Please enter phone number with country code (e.g., +1234567890)', 'error');
-        return;
+      if (isCallMode) {
+        // Call mode - validate and initiate call
+        if (phone && !phone.match(/^(\+91|91)?[0-9]{10}$/)) {
+          showToast('Please enter a valid 10-digit phone number (with or without +91)', 'error');
+          return;
+        }
+        
+        phoneModal.style.display = 'none';
+        isCallMode = false;
+        initiateCallDirectly(phone);
+      } else {
+        // Normal mode - validate and send notification
+        if (phone && !phone.startsWith('+')) {
+          showToast('Please enter phone number with country code (e.g., +1234567890)', 'error');
+          return;
+        }
+        
+        if (phone && phone.length < 10) {
+          showToast('Please enter a valid phone number', 'error');
+          return;
+        }
+        
+        phoneModal.style.display = 'none';
+        sendNotificationDirectly();
       }
-      
-      if (phone && phone.length < 10) {
-        showToast('Please enter a valid phone number', 'error');
-        return;
-      }
-      
-      phoneModal.style.display = 'none';
-      sendNotificationDirectly();
     });
 
     // Continue button in success modal
