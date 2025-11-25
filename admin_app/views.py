@@ -58,6 +58,13 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 def custom_404(request, exception):
+    # Return JSON for API requests, HTML for regular requests
+    if request.path.startswith('/admin/api/') or request.path.startswith('/api/'):
+        return JsonResponse({
+            'status': '0',
+            'error': 'API endpoint not found.',
+            'path': request.path
+        }, status=404)
     return render(request, '404.html', status=404)
 
 def verify_auth_pin(request):
@@ -4760,8 +4767,10 @@ def initiate_call(request):
         }, status=405)
     
     # Parse and validate request body
+    # Accept both 'application/json' and 'application/json; charset=utf-8'
     try:
-        if request.content_type != 'application/json':
+        content_type = request.content_type or ''
+        if 'application/json' not in content_type.lower():
             return JsonResponse({
                 'status': '0',
                 'error': 'Content-Type must be application/json.'

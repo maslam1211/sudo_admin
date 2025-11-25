@@ -739,56 +739,62 @@
 </style>
 
 <script>
-document.getElementById('contactForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  // Show loading state
-  const loadingDiv = this.querySelector('.loading');
-  const errorDiv = this.querySelector('.error-message');
-  const successDiv = this.querySelector('.sent-message');
-  
-  loadingDiv.style.display = 'block';
-  errorDiv.style.display = 'none';
-  successDiv.style.display = 'none';
-  
-  // Get form data
-  const formData = new FormData(this);
-  const name = formData.get('name');
-  const email = formData.get('email');
-  const subject = formData.get('subject');
-  const message = formData.get('message');
-  
-  // Format WhatsApp message
-  const whatsappMessage = `New Contact Form Submission:\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\nMessage: ${message}`;
-  
-  // Encode message for URL
-  const encodedMessage = encodeURIComponent(whatsappMessage);
-  
-  // WhatsApp number
-  const whatsappNumber = "917907965255";
-  
-  // Create WhatsApp URL
-  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-  
-  // Simulate processing delay
-  setTimeout(() => {
-    loadingDiv.style.display = 'none';
+// Only add event listener if contactForm exists
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+  contactForm.addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    // Open WhatsApp with the message
-    window.open(whatsappURL, '_blank');
+    // Show loading state
+    const loadingDiv = this.querySelector('.loading');
+    const errorDiv = this.querySelector('.error-message');
+    const successDiv = this.querySelector('.sent-message');
     
-    // Show success message
-    successDiv.style.display = 'block';
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (errorDiv) errorDiv.style.display = 'none';
+    if (successDiv) successDiv.style.display = 'none';
     
-    // Reset form
-    this.reset();
+    // Get form data
+    const formData = new FormData(this);
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const subject = formData.get('subject');
+    const message = formData.get('message');
     
-    // Hide success message after 5 seconds
+    // Format WhatsApp message
+    const whatsappMessage = `New Contact Form Submission:\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\nMessage: ${message}`;
+    
+    // Encode message for URL
+    const encodedMessage = encodeURIComponent(whatsappMessage);
+    
+    // WhatsApp number
+    const whatsappNumber = "917907965255";
+    
+    // Create WhatsApp URL
+    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    
+    // Simulate processing delay
     setTimeout(() => {
-      successDiv.style.display = 'none';
-    }, 5000);
-  }, 1000);
-});
+      if (loadingDiv) loadingDiv.style.display = 'none';
+      
+      // Open WhatsApp with the message
+      window.open(whatsappURL, '_blank');
+      
+      // Show success message
+      if (successDiv) successDiv.style.display = 'block';
+      
+      // Reset form
+      this.reset();
+      
+      // Hide success message after 5 seconds
+      if (successDiv) {
+        setTimeout(() => {
+          successDiv.style.display = 'none';
+        }, 5000);
+      }
+    }, 1000);
+  });
+}
 </script>
 
   </main>
@@ -978,54 +984,60 @@ document.getElementById('contactForm').addEventListener('submit', function(e) {
 </style>
 
 <script>
-document.getElementById('whatsappSubscriptionForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  // Show loading state
-  const loadingDiv = this.querySelector('.loading');
-  const errorDiv = this.querySelector('.error-message');
-  const successDiv = this.querySelector('.sent-message');
-  
-  loadingDiv.style.display = 'block';
-  errorDiv.style.display = 'none';
-  successDiv.style.display = 'none';
-  
-  // Get form data
-  const formData = new FormData(this);
-  const name = formData.get('name');
-  const phone = formData.get('phone');
-  
-  // Format WhatsApp message
-  const whatsappMessage = `New WhatsApp Subscription:\n\nName: ${name}\nPhone: ${phone}\n\nPlease add me to your WhatsApp updates!`;
-  
-  // Encode message for URL
-  const encodedMessage = encodeURIComponent(whatsappMessage);
-  
-  // WhatsApp number
-  const whatsappNumber = "917907965255";
-  
-  // Create WhatsApp URL
-  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-  
-  // Simulate processing delay
-  setTimeout(() => {
-    loadingDiv.style.display = 'none';
+// Only add event listener if whatsappSubscriptionForm exists
+const whatsappSubscriptionForm = document.getElementById('whatsappSubscriptionForm');
+if (whatsappSubscriptionForm) {
+  whatsappSubscriptionForm.addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    // Open WhatsApp with the subscription message
-    window.open(whatsappURL, '_blank');
+    // Show loading state
+    const loadingDiv = this.querySelector('.loading');
+    const errorDiv = this.querySelector('.error-message');
+    const successDiv = this.querySelector('.sent-message');
     
-    // Show success message
-    successDiv.style.display = 'block';
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (errorDiv) errorDiv.style.display = 'none';
+    if (successDiv) successDiv.style.display = 'none';
     
-    // Reset form
-    this.reset();
+    // Get form data
+    const formData = new FormData(this);
+    const name = formData.get('name');
+    const phone = formData.get('phone');
     
-    // Hide success message after 5 seconds
+    // Format WhatsApp message
+    const whatsappMessage = `New WhatsApp Subscription:\n\nName: ${name}\nPhone: ${phone}\n\nPlease add me to your WhatsApp updates!`;
+    
+    // Encode message for URL
+    const encodedMessage = encodeURIComponent(whatsappMessage);
+    
+    // WhatsApp number
+    const whatsappNumber = "917907965255";
+    
+    // Create WhatsApp URL
+    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    
+    // Simulate processing delay
     setTimeout(() => {
-      successDiv.style.display = 'none';
-    }, 5000);
-  }, 1000);
-});
+      if (loadingDiv) loadingDiv.style.display = 'none';
+      
+      // Open WhatsApp with the subscription message
+      window.open(whatsappURL, '_blank');
+      
+      // Show success message
+      if (successDiv) successDiv.style.display = 'block';
+      
+      // Reset form
+      this.reset();
+      
+      // Hide success message after 5 seconds
+      if (successDiv) {
+        setTimeout(() => {
+          successDiv.style.display = 'none';
+        }, 5000);
+      }
+    }, 1000);
+  });
+}
 </script>
   
         </div>

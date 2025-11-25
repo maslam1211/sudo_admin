@@ -24,7 +24,8 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),
     path('admin/', include('admin_app.urls')),
     path('', include('landing.urls')),
-    re_path(r'^.*$', RedirectView.as_view(url='/', permanent=False)),
+    # Removed catch-all redirect to allow API endpoints to return JSON instead of HTML
+    # API endpoints should be defined in admin_app.urls before this point
 ]
 
 # This handles 404 errors
