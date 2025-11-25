@@ -642,6 +642,13 @@
 
       // Phone number formatting - restrict to digits only
       contactNumber.addEventListener('input', function(e) {
+        // Clear any existing errors when user starts typing
+        this.classList.remove('is-invalid');
+        const existingError = this.closest('.form-group')?.querySelector('.invalid-feedback');
+        if (existingError) {
+          existingError.remove();
+        }
+        
         // Remove any non-digit characters
         let value = this.value.replace(/\D/g, '');
         
@@ -689,6 +696,34 @@
         e.preventDefault();
       });
 
+      // Validate phone number format on blur (when user leaves the field)
+      contactNumber.addEventListener('blur', function(e) {
+        const phoneValue = this.value.trim();
+        if (phoneValue) {
+          const selectedCode = countryCode.value;
+          const phonePattern = phonePatterns[selectedCode];
+          
+          if (phonePattern && !phonePattern.test(phoneValue)) {
+            let errorMessage = 'Enter a valid phone number';
+            if (selectedCode === '+91') {
+              errorMessage = 'Enter a valid 10-digit mobile number';
+            } else if (selectedCode === '+1') {
+              errorMessage = 'Enter a valid 10-digit phone number';
+            } else if (selectedCode === '+44') {
+              errorMessage = 'Enter a valid UK phone number (10-11 digits)';
+            }
+            showFieldError(this, errorMessage);
+          } else {
+            // Clear error if format is valid
+            this.classList.remove('is-invalid');
+            const existingError = this.closest('.form-group')?.querySelector('.invalid-feedback');
+            if (existingError) {
+              existingError.remove();
+            }
+          }
+        }
+      });
+
       // Form submission
       activationForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -729,12 +764,15 @@
         }
         
         // Validate phone number format based on country code
+        // Only validate format if field is not empty (empty is handled by required check above)
         const selectedCountryCode = countryCode.value;
         const phonePattern = phonePatterns[selectedCountryCode];
         const phone = document.getElementById('contactNumber');
+        const phoneValue = phone.value.trim();
         
-        if (phone.value) {
-          if (phonePattern && !phonePattern.test(phone.value)) {
+        // Only validate format if phone has a value (empty is already handled by required check)
+        if (phoneValue) {
+          if (phonePattern && !phonePattern.test(phoneValue)) {
             let errorMessage = 'Enter a valid phone number';
             
             // Provide specific error messages for common countries
@@ -750,7 +788,7 @@
             isValid = false;
           } else if (!phonePattern) {
             // For countries without a specific pattern, just check it has digits
-            if (!/^\d+$/.test(phone.value)) {
+            if (!/^\d+$/.test(phoneValue)) {
               showFieldError(phone, 'Enter a valid phone number');
               isValid = false;
             }
@@ -864,8 +902,11 @@
 
       // Helper function to show field errors
       function showFieldError(element, message) {
+        // Find the form-group container (for phone input, it's the grandparent)
+        const formGroup = element.closest('.form-group') || element.parentNode;
+        
         // Remove existing error for this field
-        const existingError = element.parentNode.querySelector('.invalid-feedback');
+        const existingError = formGroup.querySelector('.invalid-feedback');
         if (existingError) {
           existingError.remove();
         }
@@ -874,7 +915,13 @@
         const errorDiv = document.createElement('div');
         errorDiv.className = 'invalid-feedback';
         errorDiv.textContent = message;
-        element.parentNode.appendChild(errorDiv);
+        
+        // For phone input, append to form-group, otherwise to parent
+        if (element.id === 'contactNumber') {
+          formGroup.appendChild(errorDiv);
+        } else {
+          element.parentNode.appendChild(errorDiv);
+        }
       }
 
       // Helper function to get CSRF token

@@ -46,22 +46,25 @@ class CallWebhookSerializer:
             self.validated_data['did'] = self._extract_phone_number(did_number)
         
         # Validate to (accept both 'to' and 'to_number' for backward compatibility)
+        # 'to' is now optional - will be fetched from Firebase if not provided
         to_number = self.data.get('to') or self.data.get('to_number')
-        if not to_number:
-            self.errors['to'] = ['This field is required.']
-        elif not self._validate_phone_number(to_number):
-            self.errors['to'] = ['Must be exactly 10 digits (with or without +91 prefix).']
-        else:
-            # Extract 10-digit number (remove +91 if present)
-            self.validated_data['to'] = self._extract_phone_number(to_number)
+        if to_number:
+            if not self._validate_phone_number(to_number):
+                self.errors['to'] = ['Must be exactly 10 digits (with or without +91 prefix).']
+            else:
+                # Extract 10-digit number (remove +91 if present)
+                self.validated_data['to'] = self._extract_phone_number(to_number)
         
         return len(self.errors) == 0
     
     def _extract_phone_number(self, phone_number):
         """
         Extract 10-digit phone number from input.
-        Accepts numbers with or without +91 prefix.
-        Examples: +919605949378 -> 9605949378, 9605949378 -> 9605949378
+        Accepts numbers with or without +91 prefix, and handles leading zeros.
+        Examples: 
+        - +919876545678 -> 9876545678
+        - 9876545678 -> 9876545678
+        - 09876545678 -> 9876545678
         """
         if not phone_number:
             return None
@@ -74,6 +77,10 @@ class CallWebhookSerializer:
             phone_str = phone_str[3:]  # Remove +91
         elif phone_str.startswith('91') and len(phone_str) == 12:
             phone_str = phone_str[2:]  # Remove 91 if it's 12 digits total
+        
+        # Remove leading zero if present (e.g., 09876545678 -> 9876545678)
+        if phone_str.startswith('0') and len(phone_str) == 11:
+            phone_str = phone_str[1:]
         
         # Remove any remaining whitespace
         phone_str = phone_str.strip()

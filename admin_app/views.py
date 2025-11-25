@@ -4,6 +4,8 @@ import uuid, os
 import secrets
 import string
 import json
+import requests
+import logging
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -22,8 +24,10 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from dotenv import load_dotenv
-from .serializers import CallWebhookSerializer
 # from google.cloud import firestore
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 
@@ -1586,17 +1590,67 @@ def send_notification(request, qr_id):
                                     'limit': limit,
                                 })
 
-                            call = twilio_client.calls.create(
-                                twiml=f'<Response><Say>Hello, this is an important message about your vehicle. {reason}. The person trying to reach you provided this number: {user_phone or "not provided"}. Thank you from Sudo.</Say></Response>',
-                                from_=settings.TWILIO_PHONE_NUMBER,
-                                to=owner_phone
-                            )
-                            logger.info(f"Call initiated successfully: {call.sid}")
-                            increment_daily_count(qr_id, 'call')
-                            return JsonResponse({
-                                'status': 'success',
-                                'message': 'Phone call initiated successfully to the vehicle owner.'
-                            })
+                            # Use the new initiate_call API endpoint
+                            # Get the base URL for the API call
+                            base_url = request.build_absolute_uri('/').rstrip('/')
+                            if not base_url:
+                                base_url = 'http://127.0.0.1:8000'
+                            
+                            initiate_call_url = f"{base_url}/admin/api/initiate-call/"
+                            
+                            # Prepare payload with required fields
+                            payload = {
+                                'from': user_phone or '0000000000',  # Default if not provided
+                                'did': '8049649451',  # Fixed DID number
+                                'qr_id': qr_id
+                            }
+                            
+                            # Make internal API call to initiate_call
+                            try:
+                                api_response = requests.post(
+                                    initiate_call_url,
+                                    json=payload,
+                                    headers={
+                                        'Content-Type': 'application/json',
+                                    },
+                                    timeout=10
+                                )
+                                
+                                if api_response.status_code == 200:
+                                    api_data = api_response.json()
+                                    if api_data.get('status') == '1':
+                                        increment_daily_count(qr_id, 'call')
+                                        logger.info(f"Call initiated successfully via new API for QR: {qr_id}, destination: {api_data.get('destination')}")
+                                        return JsonResponse({
+                                            'status': 'success',
+                                            'message': 'Phone call initiated successfully to the vehicle owner.'
+                                        })
+                                    else:
+                                        error_msg = api_data.get('error', 'Failed to initiate call.')
+                                        return JsonResponse({
+                                            'status': 'error',
+                                            'message': error_msg
+                                        })
+                                else:
+                                    api_data = api_response.json() if api_response.content else {}
+                                    error_msg = api_data.get('error', 'Failed to initiate call.')
+                                    return JsonResponse({
+                                        'status': 'error',
+                                        'message': error_msg
+                                    }, status=api_response.status_code)
+                                    
+                            except requests.exceptions.RequestException as e:
+                                logger.error(f"Error calling initiate_call API: {str(e)}")
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': f'Failed to initiate call: {str(e)}'
+                                })
+                            except Exception as e:
+                                logger.error(f"Unexpected error in call initiation: {str(e)}")
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': f'Failed to initiate call. Please try again.'
+                                })
                     
                     except TwilioRestException as e:
                         logger.error(f"Twilio Error {e.code}: {e.msg}")
@@ -4625,91 +4679,214 @@ def validate_api_key(request):
     return provided_key == api_key
 
 
-@csrf_exempt
-def call_webhook(request):
+def normalize_phone_number(phone_number):
     """
-    Call webhook API endpoint.
+    Normalize phone number to 10 digits.
+    Handles various formats:
+    - +919876545678 -> 9876545678
+    - 9876545678 -> 9876545678
+    - 09876545678 -> 9876545678
+    - 919876545678 -> 9876545678
+    """
+    if not phone_number:
+        return None
+    
+    # Convert to string and remove any whitespace
+    phone_str = str(phone_number).strip()
+    
+    # Remove +91 prefix if present
+    if phone_str.startswith('+91'):
+        phone_str = phone_str[3:]  # Remove +91
+    elif phone_str.startswith('91') and len(phone_str) == 12:
+        phone_str = phone_str[2:]  # Remove 91 if it's 12 digits total
+    
+    # Remove leading zero if present (e.g., 09876545678 -> 9876545678)
+    if phone_str.startswith('0') and len(phone_str) == 11:
+        phone_str = phone_str[1:]
+    
+    # Remove any remaining whitespace
+    phone_str = phone_str.strip()
+    
+    # Return only if it's exactly 10 digits
+    if len(phone_str) == 10 and phone_str.isdigit():
+        return phone_str
+    
+    return None
+
+
+@csrf_exempt
+def initiate_call(request):
+    """
+    Simple API endpoint to get call destination from Firebase.
+    
+    This API:
+    1. Accepts 'from', 'did', and 'qr_id' in request
+    2. Fetches vehicle owner's phone number from Firebase
+    3. Normalizes phone number to 10 digits
+    4. Returns destination in required format
     
     Request:
     - Method: POST
     - Headers: 
       - Content-Type: application/json
-      - X-API-Key: SudoTag001 (or Authorization: ApiKey SudoTag001)
+      - X-API-Key: SudoTag001 (optional, for external calls)
     - Body:
       {
-        "from": "1234567890",
-        "did": "1234567890",
-        "to": "9846098460"
+        "from": "9876543210",  // Required: caller's phone number (10 digits, with/without +91)
+        "did": "8049649451",   // Required: DID number (10 digits, with/without +91)
+        "qr_id": "abc123"      // Required: QR code ID to fetch owner from Firebase
       }
     
-    Response:
+    Response (Success):
     {
       "status": "1",
-      "destination": "9846098460"
+      "destination": "9876545678"
     }
     
-    All phone numbers must be exactly 10 digits (with or without +91 prefix).
+    Response (Error):
+    {
+      "status": "0",
+      "error": "Error message here"
+    }
     """
     if request.method != 'POST':
         return JsonResponse({
+            'status': '0',
             'error': 'Method not allowed. Use POST.'
         }, status=405)
     
-    # Validate API key
-    if not validate_api_key(request):
-        return JsonResponse({
-            'error': 'Unauthorized. Invalid or missing API key.'
-        }, status=401)
-    
-    # Parse JSON body only (raw JSON)
+    # Parse and validate request body
     try:
         if request.content_type != 'application/json':
             return JsonResponse({
-                'error': 'Content-Type must be application/json. Please send raw JSON in the request body.'
+                'status': '0',
+                'error': 'Content-Type must be application/json.'
             }, status=400)
         
         body_data = json.loads(request.body)
-        
-        # Print/log the received parameters (raw values)
-        print("=" * 50)
-        print("Call Webhook API - Received Parameters (RAW JSON):")
-        print("=" * 50)
-        print(f"from: {body_data.get('from') or body_data.get('from_number', 'Not provided')}")
-        print(f"did: {body_data.get('did') or body_data.get('did_number', 'Not provided')}")
-        print(f"to: {body_data.get('to') or body_data.get('to_number', 'Not provided')}")
-        print("=" * 50)
-        
     except (json.JSONDecodeError, ValueError) as e:
         return JsonResponse({
+            'status': '0',
             'error': 'Invalid JSON format in request body.'
         }, status=400)
     
-    # Validate request data using serializer
-    serializer = CallWebhookSerializer(body_data)
+    # Validate required fields
+    from_number = body_data.get('from') or body_data.get('from_number')
+    did_number = body_data.get('did') or body_data.get('did_number')
+    qr_id = body_data.get('qr_id')
     
-    if not serializer.is_valid():
+    errors = {}
+    
+    if not from_number:
+        errors['from'] = 'This field is required.'
+    elif not normalize_phone_number(from_number):
+        errors['from'] = 'Must be exactly 10 digits (with or without +91 prefix).'
+    
+    if not did_number:
+        errors['did'] = 'This field is required.'
+    elif not normalize_phone_number(did_number):
+        errors['did'] = 'Must be exactly 10 digits (with or without +91 prefix).'
+    
+    if not qr_id:
+        errors['qr_id'] = 'This field is required.'
+    elif not isinstance(qr_id, str) or len(qr_id.strip()) == 0:
+        errors['qr_id'] = 'QR ID must be a non-empty string.'
+    
+    if errors:
         return JsonResponse({
+            'status': '0',
             'error': 'Validation failed',
-            'errors': serializer.errors
+            'errors': errors
         }, status=400)
     
-    # Get validated data
-    validated_data = serializer.validated_data
-    from_number = validated_data.get('from')
-    did_number = validated_data.get('did')
-    to_number = validated_data.get('to')
+    # Normalize phone numbers
+    from_number = normalize_phone_number(from_number)
+    did_number = normalize_phone_number(did_number)
+    qr_id = qr_id.strip()
     
-    # Print the validated/processed numbers
-    print("Validated/Processed Numbers:")
-    print(f"from: {from_number}")
-    print(f"did: {did_number}")
-    print(f"to: {to_number}")
-    print("=" * 50)
-    
-    # Return response in the exact format specified
-    response_data = {
-        'status': '1',
-        'destination': to_number
-    }
-    
-    return JsonResponse(response_data, status=200)
+    # Fetch destination from Firebase
+    try:
+        # Get QR code data
+        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_doc = qr_ref.get()
+        
+        if not qr_doc.exists:
+            return JsonResponse({
+                'status': '0',
+                'error': 'QR code not found.'
+            }, status=404)
+        
+        qr_data = qr_doc.to_dict()
+        
+        if not qr_data.get('isAssigned', False):
+            return JsonResponse({
+                'status': '0',
+                'error': 'QR code is not assigned to any vehicle.'
+            }, status=404)
+        
+        vehicle_id = qr_data.get('vehicleID')
+        if not vehicle_id:
+            return JsonResponse({
+                'status': '0',
+                'error': 'Vehicle ID not found in QR code data.'
+            }, status=404)
+        
+        # Get vehicle data
+        vehicle_ref = db.collection('vehicles').document(vehicle_id)
+        vehicle_doc = vehicle_ref.get()
+        
+        if not vehicle_doc.exists:
+            return JsonResponse({
+                'status': '0',
+                'error': 'Vehicle not found.'
+            }, status=404)
+        
+        vehicle_data = vehicle_doc.to_dict()
+        owner_id = vehicle_data.get('ownerId')
+        
+        if not owner_id:
+            return JsonResponse({
+                'status': '0',
+                'error': 'Owner ID not found in vehicle data.'
+            }, status=404)
+        
+        # Get user data (vehicle owner)
+        user_ref = db.collection('users').document(owner_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            return JsonResponse({
+                'status': '0',
+                'error': 'Vehicle owner not found.'
+            }, status=404)
+        
+        user_data = user_doc.to_dict()
+        owner_phone = user_data.get('contactNumber', '')
+        
+        if not owner_phone:
+            return JsonResponse({
+                'status': '0',
+                'error': 'Vehicle owner does not have a phone number registered.'
+            }, status=404)
+        
+        # Normalize the destination phone number
+        destination = normalize_phone_number(owner_phone)
+        
+        if not destination:
+            return JsonResponse({
+                'status': '0',
+                'error': 'Invalid phone number format for vehicle owner. Phone number must be 10 digits.'
+            }, status=400)
+        
+        # Return success response
+        return JsonResponse({
+            'status': '1',
+            'destination': destination
+        }, status=200)
+        
+    except Exception as e:
+        logger.error(f"Error in initiate_call API: {str(e)}")
+        return JsonResponse({
+            'status': '0',
+            'error': f'Internal server error: {str(e)}'
+        }, status=500)
