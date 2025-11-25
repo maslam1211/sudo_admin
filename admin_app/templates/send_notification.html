@@ -1387,6 +1387,7 @@
       }
       
       // Call the initiate-call API
+      // Note: Endpoint has @csrf_exempt, so CSRF token is optional but included for safety
       fetch('/admin/api/initiate-call/', {
         method: 'POST',
         headers: {
@@ -1394,11 +1395,24 @@
           'X-CSRFToken': csrfToken,
           'X-Requested-With': 'XMLHttpRequest'
         },
+        credentials: 'same-origin',
+        mode: 'same-origin',
         body: JSON.stringify(payload)
       })
       .then(response => {
+        // Check if response is JSON or HTML (error page)
+        const contentType = response.headers.get('content-type');
         if (!response.ok) {
+          // If it's an HTML response (like 403 error page), try to get text
+          if (contentType && contentType.includes('text/html')) {
+            return response.text().then(html => {
+              throw new Error(`CSRF Error: The request was blocked. Please refresh the page and try again.`);
+            });
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Invalid response format from server');
         }
         return response.json();
       })

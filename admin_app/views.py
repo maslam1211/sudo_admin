@@ -4390,6 +4390,7 @@ def delete_ad(request):
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
+@csrf_exempt
 def get_active_ads(request, ad_type):
     """API endpoint to get active ads for mobile app"""
     try:

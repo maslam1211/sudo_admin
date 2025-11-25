@@ -53,6 +53,15 @@ SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_COOKIE_SECURE = False     # Set to True in production with HTTPS
 SESSION_COOKIE_HTTPONLY = True  # Recommended for security
 
+# CSRF Settings - Allow all API calls without strict CSRF checking
+# All /api/ endpoints are exempted via custom middleware and @csrf_exempt decorator
+CSRF_USE_SESSIONS = False  # Use cookies for CSRF token (default)
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF cookie
+
+# Allow requests without referer for API endpoints
+# This helps when browsers don't send referer header due to security settings
+# The custom middleware (DisableCSRFForAPI) handles this for all /api/ paths
+
 # CORS Settings - FIXED format (must include scheme)
 CORS_ALLOWED_ORIGINS = [
     'http://43.205.192.146',
@@ -90,6 +99,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'admin_app.middleware.DisableCSRFForAPI',  # Custom middleware to exempt API endpoints
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
