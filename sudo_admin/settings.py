@@ -30,7 +30,12 @@ ALLOWED_HOSTS = ['*']  # temporarily allow everything
 # Custom 404 page
 handler404 = 'admin_app.views.custom_404'
 
-CSRF_TRUSTED_ORIGINS = ['http://43.205.192.146', 'https://sudotag.com']
+CSRF_TRUSTED_ORIGINS = [
+    'http://43.205.192.146', 
+    'https://sudotag.com',
+    'https://backend.pbx.bonvoice.com',
+    'http://backend.pbx.bonvoice.com',
+]
 # Cookies
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
@@ -40,6 +45,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://43.205.192.146',
     'https://sudotag.com',
     'sudo-admin.onrender.com',
+    'https://backend.pbx.bonvoice.com',
+    'http://backend.pbx.bonvoice.com',
 ]
 
 
