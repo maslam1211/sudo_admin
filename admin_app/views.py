@@ -1679,11 +1679,14 @@ def send_notification(request, qr_id):
                         })
 
         # Render the initial page with vehicle data
+        owner_phone = user_data.get('contactNumber', '')
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
-                'registrationNumber': vehicle_data.get('registrationNumber', '')
-            }
+                'registrationNumber': vehicle_data.get('registrationNumber', ''),
+                'make': vehicle_data.get('make', '')
+            },
+            'owner_phone': owner_phone
         }
         
         return render(request, 'send_notification.html', context)
