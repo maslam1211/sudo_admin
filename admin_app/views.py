@@ -1618,7 +1618,7 @@ def send_notification(request, qr_id):
                             payload = {
                                 'from': user_phone or '0000000000',  # Default if not provided
                                 'did': '8049649451',  # Fixed DID number
-                                'qr_id': qr_id
+                                'user_input': qr_id
                             }
                             
                             # Make internal API call to initiate_call
@@ -4740,7 +4740,7 @@ def initiate_call(request):
     Simple API endpoint to get call destination from Firebase.
     
     This API:
-    1. Accepts 'from', 'did', and 'qr_id' in request
+    1. Accepts 'from', 'did', and 'user_input' in request
     2. Fetches vehicle owner's phone number from Firebase
     3. Normalizes phone number to 10 digits
     4. Returns destination in required format
@@ -4754,7 +4754,7 @@ def initiate_call(request):
       {
         "from": "9876543210",  // Required: caller's phone number (10 digits, with/without +91)
         "did": "8049649451",   // Required: DID number (10 digits, with/without +91)
-        "qr_id": "abc123"      // Required: QR code ID to fetch owner from Firebase
+        "user_input": "abc123" // Required: User input to fetch owner from Firebase
       }
     
     Response (Success):
@@ -4795,7 +4795,7 @@ def initiate_call(request):
     # Validate required fields
     from_number = body_data.get('from') or body_data.get('from_number')
     did_number = body_data.get('did') or body_data.get('did_number')
-    qr_id = body_data.get('qr_id')
+    user_input = body_data.get('user_input')
     
     errors = {}
     
@@ -4809,10 +4809,10 @@ def initiate_call(request):
     elif not normalize_phone_number(did_number):
         errors['did'] = 'Must be exactly 10 digits (with or without +91 prefix).'
     
-    if not qr_id:
-        errors['qr_id'] = 'This field is required.'
-    elif not isinstance(qr_id, str) or len(qr_id.strip()) == 0:
-        errors['qr_id'] = 'QR ID must be a non-empty string.'
+    if not user_input:
+        errors['user_input'] = 'This field is required.'
+    elif not isinstance(user_input, str) or len(user_input.strip()) == 0:
+        errors['user_input'] = 'User input must be a non-empty string.'
     
     if errors:
         return JsonResponse({
@@ -4824,12 +4824,12 @@ def initiate_call(request):
     # Normalize phone numbers
     from_number = normalize_phone_number(from_number)
     did_number = normalize_phone_number(did_number)
-    qr_id = qr_id.strip()
+    user_input = user_input.strip()
     
     # Fetch destination from Firebase
     try:
         # Get QR code data
-        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_ref = db.collection('qrcodes').document(user_input)
         qr_doc = qr_ref.get()
         
         if not qr_doc.exists:

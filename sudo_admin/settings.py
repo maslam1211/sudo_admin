@@ -188,10 +188,10 @@ EMAIL_TIMEOUT = 30
 
 BASE_DOMAIN = 'https://sudotag.com'
 
-# Twilio Configuration
-TWILIO_ACCOUNT_SID = 'AC839fda2710fe54d9be8894c82daceb0f'
-TWILIO_AUTH_TOKEN = '4d39ae44422aaf1357272ee8bde9674f'
-TWILIO_PHONE_NUMBER = '+18076999994'
+# Twilio Configuration - Load from environment variables
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
 
