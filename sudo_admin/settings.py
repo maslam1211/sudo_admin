@@ -23,6 +23,7 @@ SECRET_KEY = 'django-insecure-no=2un6zvm5r&cupj9%k_%zjn)!7#*lyf#ca6mizl28ls#sdxk
 DEBUG = True  # Set to False in production
 
 # Updated ALLOWED_HOSTS with specific IPs and domains
+
 ALLOWED_HOSTS = [
     '103.163.64.190',
     '43.205.192.146',
@@ -31,7 +32,9 @@ ALLOWED_HOSTS = [
     'sudo-admin.onrender.com',
     'localhost',
     '127.0.0.1',
+    '104.237.2.231',
 ]
+
 
 # Custom 404 page
 handler404 = 'admin_app.views.custom_404'
@@ -46,7 +49,10 @@ CSRF_TRUSTED_ORIGINS = [
     'http://103.163.64.190',
     'https://103.163.64.190',
     'https://sudo-admin.onrender.com',
+    'sudotag.com',
+    'www.sudotag.com',
 ]
+
 
 # Cookies - Updated for security
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
