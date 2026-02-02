@@ -164,8 +164,16 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, 'admin_app', 'static'),  # Explicitly include admin_app static files
 ]
+# Use WhiteNoise for serving static files in production
+# Note: For production, use CompressedManifestStaticFilesStorage
+# For development or if manifest issues occur, use CompressedStaticFilesStorage
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# WhiteNoise configuration
+WHITENOISE_USE_FINDERS = True  # Allow WhiteNoise to find static files during development
+WHITENOISE_AUTOREFRESH = True  # Auto-refresh static files (useful for development)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
