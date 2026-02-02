@@ -37,17 +37,19 @@ load_dotenv()
 # Ensure Firebase is initialized only once
 if not firebase_admin._apps:
     # Load Firebase credentials from the environment variables
+    # NOTE: Update these credentials with your Firebase service account JSON key
+    # You can get this from: Firebase Console > Project Settings > Service Accounts > Generate New Private Key
     cred = credentials.Certificate({
         "type": "service_account",
-        "project_id": "sudo-70852",
-        "private_key_id": "5764dd9f77c53703fbc857b21cd625d3e93b42a3",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCz4LIxKDpylIlk\n9wcy5AZ5s0BhPFjqw009T2/fgIHAqPR7cra8ltQinjfyJb3u5aOR6yIPU67AjDgI\ne3Ry8egy0E7S2qejbpZRviPbWPJoROjoUW6LHFoS/tb6BKDpqauVl0s5eI1EVmbC\nMy8bjgTRHmFw/W+N8B3uKPEUgvV186hYzndcadXeEhVN+f3S+rf6Uhouba70Li0T\npc05bijbGkvZYPdjy8Ged2XFd9Y0rFqlrNMM3jOEhvYZs55Vb9Kp3r98uzys2WfH\ni8h4sdy2sXq0AAHQ+rS1juoZgTPZkMeFKqURB8+37a49R5BUBdpfeTDPHaffQUqb\nwJRwUoBpAgMBAAECggEAC8Tn489+A4E0fCatkebZhZz02WfZaYLdyuUnrLf7xV9I\nn8shqbU0rA8uGeneQ4NC8Ikx8U7IYFDMWcG6HMs3Jhv7DFDCJy9VJoQKVI+9TJU1\np/2r/e4c9qE176Xd4Wv4jhEYGuqIU7BTiOFQc70XE5epSHtMkTzkuHB1VaI77Tun\n3Ely7v4uALkzkJF96ZbzPlCyvMsUHvIzFu0a3Eq/xcWCgku9BLl0ELDGmvDkptUv\nQ3AJHf6eA3ieKoXrW6JsbPec5kVq94skEtR/ZZZ1l2P6Uho7psIJJOqgOro8iSyH\nVQ5+C+q+AvSCl4HBseYVEBrpACFy+utkgm4ToNYjAQKBgQDogKVfHuwXMK2RlYP2\nuMsBPgtRPk+nhGdwLP3wIE7MKjHZLitaXs6C9/ELC7A1AP3RfluvH7kqFHoZ5htW\nVBscg0a+vtFssK5oID0vp6jQEMDxiy5IF+HLcUipvC3DDAXXh12AIAlkhqRsO2CR\nearNSVVLiE3w2JebLZjovcWbGwKBgQDGDoe1WSBP79QFDDgHZVvX2pu8q3i4goDi\nkKyIejhuzyjopom2yGx7LeCqQ9bwBjLyqy4As16Wr6eCORUQgmsn29heeujIhk+P\nDuoqXRqIAB1UQlaivQ5o2gT9LeUoAJVqKllgf8CxD7PpaM6QyLKEHr0knhFwjmba\ni5zNMfemywKBgQCV3Q47MNBW5k6Kj4g/CL/5bgeXd4WaYbLW0HliRUDlQrFc3vCc\n0I1mR/D8AK20jI4OcdchG16b7BUECplGXPIYv9li69ZLq9rPTTCDPhuG+bWUO/U6\nDQLCwqNmnOAWX/KICT3Qb1X+kPb8uI03V+graIBtLk+m1cVrBcoRAvmTTwKBgGiH\nsK5Q3NHztQX4/fVBVKjnEv0PzwYqspVhX/4j63boVSH9C3/x5fdZLlMOvPkvfGJB\nYGU0Rf7ntFPxhqGRA7cku9yZqBR1drX9XC+BtggDb3dSD+GSQHGsZ6esOl7TeAhx\nU3yv0GZi8ESHcUZO9pDunEsgNfoe3kAIIXjXH2rjAoGANnqHBwQZzRMdWLnq9iRo\nF1tuj8r+REkFjHiHmYeMFJ31+VV4/yJNkqw3QqHWx9p9T4J69U/DVskZy7pklL+0\nt7TSeGgrK6cyYSAUa2MxIftdh/fXnnTCzpbazADROPLD61cCxZSRqWgZuqSdOXtA\nwD0e4Odss2x6PGrtnt0H5YA=\n-----END PRIVATE KEY-----",
-        "client_email": "firebase-adminsdk-efv01@sudo-70852.iam.gserviceaccount.com",
-        "client_id": "114274654285356877826",
+        "project_id": "sudotag-57673",  # Updated to match Flutter app project
+        "private_key_id": "aeb6b62821895ab81cd6de972b6e523c745f3e65",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDqdh6HcF0prfnV\nYd1HiDvKmyKvVsjMZ5aBKi2sxFA+FE6lkibVUwp0B9fUgnHEpFn6gxVvhxkn6AzW\n0N1NYcJUufpKjpxpiivpHNxeYkDXK5wItD5biNtVSAMS6ewvN9bgbAHiy74koOFQ\ni2w6bs+uX9sYy/TBxOSJS/OvWyj6hN8AqD3pmtMwNK1/EHctwnUJDbZ+tiVV/Mma\ndkGBa7ZXKHTkhM0ouqIqBiLdgdztLbkvRSB7MqTkEh/dvMS9ZSLE3Fk1AGbS5llf\nqf1gr2GLnAhSatXb0lW3nKHb2KBUADZ9LHskmhRQmhieZBTymClh6gpw+38mZ2IZ\nKFUOgG01AgMBAAECggEAA7xoZlxR+y3bMTj+Vr1oThh9CbdPexfMu5fcNluxlUz8\nb+YhtE/LlMM8GQlLaPVr744cZi4ZKsS0M4lZXro9EjuDrio4z8lgQ4MbbzpP79IP\nQY5RCGNCEOtVLzTRt9k6lUlAol+8PWtGpffLkeBTHXz7XQPWkbLcJ9v52XRzuY8a\nZ7F9OATN5M9WxAgcaL+VI1wexRY6Ir3uhHTjoLOIkmD342Cc5wgGgwdo6k4tzsih\n/glW3SVeRuWyzKiKUZb+ohuZ1YUEn2YH9Q42DIzNalY7LuD7Zx3JE9TGNYZhSL5R\nbObBYMSorwhrJLZcczgpb5uoq/eXGYXASeoRfFl+cQKBgQD/iQBJcfJd9q76V+3Z\nWK6OnlHBq7rbYNujcPPMA2BH2X6s4AiziyLpmxXhYLevWx5gJSov3sSfwdswPdVf\nLvmRvb6CHbJd5Nk+mFTqXaOjKx90oLkRkPFykIZi9OtkQkYJ+575kOrV4lblOT1R\nizvfiUs+ACDRd7rVCaInoX0N5QKBgQDq403tRkrnWijGlF+DOUY3E0fzbusnI2iP\ntjunI/ay8cMH9dlxkyJu8MMW49I6T5RES6lKfAnQ2lP4V4gbSmn1kannw5RS3pX0\ndjjLt5cTZUJ16jE88uMHni5+LIm+pt0/1s5t8oN8M21mZNXwtxto5JSdHQtt7fED\nUYkgmKhtEQKBgDEQ9WUk5Az22RJo39rkFGB+NeSiPPby2jm/7pA19b7WHGTFf+Y5\nyTJh/QmRsLOTI3oCqN8YP1kNuDDDLr1gH7vEW1hQq3csAirqxSNbZ5hlJ10Vn3Oo\nCTSeW6+Up75Qm3I/Rn9VPEJle5n4K7YErjJ2AmSdUa/m9ZECkIhbkc+hAoGAIb9W\nyuh2ipbhlOZscqYf+HnEtK0TDCSCOWOtXm5EW6FwrAwembrSD6532SoSYl5cpxNX\n12PK5T75IY0x+PnQD4BGMQ5gmSdx1BXIQzy1cAv0aIylVmRvSgDoHSi5AbNnxmxO\nbG2Thpy88yE5u8QTJBbzYz9xDPJK1nc4hH5qdIECgYBTNjDxzrj64W98Jq7+W2QI\nbXyAxbLyqW11BmK1iqVjmzZTPgO+2MgHhNjcXw6p47Ac19FB4tcHPKSZOmYdRfId\njtbfxGsCtfl8h/gDc2y3O2CMtbFreJbtccmT/b0Ccm8SYAKYyuwd6EjApSpSrZWn\n91VotVR0obYxupgJDQ/yfQ==\n-----END PRIVATE KEY-----\n",
+        "client_email": "sudotag-57673@appspot.gserviceaccount.com",
+        "client_id": "110097303326915309368",
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-efv01%40sudo-70852.iam.gserviceaccount.com",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sudotag-57673%40appspot.gserviceaccount.com",
         "universe_domain": "googleapis.com",
     })
 
