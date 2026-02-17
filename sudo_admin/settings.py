@@ -41,16 +41,19 @@ handler404 = 'admin_app.views.custom_404'
 
 # CSRF Trusted Origins - FIXED format
 CSRF_TRUSTED_ORIGINS = [
-    'http://43.205.192.146',
-    'https://43.205.192.146',  # Added https version
-    'https://sudotag.com',
-    'https://backend.pbx.bonvoice.com',
-    'http://backend.pbx.bonvoice.com',
-    'http://103.163.64.190',
-    'https://103.163.64.190',
-    'https://sudo-admin.onrender.com',
-    'sudotag.com',
-    'www.sudotag.com',
+    "http://43.205.192.146",
+    "https://43.205.192.146",
+
+    "https://sudotag.com",
+    "https://www.sudotag.com",
+
+    "https://backend.pbx.bonvoice.com",
+    "http://backend.pbx.bonvoice.com",
+
+    "http://103.163.64.190",
+    "https://103.163.64.190",
+
+    "https://sudo-admin.onrender.com",
 ]
 
 
@@ -189,7 +192,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_CACHE_ALIAS = 'default'
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'admin_app.email_backend.CustomEmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

@@ -1539,29 +1539,8 @@ def send_notification(request, qr_id):
                             'message': f'Failed to send push notification: {str(e)}'
                         })
                 
-                elif notification_method in ['call', 'sms']:
+                elif notification_method == 'sms':
                     try:
-                        # Validate Twilio configuration
-                        if not hasattr(settings, 'TWILIO_ACCOUNT_SID') or not settings.TWILIO_ACCOUNT_SID:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
-                            })
-                        
-                        if not hasattr(settings, 'TWILIO_AUTH_TOKEN') or not settings.TWILIO_AUTH_TOKEN:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
-                            })
-                        
-                        if not hasattr(settings, 'TWILIO_PHONE_NUMBER') or not settings.TWILIO_PHONE_NUMBER:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'SMS/Call service is not configured. Please try push notification instead.'
-                            })
-
-                        # Initialize Twilio client
-                        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
                         owner_phone = user_data.get('contactNumber', '')
                         
                         if not owner_phone:
@@ -1570,146 +1549,101 @@ def send_notification(request, qr_id):
                                 'message': 'Owner does not have a valid phone number registered.'
                             })
                         
-                        # Validate phone number format
-                        if not owner_phone.startswith('+'):
+                        # Validate phone number format (basic check)
+                        if len(owner_phone) < 10:
                             return JsonResponse({
                                 'status': 'error',
-                                'message': 'Owner phone number must include country code (e.g., +91 for India).'
+                                'message': 'Owner phone number must be at least 10 digits.'
                             })
 
-                        if notification_method == 'sms':
-                            is_allowed, current_count, limit = check_daily_limit(qr_id, 'sms')
+                        is_allowed, current_count, limit = check_daily_limit(qr_id, 'sms')
 
-                            if not is_allowed:
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'error_type': 'daily_limit_reached',
-                                    'message': f'Daily SMS limit reached. You have used {current_count} out of {limit} SMS messages today. Please try again tomorrow.',
-                                    'current_count': current_count,
-                                    'limit': limit,
-                                })
-
-                            message = twilio_client.messages.create(
-                                body=f"Vehicle Alert: {reason}\n\nFrom: {user_phone or 'Anonymous'}",
-                                from_=settings.TWILIO_PHONE_NUMBER,
-                                to=owner_phone
-                            )
-                            logger.info(f"SMS sent successfully: {message.sid}")
-                            increment_daily_count(qr_id, 'sms')
+                        if not is_allowed:
                             return JsonResponse({
-                                'status': 'success',
-                                'message': 'SMS sent successfully to the vehicle owner.'
+                                'status': 'error',
+                                'error_type': 'daily_limit_reached',
+                                'message': f'Daily SMS limit reached. You have used {current_count} out of {limit} SMS messages today. Please try again tomorrow.',
+                                'current_count': current_count,
+                                'limit': limit,
                             })
+
+                        # Format phone number for MSG91 (needs 91 prefix)
+                        formatted_phone = owner_phone
+                        if formatted_phone.startswith('+'):
+                            formatted_phone = formatted_phone.replace('+', '')
+                        if not formatted_phone.startswith('91') and len(formatted_phone) == 10:
+                            formatted_phone = '91' + formatted_phone
                         
-                        elif notification_method == 'call':
-                            is_allowed, current_count, limit = check_daily_limit(qr_id, 'call')
-
-                            if not is_allowed:
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'error_type': 'daily_limit_reached',
-                                    'message': f'Daily call limit reached. You have used {current_count} out of {limit} calls today. Please try again tomorrow.',
-                                    'current_count': current_count,
-                                    'limit': limit,
-                                })
-
-                            # Use the new initiate_call API endpoint
-                            # Get the base URL for the API call
-                            base_url = request.build_absolute_uri('/').rstrip('/')
-                            if not base_url:
-                                base_url = 'http://127.0.0.1:8000'
-                            
-                            initiate_call_url = f"{base_url}/admin/api/initiate-call/"
-                            
-                            # Prepare payload with required fields
-                            payload = {
-                                'from': user_phone or '0000000000',  # Default if not provided
-                                'did': '8049649451',  # Fixed DID number
-                                'user_input': qr_id
+                        # MSG91 API call
+                        import requests
+                        url = "https://control.msg91.com/api/v5/campaign/api/campaigns/sudotag-vehicle-issue-test/run"
+                        headers = {
+                            "Content-Type": "application/json",
+                            "authkey": "486400AG4Dnr6QVFs695b464eP1"
+                        }
+                        payload = {
+                            "data": {
+                                "sendTo": [
+                                    {
+                                        "to": [
+                                            {
+                                                "mobiles": formatted_phone,
+                                                "variables": {
+                                                    "6992f707cd044d1c7c1f6e76:var": reason
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
                             }
+                        }
+
+                        response = requests.post(url, json=payload, headers=headers)
+                        
+                        if response.status_code == 200:
+                            api_data = response.json()
+                            status_val = api_data.get('status')
+                            has_error = api_data.get('hasError')
                             
-                            # Make internal API call to initiate_call
-                            try:
-                                api_response = requests.post(
-                                    initiate_call_url,
-                                    json=payload,
-                                    headers={
-                                        'Content-Type': 'application/json',
-                                    },
-                                    timeout=10
-                                )
-                                
-                                if api_response.status_code == 200:
-                                    api_data = api_response.json()
-                                    if api_data.get('status') == '1':
-                                        increment_daily_count(qr_id, 'call')
-                                        logger.info(f"Call initiated successfully via new API for QR: {qr_id}, destination: {api_data.get('destination')}")
-                                        return JsonResponse({
-                                            'status': 'success',
-                                            'message': 'Phone call initiated successfully to the vehicle owner.'
-                                        })
-                                    else:
-                                        error_msg = api_data.get('error', 'Failed to initiate call.')
-                                        return JsonResponse({
-                                            'status': 'error',
-                                            'message': error_msg
-                                        })
-                                else:
-                                    api_data = api_response.json() if api_response.content else {}
-                                    error_msg = api_data.get('error', 'Failed to initiate call.')
-                                    return JsonResponse({
-                                        'status': 'error',
-                                        'message': error_msg
-                                    }, status=api_response.status_code)
-                                    
-                            except requests.exceptions.RequestException as e:
-                                logger.error(f"Error calling initiate_call API: {str(e)}")
+                            if status_val == 'success' and not has_error:
+                                logger.info(f"MSG91 SMS sent successfully: {api_data}")
+                                increment_daily_count(qr_id, 'sms')
+                                return JsonResponse({
+                                    'status': 'success',
+                                    'message': 'SMS sent successfully to the vehicle owner.'
+                                })
+                            else:
+                                logger.error(f"MSG91 Error: {api_data}")
                                 return JsonResponse({
                                     'status': 'error',
-                                    'message': f'Failed to initiate call: {str(e)}'
+                                    'message': f"Failed to send SMS: {api_data.get('message', 'Unknown error')}"
                                 })
-                            except Exception as e:
-                                logger.error(f"Unexpected error in call initiation: {str(e)}")
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'message': f'Failed to initiate call. Please try again.'
-                                })
-                    
-                    except TwilioRestException as e:
-                        logger.error(f"Twilio Error {e.code}: {e.msg}")
-                        user_message = get_twilio_error_message(e)
-                        
-                        # Special handling for common errors
-                        if e.code == 20003:
-                            user_message = "SMS/Call service is temporarily unavailable. Please try push notification instead."
-                        elif e.code == 21211:
-                            user_message = "Invalid phone number format. The owner's phone number needs to include country code."
-                        elif e.code in [21408, 21610]:
-                            user_message = "SMS/Call feature is not available for this number. Please try push notification."
-                        elif e.code == 30007:
-                            user_message = "Unable to deliver message to the owner's phone number. It may be inactive or blocked."
-                        
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': user_message
-                        })
-                        
+                        else:
+                            logger.error(f"MSG91 HTTP Error: {response.status_code} - {response.text}")
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': f"Failed to send SMS (HTTP {response.status_code})"
+                            })
+                            
                     except Exception as e:
-                        logger.error(f"Unexpected Twilio error: {str(e)}")
+                        logger.error(f"Unexpected error in SMS sending: {str(e)}")
                         return JsonResponse({
                             'status': 'error',
-                            'message': f'Failed to send {notification_method}. Please try again or use push notification.'
+                            'message': f'Failed to send SMS. Please try again later.'
                         })
 
         # Render the initial page with vehicle data
         owner_phone = user_data.get('contactNumber', '')
+        has_fcm_token = bool(user_data.get('fcmToken'))
+        
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
                 'registrationNumber': vehicle_data.get('registrationNumber', ''),
                 'make': vehicle_data.get('make', '')
             },
-            'owner_phone': owner_phone
+            'owner_phone': owner_phone,
+            'has_fcm_token': has_fcm_token
         }
         
         return render(request, 'send_notification.html', context)

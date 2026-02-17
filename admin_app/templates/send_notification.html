@@ -19,19 +19,41 @@
   <style>
     /* Animations */
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
 
     :root {
@@ -50,7 +72,8 @@
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       height: 100%;
       overflow: hidden;
     }
@@ -273,19 +296,8 @@
       transform: translateY(-2px);
     }
 
+    /* HIGHLIGHTED SMS button styling */
     .sms-btn {
-      background-color: var(--secondary-gray);
-      color: var(--text-white);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .sms-btn:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      border-color: var(--accent-orange);
-      transform: translateY(-2px);
-    }
-
-    .call-btn {
       background-color: var(--accent-orange);
       color: var(--text-white);
       border: 1px solid var(--accent-orange);
@@ -293,7 +305,7 @@
       transform: translateY(-2px);
     }
 
-    .call-btn:hover {
+    .sms-btn:hover {
       background-color: #D46C35;
       transform: translateY(-3px);
       box-shadow: 0 6px 16px rgba(229, 129, 71, 0.4);
@@ -336,10 +348,6 @@
       color: var(--success-green);
     }
 
-    .success-icon.call {
-      color: var(--accent-orange);
-    }
-
     .success-title {
       font-size: 1.3rem;
       font-weight: 600;
@@ -376,109 +384,6 @@
     .success-detail-value {
       color: var(--text-white);
       font-weight: 500;
-    }
-
-    /* Optional Phone Modal */
-    .phone-modal {
-      background-color: var(--secondary-gray);
-      border-radius: 12px;
-      padding: 20px;
-      margin: 15px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      animation: slideUp 0.4s ease-out;
-    }
-
-    .phone-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-white);
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .phone-subtitle {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.7);
-      text-align: center;
-      margin-bottom: 15px;
-    }
-
-    .phone-input-container {
-      margin-bottom: 15px;
-    }
-
-    .phone-input {
-      width: 100%;
-      background-color: var(--primary-block);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 12px;
-      color: var(--text-white);
-      font-size: 0.85rem;
-      transition: all 0.3s ease;
-    }
-
-    .phone-input:focus {
-      outline: none;
-      border-color: var(--accent-orange);
-      box-shadow: 0 0 0 2px rgba(229, 129, 71, 0.2);
-    }
-
-    .phone-note {
-      font-size: 0.7rem;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 5px;
-      text-align: center;
-    }
-
-    .phone-optional {
-      font-size: 0.7rem;
-      color: var(--accent-orange);
-      text-align: center;
-      margin-top: 5px;
-    }
-
-    .phone-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .phone-action-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .skip-btn {
-      background-color: var(--secondary-gray);
-      color: var(--text-white);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .skip-btn:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      border-color: var(--accent-orange);
-    }
-
-    .confirm-btn {
-      background-color: var(--accent-orange);
-      color: var(--text-white);
-      border: 1px solid var(--accent-orange);
-      box-shadow: 0 4px 12px rgba(229, 129, 71, 0.3);
-    }
-
-    .confirm-btn:hover {
-      background-color: #D46C35;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(229, 129, 71, 0.4);
     }
 
     /* Modal Overlay */
@@ -737,17 +642,6 @@
       }
     }
 
-    @media (max-height: 620px) {
-      .daily-limit-modal {
-        max-height: calc(100vh - 30px);
-        gap: 16px;
-      }
-
-      .daily-limit-alt {
-        gap: 10px;
-      }
-    }
-
     /* Error Details Modal */
     .error-details {
       background-color: var(--primary-block);
@@ -802,25 +696,25 @@
       .main-content {
         padding: 12px;
       }
-      
+
       .vehicle-info {
         padding: 12px;
       }
-      
+
       .plate-number {
         font-size: 1.2rem;
       }
-      
+
       .action-btn {
         padding: 10px 6px;
         font-size: 0.75rem;
         min-height: 65px;
       }
-      
+
       .btn-icon {
         font-size: 1.1rem;
       }
-      
+
       .btn-text {
         font-size: 0.7rem;
       }
@@ -830,16 +724,16 @@
       .action-buttons {
         gap: 8px;
       }
-      
+
       .action-btn {
         padding: 8px 4px;
         min-height: 60px;
       }
-      
+
       .btn-icon {
         font-size: 1rem;
       }
-      
+
       .btn-text {
         font-size: 0.65rem;
       }
@@ -870,31 +764,31 @@
 
     <!-- Reasons List -->
     <div class="reasons-list">
-      <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on.')">
+      <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on')">
         <i class="bi bi-lightbulb-fill" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">The lights of this car is on.</span>
+        <span class="reason-text">The lights of this car is on</span>
       </div>
-      
-      <div class="reason-item" onclick="selectReason(this, 'The car is in no parking.')">
+
+      <div class="reason-item" onclick="selectReason(this, 'The car is in no parking')">
         <i class="bi bi-sign-stop-fill" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">The car is in no parking.</span>
+        <span class="reason-text">The car is in no parking</span>
       </div>
-      
-      <div class="reason-item" onclick="selectReason(this, 'The car is getting towed.')">
+
+      <div class="reason-item" onclick="selectReason(this, 'The car is getting towed')">
         <i class="bi bi-truck-flatbed" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">The car is getting towed.</span>
+        <span class="reason-text">The car is getting towed</span>
       </div>
-      
-      <div class="reason-item" onclick="selectReason(this, 'The window or car is open.')">
+
+      <div class="reason-item" onclick="selectReason(this, 'The window or car is open')">
         <i class="bi bi-door-open-fill" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">The window or car is open.</span>
+        <span class="reason-text">The window or car is open</span>
       </div>
-      
-      <div class="reason-item" onclick="selectReason(this, 'Something wrong with this car.')">
+
+      <div class="reason-item" onclick="selectReason(this, 'Something wrong with this car')">
         <i class="bi bi-exclamation-triangle-fill" style="color: var(--accent-orange);"></i>
-        <span class="reason-text">Something wrong with this car.</span>
+        <span class="reason-text">Something wrong with this car</span>
       </div>
-      
+
       <div class="reason-item" onclick="selectReason(this, 'custom')" id="customReasonItem">
         <i class="bi bi-chat-square-text-fill" style="color: var(--accent-orange);"></i>
         <span class="reason-text">Other reason (type your message)</span>
@@ -903,57 +797,34 @@
 
     <!-- Custom Message Container -->
     <div class="custom-message-container" id="customMessageContainer">
-      <textarea 
-        class="custom-message" 
-        id="customMessage" 
-        placeholder="Please type your message here..."
+      <textarea class="custom-message" id="customMessage" placeholder="Please type your message here..."
         maxlength="200"></textarea>
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>
 
-    <!-- Action Buttons - Horizontal Layout -->
+    <!-- Action Buttons - Highlights SMS, removed Call -->
     <div class="action-buttons">
-      <button class="action-btn call-btn" id="callBtn">
-        <i class="bi bi-telephone-fill btn-icon"></i>
-        <span class="btn-text">Call Owner</span>
-      </button>
       <button class="action-btn sms-btn" id="smsBtn">
         <i class="bi bi-chat-text-fill btn-icon"></i>
         <span class="btn-text">Send SMS</span>
       </button>
+      {% if has_fcm_token %}
       <button class="action-btn push-btn" id="pushBtn">
         <i class="bi bi-bell-fill btn-icon"></i>
         <span class="btn-text">Push Notification</span>
       </button>
+      {% endif %}
     </div>
 
     {% else %}
     <!-- No Vehicle Message -->
     <div class="vehicle-info" style="text-align: center;">
-      <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem; color: var(--notification-red); margin-bottom: 10px;"></i>
+      <i class="bi bi-exclamation-triangle-fill"
+        style="font-size: 2rem; color: var(--notification-red); margin-bottom: 10px;"></i>
       <p style="font-size: 0.9rem;">No vehicle registered for this QR code</p>
     </div>
     {% endif %}
   </main>
-
-  <!-- Optional Phone Modal -->
-  <div class="modal-overlay" id="phoneModal">
-    <div class="phone-modal">
-      <h3 class="phone-title" id="phoneModalTitle">Your Phone Number (Optional)</h3>
-      <p class="phone-subtitle" id="phoneModalSubtitle">Share your number if you'd like the owner to contact you back</p>
-      
-      <div class="phone-input-container">
-        <input type="tel" class="phone-input" id="userPhone" placeholder="+1234567890">
-        <div class="phone-note">Include country code for international numbers</div>
-        <div class="phone-optional">• This is optional - you can skip</div>
-      </div>
-      
-      <div class="phone-actions">
-        <button class="phone-action-btn skip-btn" id="skipPhoneBtn">Skip</button>
-        <button class="phone-action-btn confirm-btn" id="phoneConfirmBtn">Send</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Success Modal -->
   <div class="modal-overlay" id="successModal">
@@ -963,7 +834,7 @@
       </div>
       <h3 class="success-title" id="successTitle">Notification Sent!</h3>
       <p class="success-text" id="successMessage">The vehicle owner has been notified about your message.</p>
-      
+
       <div class="success-details" id="successDetails">
         <div class="success-detail-item">
           <span class="success-detail-label">Method:</span>
@@ -973,13 +844,10 @@
           <span class="success-detail-label">Message:</span>
           <span class="success-detail-value" id="detailMessage">Your message here</span>
         </div>
-        <div class="success-detail-item" id="detailPhoneContainer" style="display: none;">
-          <span class="success-detail-label">Your Number:</span>
-          <span class="success-detail-value" id="detailPhone">+1234567890</span>
-        </div>
       </div>
-      
-      <button class="action-btn call-btn" id="continueBtn" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto; padding: 12px 24px;">
+
+      <button class="action-btn sms-btn" id="continueBtn"
+        style="margin-top: 8px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto; padding: 12px 24px;">
         OK
       </button>
     </div>
@@ -987,12 +855,12 @@
 
   <!-- Error Details Modal -->
   <div class="modal-overlay" id="errorModal">
-    <div class="phone-modal">
-      <h3 class="phone-title" style="color: var(--notification-red);">
+    <div class="success-modal">
+      <h3 class="success-title" style="color: var(--notification-red);">
         <i class="bi bi-exclamation-triangle-fill"></i> Unable to Send
       </h3>
-      <p class="phone-subtitle" id="errorMainMessage">There was an issue sending your notification.</p>
-      
+      <p class="success-text" id="errorMainMessage">There was an issue sending your notification.</p>
+
       <div class="error-details">
         <div class="error-title" id="errorTitle">Error Details</div>
         <div class="error-message" id="errorDetailedMessage"></div>
@@ -1003,9 +871,9 @@
         <div class="suggestion-text" id="suggestionText">Please try a different notification method.</div>
       </div>
 
-      <div class="phone-actions" style="margin-top: 15px;">
-        <button class="phone-action-btn skip-btn" id="errorCloseBtn">Close</button>
-        <button class="phone-action-btn confirm-btn" id="errorRetryBtn">Try Again</button>
+      <div class="phone-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+        <button class="action-btn push-btn" id="errorCloseBtn" style="min-height: 45px;">Close</button>
+        <button class="action-btn sms-btn" id="errorRetryBtn" style="min-height: 45px;">Try Again</button>
       </div>
     </div>
   </div>
@@ -1044,7 +912,8 @@
       </div>
 
       <div class="daily-limit-modal-subcopy" id="limitModalSubcopy"></div>
-      <button class="phone-action-btn confirm-btn daily-limit-modal-button" id="limitModalClose">Got it</button>
+      <button class="action-btn sms-btn daily-limit-modal-button" id="limitModalClose" style="min-height: auto;">Got
+        it</button>
     </div>
   </div>
 
@@ -1060,22 +929,18 @@
   <script>
     // Owner's phone number from backend
     const ownerPhone = '{{ owner_phone|default:"" }}';
-    
+
     // DOM Elements
     const pushBtn = document.getElementById('pushBtn');
     const smsBtn = document.getElementById('smsBtn');
-    const callBtn = document.getElementById('callBtn');
-    const phoneModal = document.getElementById('phoneModal');
-    const skipPhoneBtn = document.getElementById('skipPhoneBtn');
-    const phoneConfirmBtn = document.getElementById('phoneConfirmBtn');
-    const userPhone = document.getElementById('userPhone');
-    const phoneModalTitle = document.getElementById('phoneModalTitle');
-    const phoneModalSubtitle = document.getElementById('phoneModalSubtitle');
+
     const toastNotification = document.getElementById('toastNotification');
     const toastMessage = document.getElementById('toastMessage');
     const customMessageContainer = document.getElementById('customMessageContainer');
     const customMessage = document.getElementById('customMessage');
     const charCount = document.getElementById('charCount');
+
+    // Success Modal Elements
     const successModal = document.getElementById('successModal');
     const continueBtn = document.getElementById('continueBtn');
     const successTitle = document.getElementById('successTitle');
@@ -1084,8 +949,8 @@
     const successDetails = document.getElementById('successDetails');
     const detailMethod = document.getElementById('detailMethod');
     const detailMessage = document.getElementById('detailMessage');
-    const detailPhone = document.getElementById('detailPhone');
-    const detailPhoneContainer = document.getElementById('detailPhoneContainer');
+
+    // Error Modal Elements
     const errorModal = document.getElementById('errorModal');
     const errorMainMessage = document.getElementById('errorMainMessage');
     const errorTitle = document.getElementById('errorTitle');
@@ -1094,6 +959,8 @@
     const errorRetryBtn = document.getElementById('errorRetryBtn');
     const suggestionBox = document.getElementById('suggestionBox');
     const suggestionText = document.getElementById('suggestionText');
+
+    // Daily Limit Modal Elements
     const dailyLimitModal = document.getElementById('dailyLimitModal');
     const limitModalTitle = document.getElementById('limitModalTitle');
     const limitModalMessage = document.getElementById('limitModalMessage');
@@ -1105,19 +972,19 @@
     const limitModalProgress = document.getElementById('limitModalProgress');
     const limitAltPrimary = document.getElementById('limitAltPrimary');
     const limitAltSecondary = document.getElementById('limitAltSecondary');
-    
+
     // Selected reason and method
     let selectedReason = '';
     let selectedMethod = '';
     let lastNotificationData = null;
 
     // Initialize the page
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       // Hide custom message container initially
       customMessageContainer.style.display = 'none';
-      
+
       // Set up character counter for custom message
-      customMessage.addEventListener('input', function() {
+      customMessage.addEventListener('input', function () {
         charCount.textContent = this.value.length;
       });
     });
@@ -1129,11 +996,11 @@
       reasonItems.forEach(item => {
         item.classList.remove('selected');
       });
-      
+
       // Add selected class to clicked item
       element.classList.add('selected');
       selectedReason = reason;
-      
+
       // Show/hide custom message field
       if (reason === 'custom') {
         customMessageContainer.style.display = 'block';
@@ -1144,29 +1011,31 @@
     }
 
     // Push notification button click
-    pushBtn.addEventListener('click', function() {
-      if (!selectedReason) {
-        showToast('Please select a reason first', 'error');
-        return;
-      }
-      
-      // If custom reason is selected but no message
-      if (selectedReason === 'custom' && customMessage.value.trim() === '') {
-        showToast('Please type your message', 'error');
-        return;
-      }
+    if (pushBtn) {
+      pushBtn.addEventListener('click', function () {
+        if (!selectedReason) {
+          showToast('Please select a reason first', 'error');
+          return;
+        }
 
-      selectedMethod = 'push';
-      sendNotificationDirectly();
-    });
+        // If custom reason is selected but no message
+        if (selectedReason === 'custom' && customMessage.value.trim() === '') {
+          showToast('Please type your message', 'error');
+          return;
+        }
+
+        selectedMethod = 'push';
+        sendNotificationDirectly();
+      });
+    }
 
     // SMS button click
-    smsBtn.addEventListener('click', function() {
+    smsBtn.addEventListener('click', function () {
       if (!selectedReason) {
         showToast('Please select a reason first', 'error');
         return;
       }
-      
+
       // If custom reason is selected but no message
       if (selectedReason === 'custom' && customMessage.value.trim() === '') {
         showToast('Please type your message', 'error');
@@ -1174,107 +1043,13 @@
       }
 
       selectedMethod = 'sms';
-      showPhoneModal('Send SMS');
-    });
-
-    // Flag to track if we're in call mode
-    let isCallMode = false;
-    
-    // Fixed DID number
-    const DID_NUMBER = '8049649451';
-    
-    // Call button click - Show phone modal to get user's number, then call API and open dialer
-    callBtn.addEventListener('click', function() {
-      // Get QR ID from URL
-      const urlPath = window.location.pathname;
-      const qrIdMatch = urlPath.match(/\/send-notification-final\/([^\/]+)/);
-      const qrId = qrIdMatch ? qrIdMatch[1] : null;
-      
-      if (!qrId) {
-        showToast('QR code ID not found in URL', 'error');
-        return;
-      }
-      
-      // Set call mode flag
-      isCallMode = true;
-      
-      // Show phone modal to get caller's number
-      phoneModalTitle.textContent = 'Your Phone Number';
-      phoneModalSubtitle.textContent = 'Enter your phone number to make the call';
-      userPhone.value = '';
-      phoneModal.style.display = 'flex';
-      userPhone.focus();
-    });
-    // Show phone modal
-    function showPhoneModal(action) {
-      phoneModalTitle.textContent = `${action} - Phone Number (Optional)`;
-      phoneModalSubtitle.textContent = 'Share your number if you\'d like the owner to contact you back';
-      userPhone.value = '';
-      phoneModal.style.display = 'flex';
-      userPhone.focus();
-    }
-
-    // Skip phone number button
-    skipPhoneBtn.addEventListener('click', function() {
-      phoneModal.style.display = 'none';
-      userPhone.value = '';
-      
-      if (isCallMode) {
-        // Call mode - initiate call without caller number (use default)
-        isCallMode = false;
-        initiateCallAndOpenDialer('0000000000');
-      } else {
-        // Normal mode - send notification
-        sendNotificationDirectly();
-      }
-    });
-
-    // Phone modal confirm button
-    phoneConfirmBtn.addEventListener('click', function() {
-      const phone = userPhone.value.trim();
-      
-      if (isCallMode) {
-        // Call mode - validate and initiate call
-        if (phone && !phone.match(/^(\+91|91)?[0-9]{10}$/)) {
-          showToast('Please enter a valid 10-digit phone number (with or without +91)', 'error');
-          return;
-        }
-        
-        phoneModal.style.display = 'none';
-        isCallMode = false;
-        
-        // Normalize phone number for API (remove +91, keep only 10 digits)
-        let normalizedPhone = phone.trim();
-        if (normalizedPhone.startsWith('+91')) {
-          normalizedPhone = normalizedPhone.substring(3);
-        } else if (normalizedPhone.startsWith('91') && normalizedPhone.length === 12) {
-          normalizedPhone = normalizedPhone.substring(2);
-        }
-        
-        // Use normalized phone or default
-        const fromNumber = normalizedPhone || '0000000000';
-        initiateCallAndOpenDialer(fromNumber);
-      } else {
-        // Normal mode - validate for SMS
-        if (phone && !phone.startsWith('+')) {
-          showToast('Please enter phone number with country code (e.g., +1234567890)', 'error');
-          return;
-        }
-        
-        if (phone && phone.length < 10) {
-          showToast('Please enter a valid phone number', 'error');
-          return;
-        }
-        
-        phoneModal.style.display = 'none';
-        sendNotificationDirectly();
-      }
+      sendNotificationDirectly();
     });
 
     // Continue button in success modal
-    continueBtn.addEventListener('click', function() {
+    continueBtn.addEventListener('click', function () {
       successModal.style.display = 'none';
-      
+
       // Reset form
       const reasonItems = document.querySelectorAll('.reason-item');
       reasonItems.forEach(item => {
@@ -1284,18 +1059,17 @@
       customMessage.value = '';
       customMessageContainer.style.display = 'none';
       charCount.textContent = '0';
-      userPhone.value = '';
       selectedMethod = '';
       lastNotificationData = null;
     });
 
     // Error modal close button
-    errorCloseBtn.addEventListener('click', function() {
+    errorCloseBtn.addEventListener('click', function () {
       errorModal.style.display = 'none';
     });
 
     // Error modal retry button
-    errorRetryBtn.addEventListener('click', function() {
+    errorRetryBtn.addEventListener('click', function () {
       errorModal.style.display = 'none';
       if (lastNotificationData) {
         sendNotificationDirectly();
@@ -1307,15 +1081,15 @@
       toastNotification.className = 'toast';
       toastNotification.classList.add(`toast-${type}`);
       toastMessage.textContent = message;
-      
+
       if (type === 'success') {
         toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
       } else {
         toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
       }
-      
+
       toastNotification.classList.add('show');
-      
+
       setTimeout(() => {
         toastNotification.classList.remove('show');
       }, 4000);
@@ -1325,7 +1099,7 @@
     function showErrorModal(mainMessage, detailedMessage, errorType = 'general', suggestion = '') {
       errorMainMessage.textContent = mainMessage;
       errorDetailedMessage.textContent = detailedMessage;
-      
+
       // Set appropriate title based on error type
       if (errorType === 'twilio') {
         errorTitle.textContent = 'Twilio Service Error';
@@ -1340,7 +1114,7 @@
       } else {
         errorTitle.textContent = 'Error Details';
       }
-      
+
       // Show suggestion if provided
       if (suggestion) {
         suggestionText.textContent = suggestion;
@@ -1348,143 +1122,46 @@
       } else {
         suggestionBox.style.display = 'none';
       }
-      
+
       errorModal.style.display = 'flex';
     }
 
-    // Prepare and send notification
-    // Function to initiate call via API and then open phone dialer
-    function initiateCallAndOpenDialer(fromNumber) {
-      // Get QR ID from URL
-      const urlPath = window.location.pathname;
-      const qrIdMatch = urlPath.match(/\/send-notification-final\/([^\/]+)/);
-      const qrId = qrIdMatch ? qrIdMatch[1] : null;
-      
-      if (!qrId) {
-        showToast('QR code ID not found in URL', 'error');
-        return;
-      }
-      
-      // Show loading state
-      const originalText = callBtn.innerHTML;
-      callBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-      callBtn.disabled = true;
-      
-      // Prepare payload for API
-      const payload = {
-        from: fromNumber,
-        did: DID_NUMBER,
-        user_input: qrId
-      };
-      
-      // Get CSRF token
-      const csrfToken = getCSRFToken();
-      if (!csrfToken) {
-        showToast('Security error. Please refresh the page', 'error');
-        callBtn.innerHTML = originalText;
-        callBtn.disabled = false;
-        return;
-      }
-      
-      // Call the initiate-call API
-      // Note: Endpoint has @csrf_exempt, so CSRF token is optional but included for safety
-      fetch('/admin/api/initiate-call/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin',
-        mode: 'same-origin',
-        body: JSON.stringify(payload)
-      })
-      .then(response => {
-        // Check if response is JSON or HTML (error page)
-        const contentType = response.headers.get('content-type');
-        if (!response.ok) {
-          // If it's an HTML response (like 403 error page), try to get text
-          if (contentType && contentType.includes('text/html')) {
-            return response.text().then(html => {
-              throw new Error(`CSRF Error: The request was blocked. Please refresh the page and try again.`);
-            });
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Invalid response format from server');
-        }
-        return response.json();
-      })
-      .then(data => {
-        // Reset button state
-        callBtn.innerHTML = originalText;
-        callBtn.disabled = false;
-        
-        if (data.status === '1' || data.status === 1) {
-          // API call successful - now open phone dialer with DID number
-          // Normalize DID number for tel: protocol
-          let didNumber = DID_NUMBER;
-          if (!didNumber.startsWith('+')) {
-            // Add +91 for Indian numbers
-            didNumber = '+91' + didNumber;
-          }
-          
-          // Open phone dialer with DID number
-          window.location.href = 'tel:' + didNumber;
-          
-          showToast('Call initiated. Opening dialer...', 'success');
-        } else {
-          // API returned error
-          const errorMsg = data.error || data.message || 'Failed to initiate call';
-          showToast(errorMsg, 'error');
-        }
-      })
-      .catch(error => {
-        // Reset button state
-        callBtn.innerHTML = originalText;
-        callBtn.disabled = false;
-        
-        console.error('Error calling initiate-call API:', error);
-        showToast('Failed to initiate call. Please try again.', 'error');
-      });
-    }
-    
     function sendNotificationDirectly() {
       // Prepare the message to send
       let messageToSend = selectedReason;
       if (selectedReason === 'custom') {
         messageToSend = customMessage.value.trim();
       }
-      
+
       // Store notification data for retry
       lastNotificationData = {
         message: messageToSend,
-        phone: userPhone.value.trim(),
         method: selectedMethod
       };
-      
+
       // Send notification
+      // We don't need phone number anymore since we are sending directly
       sendNotification(messageToSend);
     }
 
     // Function to send notification to server
     function sendNotification(message) {
       const csrfToken = getCSRFToken();
-      const phoneNumber = userPhone.value.trim();
-      
+      // user_phone is not collected from sender anymore, sending empty or default handled by backend
+      const phoneNumber = '';
+
       if (!csrfToken) {
         console.error('CSRF token not found');
         showToast('Security error. Please refresh the page', 'error');
         return;
       }
-      
+
       // Show loading state on the appropriate button
       const activeButton = getActiveButton();
       const originalText = activeButton.innerHTML;
       activeButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
       activeButton.disabled = true;
-      
+
       fetch('', {
         method: 'POST',
         headers: {
@@ -1498,93 +1175,95 @@
           notification_method: selectedMethod
         })
       })
-      .then(response => {
-        if (!response.ok) {
-          // Handle HTTP errors
-          if (response.status === 500) {
-            throw new Error('Server error. Please try again later.');
-          } else if (response.status === 400) {
-            throw new Error('Invalid request. Please check your input.');
+        .then(response => {
+          if (!response.ok) {
+            // Handle HTTP errors
+            if (response.status === 500) {
+              throw new Error('Server error. Please try again later.');
+            } else if (response.status === 400) {
+              throw new Error('Invalid request. Please check your input.');
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            // Show success modal with method-specific styling
+            showSuccessModal(data.notification_type, message, phoneNumber, data.message);
           } else {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // Handle server-side errors with detailed messages
+            let errorType = data.error_type || 'server';
+            let detailedMessage = data.message || 'Unknown server error occurred.';
+            let suggestion = '';
+
+            // Check if it's a daily limit error
+            if (errorType === 'daily_limit_reached') {
+              showDailyLimitModal(detailedMessage, selectedMethod, data.current_count, data.limit);
+              return;
+            }
+
+            // Provide specific suggestions based on error type
+            switch (errorType) {
+              case 'user_not_registered':
+                suggestion = 'Try using SMS instead. The owner might not have the mobile app installed.';
+                break;
+              case 'no_phone_number':
+                suggestion = 'Try using push notification instead. The owner hasn\'t registered a phone number.';
+                break;
+              case 'push_failed':
+                suggestion = 'Try using SMS instead. The owner might not have the app installed or notifications disabled.';
+                break;
+              case 'service_unavailable':
+                suggestion = 'Try using push notification instead. The SMS service is temporarily down.';
+                break;
+              case 'twilio_error':
+                suggestion = 'Try using push notification instead. There seems to be an issue with the phone service.';
+                break;
+              default:
+                suggestion = 'Please try a different notification method or try again later.';
+            }
+
+            showErrorModal(
+              'Failed to send notification',
+              detailedMessage,
+              errorType,
+              suggestion
+            );
           }
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.status === 'success') {
-          // Show success modal with method-specific styling
-          showSuccessModal(data.notification_type, message, phoneNumber, data.message);
-        } else {
-          // Handle server-side errors with detailed messages
-          let errorType = data.error_type || 'server';
-          let detailedMessage = data.message || 'Unknown server error occurred.';
-          let suggestion = '';
-          
-          // Check if it's a daily limit error
-          if (errorType === 'daily_limit_reached') {
-            showDailyLimitModal(detailedMessage, selectedMethod, data.current_count, data.limit);
-            return;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+
+          // Determine error type for better messaging
+          let errorType = 'network';
+          let detailedMessage = error.message;
+          let suggestion = 'Please check your internet connection and try again.';
+
+          if (error.message.includes('Network') || error.message.includes('fetch')) {
+            detailedMessage = 'Network connection failed. Please check your internet connection and try again.';
+            errorType = 'network';
+          } else if (error.message.includes('Server')) {
+            errorType = 'server';
+            suggestion = 'Server is temporarily unavailable. Please try again in a few minutes.';
           }
-          
-          // Provide specific suggestions based on error type
-          switch(errorType) {
-            case 'user_not_registered':
-              suggestion = 'Try using SMS or Call instead. The owner might not have the mobile app installed.';
-              break;
-            case 'no_phone_number':
-              suggestion = 'Try using push notification instead. The owner hasn\'t registered a phone number.';
-              break;
-            case 'push_failed':
-              suggestion = 'Try using SMS or Call instead. The owner might not have the app installed or notifications disabled.';
-              break;
-            case 'service_unavailable':
-              suggestion = 'Try using push notification instead. The SMS/Call service is temporarily down.';
-              break;
-            case 'twilio_error':
-              suggestion = 'Try using push notification instead. There seems to be an issue with the phone service.';
-              break;
-            default:
-              suggestion = 'Please try a different notification method or try again later.';
-          }
-          
+
           showErrorModal(
-            'Failed to send notification', 
+            'Failed to send notification',
             detailedMessage,
             errorType,
             suggestion
           );
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        
-        // Determine error type for better messaging
-        let errorType = 'network';
-        let detailedMessage = error.message;
-        let suggestion = 'Please check your internet connection and try again.';
-        
-        if (error.message.includes('Network') || error.message.includes('fetch')) {
-          detailedMessage = 'Network connection failed. Please check your internet connection and try again.';
-          errorType = 'network';
-        } else if (error.message.includes('Server')) {
-          errorType = 'server';
-          suggestion = 'Server is temporarily unavailable. Please try again in a few minutes.';
-        }
-        
-        showErrorModal(
-          'Failed to send notification', 
-          detailedMessage,
-          errorType,
-          suggestion
-        );
-      })
-      .finally(() => {
-        // Reset button state
-        const activeButton = getActiveButton();
-        activeButton.innerHTML = originalText;
-        activeButton.disabled = false;
-      });
+        })
+        .finally(() => {
+          // Reset button state
+          const activeButton = getActiveButton();
+          if (activeButton) {
+            activeButton.innerHTML = originalText;
+            activeButton.disabled = false;
+          }
+        });
     }
 
     // Show success modal with method-specific styling
@@ -1593,65 +1272,51 @@
       let iconClass = '';
       let title = '';
       let messageText = customMessage;
-      
-      switch(method) {
+
+      switch (method) {
         case 'push':
           iconClass = 'push';
           title = '📱 Push Notification Sent!';
-          if (!messageText) messageText = 'The owner will receive an alert on their phone.';
+          if (!messageText) messageText = 'The vehicle owner has been notified about your message.';
           break;
         case 'sms':
           iconClass = 'sms';
           title = '💬 SMS Sent Successfully!';
           if (!messageText) messageText = 'The owner will receive your message shortly.';
           break;
-        case 'call':
-          iconClass = 'call';
-          title = '📞 Call Initiated!';
-          if (!messageText) messageText = 'The owner is receiving your message via automated call.';
-          break;
         default:
           iconClass = 'push';
           title = 'Notification Sent!';
           if (!messageText) messageText = 'The vehicle owner has been notified about your message.';
       }
-      
+
       // Update success modal content
       successIcon.className = `success-icon ${iconClass}`;
       successIcon.innerHTML = `<i class="bi bi-check-circle-fill"></i>`;
       successTitle.textContent = title;
       successMessage.textContent = messageText;
-      
+
       // Update details
       detailMethod.textContent = getMethodDisplayName(method);
       detailMessage.textContent = message.length > 50 ? message.substring(0, 50) + '...' : message;
-      
-      if (phone) {
-        detailPhone.textContent = phone;
-        detailPhoneContainer.style.display = 'flex';
-      } else {
-        detailPhoneContainer.style.display = 'none';
-      }
-      
+
       successModal.style.display = 'flex';
     }
 
     // Get display name for notification method
     function getMethodDisplayName(method) {
-      switch(method) {
+      switch (method) {
         case 'push': return 'Push Notification';
         case 'sms': return 'SMS Message';
-        case 'call': return 'Phone Call';
         default: return 'Notification';
       }
     }
 
     // Get the active button based on selected method
     function getActiveButton() {
-      switch(selectedMethod) {
+      switch (selectedMethod) {
         case 'push': return pushBtn;
         case 'sms': return smsBtn;
-        case 'call': return callBtn;
         default: return pushBtn;
       }
     }
@@ -1663,7 +1328,6 @@
       }
 
       const emojiMap = {
-        call: { icon: 'bi-telephone-x-fill', title: 'Daily Call Limit Reached' },
         sms: { icon: 'bi-chat-square-dots-fill', title: 'Daily SMS Limit Reached' },
         push: { icon: 'bi-bell-slash-fill', title: 'Daily Push Limit Reached' },
         default: { icon: 'bi-exclamation-triangle-fill', title: 'Daily Limit Reached' }
@@ -1672,12 +1336,10 @@
       let titleText = emojiMap[method]?.title || emojiMap.default.title;
       let subcopy = `You have used ${currentCount} out of ${limit} attempts today. You can try a different method or come back tomorrow when the limit resets.`;
 
-      if (method === 'call') {
-        subcopy = `You have used ${currentCount} out of ${limit} calls today. Please try sending an SMS or push notification instead.`;
-      } else if (method === 'sms') {
-        subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. You can still try calling or using push notifications.`;
+      if (method === 'sms') {
+        subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. You can still try using push notifications.`;
       } else if (method === 'push') {
-        subcopy = `You have used ${currentCount} out of ${limit} push notifications today. Please try contacting the owner via SMS or call.`;
+        subcopy = `You have used ${currentCount} out of ${limit} push notifications today. Please try contacting the owner via SMS.`;
       }
 
       if (limitModalTitle) {
@@ -1713,21 +1375,17 @@
       }
 
       const altConfigs = {
-        call: [
-          { method: 'sms', label: 'Send SMS Instead', icon: 'bi-chat-dots' },
-          { method: 'push', label: 'Use Push Notification', icon: 'bi-bell' }
-        ],
         sms: [
-          { method: 'call', label: 'Call Owner', icon: 'bi-telephone' },
           { method: 'push', label: 'Use Push Notification', icon: 'bi-bell' }
         ],
         push: [
-          { method: 'sms', label: 'Send SMS', icon: 'bi-chat-dots' },
-          { method: 'call', label: 'Call Owner', icon: 'bi-telephone' }
+          { method: 'sms', label: 'Send SMS', icon: 'bi-chat-dots' }
         ]
       };
 
-      const [primaryAction, secondaryAction] = altConfigs[method] || altConfigs.call;
+      const alternatives = altConfigs[method] || [];
+      const primaryAction = alternatives[0];
+      const secondaryAction = alternatives[1]; // Likely undefined, which is fine
 
       const configureAltButton = (button, action) => {
         if (!button) return;
@@ -1768,21 +1426,11 @@
 
       if (method === 'sms') {
         selectedMethod = 'sms';
-        showPhoneModal('Send SMS');
+        sendNotificationDirectly();
         return;
       }
-
-      if (method === 'call') {
-        // Use the same call flow: show phone modal, call API, then open dialer
-        isCallMode = true;
-        phoneModalTitle.textContent = 'Your Phone Number';
-        phoneModalSubtitle.textContent = 'Enter your phone number to make the call';
-        userPhone.value = '';
-        phoneModal.style.display = 'flex';
-        userPhone.focus();
-      }
     }
-    
+
     // Initialize daily limit modal close button
     if (limitModalClose) {
       limitModalClose.addEventListener('click', closeDailyLimitModal);
@@ -1790,7 +1438,7 @@
 
     [limitAltPrimary, limitAltSecondary].forEach(button => {
       if (!button) return;
-      button.addEventListener('click', function(event) {
+      button.addEventListener('click', function (event) {
         event.preventDefault();
         const method = this.dataset.method;
         handleDailyLimitAlternative(method);
@@ -1798,7 +1446,7 @@
     });
 
     if (dailyLimitModal) {
-      dailyLimitModal.addEventListener('click', function(event) {
+      dailyLimitModal.addEventListener('click', function (event) {
         if (event.target === dailyLimitModal) {
           closeDailyLimitModal();
         }
@@ -1811,7 +1459,7 @@
       if (csrfTokenElement) {
         return csrfTokenElement.value;
       }
-      
+
       // Alternative method to get CSRF token from cookie
       const name = 'csrftoken';
       let cookieValue = null;
@@ -1829,4 +1477,5 @@
     }
   </script>
 </body>
+
 </html>
