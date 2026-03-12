@@ -1556,17 +1556,6 @@ def send_notification(request, qr_id):
                                 'message': 'Owner phone number must be at least 10 digits.'
                             })
 
-                        is_allowed, current_count, limit = check_daily_limit(qr_id, 'sms')
-
-                        if not is_allowed:
-                            return JsonResponse({
-                                'status': 'error',
-                                'error_type': 'daily_limit_reached',
-                                'message': f'Daily SMS limit reached. You have used {current_count} out of {limit} SMS messages today. Please try again tomorrow.',
-                                'current_count': current_count,
-                                'limit': limit,
-                            })
-
                         # Format phone number for MSG91 (needs 91 prefix)
                         formatted_phone = owner_phone
                         if formatted_phone.startswith('+'):
@@ -1589,10 +1578,19 @@ def send_notification(request, qr_id):
                                             {
                                                 "mobiles": formatted_phone,
                                                 "variables": {
-                                                    "6992f707cd044d1c7c1f6e76:var": reason
+                                                    "var": {
+                                                        "type": "vehicle_issue",
+                                                        "value": reason
+                                                    }
                                                 }
                                             }
-                                        ]
+                                        ],
+                                        "variables": {
+                                            "var": {
+                                                "type": "vehicle_issue",
+                                                "value": reason
+                                            }
+                                        }
                                     }
                                 ]
                             }
@@ -1607,7 +1605,6 @@ def send_notification(request, qr_id):
                             
                             if status_val == 'success' and not has_error:
                                 logger.info(f"MSG91 SMS sent successfully: {api_data}")
-                                increment_daily_count(qr_id, 'sms')
                                 return JsonResponse({
                                     'status': 'success',
                                     'message': 'SMS sent successfully to the vehicle owner.'

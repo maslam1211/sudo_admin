@@ -100,7 +100,7 @@
     }
 
     .brand-logo {
-      font-size: 1.5rem;
+      font-size: 2.1rem;
       font-weight: 700;
       color: var(--accent-orange);
       text-decoration: none;
@@ -437,6 +437,22 @@
 
     .toast-error {
       background-color: var(--notification-red);
+    }
+
+    /* Fullscreen loader overlay for wheel.json */
+    .full-loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.95));
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .full-loader-container {
+      width: min(260px, 70vw);
+      height: min(260px, 70vw);
     }
 
     /* Daily Limit Modal */
@@ -923,8 +939,15 @@
     <span id="toastMessage">Notification sent successfully!</span>
   </div>
 
+  <!-- Fullscreen Loader -->
+  <div class="full-loader-overlay" id="fullLoader">
+    <div class="full-loader-container" id="fullLoaderContainer"></div>
+  </div>
+
   <!-- Vendor JS Files -->
   <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <!-- Lottie for wheel loader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
 
   <script>
     // Owner's phone number from backend
@@ -1156,11 +1179,31 @@
         return;
       }
 
-      // Show loading state on the appropriate button
+      // Show fullscreen loading overlay using wheel.json animation
+      const fullLoader = document.getElementById('fullLoader');
+      const fullLoaderContainer = document.getElementById('fullLoaderContainer');
       const activeButton = getActiveButton();
-      const originalText = activeButton.innerHTML;
-      activeButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-      activeButton.disabled = true;
+
+      if (activeButton) {
+        activeButton.disabled = true;
+      }
+
+      if (fullLoader && fullLoaderContainer && window.lottie) {
+        fullLoader.style.display = 'flex';
+
+        // Clean up any previous animation
+        if (window.currentFullLoaderAnimation) {
+          window.currentFullLoaderAnimation.destroy();
+        }
+
+        window.currentFullLoaderAnimation = lottie.loadAnimation({
+          container: fullLoaderContainer,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          path: '{% static "images/wheel.json" %}'
+        });
+      }
 
       fetch('', {
         method: 'POST',
@@ -1257,10 +1300,20 @@
           );
         })
         .finally(() => {
-          // Reset button state
+          // Reset button state and hide fullscreen loader
           const activeButton = getActiveButton();
+          const fullLoader = document.getElementById('fullLoader');
+
+          if (window.currentFullLoaderAnimation) {
+            window.currentFullLoaderAnimation.destroy();
+            window.currentFullLoaderAnimation = null;
+          }
+
+          if (fullLoader) {
+            fullLoader.style.display = 'none';
+          }
+
           if (activeButton) {
-            activeButton.innerHTML = originalText;
             activeButton.disabled = false;
           }
         });
