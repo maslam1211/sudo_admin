@@ -29,6 +29,7 @@ ALLOWED_HOSTS = [
     '43.205.192.146',
     'sudotag.com',
     'backend.pbx.bonvoice.com',
+    'pbx.bonvoice.com',
     'sudo-admin.onrender.com',
     'localhost',
     '127.0.0.1',
@@ -49,6 +50,9 @@ CSRF_TRUSTED_ORIGINS = [
 
     "https://backend.pbx.bonvoice.com",
     "http://backend.pbx.bonvoice.com",
+
+    "https://pbx.bonvoice.com",
+    "http://pbx.bonvoice.com",
 
     "http://103.163.64.190",
     "https://103.163.64.190",
@@ -79,6 +83,8 @@ CORS_ALLOWED_ORIGINS = [
     'https://sudo-admin.onrender.com',
     'https://backend.pbx.bonvoice.com',
     'http://backend.pbx.bonvoice.com',
+    'https://pbx.bonvoice.com',
+    'http://pbx.bonvoice.com',
     'http://103.163.64.190',
     'https://103.163.64.190',
 ]
