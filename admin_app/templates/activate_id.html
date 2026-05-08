@@ -256,6 +256,95 @@
       margin-bottom: 15px;
     }
 
+    /* In-app copy of email content (user may miss email) */
+    .email-mirror-panel {
+      display: none;
+      text-align: left;
+      background-color: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(229, 129, 71, 0.45);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 0 0 16px 0;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .email-mirror-panel.visible {
+      display: block;
+    }
+
+    .email-mirror-panel h4 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent-orange);
+      margin: 0 0 8px 0;
+      text-align: center;
+    }
+
+    .email-mirror-panel .mirror-lead {
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 12px;
+      text-align: center;
+      font-size: 0.76rem;
+    }
+
+    .mirror-section-title {
+      font-weight: 600;
+      color: var(--text-white);
+      margin: 10px 0 6px 0;
+      font-size: 0.78rem;
+    }
+
+    .mirror-dl {
+      margin: 0;
+      padding: 0;
+    }
+
+    .mirror-dl div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.76rem;
+    }
+
+    .mirror-dl dt {
+      color: rgba(255, 255, 255, 0.55);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .mirror-dl dd {
+      margin: 0;
+      color: var(--text-white);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .mirror-credentials {
+      background-color: rgba(255, 69, 0, 0.12);
+      border: 1px solid rgba(255, 69, 0, 0.35);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+
+    .mirror-credentials .mirror-hint {
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 0.72rem;
+      margin-bottom: 8px;
+    }
+
+    .mirror-credentials code {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      color: #fff;
+      word-break: break-all;
+      margin-top: 4px;
+    }
+
     /* Modal Styles */
     .modal-content {
       background-color: var(--secondary-gray);
@@ -383,6 +472,13 @@
               <option value="Other">Other</option>
             </select>
           </div>
+
+          <div class="form-group">
+            <label for="yearOfManufacturing" class="form-label">Year of Manufacturing</label>
+            <select class="form-control" id="yearOfManufacturing" required>
+              <option value="" disabled selected>Select year</option>
+            </select>
+          </div>
           
           <!-- Owner Information -->
           <div class="form-group">
@@ -457,6 +553,18 @@
         </div>
         <h3 class="success-title" id="successTitle">Activation Successful!</h3>
         <p class="success-text" id="successText">Your vehicle QR code is now active. Others can scan it to contact you.</p>
+
+        <div id="uiEmailMirrorPanel" class="email-mirror-panel" aria-live="polite">
+          <h4 id="mirrorPanelTitle">Also sent to your email</h4>
+          <p class="mirror-lead" id="mirrorPanelLead">Save these details here in case the email does not arrive or notifications are off.</p>
+          <div class="mirror-section-title">Vehicle registration</div>
+          <dl class="mirror-dl" id="mirrorVehicleDl"></dl>
+          <div id="mirrorWelcomeSection" style="display: none;">
+            <div class="mirror-section-title">App login (new account)</div>
+            <div class="mirror-credentials" id="mirrorWelcomeBox"></div>
+          </div>
+          <p class="mirror-lead" style="margin-top: 12px; margin-bottom: 0;" id="mirrorSupportLine"></p>
+        </div>
         
         <button class="btn btn-primary" id="continueBtn" style="display: none;">
     <i class="bi bi-arrow-right"></i> Continue
@@ -532,8 +640,21 @@
       const continueBtn = document.getElementById('continueBtn');
       const successTitle = document.getElementById('successTitle');
       const successText = document.getElementById('successText');
+      const uiEmailMirrorPanel = document.getElementById('uiEmailMirrorPanel');
+      const mirrorVehicleDl = document.getElementById('mirrorVehicleDl');
+      const mirrorWelcomeSection = document.getElementById('mirrorWelcomeSection');
+      const mirrorWelcomeBox = document.getElementById('mirrorWelcomeBox');
+      const mirrorSupportLine = document.getElementById('mirrorSupportLine');
       const contactNumber = document.getElementById('contactNumber');
       const countryCode = document.getElementById('countryCode');
+      const yearOfManufacturingEl = document.getElementById('yearOfManufacturing');
+      const currentYear = new Date().getFullYear();
+      for (let y = currentYear; y >= 1970; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearOfManufacturingEl.appendChild(opt);
+      }
 
       // Phone number validation patterns by country code
       const phonePatterns = {
@@ -738,14 +859,15 @@
         
         // Validate form
         const requiredFields = [
-          'make', 'model', 'registrationNumber', 'vehicleType',
+          'make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing',
           'fullName', 'contactNumber', 'emailAddress', 'city'
         ];
         
         let isValid = true;
         requiredFields.forEach(field => {
           const element = document.getElementById(field);
-          if (!element.value.trim()) {
+          const raw = element && element.tagName === 'SELECT' ? element.value : (element ? element.value.trim() : '');
+          if (!raw) {
             showFieldError(element, 'This field is required');
             isValid = false;
           }
@@ -811,6 +933,7 @@
           model: document.getElementById('model').value.trim(),
           registrationNumber: document.getElementById('registrationNumber').value.trim(),
           vehicleType: document.getElementById('vehicleType').value,
+          yearOfManufacturing: document.getElementById('yearOfManufacturing').value,
           fullName: document.getElementById('fullName').value.trim(),
           contactNumber: selectedCountryCode + document.getElementById('contactNumber').value.trim(),
           emailAddress: document.getElementById('emailAddress').value.trim(),
@@ -852,12 +975,70 @@
                 successTitle.textContent = 'Vehicle Registration Successful!';
                 successText.textContent = 'Your new vehicle has been added to your account and the QR code is now active.';
             }
+
+            if (data.ui_notice) {
+              const v = data.ui_notice.vehicle;
+              mirrorVehicleDl.innerHTML = '';
+              function addMirrorRow(label, value) {
+                const row = document.createElement('div');
+                const dt = document.createElement('dt');
+                dt.textContent = label;
+                const dd = document.createElement('dd');
+                dd.textContent = value;
+                row.appendChild(dt);
+                row.appendChild(dd);
+                mirrorVehicleDl.appendChild(row);
+              }
+              if (v) {
+                addMirrorRow('Make', v.make || '—');
+                addMirrorRow('Model', v.model || '—');
+                addMirrorRow('Registration', v.registration_number || '—');
+                addMirrorRow('Type', v.vehicle_type || '—');
+                addMirrorRow('Year of Manufacturing', v.year_of_manufacturing || '—');
+              }
+              const welcome = data.ui_notice.account_welcome;
+              if (welcome && welcome.temporary_password) {
+                mirrorWelcomeSection.style.display = 'block';
+                mirrorWelcomeBox.textContent = '';
+                const hint = document.createElement('p');
+                hint.className = 'mirror-hint';
+                hint.textContent = 'We emailed these login details. Save them now if you might not see that message.';
+                mirrorWelcomeBox.appendChild(hint);
+                function addCredRow(label, value) {
+                  const row = document.createElement('div');
+                  row.style.marginTop = '6px';
+                  const lab = document.createElement('span');
+                  lab.style.color = 'rgba(255,255,255,0.6)';
+                  lab.style.display = 'block';
+                  lab.style.fontSize = '0.72rem';
+                  lab.textContent = label;
+                  const code = document.createElement('code');
+                  code.textContent = value;
+                  row.appendChild(lab);
+                  row.appendChild(code);
+                  mirrorWelcomeBox.appendChild(row);
+                }
+                addCredRow('Email', welcome.email);
+                addCredRow('Temporary password', welcome.temporary_password);
+              } else {
+                mirrorWelcomeSection.style.display = 'none';
+                mirrorWelcomeBox.textContent = '';
+              }
+              const support = data.ui_notice.support_email || 'support@sudo.com';
+              mirrorSupportLine.textContent = 'Questions? ' + support;
+              uiEmailMirrorPanel.classList.add('visible');
+            } else {
+              uiEmailMirrorPanel.classList.remove('visible');
+              mirrorVehicleDl.innerHTML = '';
+              mirrorWelcomeSection.style.display = 'none';
+            }
             
             // Redirect after delay if needed
             if (data.redirect_url) {
-              continueBtn.addEventListener('click', function() {
+              continueBtn.style.display = 'flex';
+              continueBtn.onclick = function () {
                 window.location.href = data.redirect_url;
-              });
+              };
             } else {
               continueBtn.style.display = 'none';
             }

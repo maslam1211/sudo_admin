@@ -23,6 +23,8 @@ urlpatterns = [
     path('send-feedback/', views.send_feedback, name='send_feedback'),
     path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),
     path('manage-qrs/', views.manage_qrs, name='manage_qrs'),
+    path('manage-qrs/delete/<str:qr_id>/', views.delete_qr_code, name='delete_qr_code'),
+    path('manage-qrs/bulk-delete/', views.bulk_delete_qr_codes, name='bulk_delete_qr_codes'),
     path('regenerate-qr/<str:qr_id>/', views.regenerate_qr, name='regenerate_qr'),
     # Add these new routes for QR assignment
     path('assign-qr/', views.assign_qr, name='assign_qr'),
@@ -57,8 +59,8 @@ urlpatterns = [
 
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
-    # Initiate call API - Simple API to get destination from Firebase
-    path('api/initiate-call/', views.initiate_call, name='initiate_call'),
+    # Minimal call API: did static, from optional, destination passed in
+    path('api/dynamic-call/', views.dynamic_call, name='dynamic_call'),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),
     path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
     path('archived/user/<str:user_id>/delete/', views.delete_archived_user, name='delete_archived_user'),

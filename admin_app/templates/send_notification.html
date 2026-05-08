@@ -257,6 +257,45 @@
       margin-top: 5px;
     }
 
+    /* Custom message disclaimer */
+    .custom-message-notice {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: rgba(229, 129, 71, 0.08);
+      border: 1px solid rgba(229, 129, 71, 0.35);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .custom-message-notice .notice-icon {
+      color: var(--accent-orange);
+      font-size: 1.1rem;
+      line-height: 1.2;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .custom-message-notice .notice-body {
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .custom-message-notice .notice-title {
+      font-weight: 600;
+      color: var(--accent-orange);
+      display: block;
+      margin-bottom: 2px;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+    }
+
+    .custom-message-notice .notice-body strong {
+      color: var(--text-white);
+    }
+
     /* Action Buttons - Horizontal Layout */
     .action-buttons {
       display: flex;
@@ -770,6 +809,9 @@
     <!-- Vehicle Info -->
     <div class="vehicle-info">
       <div class="vehicle-model">{{ vehicle_data.make }} {{ vehicle_data.model }}</div>
+      {% if vehicle_data.yearOfManufacturing %}
+      <div class="vehicle-year" style="font-size:0.85rem;opacity:0.85;margin-top:4px;">Year of Manufacturing: {{ vehicle_data.yearOfManufacturing }}</div>
+      {% endif %}
       <div class="plate-number">{{ vehicle_data.registrationNumber }}</div>
     </div>
 
@@ -813,7 +855,16 @@
 
     <!-- Custom Message Container -->
     <div class="custom-message-container" id="customMessageContainer">
-      <textarea class="custom-message" id="customMessage" placeholder="Please type your message here..."
+      <div class="custom-message-notice" role="note" aria-label="Please read before typing a custom message">
+        <i class="bi bi-shield-exclamation notice-icon" aria-hidden="true"></i>
+        <div class="notice-body">
+          <span class="notice-title">Please use responsibly</span>
+          Use this message <strong>only for vehicle-related communication</strong> with the owner (for example: parking, lights, towing, or vehicle safety concerns).
+          Do <strong>not</strong> use it for personal messages, promotions, abusive content, or anything unrelated to the vehicle.
+          SudoTag is <strong>not responsible</strong> for the content you type here — you are fully responsible for any message you send.
+        </div>
+      </div>
+      <textarea class="custom-message" id="customMessage" placeholder="Type a vehicle-related message for the owner..."
         maxlength="200"></textarea>
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>

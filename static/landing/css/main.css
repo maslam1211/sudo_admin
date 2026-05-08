@@ -1126,6 +1126,50 @@ section,
   border: 2px solid var(--accent-color);
 }
 
+/* App Store / Google Play — shared on hero, CTA, footer */
+.app-store-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.app-store-btn {
+  font-family: var(--heading-font);
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 12px 26px;
+  border-radius: 5px;
+  transition: 0.5s;
+  border: 2px solid var(--default-color);
+  color: var(--default-color);
+  text-decoration: none;
+  min-width: 188px;
+}
+
+.app-store-btn i {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.app-store-btn:hover {
+  background: var(--accent-color);
+  color: var(--background-color);
+  border-color: var(--accent-color);
+  text-decoration: none;
+}
+
+.app-store-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
+}
+
 /*--------------------------------------------------------------
 # Portfolio Section
 --------------------------------------------------------------*/

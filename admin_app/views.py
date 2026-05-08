@@ -18,6 +18,7 @@ from io import BytesIO
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.contrib.sessions.backends.base import SessionBase
 from django.urls import reverse
 from django.conf import settings
@@ -64,6 +65,69 @@ if not firebase_admin._apps:
 # Now you can use Firebase as usual
 db = firestore.client()
 
+def _get_fasttag_qr_layout(template_img):
+    """
+    Detect the orange FastTag bracket area and return QR placement.
+    Returns (qr_size, qr_x, qr_y) where qr_size=(w, h).
+    """
+    template_rgb = template_img.convert('RGB')
+    template_width, template_height = template_rgb.size
+    pixels = template_rgb.load()
+
+    x_counts = {}
+    y_counts = {}
+
+    # Detect orange corner lines (sample every pixel for accurate anchors).
+    for y in range(template_height):
+        for x in range(template_width):
+            r, g, b = pixels[x, y]
+            is_orange = (
+                r > 160 and
+                60 < g < 190 and
+                b < 120 and
+                r > g > b
+            )
+            if is_orange:
+                x_counts[x] = x_counts.get(x, 0) + 1
+                y_counts[y] = y_counts.get(y, 0) + 1
+
+    # Require enough orange pixels along axes to be considered bracket anchors.
+    x_threshold = max(4, int(template_height * 0.06))
+    y_threshold = max(4, int(template_width * 0.03))
+    x_candidates = [x for x, count in x_counts.items() if count >= x_threshold]
+    y_candidates = [y for y, count in y_counts.items() if count >= y_threshold]
+
+    if x_candidates and y_candidates:
+        bracket_left = min(x_candidates)
+        bracket_right = max(x_candidates)
+        bracket_top = min(y_candidates)
+        bracket_bottom = max(y_candidates)
+    else:
+        # Safe fallback if orange detection fails.
+        bracket_left = int(template_width * 0.61)
+        bracket_right = int(template_width * 0.98)
+        bracket_top = int(template_height * 0.13)
+        bracket_bottom = int(template_height * 0.87)
+
+    bracket_w = max(1, bracket_right - bracket_left)
+    bracket_h = max(1, bracket_bottom - bracket_top)
+
+    # Fit QR to 90% of detected orange border area.
+    qr_edge_px = int(min(bracket_w, bracket_h) * 0.90)
+    qr_edge_px = max(1, qr_edge_px)
+    qr_size = (qr_edge_px, qr_edge_px)
+
+    qr_center_x = (bracket_left + bracket_right) // 2
+    qr_center_y = (bracket_top + bracket_bottom) // 2
+    qr_x = qr_center_x - (qr_size[0] // 2)
+    qr_y = qr_center_y - (qr_size[1] // 2)
+
+    # Keep QR fully inside image bounds.
+    qr_x = max(0, min(qr_x, template_width - qr_size[0]))
+    qr_y = max(0, min(qr_y, template_height - qr_size[1]))
+
+    return qr_size, qr_x, qr_y
+
 def custom_404(request, exception):
     """
     Custom 404 handler that returns appropriate error responses.
@@ -107,7 +171,7 @@ def admin_login(request):
         return redirect(f'/admin/verify-auth-pin/?action=login')
     
     if request.method == 'POST':
-        email = request.POST.get('email')
+        email = (request.POST.get('email') or '').strip()
         password = request.POST.get('password')
         
         # Verify password
@@ -116,33 +180,43 @@ def admin_login(request):
             return render(request, 'login.html')
         
         # Fetch user data from Firebase
-        db = firestore.client()
-        user_ref = db.collection('users').where(filter=FieldFilter('emailAddress', '==', email)).stream()
+        try:
+            db = firestore.client()
+            user_ref = db.collection('users').where(
+                filter=FieldFilter('emailAddress', '==', email)
+            ).stream()
 
-        user_found = False
-        for user in user_ref:
-            user_data = user.to_dict()
-            user_found = True
-            
-            # Check if user has role 1 (admin role)
-            if user_data.get('roleId') != 1:
-                messages.error(request, "You don't have permission to access admin panel.")
-                break
-            
-            # For role 1 users, verify email
-            if user_data.get('emailAddress') == email:
-                request.session['admin'] = True
-                request.session['user_id'] = user.id  # Store user ID in session
-                request.session['email'] = email  # Store email in session
-                # Clear PIN verification after successful login
-                request.session.pop('auth_pin_verified', None)
-                return redirect('dashboard')
-            else:
-                messages.error(request, 'Invalid email or password.')
-                break
-        
-        if not user_found:
-            messages.error(request, 'No user found with this email.')
+            user_found = False
+            for user in user_ref:
+                user_data = user.to_dict()
+                user_found = True
+
+                # Check if user has role 1 (admin role)
+                if user_data.get('roleId') != 1:
+                    messages.error(request, "You don't have permission to access admin panel.")
+                    break
+
+                # For role 1 users, verify email
+                if user_data.get('emailAddress') == email:
+                    request.session['admin'] = True
+                    request.session['user_id'] = user.id  # Store user ID in session
+                    request.session['email'] = email  # Store email in session
+                    # Clear PIN verification after successful login
+                    request.session.pop('auth_pin_verified', None)
+                    return redirect('dashboard')
+                else:
+                    messages.error(request, 'Invalid email or password.')
+                    break
+
+            if not user_found:
+                messages.error(request, 'No user found with this email.')
+        except Exception as e:
+            logger.exception("Admin login Firestore lookup failed")
+            messages.error(
+                request,
+                'Login service is temporarily unavailable. '
+                'Please check internet/DNS and try again.'
+            )
     
     return render(request, 'login.html')
 
@@ -434,18 +508,7 @@ def generate_qr(request):
                 })
             
             template_img = PILImage.open(template_path).convert('RGB')
-            template_width, template_height = template_img.size
-            
-            # Calculate QR code size to fit inside orange brackets (70-75% of height)
-            qr_size = (int(template_height * 0.72), int(template_height * 0.72))
-            
-            # Position QR code inside orange brackets on right side
-            # Right edge should be very close to image edge (minimal margin ~1-2%)
-            right_margin = int(template_width * 0.032)  # Margin adjusted to position QR inside orange brackets
-            # Calculate X position: right edge of image minus QR width minus small margin
-            qr_x = template_width - qr_size[0] - right_margin
-            # Center vertically
-            qr_y = (template_height - qr_size[1]) // 2
+            qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
             
             for _ in range(count):
                 try:
@@ -686,96 +749,76 @@ def download_qr_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="qr_codes.pdf"'
 
-    from reportlab.lib.pagesizes import letter, A5, A6, landscape
-    from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer, Table, TableStyle, PageBreak
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib import colors
-    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Image, Table, TableStyle, PageBreak
     import io
-    import pytz
+
+    def fit_image_points(iw, ih, max_w, max_h):
+        """Scale to fit inside max_w x max_h (points) preserving exact aspect ratio."""
+        if iw <= 0 or ih <= 0:
+            return max_w, max_h
+        aw = iw / float(ih)
+        cand_w = max_w
+        cand_h = cand_w / aw
+        if cand_h > max_h:
+            cand_h = max_h
+            cand_w = cand_h * aw
+        return cand_w, cand_h
+
+    def mm_to_pt(mm):
+        return mm * 72.0 / 25.4
 
     buffer = io.BytesIO()
-    
-    # Use A5 size (half of A4) which is perfect for single QR codes
-    # You can also try: A6 (quarter of A4) or custom size like (4*inch, 6*inch)
-    page_size = A5  # Options: A5, A6, or custom (width, height)
-    
-    # For portrait orientation (taller than wide)
-    doc = SimpleDocTemplate(buffer, pagesize=page_size,
-                          leftMargin=0.5*inch,
-                          rightMargin=0.5*inch,
-                          topMargin=0.5*inch,
-                          bottomMargin=0.5*inch)
-    
+
+    # FASTag-style windshield sticker footprint (~100mm × 62mm); one composite per page.
+    page_w_pt = mm_to_pt(100)
+    page_h_pt = mm_to_pt(62)
+    page_size = (page_w_pt, page_h_pt)
+
+    margin_pt = mm_to_pt(1.5)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=page_size,
+        leftMargin=margin_pt,
+        rightMargin=margin_pt,
+        topMargin=margin_pt,
+        bottomMargin=margin_pt,
+    )
+
     elements = []
 
-    # Custom styles
-    title_style = ParagraphStyle(
-        name="Title",
-        fontSize=14,
-        alignment=1,  # CENTER
-        fontName="Helvetica-Bold",
-        spaceAfter=4,
-        textColor=colors.black
-    )
-    
-    date_style = ParagraphStyle(
-        name="Date",
-        fontSize=10,
-        alignment=1,  # CENTER
-        fontName="Helvetica",
-        spaceAfter=12,
-        textColor=colors.darkgrey
-    )
-    
-    qr_id_style = ParagraphStyle(
-        name="QR_ID",
-        fontSize=12,
-        alignment=1,  # CENTER
-        fontName="Helvetica-Bold",
-        spaceBefore=12,
-        textColor=colors.black
-    )
-
-    # Title and date (only on first page)
-    elements.append(Paragraph("Generated QR Codes", title_style))
-    ist = pytz.timezone('Asia/Kolkata')
-    current_datetime = now().astimezone(ist)
-    date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
-    elements.append(Paragraph(f"Created on: {date_time_string}", date_style))
-    elements.append(Spacer(1, 20))
-
-    # Adjust QR size for the smaller page
     page_width = page_size[0] - doc.leftMargin - doc.rightMargin
     page_height = page_size[1] - doc.topMargin - doc.bottomMargin
-    
-    # Make QR code fit nicely on the smaller page
-    qr_width = min(3.5*inch, page_width * 0.8)  # Slightly smaller for A5
-    qr_height = qr_width * 0.5  # Maintain aspect ratio
 
     for i, qr in enumerate(qr_data):
-        if i > 0:  # Add page break for all QR codes except the first one
+        if i > 0:
             elements.append(PageBreak())
 
-        # Create QR code image
-        qr_img = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])),
-                      width=qr_width, height=qr_height)
-        
-        # Create content with proper spacing (QR ID removed)
-        content_table = Table([
-            [qr_img]
-        ], colWidths=qr_width)
-        
-        content_table.setStyle(TableStyle([
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('LEFTPADDING', (0,0), (-1,-1), 0),
-            ('RIGHTPADDING', (0,0), (-1,-1), 0),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
-        ]))
-        
+        img_bytes = base64.b64decode(qr['qr_code_base64'])
+        pil_im = PILImage.open(BytesIO(img_bytes))
+        iw, ih = pil_im.size
+        pil_im.close()
+
+        draw_w, draw_h = fit_image_points(iw, ih, page_width, page_height)
+
+        qr_img = Image(BytesIO(img_bytes), width=draw_w, height=draw_h)
+
+        content_table = Table([[qr_img]], colWidths=draw_w)
+
+        content_table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 0),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ]
+            )
+        )
+
         elements.append(content_table)
-        elements.append(Spacer(1, 20))
 
     doc.build(elements)
     pdf = buffer.getvalue()
@@ -860,8 +903,7 @@ def register_admin(request):
                 'latitude': 0,
                 'longitude': 0,
                 'profilePicture': '',
-                'fcmToken': '',
-                'fcmTokens': []
+                'fcmToken': ''
             }
             
             # Save to Firestore
@@ -1042,7 +1084,7 @@ def send_welcome_email_for_id(email, name, password):
         'name': name,
         'email': email,
         'password': password,
-        'login_url': 'https://play.google.com/',
+        'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
         'support_email': 'support@sudo.com'
     })
     
@@ -1054,7 +1096,7 @@ def send_welcome_email_for_id(email, name, password):
     Email: {email}
     Password: {password}
     
-    Please login at: https://play.google.com
+    Please login at: https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB
     
     We recommend changing your password after first login.
     
@@ -1083,8 +1125,14 @@ def send_vehicle_registration_email(email, name, vehicle_data):
         'model': vehicle_data['model'],
         'registrationNumber': vehicle_data['registrationNumber'],
         'vehicleType': vehicle_data['vehicleType'],
+        'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
         'support_email': 'support@sudo.com'
     })
+    
+    year_line = ''
+    yom = vehicle_data.get('yearOfManufacturing')
+    if yom:
+        year_line = f"\n    Year of Manufacturing: {yom}"
     
     plain_message = f"""
     Hello {name},
@@ -1094,7 +1142,7 @@ def send_vehicle_registration_email(email, name, vehicle_data):
     Make: {vehicle_data['make']}
     Model: {vehicle_data['model']}
     Registration: {vehicle_data['registrationNumber']}
-    Type: {vehicle_data['vehicleType']}
+    Type: {vehicle_data['vehicleType']}{year_line}
     
     Your QR code is now active and can be scanned by others to contact you about your vehicle.
     
@@ -1137,7 +1185,7 @@ def activate_id(request, qr_id):
                 # Validate required fields
                 required_fields = {
                     'user': ['fullName', 'contactNumber', 'city', 'emailAddress'],
-                    'vehicle': ['make', 'model', 'registrationNumber', 'vehicleType']
+                    'vehicle': ['make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing']
                 }
                 
                 errors = {}
@@ -1148,6 +1196,15 @@ def activate_id(request, qr_id):
                 for field in required_fields['vehicle']:
                     if not data.get(field):
                         errors[field] = 'This field is required'
+                
+                max_year = datetime.date.today().year
+                if data.get('yearOfManufacturing'):
+                    try:
+                        y_val = int(str(data['yearOfManufacturing']).strip())
+                        if y_val < 1970 or y_val > max_year:
+                            errors['yearOfManufacturing'] = f'Year must be between 1970 and {max_year}'
+                    except (TypeError, ValueError):
+                        errors['yearOfManufacturing'] = 'Select a valid year'
                 
                 # Validate email format
                 if data.get('emailAddress'):
@@ -1166,6 +1223,7 @@ def activate_id(request, qr_id):
                     }, status=400)
                 
                 try:
+                    new_user_temp_password = None
                     # Check if user exists in Firestore
                     user_query = db.collection('users').where(filter=FieldFilter('emailAddress', '==', data['emailAddress'])).limit(1).get()
                     user_exists_in_firestore = len(user_query) > 0
@@ -1188,12 +1246,16 @@ def activate_id(request, qr_id):
                         else:
                             db.collection('users').document(user_id).update({'adminAddedUser': False})
                         
-                        # Verify phone matches existing user
+                        # Verify phone matches existing user — surface under email so users don't think the mobile field alone is wrong
                         if user_data.get('contactNumber', '').replace(' ', '') != data['contactNumber'].replace(' ', ''):
                             return JsonResponse({
                                 'status': 'error',
-                                'message': 'Phone number does not match existing account',
-                                'errors': {'contactNumber': 'This phone number does not match your existing account'}
+                                'message': 'This email is already registered',
+                                'errors': {
+                                    'emailAddress': (
+                                        'This email is already registered. Enter the mobile number linked to this account.'
+                                    )
+                                }
                             }, status=400)
 
                             
@@ -1252,6 +1314,7 @@ def activate_id(request, qr_id):
                             user_ref.update({'adminAddedUser': True})
                         
                         # Send welcome email only for new users
+                        new_user_temp_password = password
                         send_welcome_email_for_id(
                             email=data['emailAddress'],
                             name=data['fullName'],
@@ -1269,19 +1332,29 @@ def activate_id(request, qr_id):
                             'errors': {'registrationNumber': 'This vehicle is already registered'}
                         }, status=400)
                     
-                    # Create vehicle document (for both new and existing users)
+                    # Create vehicle document (for both new and existing users).
+                    # We mirror the schema the mobile app writes on its own vehicle docs
+                    # (id / vehicle_number / fcmToken) so that when this customer
+                    # installs the app and signs in, the app can update the FCM
+                    # token on this vehicle document exactly like it does for
+                    # mobile-created vehicles.
                     vehicle_id = str(uuid.uuid4())
+                    reg_no = data.get('registrationNumber')
                     vehicle_data = {
                         'ownerId': user_id,
                         'ownerFullName': data.get('fullName'),
                         'ownerContact': data.get('contactNumber'),
                         'make': data.get('make'),
                         'model': data.get('model'),
-                        'registrationNumber': data.get('registrationNumber'),
+                        'registrationNumber': reg_no,
+                        'id': reg_no,
+                        'vehicle_number': reg_no,
                         'vehicleType': data.get('vehicleType'),
+                        'yearOfManufacturing': str(int(str(data['yearOfManufacturing']).strip())),
                         'createdAt': firestore.SERVER_TIMESTAMP,
                         'isQrGenerated': True,
                         'qrCodeId': qr_id,
+                        'fcmToken': '',
                         'adminAddedUser': admin_added_user
                     }
                     
@@ -1303,11 +1376,30 @@ def activate_id(request, qr_id):
                         vehicle_data=vehicle_data
                     )
                     
+                    ui_notice = {
+                        'support_email': 'support@sudo.com',
+                        'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
+                        'vehicle': {
+                            'make': vehicle_data['make'],
+                            'model': vehicle_data['model'],
+                            'registration_number': vehicle_data['registrationNumber'],
+                            'vehicle_type': vehicle_data['vehicleType'],
+                            'year_of_manufacturing': vehicle_data['yearOfManufacturing'],
+                        },
+                        'account_welcome': None,
+                    }
+                    if new_user_temp_password:
+                        ui_notice['account_welcome'] = {
+                            'email': data['emailAddress'],
+                            'temporary_password': new_user_temp_password,
+                        }
+                    
                     return JsonResponse({
                         'status': 'success', 
                         'message': 'Vehicle registration completed successfully!',
                         'redirect_url': reverse('send_notification', args=[qr_id]),
-                        'is_new_user': not user_exists_in_auth
+                        'is_new_user': not user_exists_in_auth,
+                        'ui_notice': ui_notice,
                     })
                     
                 except Exception as e:
@@ -1504,40 +1596,90 @@ def send_notification(request, qr_id):
                 
                 # Handle different notification methods
                 if notification_method == 'push':
-                    # Existing push notification code
-                    fcm_token = user_data.get('fcmToken')
-                    
-                    if not fcm_token:
+                    # Collect every FCM token we know for this vehicle / owner.
+                    #
+                    # The mobile app stores the FCM token on the VEHICLE
+                    # document (`vehicles/{id}.fcmToken`) — that's the primary
+                    # source. We also fall back to `users/{uid}.fcmToken`
+                    # (string) to cover older data and admin-created accounts.
+                    vehicle_token = vehicle_data.get('fcmToken') or ''
+                    single_token = user_data.get('fcmToken') or ''
+
+                    tokens = []
+                    seen = set()
+                    for t in [vehicle_token, single_token]:
+                        if isinstance(t, str) and t and t not in seen:
+                            seen.add(t)
+                            tokens.append(t)
+
+                    if not tokens:
                         return JsonResponse({
-                            'status': 'error', 
+                            'status': 'error',
                             'message': 'User is not registered on app.'
                         })
 
-                    message = messaging.Message(
-                        notification=messaging.Notification(
-                            title="Vehicle Alert",
-                            body=reason,
-                        ),
-                        token=fcm_token,
-                        data={
-                            'vehicleId': qr_data['vehicleID'],
-                            'qrId': qr_id,
-                            'notificationType': 'vehicle_alert'
-                        }
+                    notification = messaging.Notification(
+                        title="Vehicle Alert",
+                        body=reason,
                     )
+                    fcm_data = {
+                        'vehicleId': qr_data['vehicleID'],
+                        'qrId': qr_id,
+                        'notificationType': 'vehicle_alert'
+                    }
 
-                    try:
-                        response = messaging.send(message)
+                    success_count = 0
+                    failed_tokens = []
+                    last_error = None
+                    for t in tokens:
+                        try:
+                            messaging.send(messaging.Message(
+                                notification=notification,
+                                token=t,
+                                data=fcm_data,
+                            ))
+                            success_count += 1
+                        except Exception as e:
+                            last_error = e
+                            logger.error(f"FCM Error for token {t[:12]}...: {str(e)}")
+                            # Mark unregistered / invalid tokens for cleanup
+                            err_name = type(e).__name__
+                            if err_name in (
+                                'UnregisteredError',
+                                'SenderIdMismatchError',
+                                'InvalidArgumentError',
+                            ):
+                                failed_tokens.append(t)
+
+                    # Clean up stale tokens so future sends don't keep failing
+                    if failed_tokens:
+                        # Clean user-doc fields
+                        try:
+                            user_updates = {}
+                            if single_token and single_token in failed_tokens:
+                                user_updates['fcmToken'] = ''
+                            if user_updates:
+                                user_ref.update(user_updates)
+                        except Exception as cleanup_err:
+                            logger.warning(f"FCM user-doc cleanup failed: {cleanup_err}")
+
+                        # Clean vehicle-doc field
+                        try:
+                            if vehicle_token and vehicle_token in failed_tokens:
+                                vehicle_ref.update({'fcmToken': ''})
+                        except Exception as cleanup_err:
+                            logger.warning(f"FCM vehicle-doc cleanup failed: {cleanup_err}")
+
+                    if success_count > 0:
                         return JsonResponse({
-                            'status': 'success', 
+                            'status': 'success',
                             'message': 'We have sent your message to the vehicle owner.'
                         })
-                    except Exception as e:
-                        logger.error(f"FCM Error: {str(e)}")
-                        return JsonResponse({
-                            'status': 'error', 
-                            'message': f'Failed to send push notification: {str(e)}'
-                        })
+
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Failed to send push notification: {str(last_error) if last_error else "Unknown error"}'
+                    })
                 
                 elif notification_method == 'sms':
                     try:
@@ -1631,13 +1773,20 @@ def send_notification(request, qr_id):
 
         # Render the initial page with vehicle data
         owner_phone = user_data.get('contactNumber', '')
-        has_fcm_token = bool(user_data.get('fcmToken'))
+        # Show the push button if the owner has registered ANY device token.
+        # The mobile app actually stores the FCM token on the VEHICLE document
+        # (`vehicles/{id}.fcmToken`), not on the user document. We also look
+        # at `users/{uid}.fcmToken` as a fallback for older data models.
+        _vehicle_token = vehicle_data.get('fcmToken') or ''
+        _single_token = user_data.get('fcmToken') or ''
+        has_fcm_token = bool(_vehicle_token) or bool(_single_token)
         
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
                 'registrationNumber': vehicle_data.get('registrationNumber', ''),
-                'make': vehicle_data.get('make', '')
+                'make': vehicle_data.get('make', ''),
+                'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
             },
             'owner_phone': owner_phone,
             'has_fcm_token': has_fcm_token
@@ -2351,8 +2500,8 @@ def external_user_registration(request):
                 'roleId': 0,
                 'profilePicture': 'default_profile.png',
                 'fcmToken': '',  # Will be set when user installs the app
-                 'enableIdCheck': False,
-                 'adminAddedUser': False
+                'enableIdCheck': False,
+                'adminAddedUser': False
             }
             
             # Save to Firestore
@@ -2382,7 +2531,7 @@ def send_welcome_email(email, name, password):
         'name': name,
         'email': email,
         'password': password,
-        'login_url': 'https://play.google.com/',
+        'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
         'support_email': 'support@sudo.com'
     })
     
@@ -2395,7 +2544,7 @@ def send_welcome_email(email, name, password):
     Email: {email}
     Temporary Password: {password}
     
-    Please login at: https://play.google.com/
+    Please login at: https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB
     
     We recommend changing your password after first login.
     
@@ -2534,10 +2683,22 @@ def manage_qrs(request):
         # Get pagination info first
         page = request.GET.get('page', 1)
         items_per_page = 20  # Increased from 10 for better UX
-        
+
+        # Accurate total from Firestore (respects the status filter).
+        # This does NOT download documents, just an aggregation count.
+        total_qr_count = None
+        try:
+            count_result = query.count().get()
+            if count_result and count_result[0]:
+                total_qr_count = int(count_result[0][0].value)
+        except Exception:
+            total_qr_count = None
+
         # For now, we'll still need to load all for search, but limit processing
         # In production, consider implementing Firestore cursor-based pagination
-        qr_docs = list(query.limit(500).stream())  # Limit to 500 max for performance
+        load_limit = 500
+        qr_docs = list(query.limit(load_limit).stream())  # Limit to 500 max for performance
+        loaded_count = len(qr_docs)
         
         # Prepare QR data with additional user/vehicle info
         qrs = []
@@ -2631,6 +2792,9 @@ def manage_qrs(request):
     except Exception as e:
         messages.error(request, f'Error accessing database: {str(e)}')
         qrs = []
+        total_qr_count = 0
+        loaded_count = 0
+        load_limit = 500
 
     # Pagination (already defined above)
     
@@ -2647,13 +2811,147 @@ def manage_qrs(request):
     if request.GET.get('export') == 'pdf':
         return export_qrs_pdf(request, qrs)
     
+    # If aggregation count failed, fall back to best available number
+    if total_qr_count is None:
+        total_qr_count = paginator.count
+
     return render(request, 'manage_qrs.html', {
         'qrs': qrs_page,
         'paginator': paginator,
         'status_filter': status_filter,
         'search_query': search_query,
+        'total_qr_count': total_qr_count,
+        'filtered_count': paginator.count,
+        'loaded_count': loaded_count,
+        'load_limit': load_limit,
         'messages': get_message_list(request)
     })
+
+
+def _build_manage_qrs_redirect(request):
+    """Build a redirect back to manage_qrs preserving filter/pagination."""
+    from urllib.parse import urlencode
+
+    q = {}
+    page = request.POST.get('page') or request.GET.get('page')
+    status = request.POST.get('status') or request.GET.get('status')
+    search = request.POST.get('search') or request.GET.get('search')
+    if page:
+        q['page'] = page
+    if status:
+        q['status'] = status
+    if search:
+        q['search'] = search
+    url = reverse('manage_qrs')
+    if q:
+        url += '?' + urlencode(q)
+    return redirect(url)
+
+
+@require_POST
+def delete_qr_code(request, qr_id):
+    """Remove an unassigned QR document from Firestore (reduces unused pool / DB size)."""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
+
+    db = firestore.client()
+    try:
+        doc_ref = db.collection('qrcodes').document(qr_id)
+        snap = doc_ref.get()
+        if not snap.exists:
+            messages.error(request, 'QR code not found. It may have already been deleted.')
+            return _build_manage_qrs_redirect(request)
+
+        data = snap.to_dict() or {}
+        if data.get('isAssigned'):
+            messages.error(
+                request,
+                'Cannot delete an assigned QR code. It is linked to a user or vehicle; unassign or reassign from Assign QR first.'
+            )
+            return _build_manage_qrs_redirect(request)
+
+        doc_ref.delete()
+        messages.success(request, f'Inactive QR code was deleted ({qr_id}).')
+    except Exception as e:
+        messages.error(request, f'Could not delete QR code: {str(e)}')
+
+    return _build_manage_qrs_redirect(request)
+
+
+@require_POST
+def bulk_delete_qr_codes(request):
+    """Delete multiple inactive QR codes in a single batch."""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
+
+    qr_ids = request.POST.getlist('qr_ids')
+    qr_ids = [qid.strip() for qid in qr_ids if qid and qid.strip()]
+
+    if not qr_ids:
+        messages.warning(request, 'No QR codes were selected for deletion.')
+        return _build_manage_qrs_redirect(request)
+
+    # Hard cap per request to stay well under Firestore batch limits (500) and keep UI snappy.
+    MAX_BULK = 200
+    if len(qr_ids) > MAX_BULK:
+        messages.warning(
+            request,
+            f'You selected {len(qr_ids)} QR codes; only the first {MAX_BULK} will be deleted in this request.'
+        )
+        qr_ids = qr_ids[:MAX_BULK]
+
+    db = firestore.client()
+    deleted = 0
+    skipped_assigned = 0
+    not_found = 0
+    errors = 0
+
+    try:
+        batch = db.batch()
+        to_delete_refs = []
+        print(batch)
+        for qid in qr_ids:
+            try:
+                ref = db.collection('qrcodes').document(qid)
+                snap = ref.get()
+                if not snap.exists:
+                    not_found += 1
+                    continue
+                if (snap.to_dict() or {}).get('isAssigned'):
+                    skipped_assigned += 1
+                    continue
+                batch.delete(ref)
+                to_delete_refs.append(ref)
+            except Exception:
+                errors += 1
+
+        if to_delete_refs:
+            batch.commit()
+            deleted = len(to_delete_refs)
+    except Exception as e:
+        messages.error(request, f'Bulk delete failed: {str(e)}')
+        return _build_manage_qrs_redirect(request)
+
+    if deleted:
+        messages.success(request, f'Successfully deleted {deleted} inactive QR code{"s" if deleted != 1 else ""}.')
+
+    notes = []
+    if skipped_assigned:
+        notes.append(f'{skipped_assigned} skipped (assigned/active)')
+    if not_found:
+        notes.append(f'{not_found} not found')
+    if errors:
+        notes.append(f'{errors} errored')
+    if notes:
+        messages.warning(request, 'Some items were not deleted: ' + ', '.join(notes) + '.')
+
+    if not deleted and not notes:
+        messages.info(request, 'No QR codes were deleted.')
+
+    return _build_manage_qrs_redirect(request)
+
 
 def export_qrs_pdf(request, qrs):
     response = HttpResponse(content_type='application/pdf')
@@ -2797,16 +3095,7 @@ def regenerate_qr(request, qr_id):
             return redirect('manage_qrs')
 
         template_img = PILImage.open(template_path).convert('RGB')
-        template_width, template_height = template_img.size
-
-        # Calculate QR code size to fit inside orange brackets (70-75% of height)
-        qr_size = (int(template_height * 0.72), int(template_height * 0.72))
-
-        # Position QR code inside orange brackets on right side
-        # Right edge should be very close to image edge (minimal margin ~1-2%)
-        right_margin = int(template_width * 0.032)  # Margin adjusted to position QR inside orange brackets
-        qr_x = template_width - qr_size[0] - right_margin
-        qr_y = (template_height - qr_size[1]) // 2  # Center vertically
+        qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
 
         # Resize QR code to fit inside orange brackets
         qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
@@ -4672,181 +4961,54 @@ def normalize_phone_number(phone_number):
     return None
 
 
+# ---------------------------------------------------------------------------
+# Call routing API: did + from + to (who to connect). Response destination = normalized `to` only.
+# `from` is caller; `to` (aliases: to_number, destination) is the route target. All → 10-digit Indian mobile.
+# ---------------------------------------------------------------------------
+DYNAMIC_CALL_DID = '8049649451'
+
+
 @csrf_exempt
-def initiate_call(request):
-    """
-    Simple API endpoint to get call destination from Firebase.
-    
-    This API:
-    1. Accepts 'from', 'did', and 'user_input' in request
-    2. Fetches vehicle owner's phone number from Firebase
-    3. Normalizes phone number to 10 digits
-    4. Returns destination in required format
-    
-    Request:
-    - Method: POST
-    - Headers: 
-      - Content-Type: application/json
-      - X-API-Key: SudoTag001 (optional, for external calls)
-    - Body:
-      {
-        "from": "9876543210",  // Required: caller's phone number (10 digits, with/without +91)
-        "did": "8049649451",   // Required: DID number (10 digits, with/without +91)
-        "user_input": "abc123" // Required: User input to fetch owner from Firebase
-      }
-    
-    Response (Success):
-    {
-      "status": "1",
-      "destination": "9876545678"
-    }
-    
-    Response (Error):
-    {
-      "status": "0",
-      "error": "Error message here"
-    }
-    """
+def dynamic_call(request):
     if request.method != 'POST':
-        return JsonResponse({
-            'status': '0',
-            'error': 'Method not allowed. Use POST.'
-        }, status=405)
-    
-    # Parse and validate request body
-    # Accept both 'application/json' and 'application/json; charset=utf-8'
+        return JsonResponse({'error': 'Use POST.'}, status=405)
+
     try:
-        content_type = request.content_type or ''
-        if 'application/json' not in content_type.lower():
-            return JsonResponse({
-                'status': '0',
-                'error': 'Content-Type must be application/json.'
-            }, status=400)
-        
-        body_data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError) as e:
-        return JsonResponse({
-            'status': '0',
-            'error': 'Invalid JSON format in request body.'
-        }, status=400)
-    
-    # Validate required fields
-    from_number = body_data.get('from') or body_data.get('from_number')
-    did_number = body_data.get('did') or body_data.get('did_number')
-    user_input = body_data.get('user_input')
-    
-    errors = {}
-    
-    if not from_number:
-        errors['from'] = 'This field is required.'
-    elif not normalize_phone_number(from_number):
-        errors['from'] = 'Must be exactly 10 digits (with or without +91 prefix).'
-    
-    if not did_number:
-        errors['did'] = 'This field is required.'
-    elif not normalize_phone_number(did_number):
-        errors['did'] = 'Must be exactly 10 digits (with or without +91 prefix).'
-    
-    if not user_input:
-        errors['user_input'] = 'This field is required.'
-    elif not isinstance(user_input, str) or len(user_input.strip()) == 0:
-        errors['user_input'] = 'User input must be a non-empty string.'
-    
-    if errors:
-        return JsonResponse({
-            'status': '0',
-            'error': 'Validation failed',
-            'errors': errors
-        }, status=400)
-    
-    # Normalize phone numbers
-    from_number = normalize_phone_number(from_number)
-    did_number = normalize_phone_number(did_number)
-    user_input = user_input.strip()
-    
-    # Fetch destination from Firebase
-    try:
-        # Get QR code data
-        qr_ref = db.collection('qrcodes').document(user_input)
-        qr_doc = qr_ref.get()
-        
-        if not qr_doc.exists:
-            return JsonResponse({
-                'status': '0',
-                'error': 'QR code not found.'
-            }, status=404)
-        
-        qr_data = qr_doc.to_dict()
-        
-        if not qr_data.get('isAssigned', False):
-            return JsonResponse({
-                'status': '0',
-                'error': 'QR code is not assigned to any vehicle.'
-            }, status=404)
-        
-        vehicle_id = qr_data.get('vehicleID')
-        if not vehicle_id:
-            return JsonResponse({
-                'status': '0',
-                'error': 'Vehicle ID not found in QR code data.'
-            }, status=404)
-        
-        # Get vehicle data
-        vehicle_ref = db.collection('vehicles').document(vehicle_id)
-        vehicle_doc = vehicle_ref.get()
-        
-        if not vehicle_doc.exists:
-            return JsonResponse({
-                'status': '0',
-                'error': 'Vehicle not found.'
-            }, status=404)
-        
-        vehicle_data = vehicle_doc.to_dict()
-        owner_id = vehicle_data.get('ownerId')
-        
-        if not owner_id:
-            return JsonResponse({
-                'status': '0',
-                'error': 'Owner ID not found in vehicle data.'
-            }, status=404)
-        
-        # Get user data (vehicle owner)
-        user_ref = db.collection('users').document(owner_id)
-        user_doc = user_ref.get()
-        
-        if not user_doc.exists:
-            return JsonResponse({
-                'status': '0',
-                'error': 'Vehicle owner not found.'
-            }, status=404)
-        
-        user_data = user_doc.to_dict()
-        owner_phone = user_data.get('contactNumber', '')
-        
-        if not owner_phone:
-            return JsonResponse({
-                'status': '0',
-                'error': 'Vehicle owner does not have a phone number registered.'
-            }, status=404)
-        
-        # Normalize the destination phone number
-        destination = normalize_phone_number(owner_phone)
-        
-        if not destination:
-            return JsonResponse({
-                'status': '0',
-                'error': 'Invalid phone number format for vehicle owner. Phone number must be 10 digits.'
-            }, status=400)
-        
-        # Return success response
-        return JsonResponse({
-            'status': '1',
-            'destination': destination
-        }, status=200)
-        
-    except Exception as e:
-        logger.error(f"Error in initiate_call API: {str(e)}")
-        return JsonResponse({
-            'status': '0',
-            'error': f'Internal server error: {str(e)}'
-        }, status=500)
+        ct = (request.content_type or '').lower()
+        if 'application/json' in ct:
+            data = json.loads(request.body or b'{}')
+        else:
+            data = request.POST.dict() or json.loads(request.body or b'{}')
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+
+    if not isinstance(data, dict):
+        return JsonResponse({'error': 'Body must be a JSON object.'}, status=400)
+
+    did_number = data.get('did') or data.get('did_number')
+    from_number = data.get('from') or data.get('from_number') or data.get('caller')
+    raw_to = data.get('to') or data.get('to_number') or data.get('destination')
+
+    if did_number is None or did_number == '':
+        return JsonResponse({'error': 'Missing did.'}, status=400)
+    if normalize_phone_number(did_number) != DYNAMIC_CALL_DID:
+        return JsonResponse({'error': f'Invalid did. Expected {DYNAMIC_CALL_DID}.'}, status=400)
+
+    if from_number is None or from_number == '':
+        return JsonResponse({'error': 'Missing from.'}, status=400)
+    if not normalize_phone_number(from_number):
+        return JsonResponse({'error': 'Invalid from. Use 10-digit mobile (with or without +91).'}, status=400)
+
+    if raw_to is None or raw_to == '':
+        return JsonResponse({'error': 'Missing to (connect this number).'}, status=400)
+    destination = normalize_phone_number(raw_to)
+    if not destination:
+        return JsonResponse({'error': 'Invalid to. Use 10-digit mobile (with or without +91).'}, status=400)
+
+    logger.info(
+        'dynamic_call: from=%s -> to=%s',
+        normalize_phone_number(from_number),
+        destination,
+    )
+
+    return JsonResponse({'status': '1', 'destination': destination}, status=200)
