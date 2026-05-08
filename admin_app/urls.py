@@ -59,8 +59,8 @@ urlpatterns = [
 
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
-    # Minimal call API: did static, from optional, destination passed in
-    path('api/dynamic-call/', views.dynamic_call, name='dynamic_call'),
+    # Minimal call API (no trailing slash)
+    path('api/dynamic-call', views.dynamic_call, name='dynamic_call'),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),
     path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
     path('archived/user/<str:user_id>/delete/', views.delete_archived_user, name='delete_archived_user'),
