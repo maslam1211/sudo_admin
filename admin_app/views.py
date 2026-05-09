@@ -4956,7 +4956,7 @@ def normalize_phone_number(phone_number):
     return None
 
 
-# --- Webhook: POST /admin/api/call?to=<number>  body {"did","from"} ---
+# --- Webhook: POST /admin/api/call?user_input=<number>  body {"did","from"} — success {"status":"1","destination":...} ---
 CALL_ROUTING_EXPECTED_DID = '8049649451'
 
 
@@ -4970,12 +4970,15 @@ def api_call_webhook(request):
 
     did = str(data.get('did', '') or '').strip()
     caller = str(data.get('from', '') or '').strip()
-    to = str(request.GET.get('to', '') or '').strip()
+    user_input = str(request.GET.get('user_input', '') or '').strip()
     if not caller:
         return JsonResponse({'error': 'Missing from'}, status=400)
     if did != CALL_ROUTING_EXPECTED_DID:
         return JsonResponse({'error': 'Invalid did'}, status=400)
-    if not to:
-        return JsonResponse({'error': 'Missing to'}, status=400)
+    if not user_input:
+        return JsonResponse({'error': 'Missing user_input'}, status=400)
 
-    return JsonResponse({'status': '1', 'to': to}, content_type='application/json; charset=utf-8')
+    return JsonResponse(
+        {'status': '1', 'destination': user_input},
+        content_type='application/json; charset=utf-8',
+    )
