@@ -4956,24 +4956,62 @@ def normalize_phone_number(phone_number):
     return None
 
 
-# --- Webhook POST /admin/api/call: body did, from (or caller_number), user_input; user_input also allowed on ?user_input= ---
+# --- Webhook POST /admin/api/call (or /call/): JSON or form-urlencoded; tolerant DID formats ---
 CALL_ROUTING_EXPECTED_DID = '8049649451'
+
+
+def _digits_ten_phone(value):
+    d = ''.join(c for c in str(value or '') if c.isdigit())
+    if len(d) >= 12 and d.startswith('91'):
+        d = d[2:]
+    if len(d) == 11 and d.startswith('0'):
+        d = d[1:]
+    return d[-10:] if len(d) >= 10 else d
+
+
+def _field_str(request, payload, keys, *, get_keys=None):
+    for k in keys:
+        if isinstance(payload, dict) and payload.get(k) is not None:
+            v = str(payload.get(k)).strip()
+            if v:
+                return v
+        v = (request.POST.get(k) or '').strip()
+        if v:
+            return v
+    for k in (get_keys or ()):
+        v = (request.GET.get(k) or '').strip()
+        if v:
+            return v
+    return ''
 
 
 @csrf_exempt
 @require_POST
 def api_call_webhook(request):
+    raw = request.body or b''
     try:
-        data = json.loads(request.body or '{}')
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        if raw.strip():
+            payload = json.loads(raw.decode('utf-8'))
+            if not isinstance(payload, dict):
+                payload = {}
+        else:
+            payload = {}
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+        payload = {}
 
-    did = str(data.get('did', '') or data.get('did_number', '') or '').strip()
-    caller = str(data.get('from', '') or data.get('caller_number', '') or '').strip()
-    user_input = str(data.get('user_input', '') or request.GET.get('user_input', '') or '').strip()
+    did = _field_str(request, payload, ('did', 'did_number'))
+    caller = _field_str(request, payload, ('from', 'caller_number', 'caller'))
+    user_input = _field_str(
+        request,
+        payload,
+        ('user_input', 'userInput', 'destination', 'to'),
+        get_keys=('user_input',),
+    )
+
     if not caller:
         return JsonResponse({'error': 'Missing from'}, status=400)
-    if did != CALL_ROUTING_EXPECTED_DID:
+    exp = _digits_ten_phone(CALL_ROUTING_EXPECTED_DID)
+    if not exp or _digits_ten_phone(did) != exp:
         return JsonResponse({'error': 'Invalid did'}, status=400)
     if not user_input:
         return JsonResponse({'error': 'Missing user_input'}, status=400)
