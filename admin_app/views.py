@@ -5046,7 +5046,7 @@ def api_call_webhook(request):
             )
     else:
         logger.warning(
-            'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/intent/register first',
+            'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/call/register first',
             key,
             caller,
         )
@@ -5127,7 +5127,7 @@ def api_call_fixeda_destination(request):
             )
     else:
         logger.warning(
-            'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/intent/register first',
+            'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/call/register first',
             key,
             caller,
         )
