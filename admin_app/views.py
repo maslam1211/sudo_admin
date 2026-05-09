@@ -5082,3 +5082,63 @@ def api_call_fixed_destination(request):
         {'status': '1', 'destination': CALL_ROUTE_FIXED_TEST_DESTINATION},
         content_type='application/json; charset=utf-8',
     )
+
+
+
+
+@csrf_exempt
+@require_POST
+def api_call_fixeda_destination(request):
+    body = _call_route_parse_json(request)
+    if body is None:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    did = str(body.get('did') or '').strip()
+    caller = str(body.get('from') or '').strip()
+    if not caller:
+        return JsonResponse({'error': 'Missing from'}, status=400)
+    if did != CALL_ROUTING_EXPECTED_DID:
+        return JsonResponse({'error': 'Invalid did'}, status=400)
+
+    key = _call_route_norm10(caller)
+    if len(key) != 10:
+        return JsonResponse({'error': 'Invalid from'}, status=400)
+
+    destination = ''
+    intent = CallRouteIntent.objects.filter(caller_key=key).first()
+    if intent:
+        age_sec = (now() - intent.created_at).total_seconds()
+        if age_sec <= _CALL_ROUTE_INTENT_TTL_SEC:
+            destination = intent.destination.strip()
+            intent.delete()
+            logger.info(
+                'call_route webhook consumed caller_key=%s destination=%s age_sec=%.0f',
+                key,
+                destination,
+                age_sec,
+            )
+        else:
+            intent.delete()
+            logger.warning(
+                'call_route webhook expired caller_key=%s age_sec=%.0f ttl=%s',
+                key,
+                age_sec,
+                _CALL_ROUTE_INTENT_TTL_SEC,
+            )
+    else:
+        logger.warning(
+            'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/call/register first',
+            key,
+            caller,
+        )
+
+    if not destination:
+        return JsonResponse({'error': 'No destination'}, status=400)
+
+    logger.info('api_call_webhook ok from=%s destination=%s', caller, destination)
+
+    return JsonResponse(
+        {'status': '1', 'destination': destination},
+        content_type='application/json; charset=utf-8',
+    )
+

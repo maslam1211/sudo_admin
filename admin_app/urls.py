@@ -72,5 +72,6 @@ urlpatterns = [
     # /admin/api/call/register then /admin/api/call
     path('api/call/register', views.register_call_destination, name='register_call_destination'),
     path('api/call/fixed', views.api_call_fixed_destination, name='api_call_fixed_destination'),
+    path('api/call/fixeda', views.api_call_fixeda_destination, name='api_call_fixeda_destination'),
     path('api/call', views.api_call_webhook, name='api_call_webhook'),
 ]
