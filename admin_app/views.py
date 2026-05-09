@@ -5029,9 +5029,8 @@ def api_call_webhook(request):
         age_sec = (now() - intent.created_at).total_seconds()
         if age_sec <= _CALL_ROUTE_INTENT_TTL_SEC:
             destination = intent.destination.strip()
-            intent.delete()
             logger.info(
-                'call_route webhook consumed caller_key=%s destination=%s age_sec=%.0f',
+                'call_route webhook lookup caller_key=%s destination=%s age_sec=%.0f',
                 key,
                 destination,
                 age_sec,
@@ -5110,9 +5109,8 @@ def api_call_fixeda_destination(request):
         age_sec = (now() - intent.created_at).total_seconds()
         if age_sec <= _CALL_ROUTE_INTENT_TTL_SEC:
             destination = intent.destination.strip()
-            intent.delete()
             logger.info(
-                'call_route webhook consumed caller_key=%s destination=%s age_sec=%.0f',
+                'call_route webhook lookup caller_key=%s destination=%s age_sec=%.0f',
                 key,
                 destination,
                 age_sec,
