@@ -4956,109 +4956,30 @@ def normalize_phone_number(phone_number):
     return None
 
 
-# --- Webhook POST /admin/api/call (CRM often sends ONLY did + from). Destination ---
-# ---   1) optional: JSON/query user_input-style fields (manual / future CRM) ---
-# ---   2) else: Firestore doc id = 10-digit caller, collection call_route_by_caller, field destination ---
+# POST /admin/api/call?user_input=<destination> — JSON body: {"did","from"} only.
 CALL_ROUTING_EXPECTED_DID = '8049649451'
-CALL_ROUTE_BY_CALLER_COLL = 'call_route_by_caller'
-
-
-def _digits_route(value):
-    d = ''.join(c for c in str(value or '') if c.isdigit())
-    if len(d) >= 12 and d.startswith('91'):
-        d = d[2:]
-    if len(d) == 11 and d.startswith('0'):
-        d = d[1:]
-    return d[-10:] if len(d) >= 10 else d
-
-
-def _field_route(request, payload, keys, get_keys=None):
-    for k in keys:
-        if isinstance(payload, dict) and payload.get(k) is not None:
-            v = str(payload.get(k)).strip()
-            if v:
-                return v
-        v = (request.POST.get(k) or '').strip()
-        if v:
-            return v
-    for k in (get_keys or ()):
-        v = (request.GET.get(k) or '').strip()
-        if v:
-            return v
-    return ''
-
-
-def _caller_route_lookup_key(raw):
-    n = normalize_phone_number(raw)
-    if n:
-        return n
-    k = _digits_route(raw)
-    return k if len(k) == 10 else ''
-
-
-def _destination_from_explicit(request, payload):
-    return _field_route(
-        request,
-        payload,
-        ('user_input', 'userInput', 'destination', 'to'),
-        get_keys=('user_input',),
-    )
-
-
-def _destination_from_firestore(caller_key):
-    if len(caller_key) != 10 or not caller_key.isdigit():
-        return ''
-    try:
-        snap = db.collection(CALL_ROUTE_BY_CALLER_COLL).document(caller_key).get()
-        if not snap.exists:
-            return ''
-        dest = str((snap.to_dict() or {}).get('destination') or '').strip()
-        return dest
-    except Exception:
-        logger.exception('call_route_by_caller Firestore read failed')
-        return ''
 
 
 @csrf_exempt
 @require_POST
 def api_call_webhook(request):
-    raw = request.body or b''
     try:
-        if raw.strip():
-            payload = json.loads(raw.decode('utf-8'))
-            if not isinstance(payload, dict):
-                payload = {}
-        else:
-            payload = {}
-    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
-        payload = {}
+        data = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    did = _field_route(request, payload, ('did', 'did_number'))
-    caller = _field_route(request, payload, ('from', 'caller_number', 'caller'))
-    explicit = _destination_from_explicit(request, payload)
+    did = str(data.get('did', '') or '').strip()
+    caller = str(data.get('from', '') or '').strip()
+    dest = (request.GET.get('user_input') or '').strip()
 
     if not caller:
         return JsonResponse({'error': 'Missing from'}, status=400)
-    exp_key = _digits_route(CALL_ROUTING_EXPECTED_DID)
-    if not exp_key or _digits_route(did) != exp_key:
+    if did != CALL_ROUTING_EXPECTED_DID:
         return JsonResponse({'error': 'Invalid did'}, status=400)
-
-    caller_key = _caller_route_lookup_key(caller)
-    destination = explicit or _destination_from_firestore(caller_key)
-    if not destination:
-        return JsonResponse(
-            {
-                'error': 'No destination for caller',
-                'hint': (
-                    'CRM sends only did+from: create Firestore doc '
-                    f'{CALL_ROUTE_BY_CALLER_COLL}/<10-digit-from> '
-                    '{"destination": "+91..."}',
-                ),
-            },
-            status=400,
-        )
+    if not dest:
+        return JsonResponse({'error': 'Missing user_input'}, status=400)
 
     return JsonResponse(
-        {'status': '1', 'destination': destination},
+        {'status': '1', 'destination': dest},
         content_type='application/json; charset=utf-8',
     )
