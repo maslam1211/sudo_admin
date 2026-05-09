@@ -4956,11 +4956,14 @@ def normalize_phone_number(phone_number):
     return None
 
 
-# --- Webhook POST /admin/api/call (or /call/): JSON or form-urlencoded; tolerant DID formats ---
+# --- Webhook POST /admin/api/call (CRM often sends ONLY did + from). Destination ---
+# ---   1) optional: JSON/query user_input-style fields (manual / future CRM) ---
+# ---   2) else: Firestore doc id = 10-digit caller, collection call_route_by_caller, field destination ---
 CALL_ROUTING_EXPECTED_DID = '8049649451'
+CALL_ROUTE_BY_CALLER_COLL = 'call_route_by_caller'
 
 
-def _digits_ten_phone(value):
+def _digits_route(value):
     d = ''.join(c for c in str(value or '') if c.isdigit())
     if len(d) >= 12 and d.startswith('91'):
         d = d[2:]
@@ -4969,7 +4972,7 @@ def _digits_ten_phone(value):
     return d[-10:] if len(d) >= 10 else d
 
 
-def _field_str(request, payload, keys, *, get_keys=None):
+def _field_route(request, payload, keys, get_keys=None):
     for k in keys:
         if isinstance(payload, dict) and payload.get(k) is not None:
             v = str(payload.get(k)).strip()
@@ -4983,6 +4986,37 @@ def _field_str(request, payload, keys, *, get_keys=None):
         if v:
             return v
     return ''
+
+
+def _caller_route_lookup_key(raw):
+    n = normalize_phone_number(raw)
+    if n:
+        return n
+    k = _digits_route(raw)
+    return k if len(k) == 10 else ''
+
+
+def _destination_from_explicit(request, payload):
+    return _field_route(
+        request,
+        payload,
+        ('user_input', 'userInput', 'destination', 'to'),
+        get_keys=('user_input',),
+    )
+
+
+def _destination_from_firestore(caller_key):
+    if len(caller_key) != 10 or not caller_key.isdigit():
+        return ''
+    try:
+        snap = db.collection(CALL_ROUTE_BY_CALLER_COLL).document(caller_key).get()
+        if not snap.exists:
+            return ''
+        dest = str((snap.to_dict() or {}).get('destination') or '').strip()
+        return dest
+    except Exception:
+        logger.exception('call_route_by_caller Firestore read failed')
+        return ''
 
 
 @csrf_exempt
@@ -4999,24 +5033,32 @@ def api_call_webhook(request):
     except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
         payload = {}
 
-    did = _field_str(request, payload, ('did', 'did_number'))
-    caller = _field_str(request, payload, ('from', 'caller_number', 'caller'))
-    user_input = _field_str(
-        request,
-        payload,
-        ('user_input', 'userInput', 'destination', 'to'),
-        get_keys=('user_input',),
-    )
+    did = _field_route(request, payload, ('did', 'did_number'))
+    caller = _field_route(request, payload, ('from', 'caller_number', 'caller'))
+    explicit = _destination_from_explicit(request, payload)
 
     if not caller:
         return JsonResponse({'error': 'Missing from'}, status=400)
-    exp = _digits_ten_phone(CALL_ROUTING_EXPECTED_DID)
-    if not exp or _digits_ten_phone(did) != exp:
+    exp_key = _digits_route(CALL_ROUTING_EXPECTED_DID)
+    if not exp_key or _digits_route(did) != exp_key:
         return JsonResponse({'error': 'Invalid did'}, status=400)
-    if not user_input:
-        return JsonResponse({'error': 'Missing user_input'}, status=400)
+
+    caller_key = _caller_route_lookup_key(caller)
+    destination = explicit or _destination_from_firestore(caller_key)
+    if not destination:
+        return JsonResponse(
+            {
+                'error': 'No destination for caller',
+                'hint': (
+                    'CRM sends only did+from: create Firestore doc '
+                    f'{CALL_ROUTE_BY_CALLER_COLL}/<10-digit-from> '
+                    '{"destination": "+91..."}',
+                ),
+            },
+            status=400,
+        )
 
     return JsonResponse(
-        {'status': '1', 'destination': user_input},
+        {'status': '1', 'destination': destination},
         content_type='application/json; charset=utf-8',
     )
