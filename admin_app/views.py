@@ -5060,3 +5060,25 @@ def api_call_webhook(request):
         {'status': '1', 'destination': destination},
         content_type='application/json; charset=utf-8',
     )
+
+
+CALL_ROUTE_FIXED_TEST_DESTINATION = '8075576069'
+
+
+@csrf_exempt
+@require_POST
+def api_call_fixed_destination(request):
+    """Same shape as /api/call but always returns a fixed destination (PBX / integration testing)."""
+    body = _call_route_parse_json(request)
+    if body is None:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    did = str(body.get('did') or '').strip()
+    caller = str(body.get('from') or '').strip()
+    if not caller:
+        return JsonResponse({'error': 'Missing from'}, status=400)
+    if did != CALL_ROUTING_EXPECTED_DID:
+        return JsonResponse({'error': 'Invalid did'}, status=400)
+    return JsonResponse(
+        {'status': '1', 'destination': CALL_ROUTE_FIXED_TEST_DESTINATION},
+        content_type='application/json; charset=utf-8',
+    )
