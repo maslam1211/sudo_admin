@@ -31,3 +31,17 @@ class ArchivedVehicle(models.Model):
     def __str__(self) -> str:
         display = self.registration_number or self.vehicle_id
         return f"ArchivedVehicle({display})"
+
+
+class CallRouteIntent(models.Model):
+    """Pending dial destination per caller (from). DB-backed so multi-worker servers see the same row."""
+
+    caller_key = models.CharField(max_length=10, primary_key=True)
+    destination = models.CharField(max_length=32)
+    created_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'call_route_intent'
+
+    def __str__(self) -> str:
+        return f'{self.caller_key}->{self.destination}'

@@ -1965,7 +1965,7 @@ def update_order_status(request):
 # =========================
 # Archiving (Deleted Users)
 # =========================
-from .models import ArchivedUser, ArchivedVehicle
+from .models import ArchivedUser, ArchivedVehicle, CallRouteIntent
 from django.db import transaction
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
@@ -4958,9 +4958,8 @@ def normalize_phone_number(phone_number):
 
 
 CALL_ROUTING_EXPECTED_DID = '8049649451'
-_CALL_ROUTE_CACHE_PREFIX = 'call_route:'
-# Seconds each pending destination lives in cache. Keys are per caller (from) — different users do not overwrite each other.
-_CALL_ROUTE_CACHE_TTL = 300
+# Pending intent row expires after this many seconds (see CallRouteIntent).
+_CALL_ROUTE_INTENT_TTL_SEC = 300
 
 
 def _call_route_norm10(value):
@@ -4998,7 +4997,11 @@ def register_call_destination(request):
     if len(key) != 10:
         return JsonResponse({'error': 'Invalid from'}, status=400)
 
-    cache.set(_CALL_ROUTE_CACHE_PREFIX + key, destination, _CALL_ROUTE_CACHE_TTL)
+    CallRouteIntent.objects.update_or_create(
+        caller_key=key,
+        defaults={'destination': destination},
+    )
+    logger.info('call_route register stored caller_key=%s destination=%s', key, destination)
     return JsonResponse({'status': 'ok'})
 
 
@@ -5020,16 +5023,38 @@ def api_call_webhook(request):
     if len(key) != 10:
         return JsonResponse({'error': 'Invalid from'}, status=400)
 
-    cache_key = _CALL_ROUTE_CACHE_PREFIX + key
-    destination = cache.get(cache_key)
-    if destination is not None:
-        cache.delete(cache_key)
-    destination = str(destination).strip() if destination else ''
+    destination = ''
+    intent = CallRouteIntent.objects.filter(caller_key=key).first()
+    if intent:
+        age_sec = (now() - intent.created_at).total_seconds()
+        if age_sec <= _CALL_ROUTE_INTENT_TTL_SEC:
+            destination = intent.destination.strip()
+            intent.delete()
+            logger.info(
+                'call_route webhook consumed caller_key=%s destination=%s age_sec=%.0f',
+                key,
+                destination,
+                age_sec,
+            )
+        else:
+            intent.delete()
+            logger.warning(
+                'call_route webhook expired caller_key=%s age_sec=%.0f ttl=%s',
+                key,
+                age_sec,
+                _CALL_ROUTE_INTENT_TTL_SEC,
+            )
+    else:
+        logger.warning(
+            'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/call/register first',
+            key,
+            caller,
+        )
 
     if not destination:
         return JsonResponse({'error': 'No destination'}, status=400)
 
-    logger.info('api_call_webhook from=%s destination=%s', caller, destination)
+    logger.info('api_call_webhook ok from=%s destination=%s', caller, destination)
 
     return JsonResponse(
         {'status': '1', 'destination': destination},
