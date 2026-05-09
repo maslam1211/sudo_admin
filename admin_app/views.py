@@ -4937,78 +4937,20 @@ def normalize_phone_number(phone_number):
     """
     if not phone_number:
         return None
-    
-    # Convert to string and remove any whitespace
+
     phone_str = str(phone_number).strip()
-    
-    # Remove +91 prefix if present
+
     if phone_str.startswith('+91'):
-        phone_str = phone_str[3:]  # Remove +91
+        phone_str = phone_str[3:]
     elif phone_str.startswith('91') and len(phone_str) == 12:
-        phone_str = phone_str[2:]  # Remove 91 if it's 12 digits total
-    
-    # Remove leading zero if present (e.g., 09876545678 -> 9876545678)
+        phone_str = phone_str[2:]
+
     if phone_str.startswith('0') and len(phone_str) == 11:
         phone_str = phone_str[1:]
-    
-    # Remove any remaining whitespace
+
     phone_str = phone_str.strip()
-    
-    # Return only if it's exactly 10 digits
+
     if len(phone_str) == 10 and phone_str.isdigit():
         return phone_str
-    
+
     return None
-
-
-# ---------------------------------------------------------------------------
-# Call routing API: did + from + to (who to connect). Response destination = normalized `to` only.
-# `from` is caller; `to` (aliases: to_number, destination) is the route target. All → 10-digit Indian mobile.
-# ---------------------------------------------------------------------------
-DYNAMIC_CALL_DID = '8049649451'
-
-
-@csrf_exempt
-def dynamic_call(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Use POST.'}, status=405)
-
-    try:
-        ct = (request.content_type or '').lower()
-        if 'application/json' in ct:
-            data = json.loads(request.body or b'{}')
-        else:
-            data = request.POST.dict() or json.loads(request.body or b'{}')
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'Invalid JSON.'}, status=400)
-
-    if not isinstance(data, dict):
-        return JsonResponse({'error': 'Body must be a JSON object.'}, status=400)
-
-    did_number = data.get('did') or data.get('did_number')
-    from_number = data.get('from') or data.get('from_number') or data.get('caller')
-    raw_to = data.get('to') or data.get('to_number') or data.get('destination')
-
-    if did_number is None or did_number == '':
-        return JsonResponse({'error': 'Missing did.'}, status=400)
-    if normalize_phone_number(did_number) != DYNAMIC_CALL_DID:
-        return JsonResponse({'error': f'Invalid did. Expected {DYNAMIC_CALL_DID}.'}, status=400)
-
-    if from_number is None or from_number == '':
-        return JsonResponse({'error': 'Missing from.'}, status=400)
-    if not normalize_phone_number(from_number):
-        return JsonResponse({'error': 'Invalid from. Use 10-digit mobile (with or without +91).'}, status=400)
-
-    if raw_to is None or raw_to == '':
-        return JsonResponse({'error': 'Missing to (connect this number).'}, status=400)
-    destination = normalize_phone_number(raw_to)
-    if not destination:
-        return JsonResponse({'error': 'Invalid to. Use 10-digit mobile (with or without +91).'}, status=400)
-
-    logger.info(
-        'dynamic_call: from=%s -> to=%s',
-        normalize_phone_number(from_number),
-        destination,
-    )
-
-    return JsonResponse({'status': '1', 'destination': destination}, status=200)
