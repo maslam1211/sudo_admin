@@ -2158,32 +2158,6 @@ def archive_deleted_user_webhook(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-# Mock calling webhook: POST JSON {"did": "8049649451", "from": "<any caller>"}; destination is fixed for testing.
-CALL_ROUTING_EXPECTED_DID = '8049649451'
-CALL_ROUTING_DESTINATION = '9947395679'
-
-
-@csrf_exempt
-@require_POST
-def route_call(request):
-    try:
-        data = json.loads(request.body or '{}')
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
-    did = str(data.get('did', '') or '').strip()
-    caller = str(data.get('from', '') or '').strip()
-    if not caller:
-        return JsonResponse({'error': 'Missing from'}, status=400)
-    if did != CALL_ROUTING_EXPECTED_DID:
-        return JsonResponse({'error': 'Invalid did'}, status=400)
-
-    return JsonResponse(
-        {'status': '1', 'destination': CALL_ROUTING_DESTINATION},
-        content_type='application/json; charset=utf-8',
-    )
-
-
 def _paginate_queryset(request, qs, per_page=20):
     paginator = Paginator(qs, per_page)
     page = request.GET.get('page', 1)
@@ -4980,3 +4954,31 @@ def normalize_phone_number(phone_number):
         return phone_str
 
     return None
+
+
+# --- Webhook /admin/api/call: POST JSON did, from, to — response echoes to as destination ---
+CALL_ROUTING_EXPECTED_DID = '8049649451'
+
+
+@csrf_exempt
+@require_POST
+def api_call_webhook(request):
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    did = str(data.get('did', '') or '').strip()
+    caller = str(data.get('from', '') or '').strip()
+    to = str(data.get('to', '') or '').strip()
+    if not caller:
+        return JsonResponse({'error': 'Missing from'}, status=400)
+    if not to:
+        return JsonResponse({'error': 'Missing to'}, status=400)
+    if did != CALL_ROUTING_EXPECTED_DID:
+        return JsonResponse({'error': 'Invalid did'}, status=400)
+
+    return JsonResponse(
+        {'status': '1', 'destination': to},
+        content_type='application/json; charset=utf-8',
+    )

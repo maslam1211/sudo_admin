@@ -58,7 +58,6 @@ urlpatterns = [
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
 
     # Archive (deletion webhook + unified UI + CSV export)
-    path('api/route-call', views.route_call, name='route_call'),
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),
     path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
@@ -70,4 +69,6 @@ urlpatterns = [
     path('archived/vehicles/', views.view_archived_vehicles, name='view_archived_vehicles'),
     path('archived/users/export/', views.export_archived_users_csv, name='export_archived_users_csv'),
     path('archived/vehicles/export/', views.export_archived_vehicles_csv, name='export_archived_vehicles_csv'),
+    # Webhook: POST JSON calling API
+    path('api/call', views.api_call_webhook, name='api_call_webhook'),
 ]
