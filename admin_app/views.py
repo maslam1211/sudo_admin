@@ -22,6 +22,7 @@ from django.views.decorators.http import require_POST
 from django.contrib.sessions.backends.base import SessionBase
 from django.urls import reverse
 from django.conf import settings
+from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from dotenv import load_dotenv
@@ -4956,34 +4957,81 @@ def normalize_phone_number(phone_number):
     return None
 
 
-# POST /admin/api/call — JSON {"did","from"} only; destination only via header X-Destination
 CALL_ROUTING_EXPECTED_DID = '8049649451'
+_CALL_ROUTE_CACHE_PREFIX = 'call_route:'
+# Seconds each pending destination lives in cache. Keys are per caller (from) — different users do not overwrite each other.
+_CALL_ROUTE_CACHE_TTL = 300
+
+
+def _call_route_norm10(value):
+    n = normalize_phone_number(value)
+    if n:
+        return n
+    digits = ''.join(c for c in str(value or '') if c.isdigit())
+    if len(digits) >= 12 and digits.startswith('91'):
+        digits = digits[2:]
+    if len(digits) == 11 and digits.startswith('0'):
+        digits = digits[1:]
+    return digits[-10:] if len(digits) >= 10 else ''
+
+
+def _call_route_parse_json(request):
+    try:
+        return json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return None
+
+
+@csrf_exempt
+@require_POST
+def register_call_destination(request):
+    body = _call_route_parse_json(request)
+    if body is None:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    phone = str(body.get('from') or '').strip()
+    destination = str(body.get('destination') or '').strip()
+    if not phone or not destination:
+        return JsonResponse({'error': 'from and destination required'}, status=400)
+
+    key = _call_route_norm10(phone)
+    if len(key) != 10:
+        return JsonResponse({'error': 'Invalid from'}, status=400)
+
+    cache.set(_CALL_ROUTE_CACHE_PREFIX + key, destination, _CALL_ROUTE_CACHE_TTL)
+    return JsonResponse({'status': 'ok'})
 
 
 @csrf_exempt
 @require_POST
 def api_call_webhook(request):
-    try:
-        data = json.loads(request.body or b'{}')
-    except json.JSONDecodeError:
+    body = _call_route_parse_json(request)
+    if body is None:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    did = str(data.get('did', '') or '').strip()
-    caller = str(data.get('from', '') or '').strip()
-    dest = (
-        request.headers.get('X-Destination')
-        or request.META.get('HTTP_X_DESTINATION')
-        or ''
-    ).strip()
-
+    did = str(body.get('did') or '').strip()
+    caller = str(body.get('from') or '').strip()
     if not caller:
         return JsonResponse({'error': 'Missing from'}, status=400)
     if did != CALL_ROUTING_EXPECTED_DID:
         return JsonResponse({'error': 'Invalid did'}, status=400)
-    if not dest:
-        return JsonResponse({'error': 'Missing X-Destination header'}, status=400)
+
+    key = _call_route_norm10(caller)
+    if len(key) != 10:
+        return JsonResponse({'error': 'Invalid from'}, status=400)
+
+    cache_key = _CALL_ROUTE_CACHE_PREFIX + key
+    destination = cache.get(cache_key)
+    if destination is not None:
+        cache.delete(cache_key)
+    destination = str(destination).strip() if destination else ''
+
+    if not destination:
+        return JsonResponse({'error': 'No destination'}, status=400)
+
+    logger.info('api_call_webhook from=%s destination=%s', caller, destination)
 
     return JsonResponse(
-        {'status': '1', 'destination': dest},
+        {'status': '1', 'destination': destination},
         content_type='application/json; charset=utf-8',
     )

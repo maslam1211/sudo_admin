@@ -69,6 +69,7 @@ urlpatterns = [
     path('archived/vehicles/', views.view_archived_vehicles, name='view_archived_vehicles'),
     path('archived/users/export/', views.export_archived_users_csv, name='export_archived_users_csv'),
     path('archived/vehicles/export/', views.export_archived_vehicles_csv, name='export_archived_vehicles_csv'),
-    # Webhook: POST /admin/api/call — JSON did+from; header X-Destination for destination
+    # /admin/api/call/register then /admin/api/call
+    path('api/call/register', views.register_call_destination, name='register_call_destination'),
     path('api/call', views.api_call_webhook, name='api_call_webhook'),
 ]

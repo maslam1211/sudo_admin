@@ -144,6 +144,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sudo_admin.wsgi.application'
 
+# Call-route intent bridge (/admin/api/call/register → /admin/api/call); use Redis in prod if multiple workers
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'sudo-admin-call-route',
+    }
+}
+
 # Database
 DATABASES = {
     'default': {
