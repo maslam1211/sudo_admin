@@ -38,3 +38,6 @@ Thumbs.db
 # PyCharm
 *.iml
 firebase/
+
+# Local curl examples (do not commit)
+call_api_curl_examples.txt
