@@ -119,6 +119,147 @@
       margin: 3px 0 0 0;
     }
 
+    body.flow-emergency .header-title {
+      color: #ff6b6b;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    body.flow-emergency .plate-number {
+      color: #ff8787;
+      text-shadow: 0 0 20px rgba(229, 57, 53, 0.25);
+    }
+
+    /* Quick switch — who to contact */
+    .switch-contact-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 14px;
+      animation: fadeIn 0.45s ease-out;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .switch-contact-hint {
+      margin: 0;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.52);
+      letter-spacing: 0.02em;
+    }
+
+    body.flow-emergency .switch-contact-hint {
+      color: rgba(255, 180, 180, 0.65);
+    }
+
+    .switch-contact-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    @media (min-width: 400px) {
+      .switch-contact-actions {
+        flex-direction: row;
+        align-items: stretch;
+      }
+    }
+
+    .switch-contact-pill {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 14px;
+      min-height: 48px;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition:
+        transform 0.18s ease,
+        border-color 0.2s,
+        box-shadow 0.2s,
+        background 0.2s,
+        opacity 0.2s;
+      color: var(--text-white);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.32);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .switch-contact-pill i {
+      font-size: 1.1rem;
+      line-height: 1;
+      flex-shrink: 0;
+      opacity: 0.92;
+    }
+
+    .switch-contact-pill:active {
+      transform: scale(0.98);
+    }
+
+    .switch-contact-pill--owner i {
+      color: var(--info-blue);
+    }
+
+    .switch-contact-pill--emergency i {
+      color: #ef5350;
+    }
+
+    .switch-contact-pill--owner:hover {
+      border-color: rgba(100, 181, 246, 0.5);
+      background: rgba(30, 136, 229, 0.12);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .switch-contact-pill--emergency:hover {
+      border-color: rgba(239, 83, 80, 0.55);
+      background: rgba(229, 57, 53, 0.12);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(183, 28, 28, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .switch-contact-pill--active.switch-contact-pill--owner {
+      border-color: rgba(66, 165, 245, 0.75);
+      background: rgba(33, 150, 243, 0.2);
+      box-shadow:
+        0 0 0 1px rgba(30, 136, 229, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      cursor: default;
+    }
+
+    .switch-contact-pill--active.switch-contact-pill--emergency {
+      border-width: 2px;
+      border-color: rgba(239, 83, 80, 0.8);
+      background: linear-gradient(180deg, rgba(229, 57, 53, 0.22), rgba(0, 0, 0, 0.28));
+      box-shadow:
+        0 10px 28px rgba(183, 28, 28, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+    }
+
+    .switch-contact-pill--active.switch-contact-pill--emergency:hover {
+      border-color: rgba(239, 83, 80, 0.85);
+    }
+
+    body.flow-emergency .switch-contact-pill:not(.switch-contact-pill--active) {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.45);
+    }
+
     /* Main Content */
     .main-content {
       flex: 1;
@@ -399,6 +540,34 @@
       color: var(--info-blue);
     }
 
+    .call-flow-dialog--emergency {
+      border-color: rgba(229, 57, 53, 0.52);
+      box-shadow:
+        0 22px 56px rgba(0, 0, 0, 0.52),
+        inset 0 1px 0 rgba(239, 83, 80, 0.1);
+    }
+
+    .call-flow-dialog--emergency h3 i {
+      color: #ef5350;
+    }
+
+    .call-flow-dialog--emergency .call-route-input:focus {
+      border-color: #e53935;
+      box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.3);
+    }
+
+    .call-flow-dialog--emergency .call-flow-actions .call-highlight-btn {
+      background: linear-gradient(135deg, #ef5350 0%, #b71c1c 100%);
+      border-color: rgba(239, 83, 80, 0.5);
+      box-shadow: 0 6px 22px rgba(198, 40, 40, 0.45);
+    }
+
+    .call-flow-dialog--emergency .call-flow-actions .call-highlight-btn:hover {
+      background: linear-gradient(135deg, #ff7961 0%, #c62828 100%);
+      box-shadow: 0 8px 28px rgba(198, 40, 40, 0.55);
+      transform: translateY(-3px);
+    }
+
     .call-route-label {
       display: block;
       font-size: 0.72rem;
@@ -532,6 +701,136 @@
 
     .call-route-error:empty {
       visibility: hidden;
+    }
+
+    /* Who to contact (emergency vs owner) */
+    .contact-mode-dialog {
+      background: linear-gradient(165deg, #323232 0%, var(--secondary-gray) 100%);
+      border-radius: 20px;
+      padding: 24px 20px;
+      margin: 15px;
+      max-width: 420px;
+      width: 92%;
+      box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      animation: slideUp 0.45s ease-out;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .contact-mode-dialog h3 {
+      text-align: center;
+      font-size: 1.12rem;
+      font-weight: 600;
+      margin: 0 0 20px;
+      color: var(--text-white);
+      letter-spacing: 0.02em;
+    }
+
+    .contact-mode-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .contact-mode-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 22px 16px;
+      min-height: 112px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition:
+        border-color 0.2s,
+        box-shadow 0.2s,
+        transform 0.18s ease,
+        background 0.2s;
+      color: var(--text-white);
+      font: inherit;
+    }
+
+    .contact-mode-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.38);
+    }
+
+    .contact-mode-card--owner-pick:hover {
+      border-color: rgba(100, 181, 246, 0.55);
+      box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(30, 136, 229, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .contact-mode-card--emergency {
+      border-width: 2px;
+      border-color: rgba(229, 57, 53, 0.6);
+      background: linear-gradient(180deg, rgba(229, 57, 53, 0.18), rgba(0, 0, 0, 0.28));
+      box-shadow: 0 6px 26px rgba(183, 28, 28, 0.3);
+    }
+
+    .contact-mode-card--emergency:hover {
+      border-color: rgba(239, 83, 80, 0.85);
+      box-shadow:
+        0 16px 38px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(239, 83, 80, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .contact-mode-card-icon {
+      font-size: 1.85rem;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .contact-mode-card--emergency .contact-mode-card-icon {
+      color: #ef5350;
+    }
+
+    .contact-mode-card--owner-pick .contact-mode-card-icon {
+      color: var(--info-blue);
+    }
+
+    .contact-mode-card-title {
+      font-weight: 700;
+      font-size: 0.98rem;
+      letter-spacing: 0.02em;
+    }
+
+    .call-flow-emergency-plate {
+      width: 100%;
+      text-align: left;
+      margin-bottom: 14px;
+    }
+
+    .call-flow-emergency-plate .call-route-label {
+      margin-bottom: 6px;
+    }
+
+    .call-flow-plate-error {
+      font-size: 0.73rem;
+      color: #FF8A80;
+      margin: 6px 0 0;
+      min-height: 1.1rem;
+      line-height: 1.35;
+    }
+
+    .call-flow-plate-error:empty {
+      display: none;
+    }
+
+    .call-flow-plate-input {
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
 
     .btn-icon {
@@ -1025,10 +1324,28 @@
 </head>
 
 <body>
+  {% if vehicle_data and has_emergency_contact %}
+  <div class="modal-overlay" id="contactModeModal" style="display: none;" aria-hidden="true">
+    <div class="contact-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="contactModeTitle">
+      <h3 id="contactModeTitle">How do you want to reach out?</h3>
+      <div class="contact-mode-cards">
+        <button type="button" class="contact-mode-card contact-mode-card--emergency" id="chooseEmergencyContactBtn">
+          <span class="contact-mode-card-icon" aria-hidden="true"><i class="bi bi-heart-pulse-fill"></i></span>
+          <span class="contact-mode-card-title">Emergency Contact</span>
+        </button>
+        <button type="button" class="contact-mode-card contact-mode-card--owner-pick" id="chooseOwnerContactBtn">
+          <span class="contact-mode-card-icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></span>
+          <span class="contact-mode-card-title">Contact vehicle owner</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Header -->
   <header class="header">
     <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
-    <h1 class="header-title">CONTACT VEHICLE OWNER</h1>
+    <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
   </header>
 
   <!-- Main Content -->
@@ -1043,6 +1360,23 @@
       <div class="plate-number">{{ vehicle_data.registrationNumber }}</div>
     </div>
 
+    {% if vehicle_data and has_emergency_contact %}
+    <div class="switch-contact-wrap" id="switchContactWrap" hidden style="display: none;">
+      <p class="switch-contact-hint">Change who you’re contacting</p>
+      <div class="switch-contact-actions">
+        <button type="button" class="switch-contact-pill switch-contact-pill--owner" id="quickSwitchOwnerBtn" aria-current="false">
+          <i class="bi bi-car-front-fill" aria-hidden="true"></i>
+          <span>Contact vehicle owner</span>
+        </button>
+        <button type="button" class="switch-contact-pill switch-contact-pill--emergency" id="quickSwitchEmergencyBtn" aria-current="false">
+          <i class="bi bi-heart-pulse-fill" aria-hidden="true"></i>
+          <span>Emergency Contact</span>
+        </button>
+      </div>
+    </div>
+    {% endif %}
+
+    <div id="ownerNotifySection">
     <!-- Question Section -->
     <div class="question-section">
       <p class="question-title">Why would you like to contact the vehicle owner?</p>
@@ -1099,15 +1433,15 @@
 
     <!-- Action Buttons: Call highlighted first, then SMS / Push -->
     <div class="action-buttons">
-      {% if call_register_ready %}
-      <button type="button" class="action-btn call-highlight-btn" id="callMainBtn" title="Call the Owner">
+      {% if call_register_ready or emergency_call_ready %}
+      <button type="button" class="action-btn call-highlight-btn" id="callMainBtn" title="Call">
         <i class="bi bi-telephone-fill btn-icon"></i>
-        <span class="btn-text">Call Owner</span>
+        <span class="btn-text" id="callMainBtnLabel">Call Owner</span>
       </button>
       {% endif %}
       <button class="action-btn sms-btn" id="smsBtn">
         <i class="bi bi-chat-text-fill btn-icon"></i>
-        <span class="btn-text">Send SMS</span>
+        <span class="btn-text" id="smsBtnLabel">Send SMS</span>
       </button>
       {% if has_fcm_token %}
       <button class="action-btn push-btn" id="pushBtn">
@@ -1116,6 +1450,8 @@
       </button>
       {% endif %}
     </div>
+    </div>
+    <!-- /#ownerNotifySection -->
 
     {% else %}
     <!-- No Vehicle Message -->
@@ -1144,11 +1480,18 @@
 
   <!-- Call flow: register routing, then open system dialer with DID (tel:) -->
   <div class="modal-overlay" id="callFlowModal" style="display: none;">
-    <div class="call-flow-dialog" role="dialog" aria-labelledby="callFlowTitle">
-      <h3 id="callFlowTitle"><i class="bi bi-telephone-outbound-fill" aria-hidden="true"></i> Call the Owner</h3>
+    <div class="call-flow-dialog" id="callFlowDialogInner" role="dialog" aria-labelledby="callFlowTitle">
+      <h3 id="callFlowTitle"><i class="bi bi-telephone-outbound-fill" aria-hidden="true"></i><span id="callFlowTitleText"> Call the owner</span></h3>
+      <div id="callFlowEmergencyPlateWrap" class="call-flow-emergency-plate" style="display: none;" hidden>
+        <label class="call-route-label" for="callFlowPlateInput">Confirm registration number</label>
+        <input type="text" class="call-route-input call-flow-plate-input" id="callFlowPlateInput"
+          placeholder="As shown on the vehicle" autocomplete="off" spellcheck="false" maxlength="24"
+          aria-describedby="callFlowPlateError" inputmode="text">
+        <p class="call-flow-plate-error" id="callFlowPlateError" role="alert"></p>
+      </div>
       <label class="call-route-label" for="callerPhoneInput">Your mobile number</label>
       <input type="tel" inputmode="numeric" class="call-route-input" id="callerPhoneInput" maxlength="10"
-        pattern="[0-9]{10}" placeholder="98765 43210" autocomplete="tel-national"
+        placeholder="Your mobile number" autocomplete="tel-national"
         aria-label="Your mobile number">
       <div class="call-route-error-wrap">
         <p class="call-route-error" id="callRouteError" role="alert"></p>
@@ -1253,6 +1596,39 @@
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
     const callRouteDidRaw = "{{ call_route_did|default:'' }}";
 
+    const hasEmergencyContact = {% if vehicle_data and has_emergency_contact %}true{% else %}false{% endif %};
+    const ownerCallReady = {{ call_register_ready|yesno:"true,false" }};
+    const emergencyCallReady = {{ emergency_call_ready|yesno:"true,false" }};
+    const ownerSmsReady = {{ owner_sms_ready|yesno:"true,false" }};
+    const emergencySmsReady = {{ emergency_sms_ready|yesno:"true,false" }};
+    const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
+    /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
+    const serverVehicleRegistrationRaw =
+      '{{ vehicle_data.registrationNumber|default:""|escapejs }}';
+
+    /** 'owner' | 'emergency' | null until the scanner chooses when emergency exists */
+    let contactMode = hasEmergencyContact ? null : 'owner';
+
+    /** After emergency → tel:, user may cancel the dialer and return; clear red emergency shell. */
+    var EMERGENCY_TEL_RETURN_KEY = 'sudo_clear_emergency_after_tel';
+
+    function resetUiAfterEmergencyDialerReturn() {
+      var shouldReset = false;
+      try {
+        shouldReset = sessionStorage.getItem(EMERGENCY_TEL_RETURN_KEY) === '1';
+        if (shouldReset) {
+          sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
+        }
+      } catch (e) {
+        return;
+      }
+      if (!shouldReset || !hasEmergencyContact) return;
+      contactMode = 'owner';
+      closeContactModeModal();
+      dismissCallFlowModal();
+      syncContactModeUi();
+    }
+
     // DOM Elements
     const pushBtn = document.getElementById('pushBtn');
     const smsBtn = document.getElementById('smsBtn');
@@ -1262,6 +1638,19 @@
     const callPrepareBtn = document.getElementById('callPrepareBtn');
     const callerPhoneInput = document.getElementById('callerPhoneInput');
     const callRouteError = document.getElementById('callRouteError');
+    const callFlowTitleText = document.getElementById('callFlowTitleText');
+
+    const contactModeModal = document.getElementById('contactModeModal');
+    const chooseEmergencyContactBtn = document.getElementById('chooseEmergencyContactBtn');
+    const chooseOwnerContactBtn = document.getElementById('chooseOwnerContactBtn');
+    const quickSwitchOwnerBtn = document.getElementById('quickSwitchOwnerBtn');
+    const quickSwitchEmergencyBtn = document.getElementById('quickSwitchEmergencyBtn');
+    const switchContactWrap = document.getElementById('switchContactWrap');
+    const callFlowDialogInner = document.getElementById('callFlowDialogInner');
+    const callMainBtnLabel = document.getElementById('callMainBtnLabel');
+    const smsBtnLabel = document.getElementById('smsBtnLabel');
+    const ownerNotifySection = document.getElementById('ownerNotifySection');
+    const pageHeaderTitle = document.getElementById('pageHeaderTitle');
 
     const toastNotification = document.getElementById('toastNotification');
     const toastMessage = document.getElementById('toastMessage');
@@ -1304,15 +1693,247 @@
     let selectedMethod = '';
     let lastNotificationData = null;
 
+    function openContactModeModal() {
+      if (!contactModeModal) return;
+      contactModeModal.style.display = 'flex';
+      contactModeModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeContactModeModal() {
+      if (!contactModeModal) return;
+      contactModeModal.style.display = 'none';
+      contactModeModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function ensureContactTargetSelected() {
+      if (hasEmergencyContact && !contactMode) {
+        showToast('Choose who you want to contact first', 'error');
+        openContactModeModal();
+        return false;
+      }
+      return true;
+    }
+
+    function getEffectiveContactTarget() {
+      return contactMode === 'emergency' ? 'emergency' : 'owner';
+    }
+
+    function getActiveDestinationDigits() {
+      if (contactMode === 'emergency') return String(emergencyDestinationDigits || '').replace(/\D/g, '');
+      return String(ownerDestinationDigits || '').replace(/\D/g, '');
+    }
+
+    function syncMainSections() {
+      if (!hasEmergencyContact) {
+        if (ownerNotifySection) ownerNotifySection.style.display = '';
+        return;
+      }
+      if (!contactMode) {
+        if (ownerNotifySection) ownerNotifySection.style.display = 'none';
+        return;
+      }
+      if (contactMode === 'emergency') {
+        if (ownerNotifySection) ownerNotifySection.style.display = 'none';
+      } else {
+        if (ownerNotifySection) ownerNotifySection.style.display = '';
+      }
+    }
+
+    function syncEmergencyPlateWrapInCallModal() {
+      var wrap = document.getElementById('callFlowEmergencyPlateWrap');
+      if (!wrap) return;
+      if (contactMode === 'emergency') {
+        wrap.removeAttribute('hidden');
+        wrap.style.display = 'block';
+      } else {
+        wrap.setAttribute('hidden', '');
+        wrap.style.display = 'none';
+        var pInp = document.getElementById('callFlowPlateInput');
+        if (pInp) pInp.value = '';
+        clearCallFlowPlateError();
+      }
+    }
+
+    function setCallFlowDialogEmergencyVisual(on) {
+      if (callFlowDialogInner) {
+        callFlowDialogInner.classList.toggle('call-flow-dialog--emergency', !!on);
+      }
+    }
+
+    /** Hide the call prep sheet & clear transient fields */
+    function dismissCallFlowModal() {
+      clearCallRouteError();
+      clearCallFlowPlateError();
+      var pci = document.getElementById('callFlowPlateInput');
+      if (pci) pci.value = '';
+      if (callerPhoneInput) callerPhoneInput.value = '';
+      setCallFlowDialogEmergencyVisual(false);
+      if (callFlowModal) callFlowModal.style.display = 'none';
+
+      if (hasEmergencyContact && contactMode === 'emergency') {
+        contactMode = 'owner';
+        syncContactModeUi();
+      }
+    }
+
+    function openCallFlowModal() {
+      clearCallRouteError();
+      clearCallFlowPlateError();
+      if (contactMode === 'emergency') {
+        var pc = document.getElementById('callFlowPlateInput');
+        if (pc) pc.value = '';
+      }
+      if (callerPhoneInput) callerPhoneInput.value = '';
+      syncEmergencyPlateWrapInCallModal();
+      setCallFlowDialogEmergencyVisual(contactMode === 'emergency');
+      if (!callFlowModal) return;
+      callFlowModal.style.display = 'flex';
+      setTimeout(function () {
+        if (contactMode === 'emergency') {
+          var plateEl = document.getElementById('callFlowPlateInput');
+          if (plateEl) plateEl.focus();
+        } else if (callerPhoneInput) {
+          callerPhoneInput.focus();
+        }
+      }, 120);
+    }
+
+    function syncContactModeUi() {
+      if (!hasEmergencyContact) {
+        contactMode = 'owner';
+      }
+
+      syncMainSections();
+
+      document.body.classList.toggle(
+        'flow-emergency',
+        !!(hasEmergencyContact && contactMode === 'emergency')
+      );
+
+      if (switchContactWrap) {
+        if (hasEmergencyContact && contactMode) {
+          switchContactWrap.removeAttribute('hidden');
+          switchContactWrap.style.display = 'flex';
+        } else {
+          switchContactWrap.setAttribute('hidden', '');
+          switchContactWrap.style.display = 'none';
+        }
+      }
+
+      if (quickSwitchOwnerBtn && quickSwitchEmergencyBtn) {
+        quickSwitchOwnerBtn.classList.toggle('switch-contact-pill--active', contactMode === 'owner');
+        quickSwitchEmergencyBtn.classList.toggle('switch-contact-pill--active', contactMode === 'emergency');
+        quickSwitchOwnerBtn.setAttribute('aria-current', contactMode === 'owner' ? 'true' : 'false');
+        quickSwitchEmergencyBtn.setAttribute('aria-current', contactMode === 'emergency' ? 'true' : 'false');
+      }
+
+      if (pageHeaderTitle) {
+        if (contactMode === 'emergency') {
+          pageHeaderTitle.textContent = 'EMERGENCY CONTACT';
+        } else {
+          pageHeaderTitle.textContent = 'CONTACT VEHICLE OWNER';
+        }
+      }
+
+      if (contactMode === 'emergency') {
+        if (callFlowTitleText) {
+          callFlowTitleText.textContent = ' Emergency Contact';
+        }
+        return;
+      }
+
+      var digits = String(ownerDestinationDigits || '').replace(/\D/g, '');
+      var showCallOwner = !!(ownerCallReady && digits && digits.length === 10);
+      if (callMainBtn) callMainBtn.style.display = showCallOwner ? 'flex' : 'none';
+      if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call Owner';
+
+      if (smsBtn) smsBtn.style.display = ownerSmsReady ? 'flex' : 'none';
+      if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
+
+      if (callFlowTitleText) {
+        callFlowTitleText.textContent = ' Call the owner';
+      }
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        resetUiAfterEmergencyDialerReturn();
+      }
+    });
+    window.addEventListener('pageshow', function () {
+      resetUiAfterEmergencyDialerReturn();
+    });
+    window.addEventListener('focus', function () {
+      resetUiAfterEmergencyDialerReturn();
+    });
+
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function () {
-      // Hide custom message container initially
-      customMessageContainer.style.display = 'none';
+      resetUiAfterEmergencyDialerReturn();
 
-      // Set up character counter for custom message
-      customMessage.addEventListener('input', function () {
-        charCount.textContent = this.value.length;
-      });
+      if (customMessageContainer) customMessageContainer.style.display = 'none';
+
+      if (customMessage && charCount) {
+        customMessage.addEventListener('input', function () {
+          charCount.textContent = this.value.length;
+        });
+      }
+
+      if (hasEmergencyContact && contactModeModal) {
+        if (!contactMode) {
+          contactModeModal.style.display = 'flex';
+          contactModeModal.setAttribute('aria-hidden', 'false');
+        } else {
+          contactModeModal.style.display = 'none';
+          contactModeModal.setAttribute('aria-hidden', 'true');
+        }
+      } else {
+        contactMode = 'owner';
+      }
+      syncContactModeUi();
+
+      function startEmergencyContactCallFlow() {
+        var dest = String(emergencyDestinationDigits || '').replace(/\D/g, '');
+        if (!emergencyCallReady || dest.length !== 10) {
+          showToast('Emergency calling isn’t available for this vehicle.', 'error');
+          return;
+        }
+        if (contactMode === 'emergency') {
+          openCallFlowModal();
+          return;
+        }
+        contactMode = 'emergency';
+        closeContactModeModal();
+        syncContactModeUi();
+        setTimeout(function () {
+          openCallFlowModal();
+        }, 180);
+      }
+
+      if (chooseEmergencyContactBtn) {
+        chooseEmergencyContactBtn.addEventListener('click', startEmergencyContactCallFlow);
+      }
+      if (chooseOwnerContactBtn) {
+        chooseOwnerContactBtn.addEventListener('click', function () {
+          contactMode = 'owner';
+          closeContactModeModal();
+          syncContactModeUi();
+        });
+      }
+
+      if (quickSwitchOwnerBtn) {
+        quickSwitchOwnerBtn.addEventListener('click', function () {
+          if (contactMode === 'owner') {
+            return;
+          }
+          contactMode = 'owner';
+          closeContactModeModal();
+          syncContactModeUi();
+        });
+      }
+      if (quickSwitchEmergencyBtn) {
+        quickSwitchEmergencyBtn.addEventListener('click', startEmergencyContactCallFlow);
+      }
     });
 
     // Function to select reason
@@ -1327,18 +1948,20 @@
       element.classList.add('selected');
       selectedReason = reason;
 
-      // Show/hide custom message field
       if (reason === 'custom') {
-        customMessageContainer.style.display = 'block';
-        customMessage.focus();
+        if (customMessageContainer) customMessageContainer.style.display = 'block';
+        if (customMessage) customMessage.focus();
       } else {
-        customMessageContainer.style.display = 'none';
+        if (customMessageContainer) customMessageContainer.style.display = 'none';
       }
     }
 
     // Push notification button click
     if (pushBtn) {
       pushBtn.addEventListener('click', function () {
+        if (!ensureContactTargetSelected()) {
+          return;
+        }
         if (!selectedReason) {
           showToast('Please select a reason first', 'error');
           return;
@@ -1355,7 +1978,7 @@
       });
     }
 
-    /** Must match server _call_route_norm10: exactly 10 digits; optional leading 91 or one leading 0 only. */
+    /** Aligns with server call-route normalization */
     function normalizeIndianMobile(raw) {
       let d = String(raw || '').replace(/\D/g, '');
       if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
@@ -1377,14 +2000,67 @@
       if (callRouteError) callRouteError.textContent = '';
     }
 
+    function clearCallFlowPlateError() {
+      var cpe = document.getElementById('callFlowPlateError');
+      if (cpe) cpe.textContent = '';
+    }
+
+    /** Same rules as Django `normalize_vehicle_registration` */
+    function normalizeVehicleRegistrationClient(raw) {
+      return String(raw || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+    }
+
+    /**
+     * Emergency-only: plate must match before dialer prep (same as owner: then register API + DID tel:).
+     * @returns {boolean} true if ok or not in emergency mode
+     */
+    function validateEmergencyPlateLocalSync() {
+      if (contactMode !== 'emergency') {
+        return true;
+      }
+      var input = document.getElementById('callFlowPlateInput');
+      var errEl = document.getElementById('callFlowPlateError');
+      if (!input) {
+        return true;
+      }
+      var raw = input.value.trim();
+      if (!raw) {
+        if (errEl) errEl.textContent = 'Enter the registration number on the vehicle.';
+        return false;
+      }
+
+      var enteredCanon = normalizeVehicleRegistrationClient(raw);
+      var expectedCanon = normalizeVehicleRegistrationClient(serverVehicleRegistrationRaw);
+      if (!expectedCanon) {
+        if (errEl) errEl.textContent = 'Vehicle registration is not available for this QR code.';
+        return false;
+      }
+      if (enteredCanon !== expectedCanon) {
+        if (errEl)
+          errEl.textContent =
+            'Registration number does not match this vehicle.';
+        return false;
+      }
+
+      if (errEl) errEl.textContent = '';
+      return true;
+    }
+
+    var callFlowPlateInputBind = document.getElementById('callFlowPlateInput');
+    if (callFlowPlateInputBind) {
+      callFlowPlateInputBind.addEventListener('input', function () {
+        clearCallFlowPlateError();
+        this.value = String(this.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 24);
+      });
+      callFlowPlateInputBind.addEventListener('focus', clearCallFlowPlateError);
+    }
+
     if (callMainBtn && callFlowModal) {
       callMainBtn.addEventListener('click', function () {
-        clearCallRouteError();
-        if (callerPhoneInput) callerPhoneInput.value = '';
-        callFlowModal.style.display = 'flex';
-        setTimeout(function () {
-          if (callerPhoneInput) callerPhoneInput.focus();
-        }, 100);
+        if (!ensureContactTargetSelected()) return;
+        openCallFlowModal();
       });
     }
 
@@ -1405,16 +2081,14 @@
 
     if (callModalClose && callFlowModal) {
       callModalClose.addEventListener('click', function () {
-        clearCallRouteError();
-        callFlowModal.style.display = 'none';
+        dismissCallFlowModal();
       });
     }
 
     if (callFlowModal) {
       callFlowModal.addEventListener('click', function (e) {
         if (e.target === callFlowModal) {
-          clearCallRouteError();
-          callFlowModal.style.display = 'none';
+          dismissCallFlowModal();
         }
       });
     }
@@ -1422,82 +2096,125 @@
     if (callPrepareBtn && callerPhoneInput) {
       callPrepareBtn.addEventListener('click', function () {
         clearCallRouteError();
-        const fromDigits = normalizeIndianMobile(callerPhoneInput.value);
-        if (!fromDigits) {
-          if (callRouteError) {
-            callRouteError.textContent = 'Enter a valid mobile number.';
-          }
-          return;
-        }
-        if (!ownerDestinationDigits || ownerDestinationDigits.length !== 10) {
-          if (callRouteError) {
-            callRouteError.textContent = 'Owner number unavailable.';
-          }
-          return;
-        }
+        clearCallFlowPlateError();
 
-        selectedMethod = 'call';
-        callPrepareBtn.disabled = true;
-
-        fetch(callRegisterUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: fromDigits,
-            destination: ownerDestinationDigits
-          })
-        })
-          .then(function (response) {
-            return response.json().then(function (data) {
-              return { ok: response.ok, data: data };
-            });
-          })
-          .then(function (result) {
-            if (result.ok && result.data && result.data.status === 'ok') {
-              var d = String(callRouteDidRaw || '').replace(/\D/g, '');
-              if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
-              if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
-              // E.164 India so dialer shows +91… (national DID stored as 10 digits)
-              var telUri = (d.length === 10) ? ('tel:+91' + d) : ('tel:+' + d);
-              if (callFlowModal) {
-                callFlowModal.style.display = 'none';
-              }
-              // Native dialer opens with this DID (same as tapping a tel: link)
-              window.location.href = telUri;
-            } else {
-              var msg = (result.data && (result.data.error || result.data.message)) || 'Could not prepare call.';
-              if (callRouteError) {
-                callRouteError.textContent = typeof msg === 'string' ? msg : 'Could not connect. Try again.';
-              }
-            }
-          })
-          .catch(function () {
-            if (callRouteError) {
-              callRouteError.textContent = 'Check your connection and try again.';
-            }
-          })
-          .finally(function () {
+        function runCallRegisterBridge() {
+          var fromDigits = normalizeIndianMobile(callerPhoneInput.value);
+          if (!fromDigits) {
             callPrepareBtn.disabled = false;
-          });
+            if (callRouteError) {
+              callRouteError.textContent =
+                'Enter a valid 10-digit Indian mobile number.';
+            }
+            return;
+          }
+          var destDigits = getActiveDestinationDigits();
+          if (!destDigits || destDigits.length !== 10) {
+            callPrepareBtn.disabled = false;
+            if (callRouteError) {
+              callRouteError.textContent =
+                contactMode === 'emergency'
+                  ? 'Emergency number unavailable.'
+                  : 'Owner number unavailable.';
+            }
+            return;
+          }
+
+          selectedMethod = 'call';
+          callPrepareBtn.disabled = true;
+
+          fetch(callRegisterUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: fromDigits,
+              destination: destDigits
+            })
+          })
+            .then(function (response) {
+              return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (result.ok && result.data && result.data.status === 'ok') {
+                var d = String(callRouteDidRaw || '').replace(/\D/g, '');
+                if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
+                if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+                var telUri = (d.length === 10) ? ('tel:+91' + d) : ('tel:+' + d);
+                if (contactMode === 'emergency') {
+                  try {
+                    sessionStorage.setItem(EMERGENCY_TEL_RETURN_KEY, '1');
+                  } catch (e) {}
+                }
+                if (callFlowModal) {
+                  setCallFlowDialogEmergencyVisual(false);
+                  callFlowModal.style.display = 'none';
+                }
+                window.location.href = telUri;
+              } else {
+                var msg = (result.data && (result.data.error || result.data.message)) || 'Could not prepare call.';
+                if (callRouteError) {
+                  callRouteError.textContent = typeof msg === 'string' ? msg : 'Could not connect. Try again.';
+                }
+              }
+            })
+            .catch(function () {
+              if (callRouteError) {
+                callRouteError.textContent = 'Check your connection and try again.';
+              }
+            })
+            .finally(function () {
+              callPrepareBtn.disabled = false;
+            });
+        }
+
+        if (contactMode === 'emergency') {
+          if (!validateEmergencyPlateLocalSync()) {
+            return;
+          }
+        }
+
+        var fromEarly = normalizeIndianMobile(callerPhoneInput.value);
+        if (!fromEarly) {
+          if (callRouteError) {
+            callRouteError.textContent =
+              'Enter a valid 10-digit Indian mobile number.';
+          }
+          return;
+        }
+        var destEarly = getActiveDestinationDigits();
+        if (!destEarly || destEarly.length !== 10) {
+          if (callRouteError) {
+            callRouteError.textContent =
+              contactMode === 'emergency'
+                ? 'Emergency number unavailable.'
+                : 'Owner number unavailable.';
+          }
+          return;
+        }
+
+        runCallRegisterBridge();
       });
     }
 
     // SMS button click
-    smsBtn.addEventListener('click', function () {
-      if (!selectedReason) {
-        showToast('Please select a reason first', 'error');
-        return;
-      }
+    if (smsBtn) {
+      smsBtn.addEventListener('click', function () {
+        if (!ensureContactTargetSelected()) return;
+        if (!selectedReason) {
+          showToast('Please select a reason first', 'error');
+          return;
+        }
+        if (selectedReason === 'custom' && customMessage.value.trim() === '') {
+          showToast('Please type your message', 'error');
+          return;
+        }
 
-      // If custom reason is selected but no message
-      if (selectedReason === 'custom' && customMessage.value.trim() === '') {
-        showToast('Please type your message', 'error');
-        return;
-      }
-
-      selectedMethod = 'sms';
-      sendNotificationDirectly();
-    });
+        selectedMethod = 'sms';
+        sendNotificationDirectly();
+      });
+    }
 
     // Continue button in success modal
     continueBtn.addEventListener('click', function () {
@@ -1599,6 +2316,10 @@
 
     // Function to send notification to server
     function sendNotification(message) {
+      if (!ensureContactTargetSelected()) {
+        return;
+      }
+
       const csrfToken = getCSRFToken();
       // user_phone is not collected from sender anymore, sending empty or default handled by backend
       const phoneNumber = '';
@@ -1645,7 +2366,8 @@
         body: JSON.stringify({
           reason: message,
           user_phone: phoneNumber,
-          notification_method: selectedMethod
+          notification_method: selectedMethod,
+          contact_target: getEffectiveContactTarget()
         })
       })
         .then(response => {
@@ -1684,6 +2406,9 @@
                 break;
               case 'no_phone_number':
                 suggestion = 'Try using push notification instead. The owner hasn\'t registered a phone number.';
+                break;
+              case 'no_emergency_number':
+                suggestion = 'Switch to vehicle owner if their number is on file, or use push notification.';
                 break;
               case 'push_failed':
                 suggestion = 'Try using SMS instead. The owner might not have the app installed or notifications disabled.';

@@ -516,7 +516,8 @@
                 <option value="+853">+853 (Macau)</option>
                 <option value="+886">+886 (Taiwan)</option>
               </select>
-              <input type="tel" class="form-control phone-input" id="contactNumber" placeholder="Enter mobile number (e.g., 9876543210)" required>
+              <input type="tel" class="form-control phone-input" id="contactNumber" inputmode="numeric" autocomplete="tel-national"
+                maxlength="10" placeholder="10-digit mobile without +91 — e.g. 9876543210" title="Indian mobile: exactly 10 digits" required>
             </div>
           </div>
           
@@ -687,7 +688,7 @@
 
       // Phone number placeholder examples by country code
       const phonePlaceholders = {
-        '+91': '9876543210',
+        '+91': '9876543210 (10 digits, no prefix)',
         '+1': '5551234567',
         '+44': '7911123456',
         '+971': '501234567',
@@ -714,17 +715,26 @@
         '+886': '912345678'
       };
 
-      // Update phone placeholder when country code changes
+      function syncPhoneFieldConstraints() {
+        const selectedCode = countryCode.value;
+        const exampleNumber = phonePlaceholders[selectedCode] || 'see country format';
+        if (selectedCode === '+91') {
+          contactNumber.setAttribute('maxlength', '10');
+          contactNumber.placeholder =
+            `10-digit mobile without +91 (e.g. ${phonePlaceholders['+91'].split(' ')[0]})`;
+        } else {
+          contactNumber.removeAttribute('maxlength');
+          contactNumber.placeholder =
+            `Enter mobile number (${exampleNumber}) — digits only`;
+        }
+      }
+
       countryCode.addEventListener('change', function() {
-        const selectedCode = this.value;
-        const exampleNumber = phonePlaceholders[selectedCode] || '1234567890';
-        contactNumber.placeholder = `Enter mobile number (e.g., ${exampleNumber})`;
+        contactNumber.value = '';
+        syncPhoneFieldConstraints();
       });
-      
-      // Set initial placeholder
-      const initialCode = countryCode.value;
-      const initialExample = phonePlaceholders[initialCode] || '9876543210';
-      contactNumber.placeholder = `Enter mobile number (e.g., ${initialExample})`;
+
+      syncPhoneFieldConstraints();
 
       // Auto-capitalization for text inputs (except name field)
       const textInputs = document.querySelectorAll('input[type="text"]:not(.name-input)');

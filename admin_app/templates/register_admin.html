@@ -262,9 +262,15 @@
                                    id="contactNumber" 
                                    name="contactNumber" 
                                    class="form-control" 
-                                   placeholder="+91XXXXXXXXXX"
+                                   inputmode="numeric"
+                                   autocomplete="tel-national"
+                                   maxlength="10"
+                                   pattern="[0-9]{10}"
+                                   placeholder="10-digit Indian mobile (e.g. 9876543210)"
+                                   title="Enter exactly 10 digits; +91 is saved automatically"
                                    required>
                         </div>
+                        <small class="text-muted d-block mt-1">Indian mobile: 10 digits only; no country code in this box.</small>
                     </div>
                     
                     <div class="mb-3">
@@ -309,6 +315,17 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      (function () {
+        var phone = document.getElementById('contactNumber');
+        if (!phone) return;
+        phone.addEventListener('input', function () {
+          var d = String(this.value || '').replace(/\D/g, '');
+          if (d.length > 10) d = d.slice(0, 10);
+          this.value = d;
+        });
+      })();
+    </script>
 </body>
 </html>
 

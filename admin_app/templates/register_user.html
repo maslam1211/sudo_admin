@@ -30,7 +30,11 @@
                     </div>
                     <div class="mb-3">
                         <label for="mobile" class="form-label">Mobile Number</label>
-                        <input type="text" id="mobile" name="mobile" class="form-control" required>
+                        <input type="tel" id="mobile" name="mobile" class="form-control" required
+                               inputmode="numeric" maxlength="10" autocomplete="tel-national"
+                               pattern="[0-9]{10}"
+                               placeholder="10-digit Indian mobile (e.g. 9876543210)"
+                               title="10 digits only; no +91">
                     </div>
                     <div class="mb-3">
                         <label for="location" class="form-label">Location</label>
@@ -44,4 +48,16 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    var m = document.getElementById('mobile');
+    if (!m) return;
+    m.addEventListener('input', function () {
+      var d = String(this.value || '').replace(/\D/g, '').slice(0, 10);
+      this.value = d;
+    });
+  })();
+</script>
 {% endblock %}

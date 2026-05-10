@@ -836,15 +836,21 @@ def register_user(request):
     user_list = [{'userId': user.id, **user.to_dict()} for user in users]
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
-        updated_data = {
-            'firstname': request.POST.get('firstname'),
-            'lastName': request.POST.get('lastname'),
-            'emailAddress': request.POST.get('email'),
-            'mobileNumber': request.POST.get('mobile'),
-            'location': request.POST.get('location'),
-        }
-        db.collection('users').document(user_id).update(updated_data)
-        messages.success(request, 'User updated successfully')
+        mob_err, mob_canon = registration_contact_error_and_canonical(
+            request.POST.get('mobile')
+        )
+        if mob_err:
+            messages.error(request, mob_err)
+        else:
+            updated_data = {
+                'firstname': request.POST.get('firstname'),
+                'lastName': request.POST.get('lastname'),
+                'emailAddress': request.POST.get('email'),
+                'mobileNumber': mob_canon,
+                'location': request.POST.get('location'),
+            }
+            db.collection('users').document(user_id).update(updated_data)
+            messages.success(request, 'User updated successfully')
     return render(request, 'register_user.html', {'users': user_list})
 
 
@@ -863,6 +869,13 @@ def register_admin(request):
         contact_number = request.POST.get('contactNumber')
         city = request.POST.get('city')
         password = request.POST.get('password')
+
+        phone_err, contact_canonical = registration_contact_error_and_canonical(
+            contact_number
+        )
+        if phone_err:
+            messages.error(request, phone_err)
+            return render(request, 'register_admin.html')
         
         # Verify password
         if password != 'Sudo@123':
@@ -888,7 +901,7 @@ def register_admin(request):
             user_data = {
                 'fullName': full_name,
                 'emailAddress': email,
-                'contactNumber': contact_number,
+                'contactNumber': contact_canonical,
                 'city': city,
                 'roleId': 1,  # Admin role
                 'createdAt': current_time,
@@ -1213,11 +1226,19 @@ def activate_id(request, qr_id):
                 if data.get('emailAddress'):
                     from django.core.validators import validate_email
                     from django.core.exceptions import ValidationError
-                    try:
-                        validate_email(data['emailAddress'])
-                    except ValidationError:
-                        errors['emailAddress'] = 'Enter a valid email address'
-                
+                try:
+                    validate_email(data['emailAddress'])
+                except ValidationError:
+                    errors['emailAddress'] = 'Enter a valid email address'
+
+                cn_err, cn_canon = activate_id_normalize_contact(
+                    data.get('contactNumber', '')
+                )
+                if cn_err:
+                    errors['contactNumber'] = cn_err
+                else:
+                    data['contactNumber'] = cn_canon
+
                 if errors:
                     return JsonResponse({
                         'status': 'error',
@@ -1248,9 +1269,20 @@ def activate_id(request, qr_id):
                             db.collection('users').document(user_id).update({'adminAddedUser': True})
                         else:
                             db.collection('users').document(user_id).update({'adminAddedUser': False})
-                        
+
+                        stored_phone = user_data.get('contactNumber', '') or ''
+                        sub_digits = normalize_phone_number(data.get('contactNumber', ''))
+                        stored_digits = normalize_phone_number(stored_phone)
+                        phone_mismatch = (
+                            (sub_digits and stored_digits and sub_digits != stored_digits)
+                            or (
+                                (not sub_digits or not stored_digits)
+                                and stored_phone.replace(' ', '')
+                                != (data.get('contactNumber') or '').replace(' ', '')
+                            )
+                        )
                         # Verify phone matches existing user — surface under email so users don't think the mobile field alone is wrong
-                        if user_data.get('contactNumber', '').replace(' ', '') != data['contactNumber'].replace(' ', ''):
+                        if phone_mismatch:
                             return JsonResponse({
                                 'status': 'error',
                                 'message': 'This email is already registered',
@@ -1576,6 +1608,42 @@ def send_notification(request, qr_id):
             return render(request, 'error.html', {'error': 'Vehicle not found!'})
 
         vehicle_data = vehicle_doc.to_dict()
+
+        # Lightweight emergency plate check: only qr + vehicle reads (skip user/doc).
+        if request.method == 'POST' and request.headers.get(
+            'X-Requested-With',
+        ) == 'XMLHttpRequest':
+            try:
+                _xhr_quick = json.loads(request.body or b'{}')
+            except (json.JSONDecodeError, TypeError):
+                _xhr_quick = {}
+            if (
+                isinstance(_xhr_quick, dict)
+                and _xhr_quick.get('notification_method') == 'verify_plate'
+            ):
+                entered = normalize_vehicle_registration(
+                    _xhr_quick.get('plate_confirmation', ''),
+                )
+                expected = normalize_vehicle_registration(
+                    vehicle_data.get('registrationNumber', ''),
+                )
+                if not expected:
+                    return JsonResponse({
+                        'status': 'error',
+                        'error_type': 'plate_mismatch',
+                        'message': (
+                            'Vehicle registration is not available for this QR code.'
+                        ),
+                    })
+                if not entered or entered != expected:
+                    return JsonResponse({
+                        'status': 'error',
+                        'error_type': 'plate_mismatch',
+                        'message': (
+                            'Registration number does not match this vehicle.'
+                        ),
+                    })
+                return JsonResponse({'status': 'success'})
         
         # Get user data
         user_ref = db.collection('users').document(vehicle_data['ownerId'])
@@ -1596,7 +1664,16 @@ def send_notification(request, qr_id):
                 plate_digits = data.get('plate_digits')
                 user_phone = data.get('user_phone', '')
                 notification_method = data.get('notification_method', 'push')
-                
+                contact_target = (data.get('contact_target') or 'owner').strip().lower()
+                if contact_target not in ('owner', 'emergency'):
+                    contact_target = 'owner'
+
+                emergency_digits_server = normalize_phone_number(
+                    user_data.get('defaultEmergencyContact', '')
+                )
+
+                # verify_plate is handled earlier (before user-doc fetch).
+
                 # Handle different notification methods
                 if notification_method == 'push':
                     # Collect every FCM token we know for this vehicle / owner.
@@ -1676,7 +1753,8 @@ def send_notification(request, qr_id):
                     if success_count > 0:
                         return JsonResponse({
                             'status': 'success',
-                            'message': 'We have sent your message to the vehicle owner.'
+                            'message': 'We have sent your message to the vehicle owner.',
+                            'notification_type': 'push',
                         })
 
                     return JsonResponse({
@@ -1686,27 +1764,27 @@ def send_notification(request, qr_id):
                 
                 elif notification_method == 'sms':
                     try:
-                        owner_phone = user_data.get('contactNumber', '')
-                        
-                        if not owner_phone:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'Owner does not have a valid phone number registered.'
-                            })
-                        
-                        # Validate phone number format (basic check)
-                        if len(owner_phone) < 10:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'Owner phone number must be at least 10 digits.'
-                            })
+                        if contact_target == 'emergency':
+                            if not emergency_digits_server:
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': 'No valid 10-digit Emergency Contact for this vehicle owner.',
+                                    'error_type': 'no_emergency_number',
+                                })
+                            target_digits = emergency_digits_server
+                        else:
+                            target_digits = normalize_phone_number(
+                                user_data.get('contactNumber', '')
+                            )
+                            if not target_digits:
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': 'Owner does not have a valid 10-digit phone number registered.',
+                                    'error_type': 'no_phone_number',
+                                })
 
-                        # Format phone number for MSG91 (needs 91 prefix)
-                        formatted_phone = owner_phone
-                        if formatted_phone.startswith('+'):
-                            formatted_phone = formatted_phone.replace('+', '')
-                        if not formatted_phone.startswith('91') and len(formatted_phone) == 10:
-                            formatted_phone = '91' + formatted_phone
+                        # MSG91 expects country code + 10-digit mobile (e.g. 9198…)
+                        formatted_phone = '91' + target_digits
                         
                         # MSG91 API call
                         import requests
@@ -1750,9 +1828,15 @@ def send_notification(request, qr_id):
                             
                             if status_val == 'success' and not has_error:
                                 logger.info(f"MSG91 SMS sent successfully: {api_data}")
+                                sms_msg = (
+                                    'SMS sent successfully to the Emergency Contact.'
+                                    if contact_target == 'emergency'
+                                    else 'SMS sent successfully to the vehicle owner.'
+                                )
                                 return JsonResponse({
                                     'status': 'success',
-                                    'message': 'SMS sent successfully to the vehicle owner.'
+                                    'message': sms_msg,
+                                    'notification_type': 'sms',
                                 })
                             else:
                                 logger.error(f"MSG91 Error: {api_data}")
@@ -1785,7 +1869,8 @@ def send_notification(request, qr_id):
         has_fcm_token = bool(_vehicle_token) or bool(_single_token)
 
         owner_digits_for_call = normalize_phone_number(owner_phone) or ''
-
+        emergency_raw = user_data.get('defaultEmergencyContact', '')
+        emergency_digits_for_call = normalize_phone_number(emergency_raw) or ''
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
@@ -1798,6 +1883,11 @@ def send_notification(request, qr_id):
             'call_route_did': CALL_ROUTING_EXPECTED_DID,
             'owner_phone_digits': owner_digits_for_call,
             'call_register_ready': bool(owner_digits_for_call),
+            'has_emergency_contact': bool(emergency_digits_for_call),
+            'emergency_phone_digits': emergency_digits_for_call,
+            'owner_sms_ready': bool(owner_digits_for_call),
+            'emergency_sms_ready': bool(emergency_digits_for_call),
+            'emergency_call_ready': bool(emergency_digits_for_call),
         }
         
         return render(request, 'send_notification.html', context)
@@ -2481,6 +2571,15 @@ def external_user_registration(request):
         email = request.POST.get('email')
         phone = request.POST.get('phone')
         city = request.POST.get('city')
+
+        phone_err, phone_canonical = registration_contact_error_and_canonical(
+            phone
+        )
+        if phone_err:
+            return render(request, 'external_register.html', {
+                'error': phone_err,
+                'form_data': request.POST,
+            })
         
         # Generate user ID and random password
         user_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:8]
@@ -2501,7 +2600,7 @@ def external_user_registration(request):
                 'userId': user_id,
                 'fullName': full_name,
                 'emailAddress': email,
-                'contactNumber': phone,
+                'contactNumber': phone_canonical,
                 'city': city,
                 'createdAt': datetime.datetime.now(),
                 'role': 0,  # Regular user role
@@ -4934,31 +5033,65 @@ def validate_api_key(request):
     return provided_key == api_key
 
 
+def activate_id_normalize_contact(raw_contact):
+    """
+    Canonicalize contact from QR activation: valid Indian mobiles become '+91' + 10
+    digits; other international-looking values must contain enough digits or are rejected.
+    """
+    s = str(raw_contact or '').strip().replace(' ', '')
+    if not s:
+        return 'This field is required', None
+    n_try = normalize_phone_number(s)
+    if n_try:
+        return None, '+91' + n_try
+    if s.startswith('+91'):
+        return 'Enter a valid 10-digit Indian mobile number', None
+    digit_len = sum(1 for c in s if c.isdigit())
+    if digit_len < 8:
+        return 'Enter a valid phone number', None
+    return None, s
+
+
+def registration_contact_error_and_canonical(raw_value):
+    """
+    Indian 10-digit mobile required for external / admin registration.
+    Stored as '+91' + normalized digits.
+    """
+    s = str(raw_value or '').strip().replace(' ', '')
+    if not s:
+        return 'Phone number is required', None
+    n = normalize_phone_number(s)
+    if not n:
+        return 'Enter a valid 10-digit Indian mobile number', None
+    return None, '+91' + n
+
+
+def normalize_vehicle_registration(raw):
+    """Uppercase A–Z / 0–9 only, for comparing Indian-style registration strings."""
+    if raw is None:
+        return ''
+    return ''.join(c for c in str(raw).upper().strip() if c.isalnum())
+
+
 def normalize_phone_number(phone_number):
     """
-    Normalize phone number to 10 digits.
-    Handles various formats:
-    - +919876545678 -> 9876545678
-    - 9876545678 -> 9876545678
-    - 09876545678 -> 9876545678
-    - 919876545678 -> 9876545678
+    Normalize an Indian mobile number to exactly 10 digits, or None if invalid.
+    Aligns with call_routing `_call_route_norm10`: strips non-digits, optional
+    leading 91 (12+ chars) once, optional single leading 0 (11 chars).
     """
-    if not phone_number:
+    if phone_number is None:
         return None
 
-    phone_str = str(phone_number).strip()
+    digits = ''.join(c for c in str(phone_number).strip() if c.isdigit())
+    if not digits:
+        return None
 
-    if phone_str.startswith('+91'):
-        phone_str = phone_str[3:]
-    elif phone_str.startswith('91') and len(phone_str) == 12:
-        phone_str = phone_str[2:]
+    if len(digits) >= 12 and digits.startswith('91'):
+        digits = digits[2:]
+    if len(digits) == 11 and digits.startswith('0'):
+        digits = digits[1:]
 
-    if phone_str.startswith('0') and len(phone_str) == 11:
-        phone_str = phone_str[1:]
-
-    phone_str = phone_str.strip()
-
-    if len(phone_str) == 10 and phone_str.isdigit():
-        return phone_str
+    if len(digits) == 10 and digits.isdigit():
+        return digits
 
     return None

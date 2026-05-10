@@ -61,13 +61,21 @@
   });
 
   /**
-   * Preloader
+   * Preloader: same look/CSS as before — only hides once the HTML is ready instead of waiting for
+   * every image/font (window "load"). Final layout, fonts, and AOS/Swiper still follow "load".
    */
   const preloader = document.querySelector('#preloader');
-  if (preloader) {
-    window.addEventListener('load', () => {
+  function hidePreloader() {
+    if (preloader && preloader.parentNode) {
       preloader.remove();
-    });
+    }
+  }
+  if (preloader) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', hidePreloader);
+    } else {
+      hidePreloader();
+    }
   }
 
   /**
@@ -80,13 +88,15 @@
       window.scrollY > 100 ? scrollTop.classList.add('active') : scrollTop.classList.remove('active');
     }
   }
-  scrollTop.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+  if (scrollTop) {
+    scrollTop.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     });
-  });
+  }
 
   window.addEventListener('load', toggleScrollTop);
   document.addEventListener('scroll', toggleScrollTop);

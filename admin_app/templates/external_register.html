@@ -357,7 +357,12 @@
                         <div class="mb-4">
                             <label for="phone" class="form-label">Phone Number</label>
                             <input type="tel" class="form-control" id="phone" name="phone" required
+                                   inputmode="numeric" autocomplete="tel-national" maxlength="10"
+                                   pattern="[0-9]{10}"
+                                   placeholder="10-digit Indian mobile (e.g. 9876543210)"
+                                   title="Exactly 10 digits; +91 is added when we save"
                                    value="{{ form_data.phone|default:'' }}">
+                            <div class="form-text small mt-1">Enter your 10-digit Indian mobile number (no +91).</div>
                         </div>
                         
                         <div class="mb-4">
@@ -399,6 +404,14 @@
     <script>
         // Create additional bubbles for animation
         document.addEventListener('DOMContentLoaded', function() {
+            var phoneInput = document.getElementById('phone');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function () {
+                    var d = String(this.value || '').replace(/\D/g, '');
+                    if (d.length > 10) d = d.slice(0, 10);
+                    this.value = d;
+                });
+            }
             const bubblesContainer = document.querySelector('.bubbles');
             for (let i = 0; i < 10; i++) {
                 const bubble = document.createElement('div');
