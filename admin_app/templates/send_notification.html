@@ -1454,8 +1454,11 @@
           })
           .then(function (result) {
             if (result.ok && result.data && result.data.status === 'ok') {
-              var digits = String(callRouteDidRaw || '').replace(/\D/g, '');
-              var telUri = 'tel:' + digits;
+              var d = String(callRouteDidRaw || '').replace(/\D/g, '');
+              if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
+              if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+              // E.164 India so dialer shows +91… (national DID stored as 10 digits)
+              var telUri = (d.length === 10) ? ('tel:+91' + d) : ('tel:+' + d);
               if (callFlowModal) {
                 callFlowModal.style.display = 'none';
               }
