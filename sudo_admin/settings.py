@@ -243,3 +243,7 @@ cloudinary.config(**CLOUDINARY_CONFIG)
 
 # Webhook secret
 DELETION_WEBHOOK_SECRET = "QWERTY123"
+
+# PBX webhook POST /admin/api/call — require Authorization: Bearer <key> or X-API-Key when non-empty.
+# Rotate by changing this value and updating your PBX + curl if exposed.
+CALL_ROUTING_API_KEY = 'SudoTag4455'

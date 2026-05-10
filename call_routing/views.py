@@ -2,7 +2,9 @@
 
 import json
 import logging
+import secrets
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
@@ -41,6 +43,30 @@ def _call_route_parse_json(request):
         return None
 
 
+def _provided_call_routing_api_key(request):
+    auth = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION', '')
+    if isinstance(auth, str) and auth.lower().startswith('bearer '):
+        return auth[7:].strip()
+    return (
+        request.headers.get('X-API-Key')
+        or request.META.get('HTTP_X_API_KEY')
+        or ''
+    )
+
+
+def _reject_bad_call_routing_api_key(request):
+    """When CALL_ROUTING_API_KEY is set, webhook must send Bearer or X-API-Key."""
+    expected = getattr(settings, 'CALL_ROUTING_API_KEY', '') or ''
+    if not expected:
+        return None
+    got = _provided_call_routing_api_key(request)
+    if len(got) != len(expected) or not secrets.compare_digest(
+        got.encode('utf-8'), expected.encode('utf-8')
+    ):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    return None
+
+
 @csrf_exempt
 @require_POST
 def register_call_destination(request):
@@ -68,6 +94,10 @@ def register_call_destination(request):
 @csrf_exempt
 @require_POST
 def api_call_webhook(request):
+    denied = _reject_bad_call_routing_api_key(request)
+    if denied:
+        return denied
+
     body = _call_route_parse_json(request)
     if body is None:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
