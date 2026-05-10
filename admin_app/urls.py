@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -70,8 +70,5 @@ urlpatterns = [
     path('archived/users/export/', views.export_archived_users_csv, name='export_archived_users_csv'),
     path('archived/vehicles/export/', views.export_archived_vehicles_csv, name='export_archived_vehicles_csv'),
     # POST /admin/api/call/register (intent) then POST /admin/api/call (PBX webhook)
-    path('api/call/register', views.register_call_destination, name='register_call_destination'),
-    path('api/call/fixed', views.api_call_fixed_destination, name='api_call_fixed_destination'),
-    path('api/call/fixeda', views.api_call_fixeda_destination, name='api_call_fixeda_destination'),
-    path('api/call', views.api_call_webhook, name='api_call_webhook'),
+    path('', include('call_routing.urls')),
 ]

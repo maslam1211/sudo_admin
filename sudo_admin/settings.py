@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'corsheaders',  # Add this if using django-cors-headers
     'admin_app',
+    'call_routing',
     'landing',
 ]
 
