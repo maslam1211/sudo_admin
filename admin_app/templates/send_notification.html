@@ -350,6 +350,190 @@
       box-shadow: 0 6px 16px rgba(229, 129, 71, 0.4);
     }
 
+    /* Call routing (PBX bridge) */
+    /* Highlighted Call Owner button (same row as SMS / Push) */
+    .call-highlight-btn {
+      background: linear-gradient(135deg, #1E88E5 0%, #0D47A1 100%);
+      color: var(--text-white);
+      border: 1px solid rgba(100, 181, 246, 0.6);
+      box-shadow: 0 4px 18px rgba(30, 136, 229, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .call-highlight-btn:hover {
+      background: linear-gradient(135deg, #42A5F5 0%, #1565C0 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 22px rgba(30, 136, 229, 0.55);
+    }
+
+    .call-flow-dialog {
+      background-color: var(--secondary-gray);
+      border-radius: 16px;
+      padding: 16px 16px 10px;
+      margin: 16px;
+      max-width: 400px;
+      width: calc(100% - 32px);
+      min-height: 0;
+      flex: 0 0 auto;
+      align-self: center;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      border: 1px solid rgba(33, 150, 243, 0.35);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      animation: slideUp 0.35s ease-out;
+    }
+
+    .call-flow-dialog h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-white);
+      margin: 0 0 22px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .call-flow-dialog h3 i {
+      color: var(--info-blue);
+    }
+
+    .call-route-label {
+      display: block;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .call-route-input {
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text-white);
+      font-family: 'Poppins', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 4px;
+    }
+
+    .call-route-input::placeholder {
+      color: rgba(180, 205, 230, 0.55);
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      opacity: 1;
+    }
+
+    .call-route-input:focus {
+      outline: none;
+      border-color: var(--info-blue);
+      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.25);
+    }
+
+    /* Call modal: same row as main page — icon + label tiles */
+    .call-flow-actions {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      margin-top: 0;
+      padding-top: 2px;
+      flex-wrap: nowrap;
+      align-items: stretch;
+    }
+
+    .call-flow-actions .action-btn {
+      flex: 1 1 0;
+      width: 0;
+      min-width: 0;
+      min-height: clamp(48px, 12vw, 58px);
+      padding: 10px 6px;
+    }
+
+    .call-flow-actions .btn-icon {
+      margin-bottom: 2px;
+    }
+
+    .call-flow-actions .call-highlight-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 2px 8px rgba(30, 136, 229, 0.25);
+    }
+
+    .call-route-ready {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(76, 175, 80, 0.12);
+      border: 1px solid rgba(76, 175, 80, 0.45);
+      text-align: center;
+    }
+
+    .call-route-ready[hidden] {
+      display: none !important;
+    }
+
+    .call-route-ready-title {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 10px;
+    }
+
+    .call-route-tel {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 22px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      box-shadow: 0 8px 24px rgba(76, 175, 80, 0.35);
+    }
+
+    .call-route-tel:hover {
+      color: #fff !important;
+      filter: brightness(1.06);
+    }
+
+    .call-route-hint {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    .call-route-error-wrap {
+      flex-shrink: 0;
+      margin-top: 2px;
+      margin-bottom: 0;
+      display: flex;
+      align-items: flex-start;
+      /* One line of error copy — minimal gap when empty vs invalid */
+      min-height: 1.35rem;
+    }
+
+    .call-route-error {
+      margin: 0;
+      font-size: 0.78rem;
+      color: #FF8A80;
+      line-height: 1.35;
+      width: 100%;
+    }
+
+    .call-route-error:empty {
+      visibility: hidden;
+    }
+
     .btn-icon {
       font-size: 1.2rem;
       margin-bottom: 2px;
@@ -364,7 +548,7 @@
     .success-modal {
       background-color: var(--secondary-gray);
       border-radius: 12px;
-      padding: 25px;
+      padding: 22px 20px 18px;
       margin: 15px;
       max-width: 400px;
       width: 90%;
@@ -373,9 +557,44 @@
       animation: slideUp 0.4s ease-out;
     }
 
+    /* Full-width bar button — do not use .action-btn (tile/min-height breaks OK shape) */
+    .success-modal-btn {
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 14px 20px;
+      min-height: 0;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #E58147 0%, #C96A32 100%);
+      color: var(--text-white);
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      box-shadow: 0 4px 14px rgba(229, 129, 71, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    .success-modal-btn:hover {
+      filter: brightness(1.06);
+      box-shadow: 0 6px 18px rgba(229, 129, 71, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .success-modal-btn:active {
+      transform: translateY(0);
+    }
+
     .success-icon {
       font-size: 3rem;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       animation: pulse 2s infinite;
     }
 
@@ -391,38 +610,14 @@
       font-size: 1.3rem;
       font-weight: 600;
       color: var(--text-white);
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
 
     .success-text {
       font-size: 0.9rem;
       color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 20px;
+      margin-bottom: 14px;
       line-height: 1.4;
-    }
-
-    .success-details {
-      background-color: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 12px;
-      margin: 15px 0;
-      text-align: left;
-    }
-
-    .success-detail-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 5px;
-      font-size: 0.8rem;
-    }
-
-    .success-detail-label {
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .success-detail-value {
-      color: var(--text-white);
-      font-weight: 500;
     }
 
     /* Modal Overlay */
@@ -773,6 +968,30 @@
       .btn-text {
         font-size: 0.7rem;
       }
+
+      .call-flow-dialog {
+        margin: 12px;
+        width: calc(100% - 24px);
+        padding: 14px 14px 10px;
+      }
+
+      .call-flow-dialog h3 {
+        font-size: 1.05rem;
+      }
+
+      .call-flow-actions {
+        gap: 8px;
+        padding-top: 4px;
+      }
+
+      .call-flow-actions .action-btn {
+        min-height: 52px;
+      }
+
+      .call-route-input {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+      }
     }
 
     @media (max-width: 360px) {
@@ -791,6 +1010,15 @@
 
       .btn-text {
         font-size: 0.65rem;
+      }
+
+      .call-flow-dialog {
+        padding: 12px 12px 8px;
+      }
+
+      .call-flow-actions .action-btn {
+        min-height: 50px;
+        padding: 8px 4px;
       }
     }
   </style>
@@ -869,8 +1097,14 @@
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>
 
-    <!-- Action Buttons - Highlights SMS, removed Call -->
+    <!-- Action Buttons: Call highlighted first, then SMS / Push -->
     <div class="action-buttons">
+      {% if call_register_ready %}
+      <button type="button" class="action-btn call-highlight-btn" id="callMainBtn" title="Call the Owner">
+        <i class="bi bi-telephone-fill btn-icon"></i>
+        <span class="btn-text">Call Owner</span>
+      </button>
+      {% endif %}
       <button class="action-btn sms-btn" id="smsBtn">
         <i class="bi bi-chat-text-fill btn-icon"></i>
         <span class="btn-text">Send SMS</span>
@@ -899,24 +1133,36 @@
       <div class="success-icon" id="successIcon">
         <i class="bi bi-check-circle-fill"></i>
       </div>
-      <h3 class="success-title" id="successTitle">Notification Sent!</h3>
-      <p class="success-text" id="successMessage">The vehicle owner has been notified about your message.</p>
+      <h3 class="success-title" id="successTitle">Notification sent</h3>
+      <p class="success-text" id="successMessage">Your notification was delivered.</p>
 
-      <div class="success-details" id="successDetails">
-        <div class="success-detail-item">
-          <span class="success-detail-label">Method:</span>
-          <span class="success-detail-value" id="detailMethod">Push Notification</span>
-        </div>
-        <div class="success-detail-item">
-          <span class="success-detail-label">Message:</span>
-          <span class="success-detail-value" id="detailMessage">Your message here</span>
-        </div>
-      </div>
-
-      <button class="action-btn sms-btn" id="continueBtn"
-        style="margin-top: 8px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-right: auto; padding: 12px 24px;">
+      <button type="button" class="success-modal-btn" id="continueBtn">
         OK
       </button>
+    </div>
+  </div>
+
+  <!-- Call flow: register routing, then open system dialer with DID (tel:) -->
+  <div class="modal-overlay" id="callFlowModal" style="display: none;">
+    <div class="call-flow-dialog" role="dialog" aria-labelledby="callFlowTitle">
+      <h3 id="callFlowTitle"><i class="bi bi-telephone-outbound-fill" aria-hidden="true"></i> Call the Owner</h3>
+      <label class="call-route-label" for="callerPhoneInput">Your mobile number</label>
+      <input type="tel" inputmode="numeric" class="call-route-input" id="callerPhoneInput" maxlength="10"
+        pattern="[0-9]{10}" placeholder="98765 43210" autocomplete="tel-national"
+        aria-label="Your mobile number">
+      <div class="call-route-error-wrap">
+        <p class="call-route-error" id="callRouteError" role="alert"></p>
+      </div>
+      <div class="call-flow-actions">
+        <button type="button" class="action-btn call-highlight-btn" id="callPrepareBtn">
+          <i class="bi bi-telephone-fill btn-icon"></i>
+          <span class="btn-text">Call now</span>
+        </button>
+        <button type="button" class="action-btn push-btn" id="callModalClose">
+          <i class="bi bi-x-lg btn-icon"></i>
+          <span class="btn-text">Close</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1003,10 +1249,19 @@
   <script>
     // Owner's phone number from backend
     const ownerPhone = '{{ owner_phone|default:"" }}';
+    const callRegisterUrl = "{% url 'register_call_destination' %}";
+    const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
+    const callRouteDidRaw = "{{ call_route_did|default:'' }}";
 
     // DOM Elements
     const pushBtn = document.getElementById('pushBtn');
     const smsBtn = document.getElementById('smsBtn');
+    const callMainBtn = document.getElementById('callMainBtn');
+    const callFlowModal = document.getElementById('callFlowModal');
+    const callModalClose = document.getElementById('callModalClose');
+    const callPrepareBtn = document.getElementById('callPrepareBtn');
+    const callerPhoneInput = document.getElementById('callerPhoneInput');
+    const callRouteError = document.getElementById('callRouteError');
 
     const toastNotification = document.getElementById('toastNotification');
     const toastMessage = document.getElementById('toastMessage');
@@ -1020,9 +1275,6 @@
     const successTitle = document.getElementById('successTitle');
     const successMessage = document.getElementById('successMessage');
     const successIcon = document.getElementById('successIcon');
-    const successDetails = document.getElementById('successDetails');
-    const detailMethod = document.getElementById('detailMethod');
-    const detailMessage = document.getElementById('detailMessage');
 
     // Error Modal Elements
     const errorModal = document.getElementById('errorModal');
@@ -1100,6 +1352,130 @@
 
         selectedMethod = 'push';
         sendNotificationDirectly();
+      });
+    }
+
+    /** Must match server _call_route_norm10: exactly 10 digits; optional leading 91 or one leading 0 only. */
+    function normalizeIndianMobile(raw) {
+      let d = String(raw || '').replace(/\D/g, '');
+      if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
+      if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+      if (d.length !== 10 || !/^\d{10}$/.test(d)) return '';
+      return d;
+    }
+
+    function sanitizeCallerPhoneInput(el) {
+      if (!el) return;
+      let d = String(el.value || '').replace(/\D/g, '');
+      if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
+      if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+      if (d.length > 10) d = d.slice(0, 10);
+      el.value = d;
+    }
+
+    function clearCallRouteError() {
+      if (callRouteError) callRouteError.textContent = '';
+    }
+
+    if (callMainBtn && callFlowModal) {
+      callMainBtn.addEventListener('click', function () {
+        clearCallRouteError();
+        if (callerPhoneInput) callerPhoneInput.value = '';
+        callFlowModal.style.display = 'flex';
+        setTimeout(function () {
+          if (callerPhoneInput) callerPhoneInput.focus();
+        }, 100);
+      });
+    }
+
+    if (callerPhoneInput) {
+      callerPhoneInput.addEventListener('input', function () {
+        sanitizeCallerPhoneInput(this);
+      });
+      callerPhoneInput.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var t = (e.clipboardData || window.clipboardData).getData('text');
+        var d = String(t || '').replace(/\D/g, '');
+        if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
+        if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+        if (d.length > 10) d = d.slice(0, 10);
+        this.value = d;
+      });
+    }
+
+    if (callModalClose && callFlowModal) {
+      callModalClose.addEventListener('click', function () {
+        clearCallRouteError();
+        callFlowModal.style.display = 'none';
+      });
+    }
+
+    if (callFlowModal) {
+      callFlowModal.addEventListener('click', function (e) {
+        if (e.target === callFlowModal) {
+          clearCallRouteError();
+          callFlowModal.style.display = 'none';
+        }
+      });
+    }
+
+    if (callPrepareBtn && callerPhoneInput) {
+      callPrepareBtn.addEventListener('click', function () {
+        clearCallRouteError();
+        const fromDigits = normalizeIndianMobile(callerPhoneInput.value);
+        if (!fromDigits) {
+          if (callRouteError) {
+            callRouteError.textContent = 'Enter a valid mobile number.';
+          }
+          return;
+        }
+        if (!ownerDestinationDigits || ownerDestinationDigits.length !== 10) {
+          if (callRouteError) {
+            callRouteError.textContent = 'Owner number unavailable.';
+          }
+          return;
+        }
+
+        selectedMethod = 'call';
+        callPrepareBtn.disabled = true;
+
+        fetch(callRegisterUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromDigits,
+            destination: ownerDestinationDigits
+          })
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, data: data };
+            });
+          })
+          .then(function (result) {
+            if (result.ok && result.data && result.data.status === 'ok') {
+              var digits = String(callRouteDidRaw || '').replace(/\D/g, '');
+              var telUri = 'tel:' + digits;
+              if (callFlowModal) {
+                callFlowModal.style.display = 'none';
+              }
+              // Native dialer opens with this DID (same as tapping a tel: link)
+              window.location.href = telUri;
+            } else {
+              var msg = (result.data && (result.data.error || result.data.message)) || 'Could not prepare call.';
+              if (callRouteError) {
+                callRouteError.textContent = typeof msg === 'string' ? msg : 'Could not connect. Try again.';
+              }
+            }
+          })
+          .catch(function () {
+            if (callRouteError) {
+              callRouteError.textContent = 'Check your connection and try again.';
+            }
+          })
+          .finally(function () {
+            callPrepareBtn.disabled = false;
+          });
       });
     }
 
@@ -1285,7 +1661,7 @@
         .then(data => {
           if (data.status === 'success') {
             // Show success modal with method-specific styling
-            showSuccessModal(data.notification_type, message, phoneNumber, data.message);
+            showSuccessModal(data.notification_type);
           } else {
             // Handle server-side errors with detailed messages
             let errorType = data.error_type || 'server';
@@ -1370,50 +1746,35 @@
         });
     }
 
-    // Show success modal with method-specific styling
-    function showSuccessModal(method, message, phone, customMessage = '') {
-      // Set method-specific styling and content
+    // Show success modal with method-specific styling (check animation + short copy only)
+    function showSuccessModal(method) {
       let iconClass = '';
       let title = '';
-      let messageText = customMessage;
+      let subtitle = '';
 
       switch (method) {
         case 'push':
           iconClass = 'push';
-          title = '📱 Push Notification Sent!';
-          if (!messageText) messageText = 'The vehicle owner has been notified about your message.';
+          title = 'Notification sent';
+          subtitle = 'Your notification was delivered.';
           break;
         case 'sms':
           iconClass = 'sms';
-          title = '💬 SMS Sent Successfully!';
-          if (!messageText) messageText = 'The owner will receive your message shortly.';
+          title = 'SMS sent';
+          subtitle = 'SMS sent successfully.';
           break;
         default:
           iconClass = 'push';
-          title = 'Notification Sent!';
-          if (!messageText) messageText = 'The vehicle owner has been notified about your message.';
+          title = 'Notification sent';
+          subtitle = 'Your notification was delivered.';
       }
 
-      // Update success modal content
       successIcon.className = `success-icon ${iconClass}`;
       successIcon.innerHTML = `<i class="bi bi-check-circle-fill"></i>`;
       successTitle.textContent = title;
-      successMessage.textContent = messageText;
-
-      // Update details
-      detailMethod.textContent = getMethodDisplayName(method);
-      detailMessage.textContent = message.length > 50 ? message.substring(0, 50) + '...' : message;
+      successMessage.textContent = subtitle;
 
       successModal.style.display = 'flex';
-    }
-
-    // Get display name for notification method
-    function getMethodDisplayName(method) {
-      switch (method) {
-        case 'push': return 'Push Notification';
-        case 'sms': return 'SMS Message';
-        default: return 'Notification';
-      }
     }
 
     // Get the active button based on selected method
@@ -1421,6 +1782,7 @@
       switch (selectedMethod) {
         case 'push': return pushBtn;
         case 'sms': return smsBtn;
+        case 'call': return callPrepareBtn;
         default: return pushBtn;
       }
     }

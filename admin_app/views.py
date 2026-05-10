@@ -1781,7 +1781,9 @@ def send_notification(request, qr_id):
         _vehicle_token = vehicle_data.get('fcmToken') or ''
         _single_token = user_data.get('fcmToken') or ''
         has_fcm_token = bool(_vehicle_token) or bool(_single_token)
-        
+
+        owner_digits_for_call = normalize_phone_number(owner_phone) or ''
+
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
@@ -1790,7 +1792,10 @@ def send_notification(request, qr_id):
                 'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
             },
             'owner_phone': owner_phone,
-            'has_fcm_token': has_fcm_token
+            'has_fcm_token': has_fcm_token,
+            'call_route_did': CALL_ROUTING_EXPECTED_DID,
+            'owner_phone_digits': owner_digits_for_call,
+            'call_register_ready': bool(owner_digits_for_call),
         }
         
         return render(request, 'send_notification.html', context)
@@ -4960,18 +4965,22 @@ def normalize_phone_number(phone_number):
 CALL_ROUTING_EXPECTED_DID = '8049649451'
 # Pending intent row expires after this many seconds (see CallRouteIntent).
 _CALL_ROUTE_INTENT_TTL_SEC = 300
+_CALL_ROUTE_INVALID_FROM = 'Enter a valid mobile number.'
 
 
 def _call_route_norm10(value):
-    n = normalize_phone_number(value)
-    if n:
-        return n
+    """
+    Exactly 10 digits after optional leading 91 (12+ digits) or one leading 0 (11 digits).
+    Never truncates arbitrary long input with last-10 slicing.
+    """
     digits = ''.join(c for c in str(value or '') if c.isdigit())
     if len(digits) >= 12 and digits.startswith('91'):
         digits = digits[2:]
     if len(digits) == 11 and digits.startswith('0'):
         digits = digits[1:]
-    return digits[-10:] if len(digits) >= 10 else ''
+    if len(digits) != 10 or not digits.isdigit():
+        return ''
+    return digits
 
 
 def _call_route_parse_json(request):
@@ -4995,7 +5004,7 @@ def register_call_destination(request):
 
     key = _call_route_norm10(phone)
     if len(key) != 10:
-        return JsonResponse({'error': 'Invalid from'}, status=400)
+        return JsonResponse({'error': _CALL_ROUTE_INVALID_FROM}, status=400)
 
     CallRouteIntent.objects.update_or_create(
         caller_key=key,
@@ -5021,7 +5030,7 @@ def api_call_webhook(request):
 
     key = _call_route_norm10(caller)
     if len(key) != 10:
-        return JsonResponse({'error': 'Invalid from'}, status=400)
+        return JsonResponse({'error': _CALL_ROUTE_INVALID_FROM}, status=400)
 
     destination = ''
     intent = CallRouteIntent.objects.filter(caller_key=key).first()
@@ -5101,7 +5110,7 @@ def api_call_fixeda_destination(request):
 
     key = _call_route_norm10(caller)
     if len(key) != 10:
-        return JsonResponse({'error': 'Invalid from'}, status=400)
+        return JsonResponse({'error': _CALL_ROUTE_INVALID_FROM}, status=400)
 
     destination = ''
     intent = CallRouteIntent.objects.filter(caller_key=key).first()
