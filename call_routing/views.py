@@ -76,18 +76,42 @@ def register_call_destination(request):
 
     phone = str(body.get('from') or '').strip()
     destination = str(body.get('destination') or '').strip()
+    qr_id = str(body.get('qr_id') or body.get('qrId') or '').strip()
     if not phone or not destination:
         return JsonResponse({'error': 'from and destination required'}, status=400)
 
     key = _call_route_norm10(phone)
+    dest_key = _call_route_norm10(destination)
     if len(key) != 10:
         return JsonResponse({'error': CALL_ROUTE_INVALID_FROM}, status=400)
+
+    try:
+        # Lazy import: Firebase Admin is initialized in admin_app.views
+        from admin_app.views import db
+        from admin_app.scanner_contact_prefs import (
+            send_scanner_voice_call_attempt_push,
+            validate_scanner_call_for_qr,
+        )
+    except Exception as exc:
+        logger.exception('call_route register deps: %s', exc)
+        return JsonResponse({'error': 'Server misconfigured'}, status=500)
+
+    policy_err = validate_scanner_call_for_qr(db, qr_id, dest_key)
+    if policy_err:
+        return JsonResponse(
+            {'status': 'error', 'error': policy_err, 'message': policy_err},
+            status=400,
+        )
 
     CallRouteIntent.objects.update_or_create(
         caller_key=key,
         defaults={'destination': destination},
     )
     logger.info('call_route register stored caller_key=%s destination=%s', key, destination)
+    try:
+        send_scanner_voice_call_attempt_push(db, qr_id, dest_key, key)
+    except Exception as exc:
+        logger.warning('call_route register owner push alert failed: %s', exc)
     return JsonResponse({'status': 'ok'})
 
 

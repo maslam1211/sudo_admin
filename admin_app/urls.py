@@ -1,7 +1,14 @@
 from django.urls import path, include
+from django.views.generic import RedirectView
+
 from . import views
 
 urlpatterns = [
+    path(
+        '',
+        RedirectView.as_view(pattern_name='admin_login', permanent=False),
+        name='admin_index',
+    ),
     path('verify-auth-pin/', views.verify_auth_pin, name='verify_auth_pin'),
     path('login/', views.admin_login, name='admin_login'),
     path('register-admin/', views.register_admin, name='register_admin'),
@@ -15,7 +22,7 @@ urlpatterns = [
     path('view-payments/', views.view_payments, name='view_payments'),
     path('update_order_status/', views.update_order_status, name='update_order_status'),
     path('export_orders_with_qr/', views.export_orders_with_qr, name='export_orders_with_qr'),
-    path('logout/', views.admin_logout, name='logout'),
+    path('logout/', views.admin_logout, name='admin_logout'),
     path('register-external-user/', views.external_user_registration, name='external_register'),
     path('send-notification/<str:qr_id>/', views.check_id_enabled, name='check_id_enabled'),
     path('activate-id/<str:qr_id>/', views.activate_id, name='activate_id'),
@@ -47,18 +54,19 @@ urlpatterns = [
     path('add-ad/', views.add_ad, name='add_ad'),
     path('update-ad/', views.update_ad, name='update_ad'),
     path('delete-ad/', views.delete_ad, name='delete_ad'),
-    path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),  
+    path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),
     # Feedback URLs
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
     path('view-feedback/', views.view_feedback, name='view_feedback'),
     path('delete-feedback/<str:feedback_id>/', views.delete_feedback, name='delete_feedback'),
-    path('bulk-delete-feedback/', views.bulk_delete_feedback, name='bulk_delete_feedback'), 
+    path('bulk-delete-feedback/', views.bulk_delete_feedback, name='bulk_delete_feedback'),
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
 
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
+    path('api/dynamic-call/', views.dynamic_call, name='dynamic_call'),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),
     path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
     path('archived/user/<str:user_id>/delete/', views.delete_archived_user, name='delete_archived_user'),

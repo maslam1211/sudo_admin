@@ -100,11 +100,20 @@
     }
 
     .brand-logo {
-      font-size: 2.1rem;
-      font-weight: 700;
-      color: var(--accent-orange);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       text-decoration: none;
-      letter-spacing: 1px;
+      line-height: 0;
+      outline-offset: 4px;
+    }
+
+    .brand-logo img {
+      height: clamp(40px, 10.5vw, 56px);
+      width: auto;
+      max-width: min(300px, 92vw);
+      display: block;
+      object-fit: contain;
     }
 
     .brand-dot {
@@ -312,6 +321,89 @@
     .owner-name {
       font-size: 0.8rem;
       color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Unavailable services (some channels still work) */
+    .scanner-service-status {
+      margin: 0 0 18px 0;
+      animation: fadeIn 0.6s ease-out 0.25s both;
+    }
+
+    .scanner-service-status-inner {
+      background: rgba(33, 150, 243, 0.08);
+      border: 1px solid rgba(33, 150, 243, 0.28);
+      border-radius: 12px;
+      padding: 12px 14px 12px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .scanner-service-status-inner > i {
+      color: var(--info-blue);
+      font-size: 1.15rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .scanner-service-status-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+      margin: 0 0 6px 0;
+      letter-spacing: 0.02em;
+    }
+
+    .scanner-service-status-list {
+      margin: 0;
+      padding-left: 1.1rem;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .scanner-service-status-list li {
+      margin-bottom: 4px;
+    }
+
+    .scanner-service-status-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* All channels off — empty state */
+    .scanner-all-services-off {
+      margin-top: 18px;
+      padding: 22px 18px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      animation: fadeIn 0.6s ease-out both;
+    }
+
+    .scanner-all-services-off-icon {
+      font-size: 2.1rem;
+      color: rgba(255, 255, 255, 0.35);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .scanner-all-services-off-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+      margin: 0 0 10px 0;
+      line-height: 1.45;
+    }
+
+    .scanner-all-services-off-text {
+      font-size: 0.86rem;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.65);
+      margin: 0;
+      max-width: 340px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /* Question Section */
@@ -1324,6 +1416,7 @@
 </head>
 
 <body>
+  {% csrf_token %}
   {% if vehicle_data and has_emergency_contact %}
   <div class="modal-overlay" id="contactModeModal" style="display: none;" aria-hidden="true">
     <div class="contact-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="contactModeTitle">
@@ -1344,7 +1437,9 @@
 
   <!-- Header -->
   <header class="header">
-    <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
+    <a href="/" class="brand-logo" aria-label="SudoTag home">
+      <img src="{% static 'images/SUDO.png' %}" alt="SudoTag" width="260" height="56" decoding="async">
+    </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
   </header>
 
@@ -1377,6 +1472,22 @@
     {% endif %}
 
     <div id="ownerNotifySection">
+    {% if scanner_has_any_channel %}
+    {% if service_status_lines %}
+    <aside class="scanner-service-status" role="status" aria-live="polite">
+      <div class="scanner-service-status-inner">
+        <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+        <div>
+          <p class="scanner-service-status-title">Some options are not available</p>
+          <ul class="scanner-service-status-list">
+            {% for line in service_status_lines %}
+            <li>{{ line }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </aside>
+    {% endif %}
     <!-- Question Section -->
     <div class="question-section">
       <p class="question-title">Why would you like to contact the vehicle owner?</p>
@@ -1439,17 +1550,28 @@
         <span class="btn-text" id="callMainBtnLabel">Call Owner</span>
       </button>
       {% endif %}
+      {% if owner_sms_ready or emergency_sms_ready %}
       <button class="action-btn sms-btn" id="smsBtn">
         <i class="bi bi-chat-text-fill btn-icon"></i>
         <span class="btn-text" id="smsBtnLabel">Send SMS</span>
       </button>
-      {% if has_fcm_token %}
+      {% endif %}
+      {% if push_ready %}
       <button class="action-btn push-btn" id="pushBtn">
         <i class="bi bi-bell-fill btn-icon"></i>
         <span class="btn-text">Push Notification</span>
       </button>
       {% endif %}
     </div>
+    {% else %}
+    <div class="scanner-all-services-off" role="status">
+      <i class="bi bi-slash-circle scanner-all-services-off-icon" aria-hidden="true"></i>
+      <p class="scanner-all-services-off-title">All communication services are currently disabled for this user.</p>
+      <p class="scanner-all-services-off-text">
+        There is nothing you can send from this page right now. You can try again later if the owner turns a contact method back on.
+      </p>
+    </div>
+    {% endif %}
     </div>
     <!-- /#ownerNotifySection -->
 
@@ -1483,8 +1605,9 @@
     <div class="call-flow-dialog" id="callFlowDialogInner" role="dialog" aria-labelledby="callFlowTitle">
       <h3 id="callFlowTitle"><i class="bi bi-telephone-outbound-fill" aria-hidden="true"></i><span id="callFlowTitleText"> Call the owner</span></h3>
       <div id="callFlowEmergencyPlateWrap" class="call-flow-emergency-plate" style="display: none;" hidden>
-        <label class="call-route-label" for="callFlowPlateInput">Confirm registration number</label>
+        <label class="call-route-label" for="callFlowPlateInput">Enter last 4 characters of registration (as on the plate)</label>
         <input type="text" class="call-route-input call-flow-plate-input" id="callFlowPlateInput"
+          inputmode="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
           placeholder="As shown on the vehicle" autocomplete="off" spellcheck="false" maxlength="24"
           aria-describedby="callFlowPlateError" inputmode="text">
         <p class="call-flow-plate-error" id="callFlowPlateError" role="alert"></p>
@@ -1593,10 +1716,14 @@
     // Owner's phone number from backend
     const ownerPhone = '{{ owner_phone|default:"" }}';
     const callRegisterUrl = "{% url 'register_call_destination' %}";
+    const notifyPageQrId = "{{ qr_id|default:''|escapejs }}";
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
     const callRouteDidRaw = "{{ call_route_did|default:'' }}";
+    const vehiclePlateLast4Expected = "{{ vehicle_registration_last4|default:''|escapejs }}";
 
     const hasEmergencyContact = {% if vehicle_data and has_emergency_contact %}true{% else %}false{% endif %};
+    const hasFcmToken = {% if has_fcm_token %}true{% else %}false{% endif %};
+    const pushReady = {{ push_ready|yesno:"true,false" }};
     const ownerCallReady = {{ call_register_ready|yesno:"true,false" }};
     const emergencyCallReady = {{ emergency_call_ready|yesno:"true,false" }};
     const ownerSmsReady = {{ owner_sms_ready|yesno:"true,false" }};
@@ -1839,6 +1966,13 @@
         if (callFlowTitleText) {
           callFlowTitleText.textContent = ' Emergency Contact';
         }
+        var emergDigits = String(emergencyDestinationDigits || '').replace(/\D/g, '');
+        var showCallEmerg = !!(emergencyCallReady && emergDigits.length === 10);
+        if (callMainBtn) callMainBtn.style.display = showCallEmerg ? 'flex' : 'none';
+        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Emergency Call';
+        if (smsBtn) smsBtn.style.display = emergencySmsReady ? 'flex' : 'none';
+        if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
+        if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
         return;
       }
 
@@ -1849,6 +1983,7 @@
 
       if (smsBtn) smsBtn.style.display = ownerSmsReady ? 'flex' : 'none';
       if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
+      if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
 
       if (callFlowTitleText) {
         callFlowTitleText.textContent = ' Call the owner';
@@ -2027,20 +2162,26 @@
       }
       var raw = input.value.trim();
       if (!raw) {
-        if (errEl) errEl.textContent = 'Enter the registration number on the vehicle.';
+        if (errEl) errEl.textContent = 'Enter the last 4 characters of the registration number.';
         return false;
       }
 
       var enteredCanon = normalizeVehicleRegistrationClient(raw);
-      var expectedCanon = normalizeVehicleRegistrationClient(serverVehicleRegistrationRaw);
-      if (!expectedCanon) {
+      var expectedTail = String(vehiclePlateLast4Expected || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+      if (!expectedTail || expectedTail.length !== 4) {
         if (errEl) errEl.textContent = 'Vehicle registration is not available for this QR code.';
         return false;
       }
-      if (enteredCanon !== expectedCanon) {
+      var enteredTail =
+        enteredCanon.length >= 4
+          ? enteredCanon.slice(-4)
+          : enteredCanon;
+      if (enteredTail !== expectedTail) {
         if (errEl)
           errEl.textContent =
-            'Registration number does not match this vehicle.';
+            'Does not match this vehicle. Enter the same last 4 characters as on the plate.';
         return false;
       }
 
@@ -2052,7 +2193,7 @@
     if (callFlowPlateInputBind) {
       callFlowPlateInputBind.addEventListener('input', function () {
         clearCallFlowPlateError();
-        this.value = String(this.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 24);
+        this.value = String(this.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
       });
       callFlowPlateInputBind.addEventListener('focus', clearCallFlowPlateError);
     }
@@ -2128,7 +2269,8 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: fromDigits,
-              destination: destDigits
+              destination: destDigits,
+              qr_id: notifyPageQrId
             })
           })
             .then(function (response) {
@@ -2320,6 +2462,17 @@
         return;
       }
 
+      if (getEffectiveContactTarget() === 'emergency') {
+        if (!validateEmergencyPlateLocalSync()) {
+          var pinp = document.getElementById('callFlowPlateInput');
+          if (pinp && !pinp.value.trim()) {
+            showToast('Verify the last 4 characters of the registration first.', 'info');
+            openCallFlowModal();
+          }
+          return;
+        }
+      }
+
       const csrfToken = getCSRFToken();
       // user_phone is not collected from sender anymore, sending empty or default handled by backend
       const phoneNumber = '';
@@ -2367,7 +2520,13 @@
           reason: message,
           user_phone: phoneNumber,
           notification_method: selectedMethod,
-          contact_target: getEffectiveContactTarget()
+          contact_target: getEffectiveContactTarget(),
+          vehicle_registration_last4:
+            getEffectiveContactTarget() === 'emergency'
+              ? (document.getElementById('callFlowPlateInput') &&
+                  document.getElementById('callFlowPlateInput').value.trim()) ||
+                ''
+              : ''
         })
       })
         .then(response => {
