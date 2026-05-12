@@ -4,10 +4,17 @@ Django settings for sudo_admin project.
 
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# gRPC on macOS: the c-ares DNS backend sometimes fails with
+# "DNS resolution failed for firestore.googleapis.com", which breaks Firestore
+# (login, dashboard, etc.). The native resolver is usually reliable locally.
+if sys.platform == "darwin":
+    os.environ.setdefault("GRPC_DNS_RESOLVER", "native")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +35,7 @@ ALLOWED_HOSTS = [
     '103.163.64.190',
     '43.205.192.146',
     'sudotag.com',
+    'www.sudotag.com',
     'backend.pbx.bonvoice.com',
     'sudo-admin.onrender.com',
     'localhost',
@@ -44,7 +52,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://43.205.192.146",
     "https://43.205.192.146",
 
+    "http://sudotag.com",
     "https://sudotag.com",
+    "http://www.sudotag.com",
     "https://www.sudotag.com",
 
     "https://backend.pbx.bonvoice.com",
@@ -53,8 +63,26 @@ CSRF_TRUSTED_ORIGINS = [
     "http://103.163.64.190",
     "https://103.163.64.190",
 
+    "http://104.237.2.231",
+    "https://104.237.2.231",
+
+    "http://sudo-admin.onrender.com",
     "https://sudo-admin.onrender.com",
+
+    # Local development (Origin includes port)
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8001",
+    "http://localhost:8001",
+    "http://127.0.0.1:8080",
+    "http://localhost:8080",
 ]
+
+# Shared password for admin panel login/register (override in production via env)
+ADMIN_PANEL_PASSWORD = os.getenv('ADMIN_PANEL_PASSWORD', 'Sudo@123')
+
+# PIN shown before login/register and for delete-data flow (override in production via env)
+ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '4455')
 
 
 # Cookies - Updated for security
@@ -86,8 +114,12 @@ CORS_ALLOWED_ORIGINS = [
 # For development, you can also allow all origins (not recommended for production)
 # CORS_ALLOW_ALL_ORIGINS = True
 
-# Tell Django the real request is HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Trust X-Forwarded-Proto from a TLS-terminating proxy (e.g. Render).
+# When DEBUG is True locally, leave unset so stray "https" headers do not mark requests as secure.
+# Set USE_TLS_PROXY=1 in .env if you need this while DEBUG=True (e.g. ngrok + runserver).
+USE_TLS_PROXY = os.getenv('USE_TLS_PROXY', '').lower() in ('1', 'true', 'yes')
+if (not DEBUG) or USE_TLS_PROXY:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 INSTALLED_APPS = [

@@ -27,6 +27,21 @@ from django.core.mail import send_mail
 from dotenv import load_dotenv
 # from google.cloud import firestore
 
+from call_routing.constants import CALL_ROUTING_EXPECTED_DID
+
+from .scanner_contact_prefs import (
+    merge_user_scanner_subdocuments,
+    merge_vehicle_scanner_subdocuments,
+    scanner_effective_channels_now,
+    scanner_flags_from_user_doc,
+    scanner_pref_merged_dict,
+    scanner_user_app_prefs_from_merged,
+)
+from .firestore_admin_added_user import (
+    admin_added_user_update_payload,
+    truthy_admin_added_user_from_json,
+)
+
 # Set up logger
 logger = logging.getLogger(__name__)
 
@@ -147,12 +162,14 @@ def custom_404(request, exception):
     # For regular requests, show 404 error page (no redirect)
     return render(request, '404.html', status=404)
 
+@ensure_csrf_cookie
 def verify_auth_pin(request):
     """PIN verification page for login/register access"""
     if request.method == 'POST':
         pin = request.POST.get('pin', '').strip()
-        if pin == '4455':
+        if pin == getattr(settings, 'ADMIN_GATE_PIN', '4455'):
             request.session['auth_pin_verified'] = True
+            request.session.modified = True
             action = request.POST.get('action', 'login')
             if action == 'register':
                 return redirect('register_admin')
@@ -162,54 +179,85 @@ def verify_auth_pin(request):
             messages.error(request, 'Invalid PIN. Please try again.')
     
     return render(request, 'verify_auth_pin.html', {
-        'action': request.GET.get('action', 'login')
+        'action': request.GET.get('action', 'login'),
     })
 
+def _is_admin_role_id(role_id):
+    """True if Firestore roleId represents admin (1); tolerates str/float from JSON."""
+    if role_id is None:
+        return False
+    try:
+        return int(float(role_id)) == 1
+    except (TypeError, ValueError):
+        return str(role_id).strip() == '1'
+
+
+@ensure_csrf_cookie
 def admin_login(request):
     # Check PIN verification
     if not request.session.get('auth_pin_verified'):
-        return redirect(f'/admin/verify-auth-pin/?action=login')
-    
+        return redirect(f"{reverse('verify_auth_pin')}?action=login")
+
+    admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
+
     if request.method == 'POST':
-        email = (request.POST.get('email') or '').strip()
+        email_raw = (request.POST.get('email') or '').strip()
+        email_lower = email_raw.lower()
         password = request.POST.get('password')
-        
+
         # Verify password
-        if password != 'Sudo@123':
+        if password != admin_password:
             messages.error(request, 'Invalid email or password.')
             return render(request, 'login.html')
-        
-        # Fetch user data from Firebase
+
+        # Fetch user data from Firebase (Firestore string match is case-sensitive; try common variants)
         try:
             db = firestore.client()
-            user_ref = db.collection('users').where(
-                filter=FieldFilter('emailAddress', '==', email)
-            ).stream()
+            query_values = []
+            if email_raw:
+                query_values.append(email_raw)
+            if email_lower and email_lower not in query_values:
+                query_values.append(email_lower)
 
-            user_found = False
-            for user in user_ref:
+            seen_doc_ids = set()
+            user_docs = []
+            for qv in query_values:
+                stream = db.collection('users').where(
+                    filter=FieldFilter('emailAddress', '==', qv)
+                ).stream()
+                for doc in stream:
+                    if doc.id not in seen_doc_ids:
+                        seen_doc_ids.add(doc.id)
+                        user_docs.append(doc)
+
+            user_found = bool(user_docs)
+            permission_denied = False
+            for user in user_docs:
                 user_data = user.to_dict()
-                user_found = True
+                stored_email = (user_data.get('emailAddress') or '').strip()
+                if stored_email.lower() != email_lower:
+                    continue
 
                 # Check if user has role 1 (admin role)
-                if user_data.get('roleId') != 1:
-                    messages.error(request, "You don't have permission to access admin panel.")
+                if not _is_admin_role_id(user_data.get('roleId')):
+                    messages.error(
+                        request,
+                        "You don't have permission to access admin panel.",
+                    )
+                    permission_denied = True
                     break
 
-                # For role 1 users, verify email
-                if user_data.get('emailAddress') == email:
-                    request.session['admin'] = True
-                    request.session['user_id'] = user.id  # Store user ID in session
-                    request.session['email'] = email  # Store email in session
-                    # Clear PIN verification after successful login
-                    request.session.pop('auth_pin_verified', None)
-                    return redirect('dashboard')
-                else:
-                    messages.error(request, 'Invalid email or password.')
-                    break
+                request.session['admin'] = True
+                request.session['user_id'] = user.id
+                request.session['email'] = stored_email or email_raw
+                request.session.pop('auth_pin_verified', None)
+                request.session.modified = True
+                return redirect('dashboard')
 
             if not user_found:
                 messages.error(request, 'No user found with this email.')
+            elif not permission_denied:
+                messages.error(request, 'Invalid email or password.')
         except Exception as e:
             logger.exception("Admin login Firestore lookup failed")
             messages.error(
@@ -848,11 +896,12 @@ def register_user(request):
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from math import ceil
 
+@ensure_csrf_cookie
 def register_admin(request):
     """Register a new admin user"""
     # Check PIN verification
     if not request.session.get('auth_pin_verified'):
-        return redirect(f'/admin/verify-auth-pin/?action=register')
+        return redirect(f"{reverse('verify_auth_pin')}?action=register")
     
     if request.method == 'POST':
         full_name = request.POST.get('fullName')
@@ -862,8 +911,12 @@ def register_admin(request):
         password = request.POST.get('password')
         
         # Verify password
-        if password != 'Sudo@123':
-            messages.error(request, 'Invalid password. Default password is Sudo@123')
+        admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
+        if password != admin_password:
+            messages.error(
+                request,
+                'Invalid password. Use the admin panel password configured for this environment.',
+            )
             return render(request, 'register_admin.html')
         
         try:
@@ -1180,7 +1233,7 @@ def activate_id(request, qr_id):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 import json
                 data = json.loads(request.body)
-                admin_added_user = str(data.get('adminAddedUser', 'false')).lower() == 'true'
+                admin_added_user = truthy_admin_added_user_from_json(data, default=False)
                 
                 # Validate required fields
                 required_fields = {
@@ -1241,13 +1294,23 @@ def activate_id(request, qr_id):
                         user_doc = user_query[0]
                         user_data = user_doc.to_dict()
                         user_id = user_doc.id
-                        if admin_added_user:
-                            db.collection('users').document(user_id).update({'adminAddedUser': True})
-                        else:
-                            db.collection('users').document(user_id).update({'adminAddedUser': False})
-                        
+                        db.collection('users').document(user_id).update(
+                            admin_added_user_update_payload(admin_added_user)
+                        )
+
+                        stored_phone = user_data.get('contactNumber', '') or ''
+                        sub_digits = normalize_phone_number(data.get('contactNumber', ''))
+                        stored_digits = normalize_phone_number(stored_phone)
+                        phone_mismatch = (
+                            (sub_digits and stored_digits and sub_digits != stored_digits)
+                            or (
+                                (not sub_digits or not stored_digits)
+                                and stored_phone.replace(' ', '')
+                                != (data.get('contactNumber') or '').replace(' ', '')
+                            )
+                        )
                         # Verify phone matches existing user — surface under email so users don't think the mobile field alone is wrong
-                        if user_data.get('contactNumber', '').replace(' ', '') != data['contactNumber'].replace(' ', ''):
+                        if phone_mismatch:
                             return JsonResponse({
                                 'status': 'error',
                                 'message': 'This email is already registered',
@@ -1310,9 +1373,8 @@ def activate_id(request, qr_id):
                         user_ref = db.collection('users').document(user.uid)
                         user_ref.set(user_data)
                         user_id = user.uid
-                        if admin_added_user:
-                            user_ref.update({'adminAddedUser': True})
-                        
+                        user_ref.update(admin_added_user_update_payload(admin_added_user))
+
                         # Send welcome email only for new users
                         new_user_temp_password = password
                         send_welcome_email_for_id(
@@ -1360,7 +1422,8 @@ def activate_id(request, qr_id):
                     
                     vehicle_ref = db.collection('vehicles').document(vehicle_id)
                     vehicle_ref.set(vehicle_data)
-                    
+                    vehicle_ref.update(admin_added_user_update_payload(admin_added_user))
+
                     # Update QR code to mark as assigned
                     qr_ref.update({
                         'isAssigned': True,
@@ -1573,27 +1636,268 @@ def send_notification(request, qr_id):
             return render(request, 'error.html', {'error': 'Vehicle not found!'})
 
         vehicle_data = vehicle_doc.to_dict()
+        vehicle_data = merge_vehicle_scanner_subdocuments(db, vehicle_ref, vehicle_data)
+
+        # Lightweight emergency plate check: only qr + vehicle reads (skip user/doc).
+        if request.method == 'POST' and request.headers.get(
+            'X-Requested-With',
+        ) == 'XMLHttpRequest':
+            try:
+                _xhr_quick = json.loads(request.body or b'{}')
+            except (json.JSONDecodeError, TypeError):
+                _xhr_quick = {}
+            if (
+                isinstance(_xhr_quick, dict)
+                and _xhr_quick.get('notification_method') == 'verify_plate'
+            ):
+                entered = normalize_vehicle_registration(
+                    _xhr_quick.get('plate_confirmation', ''),
+                )
+                expected = normalize_vehicle_registration(
+                    vehicle_data.get('registrationNumber', ''),
+                )
+                if not expected:
+                    return JsonResponse({
+                        'status': 'error',
+                        'error_type': 'plate_mismatch',
+                        'message': (
+                            'Vehicle registration is not available for this QR code.'
+                        ),
+                    })
+                if not entered or entered != expected:
+                    return JsonResponse({
+                        'status': 'error',
+                        'error_type': 'plate_mismatch',
+                        'message': (
+                            'Registration number does not match this vehicle.'
+                        ),
+                    })
+                return JsonResponse({'status': 'success'})
         
-        # Get user data
+        # Owner's Firestore uid (same as users/{uid} document id). Scanner prefs use this id.
         user_ref = db.collection('users').document(vehicle_data['ownerId'])
         user_doc = user_ref.get()
         
-        if not user_doc.exists or not user_doc.to_dict().get('enableIdCheck', False):
+        if not user_doc.exists or not (user_doc.to_dict() or {}).get('enableIdCheck', False):
             return redirect('activate_id', qr_id=qr_id)
         
-        user_data = user_doc.to_dict()
+        user_data = merge_user_scanner_subdocuments(
+            db, user_ref, user_doc.to_dict() or {}
+        )
         
         if request.method == 'POST':
             # Handle AJAX request
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                import json
-                data = json.loads(request.body)
-                
-                reason = data.get('reason')
+                try:
+                    data = json.loads(request.body or b'{}')
+                except (json.JSONDecodeError, TypeError):
+                    return JsonResponse(
+                        {
+                            'status': 'error',
+                            'message': 'Invalid JSON body.',
+                            'error_type': 'bad_request',
+                        },
+                        status=400,
+                    )
+                if not isinstance(data, dict):
+                    data = {}
+
+                reason = (data.get('reason') if data.get('reason') is not None else '') or ''
                 plate_digits = data.get('plate_digits')
                 user_phone = data.get('user_phone', '')
-                notification_method = data.get('notification_method', 'push')
-                
+                # Client may send "" or whitespace; treat as push. Reject unknown non-empty methods.
+                _raw_method = data.get('notification_method')
+                _method_s = (
+                    str(_raw_method).strip().lower()
+                    if _raw_method not in (None, '')
+                    else ''
+                )
+                if _method_s in ('push', 'sms'):
+                    notification_method = _method_s
+                elif _method_s == '':
+                    notification_method = 'push'
+                else:
+                    return JsonResponse(
+                        {
+                            'status': 'error',
+                            'message': 'Unsupported notification method.',
+                            'error_type': 'bad_request',
+                        },
+                        status=400,
+                    )
+                contact_target = (data.get('contact_target') or 'owner').strip().lower()
+                if contact_target not in ('owner', 'emergency'):
+                    contact_target = 'owner'
+
+                _merged = scanner_pref_merged_dict(user_data, vehicle_data)
+                _app_prefs = scanner_user_app_prefs_from_merged(_merged)
+                _scanner_f = scanner_flags_from_user_doc(user_data, vehicle_data)
+                _scanner_eff = scanner_effective_channels_now(user_data, vehicle_data)
+
+                if contact_target == 'emergency':
+                    if not _scanner_f['emergency']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'The vehicle owner has disabled emergency contact '
+                                    'for QR scans.'
+                                ),
+                                'error_type': 'emergency_disabled',
+                            },
+                            status=400,
+                        )
+                    if not _scanner_eff['emergency']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Emergency contact is not available right now '
+                                    '(quiet hours or outside the owner\'s allowed window).'
+                                ),
+                                'error_type': 'emergency_outside_hours',
+                            },
+                            status=400,
+                        )
+
+                if notification_method == 'sms':
+                    if not _scanner_f['sms']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'The vehicle owner has disabled SMS contact for QR scans.'
+                                ),
+                                'error_type': 'sms_disabled',
+                            },
+                            status=400,
+                        )
+                    if not _scanner_eff['sms']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'SMS contact is not available right now '
+                                    '(quiet hours or outside the owner\'s allowed window).'
+                                ),
+                                'error_type': 'sms_outside_hours',
+                            },
+                            status=400,
+                        )
+                    if contact_target == 'emergency':
+                        if not _app_prefs['emergency_sms_allowed']:
+                            return JsonResponse(
+                                {
+                                    'status': 'error',
+                                    'message': (
+                                        'The vehicle owner has turned off SMS to the '
+                                        'emergency contact in the mobile app.'
+                                    ),
+                                    'error_type': 'emergency_sms_app_disabled',
+                                },
+                                status=400,
+                            )
+                    else:
+                        if not _app_prefs['owner_sms_allowed']:
+                            return JsonResponse(
+                                {
+                                    'status': 'error',
+                                    'message': (
+                                        'The vehicle owner has turned off SMS in the mobile app.'
+                                    ),
+                                    'error_type': 'sms_app_disabled',
+                                },
+                                status=400,
+                            )
+
+                if notification_method == 'push':
+                    if not _scanner_f['push']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'The vehicle owner has disabled push notifications '
+                                    'for QR scans.'
+                                ),
+                                'error_type': 'push_disabled',
+                            },
+                            status=400,
+                        )
+                    if not _scanner_eff['push']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Push notifications are not available right now '
+                                    '(quiet hours or outside the owner\'s allowed window).'
+                                ),
+                                'error_type': 'push_outside_hours',
+                            },
+                            status=400,
+                        )
+                    if not _app_prefs['push_allowed']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'The vehicle owner has turned off push notifications '
+                                    'in the mobile app.'
+                                ),
+                                'error_type': 'push_app_disabled',
+                            },
+                            status=400,
+                        )
+
+                emergency_digits_server = normalize_phone_number(
+                    user_data.get('defaultEmergencyContact', '')
+                )
+
+                if contact_target == 'emergency':
+                    if not emergency_digits_server or len(emergency_digits_server) != 10:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': 'No valid emergency contact on file.',
+                                'error_type': 'no_emergency_number',
+                            },
+                            status=400,
+                        )
+                    reg_norm = normalize_vehicle_registration(
+                        vehicle_data.get('registrationNumber', '')
+                    )
+                    if not reg_norm or len(reg_norm) < 4:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Vehicle registration on file is too short to verify '
+                                    'emergency access.'
+                                ),
+                                'error_type': 'emergency_vehicle_unavailable',
+                            },
+                            status=400,
+                        )
+                    expected_plate_tail = reg_norm[-4:]
+                    raw_prov = data.get('vehicle_registration_last4')
+                    if raw_prov in (None, ''):
+                        raw_prov = data.get('emergency_last_four')
+                    prov = normalize_vehicle_registration(raw_prov)
+                    prov = prov[-4:] if len(prov) >= 4 else prov
+                    if len(prov) != 4 or prov != expected_plate_tail:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Verification failed. Enter the last 4 characters of '
+                                    'this vehicle\'s registration number (same as on the plate).'
+                                ),
+                                'error_type': 'emergency_verify_failed',
+                            },
+                            status=400,
+                        )
+
+                # verify_plate is handled earlier (before user-doc fetch).
+
                 # Handle different notification methods
                 if notification_method == 'push':
                     # Collect every FCM token we know for this vehicle / owner.
@@ -1623,9 +1927,9 @@ def send_notification(request, qr_id):
                         body=reason,
                     )
                     fcm_data = {
-                        'vehicleId': qr_data['vehicleID'],
-                        'qrId': qr_id,
-                        'notificationType': 'vehicle_alert'
+                        'vehicleId': str(qr_data.get('vehicleID', '') or ''),
+                        'qrId': str(qr_id or ''),
+                        'notificationType': 'vehicle_alert',
                     }
 
                     success_count = 0
@@ -1780,7 +2084,74 @@ def send_notification(request, qr_id):
         _vehicle_token = vehicle_data.get('fcmToken') or ''
         _single_token = user_data.get('fcmToken') or ''
         has_fcm_token = bool(_vehicle_token) or bool(_single_token)
-        
+
+        owner_digits_for_call = normalize_phone_number(owner_phone) or ''
+        emergency_raw = user_data.get('defaultEmergencyContact', '')
+        emergency_digits_for_call = normalize_phone_number(emergency_raw) or ''
+        _merged = scanner_pref_merged_dict(user_data, vehicle_data)
+        _app_prefs = scanner_user_app_prefs_from_merged(_merged)
+        _scanner_eff = scanner_effective_channels_now(user_data, vehicle_data)
+        voice_on = _scanner_eff['voice']
+        sms_on = _scanner_eff['sms']
+        emerg_path_on = _scanner_eff['emergency']
+        push_on = _scanner_eff['push']
+        emergency_voice_on = _scanner_eff['emergency_voice']
+        reg_norm = normalize_vehicle_registration(
+            vehicle_data.get('registrationNumber', '')
+        )
+        vehicle_registration_last4 = reg_norm[-4:] if len(reg_norm) >= 4 else ''
+        has_emergency_digits = bool(emergency_digits_for_call)
+        has_emergency_contact = has_emergency_digits and emerg_path_on
+        call_register_ready = (
+            bool(owner_digits_for_call)
+            and voice_on
+            and _app_prefs['owner_call_allowed']
+        )
+        emergency_call_ready = (
+            bool(emergency_digits_for_call)
+            and voice_on
+            and emerg_path_on
+            and emergency_voice_on
+            and _app_prefs['emergency_call_allowed']
+        )
+        owner_sms_ready = (
+            bool(owner_digits_for_call) and sms_on and _app_prefs['owner_sms_allowed']
+        )
+        emergency_sms_ready = (
+            bool(emergency_digits_for_call)
+            and sms_on
+            and emerg_path_on
+            and _app_prefs['emergency_sms_allowed']
+        )
+        push_ready = bool(has_fcm_token) and push_on and _app_prefs['push_allowed']
+        scanner_has_any_channel = bool(
+            push_ready
+            or call_register_ready
+            or owner_sms_ready
+            or emergency_call_ready
+            or emergency_sms_ready
+        )
+        service_status_lines = []
+        if bool(owner_digits_for_call) and not call_register_ready:
+            service_status_lines.append(
+                'Voice Call service is currently disabled.'
+            )
+        if bool(has_fcm_token) and not push_ready:
+            service_status_lines.append(
+                'Push Notification service is currently turned off.'
+            )
+        if bool(owner_digits_for_call) and not owner_sms_ready:
+            service_status_lines.append(
+                'SMS to the vehicle owner is unavailable.'
+            )
+        if (
+            bool(emergency_digits_for_call)
+            and emerg_path_on
+            and not emergency_call_ready
+        ):
+            service_status_lines.append(
+                'Emergency Call service is disabled.'
+            )
         context = {
             'vehicle_data': {
                 'model': vehicle_data.get('model', ''),
@@ -1789,7 +2160,20 @@ def send_notification(request, qr_id):
                 'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
             },
             'owner_phone': owner_phone,
-            'has_fcm_token': has_fcm_token
+            'has_fcm_token': has_fcm_token,
+            'push_ready': push_ready,
+            'call_route_did': CALL_ROUTING_EXPECTED_DID,
+            'owner_phone_digits': owner_digits_for_call,
+            'call_register_ready': call_register_ready,
+            'has_emergency_contact': has_emergency_contact,
+            'emergency_phone_digits': emergency_digits_for_call,
+            'vehicle_registration_last4': vehicle_registration_last4,
+            'owner_sms_ready': owner_sms_ready,
+            'emergency_sms_ready': emergency_sms_ready,
+            'emergency_call_ready': emergency_call_ready,
+            'qr_id': qr_id,
+            'scanner_has_any_channel': scanner_has_any_channel,
+            'service_status_lines': service_status_lines,
         }
         
         return render(request, 'send_notification.html', context)
@@ -1801,7 +2185,6 @@ def send_notification(request, qr_id):
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-import json
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Define status mapping
@@ -2505,8 +2888,10 @@ def external_user_registration(request):
             }
             
             # Save to Firestore
-            db.collection('users').document(user_id).set(user_data)
-            
+            user_ref = db.collection('users').document(user_id)
+            user_ref.set(user_data)
+            user_ref.update(admin_added_user_update_payload(False))
+
             # Send welcome email with credentials
             send_welcome_email(email, full_name, temp_password)
             
@@ -3741,7 +4126,7 @@ def verify_delete_pin(request):
     
     if request.method == 'POST':
         pin = request.POST.get('pin', '').strip()
-        if pin == '4455':
+        if pin == getattr(settings, 'ADMIN_GATE_PIN', '4455'):
             request.session['delete_data_verified'] = True
             next_url = request.POST.get('next', '/admin/delete-data/')
             return redirect(next_url)

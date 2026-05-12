@@ -18,8 +18,20 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from pathlib import Path
+from django.http import FileResponse, HttpResponse
+
+
+def favicon_view(request):
+    """Avoid 404 noise from browsers requesting /favicon.ico (works with runserver and WhiteNoise)."""
+    icon = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'car.png'
+    if icon.is_file():
+        return FileResponse(icon.open('rb'), content_type='image/png')
+    return HttpResponse(status=204)
+
 
 urlpatterns = [
+    path('favicon.ico', favicon_view, name='site_favicon'),
     path('django-admin/', admin.site.urls),
     path('admin/', include('admin_app.urls')),
     path('', include('landing.urls')),  # Landing page at root path

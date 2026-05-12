@@ -31,3 +31,17 @@ class ArchivedVehicle(models.Model):
     def __str__(self) -> str:
         display = self.registration_number or self.vehicle_id
         return f"ArchivedVehicle({display})"
+
+
+class CallRouteIntent(models.Model):
+    """Short-lived mapping from scanner caller (10 digits) to PBX destination."""
+
+    caller_key = models.CharField(max_length=10, unique=True, db_index=True)
+    destination = models.CharField(max_length=64, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f'CallRouteIntent({self.caller_key} -> {self.destination})'
