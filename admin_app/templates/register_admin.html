@@ -226,6 +226,23 @@
             
             <form method="POST" action="{% url 'register_admin' %}" id="registerForm">
                 {% csrf_token %}
+                {% if not pin_gate_done %}
+                <div class="mb-3">
+                    <label for="panel_pin" class="form-label">Admin panel PIN</label>
+                    <div class="input-group-icon">
+                        <i class="fas fa-key"></i>
+                        <input type="password"
+                               id="panel_pin"
+                               name="panel_pin"
+                               class="form-control"
+                               placeholder="Enter the admin access PIN"
+                               required
+                               autocomplete="current-password"
+                               maxlength="10">
+                    </div>
+                    <small class="text-muted d-block mt-1">Same PIN as on the PIN verification screen. Required once per browser if you open this page directly.</small>
+                </div>
+                {% endif %}
                 <div class="mb-3">
                     <label for="fullName" class="form-label">Full Name</label>
                     <div class="input-group-icon">
@@ -286,22 +303,13 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <div class="input-group-icon">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" 
-                               id="password" 
-                               name="password" 
-                               class="form-control" 
-                               placeholder="Enter password (Sudo@123)"
-                               required>
-                    </div>
-                    <small class="text-muted">Default password: Sudo@123</small>
-                </div>
-                
-                <button type="submit" class="btn register-btn">
+
+                <p class="text-muted small mb-0">
+                    After registering, sign in with this email and the shared admin password
+                    shown on the login page (same password all admins use for this panel).
+                </p>
+
+                <button type="submit" class="btn register-btn" id="registerSubmitBtn">
                     <i class="fas fa-user-plus me-2"></i>Register as Admin
                 </button>
             </form>
@@ -318,12 +326,22 @@
     <script>
       (function () {
         var phone = document.getElementById('contactNumber');
-        if (!phone) return;
-        phone.addEventListener('input', function () {
-          var d = String(this.value || '').replace(/\D/g, '');
-          if (d.length > 10) d = d.slice(0, 10);
-          this.value = d;
-        });
+        if (phone) {
+          phone.addEventListener('input', function () {
+            var d = String(this.value || '').replace(/\D/g, '');
+            if (d.length > 10) d = d.slice(0, 10);
+            this.value = d;
+          });
+        }
+        var form = document.getElementById('registerForm');
+        var btn = document.getElementById('registerSubmitBtn');
+        if (form && btn) {
+          form.addEventListener('submit', function () {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving…';
+          });
+        }
       })();
     </script>
 </body>

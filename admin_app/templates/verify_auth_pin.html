@@ -213,8 +213,7 @@
                            maxlength="10">
                 </div>
                 
-                <input type="hidden" name="next" value="{{ request.GET.next|default:'/admin/login/' }}">
-                <input type="hidden" name="action" value="{{ request.GET.action|default:'login' }}">
+                <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
                 
                 <button type="submit" class="btn pin-submit-btn">
                     <i class="fas fa-unlock me-2"></i>Verify & Continue
@@ -222,15 +221,14 @@
             </form>
             
             <div class="auth-options">
-                {% if request.GET.action == 'register' %}
-                    <a href="{% url 'verify_auth_pin' %}?action=login">
-                        <i class="fas fa-sign-in-alt me-1"></i>Already have an account? Login
-                    </a>
-                {% else %}
-                    <a href="{% url 'verify_auth_pin' %}?action=register">
-                        <i class="fas fa-user-plus me-1"></i>Need an account? Register
-                    </a>
-                {% endif %}
+                <span class="text-muted small d-block mb-2">After PIN: you can pick the next step, or go there directly:</span>
+                <a href="{% url 'verify_auth_pin' %}?next=register">
+                    <i class="fas fa-user-plus me-1"></i>New admin — PIN then register
+                </a>
+                <span class="text-muted mx-2">·</span>
+                <a href="{% url 'verify_auth_pin' %}?next=login">
+                    <i class="fas fa-sign-in-alt me-1"></i>Returning — PIN then sign in
+                </a>
             </div>
         </div>
     </div>

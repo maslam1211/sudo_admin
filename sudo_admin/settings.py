@@ -48,8 +48,12 @@ ALLOWED_HOSTS = [
 # Custom 404 page
 handler404 = 'admin_app.views.custom_404'
 
-# CSRF Trusted Origins - FIXED format
+# CSRF Trusted Origins - FIXED format (include local dev or POST returns 403 Origin check failed)
 CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://localhost",
     "http://43.205.192.146",
     "https://43.205.192.146",
 
@@ -87,6 +91,14 @@ ADMIN_PANEL_PASSWORD = os.getenv('ADMIN_PANEL_PASSWORD', 'Sudo@123')
 
 # PIN shown before login/register and for delete-data flow (override in production via env)
 ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '4455')
+
+# Local dev: common ports (avoids 403 "Origin checking failed" when CSRF_TRUSTED_ORIGINS is set)
+if DEBUG:
+    for _host in ("127.0.0.1", "localhost"):
+        for _port in ("8000", "8080", "8888"):
+            _o = f"http://{_host}:{_port}"
+            if _o not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS.append(_o)
 
 
 # Cookies - Updated for security

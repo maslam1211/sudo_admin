@@ -10,6 +10,7 @@ urlpatterns = [
         name='admin_index',
     ),
     path('verify-auth-pin/', views.verify_auth_pin, name='verify_auth_pin'),
+    path('access/', views.admin_access_menu, name='admin_access_menu'),
     path('login/', views.admin_login, name='admin_login'),
     path('register-admin/', views.register_admin, name='register_admin'),
     path('dashboard/', views.dashboard, name='dashboard'),

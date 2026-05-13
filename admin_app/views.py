@@ -16,8 +16,7 @@ from google.cloud.firestore_v1 import FieldFilter
 import qrcode
 from io import BytesIO
 from django.http import JsonResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_protect, csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from django.contrib.sessions.backends.base import SessionBase
 from django.urls import reverse
@@ -171,17 +170,26 @@ def verify_auth_pin(request):
         if pin == getattr(settings, 'ADMIN_GATE_PIN', '4455'):
             request.session['auth_pin_verified'] = True
             request.session.modified = True
-            action = request.POST.get('action', 'login')
-            if action == 'register':
+            nxt = (request.POST.get('next') or '').strip()
+            action = request.POST.get('action', '').strip()
+            if nxt == 'register' or action == 'register':
                 return redirect('register_admin')
-            else:
+            if nxt == 'login' or action == 'login':
                 return redirect('admin_login')
+            return redirect('admin_access_menu')
         else:
             messages.error(request, 'Invalid PIN. Please try again.')
-    
+
     return render(request, 'verify_auth_pin.html', {
         'action': request.GET.get('action', 'login'),
     })
+
+
+def admin_access_menu(request):
+    """After PIN (no specific next): choose register first or sign in."""
+    if not request.session.get('auth_pin_verified'):
+        return redirect('verify_auth_pin')
+    return render(request, 'admin_access_menu.html')
 
 def _is_admin_role_id(role_id):
     """True if Firestore roleId represents admin (1); tolerates str/float from JSON."""
@@ -197,7 +205,7 @@ def _is_admin_role_id(role_id):
 def admin_login(request):
     # Check PIN verification
     if not request.session.get('auth_pin_verified'):
-        return redirect(f"{reverse('verify_auth_pin')}?action=login")
+        return redirect(reverse('verify_auth_pin'))
 
     admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
 
@@ -904,64 +912,79 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from math import ceil
 
 @ensure_csrf_cookie
+@csrf_protect
 def register_admin(request):
-    """Register a new admin user"""
-    # Check PIN verification
-    if not request.session.get('auth_pin_verified'):
-        return redirect(f"{reverse('verify_auth_pin')}?action=register")
-    
+    """Register a new admin user.
+
+    PIN can be verified either via session (after /admin/verify-auth-pin/) or by
+    submitting ``panel_pin`` on this form, so registration does not depend on a
+    redirect+cookie round-trip that fails on some HTTPS / multi-worker setups.
+    """
+    pin_gate_done = bool(request.session.get('auth_pin_verified'))
     if request.method == 'POST':
-        full_name = request.POST.get('fullName')
-        email = request.POST.get('email')
+        if not pin_gate_done:
+            if request.POST.get('panel_pin', '').strip() != '4455':
+                messages.error(request, 'Invalid admin PIN. Enter the panel PIN to register.')
+                return render(
+                    request,
+                    'register_admin.html',
+                    {'pin_gate_done': False},
+                )
+            request.session['auth_pin_verified'] = True
+            request.session.modified = True
+            pin_gate_done = True
+
+        full_name = (request.POST.get('fullName') or '').strip()
+        email = (request.POST.get('email') or '').strip().lower()
         contact_number = request.POST.get('contactNumber')
-        city = request.POST.get('city')
-        password = request.POST.get('password')
+        city = (request.POST.get('city') or '').strip()
+
+        if not email:
+            messages.error(request, 'Please enter a valid email address.')
+            return render(request, 'register_admin.html', {'pin_gate_done': pin_gate_done})
+
+        if not full_name or not city:
+            messages.error(request, 'Please fill in full name and city.')
+            return render(request, 'register_admin.html', {'pin_gate_done': pin_gate_done})
 
         phone_err, contact_canonical = registration_contact_error_and_canonical(
             contact_number
         )
         if phone_err:
             messages.error(request, phone_err)
-            return render(request, 'register_admin.html')
-        
-        # Verify password
-        admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
-        if password != admin_password:
-            messages.error(
-                request,
-                'Invalid password. Use the admin panel password configured for this environment.',
-            )
-            return render(request, 'register_admin.html')
-        
+            return render(request, 'register_admin.html', {'pin_gate_done': pin_gate_done})
         try:
-            db = firestore.client()
-            ist = pytz.timezone('Asia/Kolkata')
-            current_time = now().astimezone(ist)
-            
-            # Check if user already exists
-            user_ref = db.collection('users').where(filter=FieldFilter('emailAddress', '==', email)).stream()
-            existing_user = list(user_ref)
+            # Check if user already exists (email stored normalized to lowercase)
+            existing_user = False
+            for _ in (
+                db.collection('users')
+                .where(filter=FieldFilter('emailAddress', '==', email))
+                .limit(1)
+                .stream()
+            ):
+                existing_user = True
+                break
             if existing_user:
                 messages.error(request, 'User with this email already exists.')
-                return render(request, 'register_admin.html')
-            
+                return render(request, 'register_admin.html', {'pin_gate_done': pin_gate_done})
+
             # Generate user ID
             user_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:28]
-            
-            # Create user data
+
+            # Create user data (timestamps: Firestore-native, avoids client datetime issues)
             user_data = {
                 'fullName': full_name,
                 'emailAddress': email,
                 'contactNumber': contact_canonical,
                 'city': city,
                 'roleId': 1,  # Admin role
-                'createdAt': current_time,
+                'createdAt': firestore.SERVER_TIMESTAMP,
                 'enabled': True,
                 'accountDeleted': False,
                 'mustChangePassword': False,
                 'enableIdCheck': False,
                 'isOnline': False,
-                'lastSeen': current_time,
+                'lastSeen': firestore.SERVER_TIMESTAMP,
                 'id': user_id,
                 'displayAddress': city,
                 'formattedAddress': city,
@@ -972,19 +995,27 @@ def register_admin(request):
                 'profilePicture': '',
                 'fcmToken': ''
             }
-            
+
             # Save to Firestore
             db.collection('users').document(user_id).set(user_data)
-            
-            messages.success(request, f'Admin user {full_name} registered successfully! You can now login.')
-            # Clear PIN verification after successful registration
-            request.session.pop('auth_pin_verified', None)
+
+            messages.success(
+                request,
+                f'Admin user {full_name} registered successfully! You can now login.',
+            )
+            # Keep auth_pin_verified so the next page (login) loads without a second PIN; cleared on login.
+            logger.info('Admin registered: email=%s doc_id=%s', email, user_id)
             return redirect('admin_login')
-            
+
         except Exception as e:
+            logger.exception('register_admin failed')
             messages.error(request, f'Error registering admin: {str(e)}')
-    
-    return render(request, 'register_admin.html')
+
+    return render(
+        request,
+        'register_admin.html',
+        {'pin_gate_done': pin_gate_done},
+    )
 
 def manage_users(request):
     if not request.session.get('admin'):
