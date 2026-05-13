@@ -100,7 +100,6 @@ if DEBUG:
             if _o not in CSRF_TRUSTED_ORIGINS:
                 CSRF_TRUSTED_ORIGINS.append(_o)
 
-
 # Cookies - Updated for security
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_COOKIE_SECURE = False     # Set to True in production with HTTPS

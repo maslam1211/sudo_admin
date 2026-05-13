@@ -171,7 +171,7 @@ def verify_auth_pin(request):
             request.session['auth_pin_verified'] = True
             request.session.modified = True
             nxt = (request.POST.get('next') or '').strip()
-            action = request.POST.get('action', '').strip()
+            action = request.POST.get('action', 'login').strip()
             if nxt == 'register' or action == 'register':
                 return redirect('register_admin')
             if nxt == 'login' or action == 'login':
@@ -191,6 +191,7 @@ def admin_access_menu(request):
         return redirect('verify_auth_pin')
     return render(request, 'admin_access_menu.html')
 
+
 def _is_admin_role_id(role_id):
     """True if Firestore roleId represents admin (1); tolerates str/float from JSON."""
     if role_id is None:
@@ -205,7 +206,7 @@ def _is_admin_role_id(role_id):
 def admin_login(request):
     # Check PIN verification
     if not request.session.get('auth_pin_verified'):
-        return redirect(reverse('verify_auth_pin'))
+        return redirect(f"{reverse('verify_auth_pin')}?action=login")
 
     admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
 
@@ -912,15 +913,12 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from math import ceil
 
 @ensure_csrf_cookie
-@csrf_protect
 def register_admin(request):
-    """Register a new admin user.
-
-    PIN can be verified either via session (after /admin/verify-auth-pin/) or by
-    submitting ``panel_pin`` on this form, so registration does not depend on a
-    redirect+cookie round-trip that fails on some HTTPS / multi-worker setups.
-    """
-    pin_gate_done = bool(request.session.get('auth_pin_verified'))
+    """Register a new admin user"""
+    # Check PIN verification
+    if not request.session.get('auth_pin_verified'):
+        return redirect(f"{reverse('verify_auth_pin')}?action=register")
+    
     if request.method == 'POST':
         if not pin_gate_done:
             if request.POST.get('panel_pin', '').strip() != '4455':
@@ -952,7 +950,17 @@ def register_admin(request):
         )
         if phone_err:
             messages.error(request, phone_err)
-            return render(request, 'register_admin.html', {'pin_gate_done': pin_gate_done})
+            return render(request, 'register_admin.html')
+        
+        # Verify password
+        admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
+        if password != admin_password:
+            messages.error(
+                request,
+                'Invalid password. Use the admin panel password configured for this environment.',
+            )
+            return render(request, 'register_admin.html')
+        
         try:
             # Check if user already exists (email stored normalized to lowercase)
             existing_user = False
@@ -2241,61 +2249,11 @@ def send_notification(request, qr_id):
     except Exception as e:
         logger.error(f"General error in send_notification: {str(e)}")
         return render(request, 'error.html', {'error': str(e)})
-
-
-@csrf_exempt
-@require_POST
-def dynamic_call(request):
-    """Minimal DID/from/to helper kept for PBX integrations that POST JSON here."""
-    try:
-        ct = (request.content_type or '').lower()
-        if 'application/json' in ct:
-            data = json.loads(request.body or b'{}')
-        else:
-            data = request.POST.dict() or json.loads(request.body or b'{}')
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'Invalid JSON.'}, status=400)
-
-    if not isinstance(data, dict):
-        return JsonResponse({'error': 'Body must be a JSON object.'}, status=400)
-
-    did_number = data.get('did') or data.get('did_number')
-    from_number = data.get('from') or data.get('from_number') or data.get('caller')
-    raw_to = data.get('to') or data.get('to_number') or data.get('destination')
-
-    if did_number is None or did_number == '':
-        return JsonResponse({'error': 'Missing did.'}, status=400)
-    if normalize_phone_number(did_number) != CALL_ROUTING_EXPECTED_DID:
-        return JsonResponse(
-            {'error': f'Invalid did. Expected {CALL_ROUTING_EXPECTED_DID}.'},
-            status=400,
-        )
-
-    if from_number is None or from_number == '':
-        return JsonResponse({'error': 'Missing from.'}, status=400)
-    if not normalize_phone_number(from_number):
-        return JsonResponse(
-            {'error': 'Invalid from. Use 10-digit mobile (with or without +91).'},
-            status=400,
-        )
-
-    if raw_to is None or raw_to == '':
-        return JsonResponse({'error': 'Missing to (connect this number).'}, status=400)
-    destination = normalize_phone_number(raw_to)
-    if not destination:
-        return JsonResponse(
-            {'error': 'Invalid to. Use 10-digit mobile (with or without +91).'},
-            status=400,
-        )
-
-    logger.info(
-        'dynamic_call: from=%s -> to=%s',
-        normalize_phone_number(from_number),
-        destination,
-    )
-
-    return JsonResponse({'status': '1', 'destination': destination}, status=200)
-
+    
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Define status mapping
 STATUS_MAPPING = {

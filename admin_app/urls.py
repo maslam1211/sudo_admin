@@ -4,6 +4,7 @@ from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
+    # /admin/ with no extra path — otherwise 404; login view sends to PIN gate if needed
     path(
         '',
         RedirectView.as_view(pattern_name='admin_login', permanent=False),
@@ -67,7 +68,6 @@ urlpatterns = [
 
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
-    path('api/dynamic-call/', views.dynamic_call, name='dynamic_call'),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),
     path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
     path('archived/user/<str:user_id>/delete/', views.delete_archived_user, name='delete_archived_user'),

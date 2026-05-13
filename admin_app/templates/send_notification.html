@@ -6,7 +6,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contact Vehicle Owner</title>
-  <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
   <link href="{% static 'assets/img/WhatsApp Image 2025-11-05 at 02.37.19_e40cf66b.jpg' %}" rel="apple-touch-icon">
 
   <!-- Fonts -->
@@ -100,20 +99,11 @@
     }
 
     .brand-logo {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: var(--accent-orange);
       text-decoration: none;
-      line-height: 0;
-      outline-offset: 4px;
-    }
-
-    .brand-logo img {
-      height: clamp(40px, 10.5vw, 56px);
-      width: auto;
-      max-width: min(300px, 92vw);
-      display: block;
-      object-fit: contain;
+      letter-spacing: 1px;
     }
 
     .brand-dot {
@@ -898,6 +888,127 @@
       letter-spacing: 0.02em;
     }
 
+    /* Emergency gate: legal copy + last-4 verification */
+    .emergency-gate-dialog {
+      background: linear-gradient(165deg, #2a1a1a 0%, #1e1e1e 100%);
+      border-radius: 20px;
+      padding: 18px 18px 20px;
+      margin: 12px;
+      max-width: 440px;
+      width: 94%;
+      max-height: 92vh;
+      overflow: auto;
+      box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(229, 57, 53, 0.35);
+      animation: slideUp 0.45s ease-out;
+    }
+
+    .emergency-gate-dialog h3 {
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: #ffcdd2;
+      letter-spacing: 0.04em;
+    }
+
+    .emergency-gate-illustration {
+      width: 100%;
+      max-height: 150px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      background: linear-gradient(145deg, #0d1642 0%, #1a237e 40%, #6a1b9a 100%);
+      line-height: 0;
+    }
+
+    .emergency-gate-illustration svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .emergency-gate-legal {
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.82);
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .emergency-gate-legal strong {
+      color: #ffab91;
+    }
+
+    .emergency-gate-verify label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 6px;
+    }
+
+    .emergency-gate-verify input {
+      width: 100%;
+      letter-spacing: 0.35em;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+    }
+
+    .emergency-gate-verify input:focus {
+      outline: none;
+      border-color: #ef5350;
+    }
+
+    .emergency-gate-error {
+      min-height: 1.2rem;
+      font-size: 0.75rem;
+      color: #ff8a80;
+      margin-top: 6px;
+    }
+
+    .emergency-gate-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .emergency-gate-btn {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .emergency-gate-btn--primary {
+      background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(183, 28, 28, 0.45);
+    }
+
+    .emergency-gate-btn--ghost {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
     .call-flow-emergency-plate {
       width: 100%;
       text-align: left;
@@ -1433,13 +1544,64 @@
       </div>
     </div>
   </div>
+
+  <div class="modal-overlay" id="emergencyGateModal" style="display: none;" aria-hidden="true">
+    <div class="emergency-gate-dialog" role="dialog" aria-modal="true" aria-labelledby="emergencyGateTitle">
+      <h3 id="emergencyGateTitle">Emergency contact only</h3>
+      <div class="emergency-gate-illustration" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 130" role="img" aria-labelledby="emergencyGateSvgTitle">
+          <title id="emergencyGateSvgTitle">Emergency — verify this vehicle</title>
+          <defs>
+            <linearGradient id="egSky" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#1e3a5f"/>
+              <stop offset="100%" stop-color="#0d1b2a"/>
+            </linearGradient>
+            <linearGradient id="egRoad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#455a64"/>
+              <stop offset="100%" stop-color="#263238"/>
+            </linearGradient>
+            <linearGradient id="egPulse" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff5252"/>
+              <stop offset="100%" stop-color="#b71c1c"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="130" fill="url(#egSky)"/>
+          <circle cx="320" cy="36" r="28" fill="url(#egPulse)" opacity="0.95"/>
+          <path d="M320 22 L320 50 M306 36 L334 36" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+          <text x="200" y="28" text-anchor="middle" fill="#e3f2fd" font-family="system-ui,sans-serif" font-size="13" font-weight="700">EMERGENCY USE</text>
+          <text x="200" y="46" text-anchor="middle" fill="#90caf9" font-family="system-ui,sans-serif" font-size="10">Confirm you are at this vehicle</text>
+          <rect x="0" y="82" width="400" height="48" fill="url(#egRoad)"/>
+          <rect x="0" y="98" width="400" height="4" fill="#fdd835" opacity="0.9"/>
+          <g transform="translate(72,52)">
+            <rect x="0" y="18" width="160" height="36" rx="6" fill="#37474f" stroke="#90a4ae" stroke-width="2"/>
+            <rect x="12" y="26" width="136" height="20" rx="3" fill="#eceff1"/>
+            <text x="80" y="41" text-anchor="middle" fill="#263238" font-family="monospace" font-size="11" font-weight="700">REG • • • ?</text>
+          </g>
+          <ellipse cx="260" cy="92" rx="22" ry="14" fill="#212121" opacity="0.9"/>
+          <ellipse cx="300" cy="92" rx="22" ry="14" fill="#212121" opacity="0.9"/>
+        </svg>
+      </div>
+      <p class="emergency-gate-legal">
+        <strong>This path is for genuine emergencies</strong> (for example: medical emergency, serious road incident, immediate safety risk involving this vehicle).
+        Do <strong>not</strong> use emergency contact for parking reminders, sales, pranks, harassment, or any non-emergency reason.
+        Misuse may be unlawful; you are responsible for your actions. SudoTag does not control how third parties respond.
+      </p>
+      <div class="emergency-gate-verify">
+        <label for="vehiclePlateLast4Input">Enter the <strong>last 4 characters</strong> of this vehicle’s <strong>registration number</strong> (letters and digits, as on the plate above), then continue.</label>
+        <input type="text" id="vehiclePlateLast4Input" name="vehicle_plate_last4" inputmode="text" autocomplete="off" maxlength="4" autocapitalize="characters" spellcheck="false" placeholder="e.g. 1234" aria-describedby="vehiclePlateLast4Error">
+        <p class="emergency-gate-error" id="vehiclePlateLast4Error" role="alert"></p>
+      </div>
+      <div class="emergency-gate-actions">
+        <button type="button" class="emergency-gate-btn emergency-gate-btn--primary" id="emergencyGateConfirmBtn">Validate &amp; continue</button>
+        <button type="button" class="emergency-gate-btn emergency-gate-btn--ghost" id="emergencyGateCancelBtn">Go back</button>
+      </div>
+    </div>
+  </div>
   {% endif %}
 
   <!-- Header -->
   <header class="header">
-    <a href="/" class="brand-logo" aria-label="SudoTag home">
-      <img src="{% static 'images/SUDO.png' %}" alt="SudoTag" width="260" height="56" decoding="async">
-    </a>
+    <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
   </header>
 
@@ -1473,21 +1635,6 @@
 
     <div id="ownerNotifySection">
     {% if scanner_has_any_channel %}
-    {% if service_status_lines %}
-    <aside class="scanner-service-status" role="status" aria-live="polite">
-      <div class="scanner-service-status-inner">
-        <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-        <div>
-          <p class="scanner-service-status-title">Some options are not available</p>
-          <ul class="scanner-service-status-list">
-            {% for line in service_status_lines %}
-            <li>{{ line }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    </aside>
-    {% endif %}
     <!-- Question Section -->
     <div class="question-section">
       <p class="question-title">Why would you like to contact the vehicle owner?</p>
@@ -1541,6 +1688,22 @@
         maxlength="200"></textarea>
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>
+
+    {% if service_status_lines %}
+    <aside class="scanner-service-status" role="status" aria-live="polite">
+      <div class="scanner-service-status-inner">
+        <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+        <div>
+          <p class="scanner-service-status-title">Some options are not available</p>
+          <ul class="scanner-service-status-list">
+            {% for line in service_status_lines %}
+            <li>{{ line }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </aside>
+    {% endif %}
 
     <!-- Action Buttons: Call highlighted first, then SMS / Push -->
     <div class="action-buttons">
@@ -1716,18 +1879,21 @@
     // Owner's phone number from backend
     const ownerPhone = '{{ owner_phone|default:"" }}';
     const callRegisterUrl = "{% url 'register_call_destination' %}";
-    const notifyPageQrId = "{{ qr_id|default:''|escapejs }}";
+    const notifyPageQrId = '{{ qr_id|default:""|escapejs }}';
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
     const callRouteDidRaw = "{{ call_route_did|default:'' }}";
     const vehiclePlateLast4Expected = "{{ vehicle_registration_last4|default:''|escapejs }}";
 
-    const hasEmergencyContact = {% if vehicle_data and has_emergency_contact %}true{% else %}false{% endif %};
-    const hasFcmToken = {% if has_fcm_token %}true{% else %}false{% endif %};
-    const pushReady = {{ push_ready|yesno:"true,false" }};
-    const ownerCallReady = {{ call_register_ready|yesno:"true,false" }};
-    const emergencyCallReady = {{ emergency_call_ready|yesno:"true,false" }};
-    const ownerSmsReady = {{ owner_sms_ready|yesno:"true,false" }};
-    const emergencySmsReady = {{ emergency_sms_ready|yesno:"true,false" }};
+    const hasEmergencyContact = ("{{ has_emergency_contact|yesno:'yes,no' }}" === "yes");
+    const hasFcmToken = ("{{ has_fcm_token|yesno:'yes,no' }}" === "yes");
+    const pushReady = ("{{ push_ready|yesno:'yes,no' }}" === "yes");
+    var emergencyContactConfirmed = false;
+    var vehiclePlateLast4VerifiedValue = '';
+    var pendingEmergencyCallback = null;
+    const ownerCallReady = ("{{ call_register_ready|yesno:'yes,no' }}" === "yes");
+    const emergencyCallReady = ("{{ emergency_call_ready|yesno:'yes,no' }}" === "yes");
+    const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
+    const emergencySmsReady = ("{{ emergency_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
@@ -1850,6 +2016,36 @@
       return String(ownerDestinationDigits || '').replace(/\D/g, '');
     }
 
+    function closeEmergencyGateModal() {
+      var m = document.getElementById('emergencyGateModal');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+      var err = document.getElementById('vehiclePlateLast4Error');
+      if (err) err.textContent = '';
+      var inp = document.getElementById('vehiclePlateLast4Input');
+      if (inp) inp.value = '';
+    }
+
+    function openEmergencyGateModal(onVerified) {
+      var m = document.getElementById('emergencyGateModal');
+      if (!m) {
+        emergencyContactConfirmed = true;
+        if (typeof onVerified === 'function') onVerified();
+        return;
+      }
+      pendingEmergencyCallback = (typeof onVerified === 'function') ? onVerified : null;
+      var err = document.getElementById('vehiclePlateLast4Error');
+      if (err) err.textContent = '';
+      var inp = document.getElementById('vehiclePlateLast4Input');
+      if (inp) inp.value = '';
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      setTimeout(function () {
+        if (inp) inp.focus();
+      }, 120);
+    }
+
     function syncMainSections() {
       if (!hasEmergencyContact) {
         if (ownerNotifySection) ownerNotifySection.style.display = '';
@@ -1859,17 +2055,23 @@
         if (ownerNotifySection) ownerNotifySection.style.display = 'none';
         return;
       }
-      if (contactMode === 'emergency') {
-        if (ownerNotifySection) ownerNotifySection.style.display = 'none';
-      } else {
-        if (ownerNotifySection) ownerNotifySection.style.display = '';
-      }
+      if (ownerNotifySection) ownerNotifySection.style.display = '';
+    }
+
+    function isEmergencyPlateGateSatisfied() {
+      return !!(
+        emergencyContactConfirmed &&
+        vehiclePlateLast4VerifiedValue.length === 4 &&
+        vehiclePlateLast4Expected &&
+        vehiclePlateLast4Expected.length === 4 &&
+        vehiclePlateLast4VerifiedValue === vehiclePlateLast4Expected
+      );
     }
 
     function syncEmergencyPlateWrapInCallModal() {
       var wrap = document.getElementById('callFlowEmergencyPlateWrap');
       if (!wrap) return;
-      if (contactMode === 'emergency') {
+      if (contactMode === 'emergency' && !isEmergencyPlateGateSatisfied()) {
         wrap.removeAttribute('hidden');
         wrap.style.display = 'block';
       } else {
@@ -1899,6 +2101,8 @@
 
       if (hasEmergencyContact && contactMode === 'emergency') {
         contactMode = 'owner';
+        emergencyContactConfirmed = false;
+        vehiclePlateLast4VerifiedValue = '';
         syncContactModeUi();
       }
     }
@@ -1917,8 +2121,14 @@
       callFlowModal.style.display = 'flex';
       setTimeout(function () {
         if (contactMode === 'emergency') {
-          var plateEl = document.getElementById('callFlowPlateInput');
-          if (plateEl) plateEl.focus();
+          if (isEmergencyPlateGateSatisfied()) {
+            if (callerPhoneInput) {
+              callerPhoneInput.focus();
+            }
+          } else {
+            var plateEl = document.getElementById('callFlowPlateInput');
+            if (plateEl) plateEl.focus();
+          }
         } else if (callerPhoneInput) {
           callerPhoneInput.focus();
         }
@@ -1962,17 +2172,20 @@
         }
       }
 
+      if (callFlowTitleText) {
+        callFlowTitleText.textContent = contactMode === 'emergency'
+          ? ' Emergency Contact'
+          : ' Call the owner';
+      }
+
       if (contactMode === 'emergency') {
-        if (callFlowTitleText) {
-          callFlowTitleText.textContent = ' Emergency Contact';
-        }
-        var emergDigits = String(emergencyDestinationDigits || '').replace(/\D/g, '');
-        var showCallEmerg = !!(emergencyCallReady && emergDigits.length === 10);
+        var ed = String(emergencyDestinationDigits || '').replace(/\D/g, '');
+        var showCallEmerg = !!(emergencyCallReady && ed.length === 10);
         if (callMainBtn) callMainBtn.style.display = showCallEmerg ? 'flex' : 'none';
-        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Emergency Call';
+        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call emergency contact';
         if (smsBtn) smsBtn.style.display = emergencySmsReady ? 'flex' : 'none';
-        if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
-        if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
+        if (smsBtnLabel) smsBtnLabel.textContent = 'SMS emergency contact';
+        if (pushBtn) pushBtn.style.display = 'none';
         return;
       }
 
@@ -1985,9 +2198,7 @@
       if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
       if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
 
-      if (callFlowTitleText) {
-        callFlowTitleText.textContent = ' Call the owner';
-      }
+      if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
     }
 
     document.addEventListener('visibilitychange', function () {
@@ -2029,28 +2240,111 @@
 
       function startEmergencyContactCallFlow() {
         var dest = String(emergencyDestinationDigits || '').replace(/\D/g, '');
-        if (!emergencyCallReady || dest.length !== 10) {
-          showToast('Emergency calling isn’t available for this vehicle.', 'error');
+        if (dest.length !== 10) {
+          showToast('Emergency contact isn’t available for this vehicle.', 'error');
           return;
         }
-        if (contactMode === 'emergency') {
-          openCallFlowModal();
+        if (!emergencyCallReady && !emergencySmsReady) {
+          showToast('Emergency contact isn’t available for this vehicle.', 'error');
           return;
         }
-        contactMode = 'emergency';
-        closeContactModeModal();
-        syncContactModeUi();
-        setTimeout(function () {
-          openCallFlowModal();
-        }, 180);
+        if (!vehiclePlateLast4Expected || vehiclePlateLast4Expected.length !== 4) {
+          showToast(
+            'This vehicle\'s registration is missing or too short — emergency contact cannot be verified.',
+            'error'
+          );
+          return;
+        }
+        var needGate =
+          vehiclePlateLast4Expected &&
+          vehiclePlateLast4Expected.length === 4 &&
+          !emergencyContactConfirmed;
+        if (needGate) {
+          openEmergencyGateModal(function () {
+            startEmergencyContactCallFlow();
+          });
+          return;
+        }
+        function afterEmergencyGateOk() {
+          if (emergencyCallReady) {
+            if (contactMode === 'emergency') {
+              openCallFlowModal();
+              return;
+            }
+            contactMode = 'emergency';
+            closeContactModeModal();
+            closeEmergencyGateModal();
+            syncContactModeUi();
+            setTimeout(function () {
+              openCallFlowModal();
+            }, 180);
+            return;
+          }
+          if (emergencySmsReady) {
+            contactMode = 'emergency';
+            closeContactModeModal();
+            closeEmergencyGateModal();
+            syncContactModeUi();
+            return;
+          }
+          showToast('Emergency contact isn’t available for this vehicle.', 'error');
+        }
+        afterEmergencyGateOk();
       }
 
+      var emergencyGateConfirmBtn = document.getElementById('emergencyGateConfirmBtn');
+      var emergencyGateCancelBtn = document.getElementById('emergencyGateCancelBtn');
+      var vehiclePlateLast4Field = document.getElementById('vehiclePlateLast4Input');
+      if (vehiclePlateLast4Field) {
+        vehiclePlateLast4Field.addEventListener('input', function () {
+          this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+        });
+      }
+      if (emergencyGateConfirmBtn) {
+        emergencyGateConfirmBtn.addEventListener('click', function () {
+          var errEl = document.getElementById('vehiclePlateLast4Error');
+          var inp = document.getElementById('vehiclePlateLast4Input');
+          var got = inp ? inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+          if (!vehiclePlateLast4Expected || vehiclePlateLast4Expected.length !== 4) {
+            emergencyContactConfirmed = true;
+            vehiclePlateLast4VerifiedValue = '';
+            closeEmergencyGateModal();
+            var cbSkip = pendingEmergencyCallback;
+            pendingEmergencyCallback = null;
+            if (typeof cbSkip === 'function') cbSkip();
+            return;
+          }
+          if (got.length !== 4 || got !== vehiclePlateLast4Expected) {
+            if (errEl) {
+              errEl.textContent = 'Enter the last 4 characters of this vehicle\'s registration (must match the plate above).';
+            }
+            return;
+          }
+          emergencyContactConfirmed = true;
+          vehiclePlateLast4VerifiedValue = got;
+          closeEmergencyGateModal();
+          var cbOk = pendingEmergencyCallback;
+          pendingEmergencyCallback = null;
+          if (typeof cbOk === 'function') cbOk();
+        });
+      }
+      if (emergencyGateCancelBtn) {
+        emergencyGateCancelBtn.addEventListener('click', function () {
+          pendingEmergencyCallback = null;
+          closeEmergencyGateModal();
+          if (!contactMode) {
+            openContactModeModal();
+          }
+        });
+      }
       if (chooseEmergencyContactBtn) {
         chooseEmergencyContactBtn.addEventListener('click', startEmergencyContactCallFlow);
       }
       if (chooseOwnerContactBtn) {
         chooseOwnerContactBtn.addEventListener('click', function () {
           contactMode = 'owner';
+          emergencyContactConfirmed = false;
+          vehiclePlateLast4VerifiedValue = '';
           closeContactModeModal();
           syncContactModeUi();
         });
@@ -2062,6 +2356,8 @@
             return;
           }
           contactMode = 'owner';
+          emergencyContactConfirmed = false;
+          vehiclePlateLast4VerifiedValue = '';
           closeContactModeModal();
           syncContactModeUi();
         });
@@ -2153,6 +2449,11 @@
      */
     function validateEmergencyPlateLocalSync() {
       if (contactMode !== 'emergency') {
+        return true;
+      }
+      if (isEmergencyPlateGateSatisfied()) {
+        var errSkip = document.getElementById('callFlowPlateError');
+        if (errSkip) errSkip.textContent = '';
         return true;
       }
       var input = document.getElementById('callFlowPlateInput');
@@ -2463,12 +2764,12 @@
       }
 
       if (getEffectiveContactTarget() === 'emergency') {
-        if (!validateEmergencyPlateLocalSync()) {
-          var pinp = document.getElementById('callFlowPlateInput');
-          if (pinp && !pinp.value.trim()) {
-            showToast('Verify the last 4 characters of the registration first.', 'info');
-            openCallFlowModal();
-          }
+        var needLast4 = vehiclePlateLast4Expected && vehiclePlateLast4Expected.length === 4;
+        if (needLast4 && vehiclePlateLast4VerifiedValue.length !== 4) {
+          showToast('Enter the last 4 characters of this vehicle\'s registration, then try again.', 'error');
+          openEmergencyGateModal(function () {
+            sendNotification(message);
+          });
           return;
         }
       }
@@ -2519,28 +2820,51 @@
         body: JSON.stringify({
           reason: message,
           user_phone: phoneNumber,
-          notification_method: selectedMethod,
+          notification_method: selectedMethod || 'push',
           contact_target: getEffectiveContactTarget(),
           vehicle_registration_last4:
-            getEffectiveContactTarget() === 'emergency'
-              ? (document.getElementById('callFlowPlateInput') &&
-                  document.getElementById('callFlowPlateInput').value.trim()) ||
-                ''
-              : ''
+            getEffectiveContactTarget() === 'emergency' ? vehiclePlateLast4VerifiedValue : ''
         })
       })
-        .then(response => {
+        .then(async response => {
+          const ct = (response.headers.get('content-type') || '').toLowerCase();
+          const readJson = async () => {
+            if (!ct.includes('application/json')) {
+              const text = await response.text();
+              if (response.status === 403) {
+                throw new Error(
+                  'Request blocked (403). Refresh the page and try again — often a session or security (CSRF) issue.'
+                );
+              }
+              if (text && text.trim().startsWith('<')) {
+                throw new Error(
+                  'Server returned a web page instead of JSON. Refresh the page or try again in a moment.'
+                );
+              }
+              throw new Error(`Unexpected response (${response.status}).`);
+            }
+            return response.json();
+          };
+
           if (!response.ok) {
-            // Handle HTTP errors
             if (response.status === 500) {
               throw new Error('Server error. Please try again later.');
-            } else if (response.status === 400) {
-              throw new Error('Invalid request. Please check your input.');
-            } else {
-              throw new Error(`HTTP error! status: ${response.status}`);
             }
+            if (response.status === 400) {
+              const errData = ct.includes('application/json') ? await response.json().catch(() => null) : null;
+              if (errData && errData.message) {
+                throw new Error(errData.message);
+              }
+              throw new Error('Invalid request. Please check your input.');
+            }
+            if (response.status === 403) {
+              throw new Error(
+                'Request blocked (403). Refresh the page and try again — often a session or security (CSRF) issue.'
+              );
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          return response.json();
+          return readJson();
         })
         .then(data => {
           if (data.status === 'success') {
@@ -2569,6 +2893,12 @@
               case 'no_emergency_number':
                 suggestion = 'Switch to vehicle owner if their number is on file, or use push notification.';
                 break;
+              case 'emergency_verify_failed':
+                suggestion = 'Check the registration number shown at the top of this page — use only the last 4 letters/digits, matching the plate. If you are not at this vehicle, use Contact vehicle owner instead.';
+                break;
+              case 'emergency_vehicle_unavailable':
+                suggestion = 'This QR\'s vehicle record has no usable registration for verification. Use Contact vehicle owner or another channel.';
+                break;
               case 'push_failed':
                 suggestion = 'Try using SMS instead. The owner might not have the app installed or notifications disabled.';
                 break;
@@ -2577,6 +2907,35 @@
                 break;
               case 'twilio_error':
                 suggestion = 'Try using push notification instead. There seems to be an issue with the phone service.';
+                break;
+              case 'sms_disabled':
+                suggestion = 'Try push notification instead, or try again later if the owner re-enables SMS.';
+                break;
+              case 'sms_app_disabled':
+                suggestion = 'The owner has turned off SMS in the app. Try push or voice call if those options appear.';
+                break;
+              case 'emergency_sms_app_disabled':
+                suggestion = 'The owner has turned off SMS to the emergency contact. Try another method if it appears.';
+                break;
+              case 'emergency_disabled':
+                suggestion = 'Use Contact vehicle owner if that path is still available.';
+                break;
+              case 'emergency_outside_hours':
+                suggestion = 'Try again later, or use Contact vehicle owner if that option is available.';
+                break;
+              case 'sms_outside_hours':
+                suggestion = 'Try again later, or use push notification if it is available.';
+                break;
+              case 'push_disabled':
+                suggestion =
+                  'Use SMS or a voice call instead if those options are visible on this page.';
+                break;
+              case 'push_app_disabled':
+                suggestion = 'The owner has turned off push in the app. Try SMS or a voice call if those options appear.';
+                break;
+              case 'push_outside_hours':
+                suggestion =
+                  'Try again later, or use SMS or a voice call if those options are available.';
                 break;
               default:
                 suggestion = 'Please try a different notification method or try again later.';
@@ -2670,8 +3029,13 @@
         case 'push': return pushBtn;
         case 'sms': return smsBtn;
         case 'call': return callPrepareBtn;
-        default: return pushBtn;
+        default:
+          return pushBtn || smsBtn || callMainBtn || callPrepareBtn;
       }
+    }
+
+    function smsAvailableForCurrentMode() {
+      return contactMode === 'emergency' ? emergencySmsReady : ownerSmsReady;
     }
 
     // Function to show daily limit snackbar
@@ -2690,9 +3054,17 @@
       let subcopy = `You have used ${currentCount} out of ${limit} attempts today. You can try a different method or come back tomorrow when the limit resets.`;
 
       if (method === 'sms') {
-        subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. You can still try using push notifications.`;
+        if (pushReady) {
+          subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. You can still try using push notifications.`;
+        } else {
+          subcopy = `You have used ${currentCount} out of ${limit} SMS messages today. Please try again tomorrow when the limit resets.`;
+        }
       } else if (method === 'push') {
-        subcopy = `You have used ${currentCount} out of ${limit} push notifications today. Please try contacting the owner via SMS.`;
+        if (smsAvailableForCurrentMode()) {
+          subcopy = `You have used ${currentCount} out of ${limit} push notifications today. You can still try contacting via SMS.`;
+        } else {
+          subcopy = `You have used ${currentCount} out of ${limit} push notifications today. Please try again tomorrow when the limit resets.`;
+        }
       }
 
       if (limitModalTitle) {
@@ -2727,18 +3099,17 @@
         limitModalProgress.style.width = `${percent}%`;
       }
 
-      const altConfigs = {
-        sms: [
-          { method: 'push', label: 'Use Push Notification', icon: 'bi-bell' }
-        ],
-        push: [
-          { method: 'sms', label: 'Send SMS', icon: 'bi-chat-dots' }
-        ]
-      };
-
-      const alternatives = altConfigs[method] || [];
-      const primaryAction = alternatives[0];
-      const secondaryAction = alternatives[1]; // Likely undefined, which is fine
+      let primaryAction = null;
+      let secondaryAction = null;
+      if (method === 'sms') {
+        if (pushReady) {
+          primaryAction = { method: 'push', label: 'Use Push Notification', icon: 'bi-bell' };
+        }
+      } else if (method === 'push') {
+        if (smsAvailableForCurrentMode()) {
+          primaryAction = { method: 'sms', label: 'Send SMS', icon: 'bi-chat-dots' };
+        }
+      }
 
       const configureAltButton = (button, action) => {
         if (!button) return;
