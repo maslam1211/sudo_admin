@@ -154,6 +154,51 @@
       box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.85);
     }
 
+    /* Centered watermark above bottom sheet (“Step 1 of 2”), pointer-events passthrough */
+    body.notify-app #contactModeModal .notify-flow-modal-center-brand {
+      position: fixed;
+      left: 50%;
+      top: clamp(96px, 20vh, 168px);
+      transform: translateX(-50%);
+      z-index: 1;
+      width: min(240px, 78vw);
+      pointer-events: none;
+      opacity: 0.97;
+      user-select: none;
+    }
+
+    body.notify-app #contactModeModal .notify-flow-modal-center-brand::before {
+      content: '';
+      position: absolute;
+      inset: auto;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(260px, 88vw);
+      height: min(260px, 88vw);
+      max-height: clamp(140px, 36vh, 220px);
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 50% 50%,
+        rgba(229, 129, 71, 0.09) 0%,
+        rgba(229, 129, 71, 0.02) 45%,
+        transparent 72%
+      );
+      z-index: -1;
+    }
+
+    body.notify-app #contactModeModal .notify-flow-modal-center-brand .notify-flow-center-brand-img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: min(148px, 42vw);
+      max-height: clamp(96px, 26vw, 148px);
+      margin: 0 auto;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
+    }
+
     body.notify-app .modal-overlay.notify-flow-modal .notify-flow-sheet.emergency-gate-dialog {
       background: linear-gradient(165deg, #2a1a1a 0%, #1e1e1e 100%);
       border: 1px solid rgba(229, 57, 53, 0.4);
@@ -2083,15 +2128,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 18px;
     }
 
     body.notify-app .notify-session-terminal-brand {
-      height: clamp(42px, 11vw, 52px);
-      width: auto;
-      max-width: min(220px, 85%);
+      width: clamp(96px, 26vw, 128px);
+      height: clamp(96px, 26vw, 128px);
+      max-width: none;
       object-fit: contain;
-      filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.4));
+      filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.5));
     }
 
     body.notify-app .notify-session-terminal-icon-ring {
@@ -2994,7 +3039,7 @@
   {% csrf_token %}
   <!-- Header -->
   <header class="header sudo-app-header">
-    <a href="/" class="brand-logo" aria-label="SudoTag home">
+    <a href="https://sudotag.com/" class="brand-logo" aria-label="SudoTag home">
       <img src="{% url 'brand_logo_png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
     </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
@@ -3005,6 +3050,16 @@
     {% if vehicle_data %}
     {% if has_emergency_contact %}
     <div class="modal-overlay notify-flow-modal" id="contactModeModal" style="display: none;" aria-hidden="true">
+      <div class="notify-flow-modal-center-brand" aria-hidden="true">
+        <img
+          src="{% static 'images/sudomainlogo.png' %}"
+          alt=""
+          class="notify-flow-center-brand-img"
+          width="140"
+          height="140"
+          decoding="async"
+        />
+      </div>
       <div class="notify-flow-sheet contact-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="contactModeTitle">
         <div class="notify-sheet-handle" aria-hidden="true"></div>
         <p class="notify-flow-eyebrow">Step 1 of 2</p>
@@ -3384,10 +3439,10 @@
         <div class="notify-session-terminal-brand-row">
           <img
             class="notify-session-terminal-brand"
-            src="{% static 'assets/img/sudotag-logo.png' %}"
-            width="200"
-            height="52"
-            alt="SudoTag"
+            src="{% static 'images/sudomainlogo.png' %}"
+            width="128"
+            height="128"
+            alt=""
             decoding="async"
             fetchpriority="low"
           />
@@ -3526,7 +3581,7 @@
     const ownerPhone = '{{ owner_phone|default:"" }}';
     const callRegisterUrl = "{% url 'register_call_destination' %}";
     const notifyPageQrId = '{{ qr_id|default:""|escapejs }}';
-    const sudoTagHomeUrl = '{% url "index" %}';
+    const sudoTagHomeUrl = 'https://sudotag.com/';
     var SUDO_NOTIFY_TERMINAL_GATE =
       document.body && document.body.getAttribute('data-notify-terminal') === '1';
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
