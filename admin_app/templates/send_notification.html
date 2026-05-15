@@ -4,9 +4,12 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contact Vehicle Owner</title>
-  <link href="{% static 'assets/img/WhatsApp Image 2025-11-05 at 02.37.19_e40cf66b.jpg' %}" rel="apple-touch-icon">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1C1C1C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Contact Vehicle Owner | SudoTag</title>
+  <link href="{% static 'assets/img/sudotag-logo.png' %}" rel="apple-touch-icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -63,18 +66,27 @@
       --notification-red: #FF4500;
       --success-green: #4CAF50;
       --info-blue: #2196F3;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --app-max-width: 480px;
+      --touch-min: 52px;
     }
 
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
     }
 
     html,
     body {
-      height: 100%;
-      overflow: hidden;
+      min-height: 100%;
+      min-height: 100dvh;
     }
 
     body {
@@ -84,14 +96,21 @@
       display: flex;
       flex-direction: column;
       padding: 0;
-      overflow: hidden;
+      overflow-x: hidden;
       position: relative;
+    }
+
+    body.notify-app {
+      overflow-y: auto;
     }
 
     /* Header */
     .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
       background-color: var(--secondary-gray);
-      padding: 12px 0;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
       text-align: center;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       animation: fadeIn 0.8s ease-out;
@@ -99,16 +118,21 @@
     }
 
     .brand-logo {
-      font-size: 2.1rem;
-      font-weight: 700;
-      color: var(--accent-orange);
+      display: inline-block;
+      line-height: 0;
       text-decoration: none;
-      letter-spacing: 1px;
+      background: transparent;
+      border: none;
+      padding: 0;
     }
 
-    .brand-dot {
-      color: var(--text-white);
-      font-weight: 800;
+    .brand-logo-img {
+      display: block;
+      height: 56px;
+      width: auto;
+      max-width: min(260px, 85vw);
+      object-fit: contain;
+      mix-blend-mode: lighten;
     }
 
     .header-title {
@@ -264,12 +288,17 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 15px;
-      max-width: 500px;
+      padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      max-width: var(--app-max-width);
       margin: 0 auto;
       width: 100%;
       animation: slideUp 0.6s ease-out;
-      overflow-y: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .main-content:has(.sudo-bottom-dock) {
+      padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
     }
 
     /* Remove scrollbar */
@@ -285,11 +314,12 @@
     /* Vehicle Info */
     .vehicle-info {
       background-color: var(--secondary-gray);
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 16px;
       text-align: center;
       border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 5px 15px var(--shadow-color);
       animation: fadeIn 0.8s ease-out 0.2s both;
     }
 
@@ -403,47 +433,59 @@
     }
 
     .question-title {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.9);
-      text-align: center;
-      margin-bottom: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-white);
+      text-align: left;
+      margin-bottom: 12px;
+      line-height: 1.45;
     }
 
     /* Reasons List */
     .reasons-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 16px;
       animation: fadeIn 0.8s ease-out 0.4s both;
     }
 
     .reason-item {
       background-color: var(--secondary-gray);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 12px 15px;
+      border-radius: 12px;
+      padding: 14px 16px;
+      min-height: var(--touch-min);
       display: flex;
       align-items: center;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
     }
 
     .reason-item:hover {
       border-color: var(--accent-orange);
-      transform: translateY(-2px);
+    }
+
+    .reason-item:active {
+      transform: scale(0.99);
     }
 
     .reason-item.selected {
       background-color: rgba(229, 129, 71, 0.15);
       border-color: var(--accent-orange);
-      transform: translateY(-2px);
+    }
+
+    .reason-item i {
+      font-size: 1.25rem;
+      flex-shrink: 0;
     }
 
     .reason-text {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       color: var(--text-white);
-      margin-left: 10px;
+      margin-left: 12px;
+      line-height: 1.35;
+      flex: 1;
     }
 
     /* Custom Message */
@@ -456,21 +498,20 @@
     .custom-message {
       width: 100%;
       background-color: var(--secondary-gray);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 16px;
       color: var(--text-white);
       font-family: 'Poppins', sans-serif;
-      font-size: 0.85rem;
+      font-size: 16px;
       resize: none;
-      min-height: 80px;
-      transition: all 0.3s ease;
+      min-height: 100px;
+      transition: border-color 0.2s ease;
     }
 
     .custom-message:focus {
       outline: none;
       border-color: var(--accent-orange);
-      box-shadow: 0 0 0 2px rgba(229, 129, 71, 0.2);
     }
 
     .char-count {
@@ -519,74 +560,15 @@
       color: var(--text-white);
     }
 
-    /* Action Buttons - Horizontal Layout */
+    /* Action buttons — layout in sudo_mobile_flow.css */
     .action-buttons {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 0;
       animation: fadeIn 0.8s ease-out 0.5s both;
-      flex-wrap: wrap;
     }
 
-    .action-btn {
-      flex: 1;
-      padding: 12px 8px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      min-height: 70px;
-      text-align: center;
-    }
-
-    .push-btn {
-      background-color: var(--secondary-gray);
-      color: var(--text-white);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .push-btn:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      border-color: var(--accent-orange);
-      transform: translateY(-2px);
-    }
-
-    /* HIGHLIGHTED SMS button styling */
-    .sms-btn {
-      background-color: var(--accent-orange);
-      color: var(--text-white);
-      border: 1px solid var(--accent-orange);
-      box-shadow: 0 4px 12px rgba(229, 129, 71, 0.3);
-      transform: translateY(-2px);
-    }
-
-    .sms-btn:hover {
-      background-color: #D46C35;
-      transform: translateY(-3px);
-      box-shadow: 0 6px 16px rgba(229, 129, 71, 0.4);
-    }
-
-    /* Call routing (PBX bridge) */
-    /* Highlighted Call Owner button (same row as SMS / Push) */
-    .call-highlight-btn {
-      background: linear-gradient(135deg, #1E88E5 0%, #0D47A1 100%);
-      color: var(--text-white);
-      border: 1px solid rgba(100, 181, 246, 0.6);
-      box-shadow: 0 4px 18px rgba(30, 136, 229, 0.45);
-      transform: translateY(-2px);
-    }
-
-    .call-highlight-btn:hover {
-      background: linear-gradient(135deg, #42A5F5 0%, #1565C0 100%);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 22px rgba(30, 136, 229, 0.55);
+    body.sudo-mobile-flow .action-buttons .action-btn {
+      transform: none;
+      box-shadow: none;
     }
 
     .call-flow-dialog {
@@ -946,6 +928,22 @@
       color: #ffab91;
     }
 
+    .emergency-gate-sudo-notice {
+      font-size: 0.76rem;
+      line-height: 1.5;
+      color: #ffccbc;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      text-align: center;
+      border-radius: 12px;
+      background: rgba(183, 28, 28, 0.28);
+      border: 1px solid rgba(229, 57, 53, 0.45);
+    }
+
+    .emergency-gate-sudo-notice strong {
+      color: #ffab91;
+    }
+
     .emergency-gate-verify label {
       display: block;
       font-size: 0.8rem;
@@ -977,6 +975,10 @@
       font-size: 0.75rem;
       color: #ff8a80;
       margin-top: 6px;
+    }
+
+    .emergency-gate-error:empty {
+      display: none;
     }
 
     .emergency-gate-actions {
@@ -1175,20 +1177,39 @@
       background-color: var(--notification-red);
     }
 
-    /* Fullscreen loader overlay for wheel.json */
-    .full-loader-overlay {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.95));
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
+    /* Sending SMS / push: subtle dock + button spinner (no fullscreen Lottie) */
+    @keyframes notify-send-spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
-    .full-loader-container {
-      width: min(260px, 70vw);
-      height: min(260px, 70vw);
+    body.notify-app .notify-action-dock.notify-dock-sending {
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    body.notify-app .notify-dock-btn.is-sending {
+      position: relative;
+    }
+
+    body.notify-app .notify-dock-btn.is-sending .btn-text,
+    body.notify-app .notify-dock-btn.is-sending .btn-icon {
+      visibility: hidden;
+    }
+
+    body.notify-app .notify-dock-btn.is-sending::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      left: 50%;
+      top: 50%;
+      margin: -12px 0 0 -12px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.22);
+      border-top-color: rgba(255, 255, 255, 0.95);
+      animation: notify-send-spin 0.65s linear infinite;
     }
 
     /* Daily Limit Modal */
@@ -1446,21 +1467,17 @@
     /* Responsive Design */
     @media (max-width: 480px) {
       .main-content {
-        padding: 12px;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 12px;
+      }
+
+      .main-content:has(.sudo-bottom-dock) {
+        padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
       }
 
       .vehicle-info {
-        padding: 12px;
-      }
-
-      .plate-number {
-        font-size: 1.2rem;
-      }
-
-      .action-btn {
-        padding: 10px 6px;
-        font-size: 0.75rem;
-        min-height: 65px;
+        padding: 16px 14px;
       }
 
       .btn-icon {
@@ -1523,101 +1540,278 @@
         padding: 8px 4px;
       }
     }
+
+    /* Mobile app polish — same palette as activation flow */
+    @media (max-width: 360px) {
+      body.notify-app .brand-logo-img {
+        height: 50px;
+        max-width: min(240px, 88vw);
+      }
+    }
+
+    body.notify-app .plate-number {
+      font-size: 1.45rem;
+      letter-spacing: 0.12em;
+    }
+
+    body.notify-app .vehicle-model {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    body.notify-app .switch-contact-wrap {
+      margin-bottom: 16px;
+    }
+
+    body.notify-app .switch-contact-pill {
+      min-height: var(--touch-min);
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    body.notify-app .btn-icon {
+      font-size: 1.35rem;
+    }
+
+    body.notify-app .btn-text {
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
+
+    body.notify-app .contact-mode-dialog,
+    body.notify-app .emergency-gate-dialog,
+    body.notify-app .call-flow-dialog {
+      width: calc(100% - 24px);
+      max-width: var(--app-max-width);
+      margin: 12px auto;
+      border-radius: 20px 20px 0 0;
+    }
+
+    @media (min-width: 576px) {
+      body.notify-app .contact-mode-dialog,
+      body.notify-app .emergency-gate-dialog,
+      body.notify-app .call-flow-dialog {
+        border-radius: 20px;
+      }
+    }
+
+    body.notify-app .modal-overlay {
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    @media (min-width: 576px) {
+      body.notify-app .modal-overlay {
+        align-items: center;
+        padding: 16px;
+      }
+    }
+
+    body.notify-app .success-modal,
+    body.notify-app .daily-limit-modal {
+      width: calc(100% - 24px);
+      max-width: var(--app-max-width);
+      border-radius: 20px;
+    }
+
+    body.notify-app .emergency-gate-btn,
+    body.notify-app .success-modal-btn {
+      min-height: var(--touch-min);
+      font-size: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .action-buttons {
+        position: static;
+        transform: none;
+        left: auto;
+        max-width: none;
+        padding: 0;
+        margin-bottom: 15px;
+        background: none;
+        border-top: none;
+      }
+
+      .main-content:has(.action-buttons) {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .action-btn {
+        min-height: 70px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+  <link href="{% static 'assets/css/sudo_mobile_flow.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/sudo_notify_flow.css' %}" rel="stylesheet">
+  <style>
+    /* UI v2: layout in sudo_mobile_flow.css — keep CSS vars for modals/scripts */
+    :root {
+      --primary-block: #1C1C1C;
+      --accent-orange: #E58147;
+      --secondary-gray: #282828;
+      --text-white: #FFFFFF;
+      --notification-red: #FF4500;
+      --info-blue: #2196F3;
+    }
+    body.sudo-mobile-flow .reason-item,
+    body.sudo-mobile-flow .reason-item:hover,
+    body.sudo-mobile-flow .action-btn.sudo-dock-tile {
+      transform: none !important;
+    }
+    body.sudo-mobile-flow .sms-btn.sudo-dock-tile {
+      box-shadow: none !important;
+    }
+
+    body.sudo-mobile-flow.notify-app .sudo-bottom-dock .sudo-dock-tile.action-btn,
+    body.sudo-mobile-flow.notify-app .sudo-bottom-dock .sudo-dock-submit {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Flow modals — override legacy inline success/limit styles */
+    body.notify-app .success-modal.sudo-flow-modal,
+    body.notify-app .daily-limit-modal.sudo-flow-modal {
+      background: var(--secondary-gray) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.5) !important;
+      margin: 0 !important;
+      width: 100% !important;
+      max-width: none !important;
+      animation: none !important;
+    }
+
+    body.notify-app .success-modal .success-icon {
+      animation: none !important;
+    }
+
+    body.notify-app .success-modal-btn,
+    body.notify-app .daily-limit-modal-button {
+      background: var(--accent-orange) !important;
+      background-image: none !important;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25) !important;
+      letter-spacing: 0.02em !important;
+    }
+
+    body.notify-app .daily-limit-modal::after {
+      display: none !important;
+    }
   </style>
 </head>
 
-<body>
+<body class="notify-app sudo-mobile-flow">
   {% csrf_token %}
-  {% if vehicle_data and has_emergency_contact %}
-  <div class="modal-overlay" id="contactModeModal" style="display: none;" aria-hidden="true">
-    <div class="contact-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="contactModeTitle">
-      <h3 id="contactModeTitle">How do you want to reach out?</h3>
-      <div class="contact-mode-cards">
-        <button type="button" class="contact-mode-card contact-mode-card--emergency" id="chooseEmergencyContactBtn">
-          <span class="contact-mode-card-icon" aria-hidden="true"><i class="bi bi-heart-pulse-fill"></i></span>
-          <span class="contact-mode-card-title">Emergency Contact</span>
-        </button>
-        <button type="button" class="contact-mode-card contact-mode-card--owner-pick" id="chooseOwnerContactBtn">
-          <span class="contact-mode-card-icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></span>
-          <span class="contact-mode-card-title">Contact vehicle owner</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="emergencyGateModal" style="display: none;" aria-hidden="true">
-    <div class="emergency-gate-dialog" role="dialog" aria-modal="true" aria-labelledby="emergencyGateTitle">
-      <h3 id="emergencyGateTitle">Emergency contact only</h3>
-      <div class="emergency-gate-illustration" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 130" role="img" aria-labelledby="emergencyGateSvgTitle">
-          <title id="emergencyGateSvgTitle">Emergency — verify this vehicle</title>
-          <defs>
-            <linearGradient id="egSky" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#1e3a5f"/>
-              <stop offset="100%" stop-color="#0d1b2a"/>
-            </linearGradient>
-            <linearGradient id="egRoad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#455a64"/>
-              <stop offset="100%" stop-color="#263238"/>
-            </linearGradient>
-            <linearGradient id="egPulse" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#ff5252"/>
-              <stop offset="100%" stop-color="#b71c1c"/>
-            </linearGradient>
-          </defs>
-          <rect width="400" height="130" fill="url(#egSky)"/>
-          <circle cx="320" cy="36" r="28" fill="url(#egPulse)" opacity="0.95"/>
-          <path d="M320 22 L320 50 M306 36 L334 36" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
-          <text x="200" y="28" text-anchor="middle" fill="#e3f2fd" font-family="system-ui,sans-serif" font-size="13" font-weight="700">EMERGENCY USE</text>
-          <text x="200" y="46" text-anchor="middle" fill="#90caf9" font-family="system-ui,sans-serif" font-size="10">Confirm you are at this vehicle</text>
-          <rect x="0" y="82" width="400" height="48" fill="url(#egRoad)"/>
-          <rect x="0" y="98" width="400" height="4" fill="#fdd835" opacity="0.9"/>
-          <g transform="translate(72,52)">
-            <rect x="0" y="18" width="160" height="36" rx="6" fill="#37474f" stroke="#90a4ae" stroke-width="2"/>
-            <rect x="12" y="26" width="136" height="20" rx="3" fill="#eceff1"/>
-            <text x="80" y="41" text-anchor="middle" fill="#263238" font-family="monospace" font-size="11" font-weight="700">REG • • • ?</text>
-          </g>
-          <ellipse cx="260" cy="92" rx="22" ry="14" fill="#212121" opacity="0.9"/>
-          <ellipse cx="300" cy="92" rx="22" ry="14" fill="#212121" opacity="0.9"/>
-        </svg>
-      </div>
-      <p class="emergency-gate-legal">
-        <strong>This path is for genuine emergencies</strong> (for example: medical emergency, serious road incident, immediate safety risk involving this vehicle).
-        Do <strong>not</strong> use emergency contact for parking reminders, sales, pranks, harassment, or any non-emergency reason.
-        Misuse may be unlawful; you are responsible for your actions. SudoTag does not control how third parties respond.
-      </p>
-      <div class="emergency-gate-verify">
-        <label for="vehiclePlateLast4Input">Enter the <strong>last 4 characters</strong> of this vehicle’s <strong>registration number</strong> (letters and digits, as on the plate above), then continue.</label>
-        <input type="text" id="vehiclePlateLast4Input" name="vehicle_plate_last4" inputmode="text" autocomplete="off" maxlength="4" autocapitalize="characters" spellcheck="false" placeholder="e.g. 1234" aria-describedby="vehiclePlateLast4Error">
-        <p class="emergency-gate-error" id="vehiclePlateLast4Error" role="alert"></p>
-      </div>
-      <div class="emergency-gate-actions">
-        <button type="button" class="emergency-gate-btn emergency-gate-btn--primary" id="emergencyGateConfirmBtn">Validate &amp; continue</button>
-        <button type="button" class="emergency-gate-btn emergency-gate-btn--ghost" id="emergencyGateCancelBtn">Go back</button>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
   <!-- Header -->
-  <header class="header">
-    <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
+  <header class="header sudo-app-header">
+    <a href="/" class="brand-logo" aria-label="SudoTag home">
+      <img src="{% static 'assets/img/sudotag-logo.png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+    </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
   </header>
 
   <!-- Main Content -->
-  <main class="main-content">
+  <main class="main-content sudo-app-main notify-scroll-area">
     {% if vehicle_data %}
-    <!-- Vehicle Info -->
-    <div class="vehicle-info">
-      <div class="vehicle-model">{{ vehicle_data.make }} {{ vehicle_data.model }}</div>
+    <section class="vehicle-info notify-vehicle-card" aria-label="Vehicle details">
+      <h2 class="notify-vehicle-name">{{ vehicle_data.make }} {{ vehicle_data.model }}</h2>
       {% if vehicle_data.yearOfManufacturing %}
-      <div class="vehicle-year" style="font-size:0.85rem;opacity:0.85;margin-top:4px;">Year of Manufacturing: {{ vehicle_data.yearOfManufacturing }}</div>
+      <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
       {% endif %}
-      <div class="plate-number">{{ vehicle_data.registrationNumber }}</div>
+      <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
+    </section>
+
+    {% if has_emergency_contact %}
+    <div class="modal-overlay notify-flow-modal" id="contactModeModal" style="display: none;" aria-hidden="true">
+      <div class="notify-flow-sheet contact-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="contactModeTitle">
+        <div class="notify-sheet-handle" aria-hidden="true"></div>
+        <p class="notify-flow-eyebrow">Step 1 of 2</p>
+        <h2 class="notify-flow-title" id="contactModeTitle">Who are you contacting?</h2>
+        <p class="notify-flow-lead">Tap one option. You’ll pick a reason and contact method on the next screen.</p>
+
+        <div class="notify-mode-direct-actions">
+          <button type="button" class="notify-mode-direct-btn notify-mode-direct-btn--owner" id="chooseOwnerContactBtn">
+            <span class="notify-mode-direct-icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></span>
+            <span class="notify-mode-direct-text">
+              <span class="notify-mode-direct-title">Contact owner</span>
+              <span class="notify-mode-direct-desc">Call, SMS, or push after you choose a reason</span>
+            </span>
+            <span class="notify-mode-direct-chevron" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
+          </button>
+          <button type="button" class="notify-mode-direct-btn notify-mode-direct-btn--emergency" id="chooseEmergencyContactBtn">
+            <span class="notify-mode-direct-icon" aria-hidden="true"><i class="bi bi-heart-pulse-fill"></i></span>
+            <span class="notify-mode-direct-text">
+              <span class="notify-mode-direct-title">Emergency contact</span>
+              <span class="notify-mode-direct-desc">Verify plate, then call or SMS — urgent use only</span>
+            </span>
+            <span class="notify-mode-direct-chevron" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    {% if vehicle_data and has_emergency_contact %}
+    <div class="modal-overlay notify-flow-modal" id="emergencyGateModal" style="display: none;" aria-hidden="true">
+      <div class="notify-flow-sheet emergency-gate-dialog" role="dialog" aria-modal="true" aria-labelledby="emergencyGateTitle">
+        <div class="notify-sheet-handle" aria-hidden="true"></div>
+
+        <div class="emergency-gate-illustration" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 130" role="img" aria-labelledby="emergencyGateSvgTitle">
+            <title id="emergencyGateSvgTitle">Emergency — verify this vehicle</title>
+            <defs>
+              <linearGradient id="egSky" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#1e3a5f"/>
+                <stop offset="100%" stop-color="#0d1b2a"/>
+              </linearGradient>
+              <linearGradient id="egRoad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#455a64"/>
+                <stop offset="100%" stop-color="#263238"/>
+              </linearGradient>
+              <linearGradient id="egPulse" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff5252"/>
+                <stop offset="100%" stop-color="#b71c1c"/>
+              </linearGradient>
+            </defs>
+            <rect width="400" height="130" fill="url(#egSky)"/>
+            <circle cx="320" cy="36" r="28" fill="url(#egPulse)" opacity="0.95"/>
+            <path d="M320 22 L320 50 M306 36 L334 36" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+            <text x="200" y="28" text-anchor="middle" fill="#e3f2fd" font-family="system-ui,sans-serif" font-size="13" font-weight="700">EMERGENCY USE</text>
+            <text x="200" y="46" text-anchor="middle" fill="#90caf9" font-family="system-ui,sans-serif" font-size="10">Confirm you are at this vehicle</text>
+            <rect x="0" y="82" width="400" height="48" fill="url(#egRoad)"/>
+            <rect x="0" y="98" width="400" height="4" fill="#fdd835" opacity="0.9"/>
+            <g transform="translate(72,52)">
+              <rect x="0" y="18" width="160" height="36" rx="6" fill="#37474f" stroke="#90a4ae" stroke-width="2"/>
+              <rect x="12" y="26" width="136" height="20" rx="3" fill="#eceff1"/>
+              <text x="80" y="41" text-anchor="middle" fill="#263238" font-family="monospace" font-size="11" font-weight="700">REG • • • ?</text>
+            </g>
+            <ellipse cx="260" cy="92" rx="22" ry="14" fill="#212121" opacity="0.9"/>
+            <ellipse cx="300" cy="92" rx="22" ry="14" fill="#212121" opacity="0.9"/>
+          </svg>
+        </div>
+
+        <p class="emergency-gate-sudo-notice" role="note"><strong>SudoTag</strong> emergency contact is strictly for urgent safety situations involving this vehicle. Do not misuse this channel.</p>
+
+        <h3 id="emergencyGateTitle">Emergency contact only</h3>
+
+        <p class="emergency-gate-legal">
+          <strong>This path is for genuine emergencies</strong> (for example: medical emergency, serious road incident, immediate safety risk involving this vehicle).
+          Do <strong>not</strong> use emergency contact for parking reminders, sales, pranks, harassment, or any non-emergency reason.
+          Misuse may be unlawful; you are responsible for your actions. <strong>SudoTag</strong> does not control how third parties respond.
+        </p>
+
+        <div class="emergency-gate-verify">
+          <label for="vehiclePlateLast4Input">Enter the <strong>last 4 characters</strong> of this vehicle’s <strong>registration number</strong> (letters and digits, as shown on the physical plate on this vehicle only), then validate to continue.</label>
+          <input type="text" id="vehiclePlateLast4Input" name="vehicle_plate_last4" inputmode="text" autocomplete="off" maxlength="4" autocapitalize="characters" spellcheck="false" placeholder="e.g. AB12" aria-describedby="vehiclePlateLast4Error">
+          <p class="emergency-gate-error" id="vehiclePlateLast4Error" role="alert"></p>
+        </div>
+
+        <div class="emergency-gate-actions">
+          <button type="button" class="emergency-gate-btn emergency-gate-btn--primary" id="emergencyGateConfirmBtn">Validate &amp; continue</button>
+          <button type="button" class="emergency-gate-btn emergency-gate-btn--ghost" id="emergencyGateCancelBtn">Go back</button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if has_emergency_contact %}
     <div class="switch-contact-wrap" id="switchContactWrap" hidden style="display: none;">
       <p class="switch-contact-hint">Change who you’re contacting</p>
       <div class="switch-contact-actions">
@@ -1635,12 +1829,17 @@
 
     <div id="ownerNotifySection">
     {% if scanner_has_any_channel %}
-    <!-- Question Section -->
+    <section class="notify-flow-step-banner" id="notifyMainStepBanner">
+      <span class="notify-flow-step-kicker">Step 2</span>
+      <span class="notify-flow-step-line" id="notifyMainStepLine">
+        Choose a reason below, then swipe up the bottom bar to enter your number and send.
+      </span>
+    </section>
+    <section class="notify-reasons-panel" aria-labelledby="notifyReasonsHeading">
     <div class="question-section">
-      <p class="question-title">Why would you like to contact the vehicle owner?</p>
+      <p class="question-title" id="notifyReasonsHeading">Why would you like to contact the vehicle owner?</p>
     </div>
 
-    <!-- Reasons List -->
     <div class="reasons-list">
       <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on')">
         <i class="bi bi-lightbulb-fill" style="color: var(--accent-orange);"></i>
@@ -1688,6 +1887,7 @@
         maxlength="200"></textarea>
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>
+    </section>
 
     {% if service_status_lines %}
     <aside class="scanner-service-status" role="status" aria-live="polite">
@@ -1705,27 +1905,6 @@
     </aside>
     {% endif %}
 
-    <!-- Action Buttons: Call highlighted first, then SMS / Push -->
-    <div class="action-buttons">
-      {% if call_register_ready or emergency_call_ready %}
-      <button type="button" class="action-btn call-highlight-btn" id="callMainBtn" title="Call">
-        <i class="bi bi-telephone-fill btn-icon"></i>
-        <span class="btn-text" id="callMainBtnLabel">Call Owner</span>
-      </button>
-      {% endif %}
-      {% if owner_sms_ready or emergency_sms_ready %}
-      <button class="action-btn sms-btn" id="smsBtn">
-        <i class="bi bi-chat-text-fill btn-icon"></i>
-        <span class="btn-text" id="smsBtnLabel">Send SMS</span>
-      </button>
-      {% endif %}
-      {% if push_ready %}
-      <button class="action-btn push-btn" id="pushBtn">
-        <i class="bi bi-bell-fill btn-icon"></i>
-        <span class="btn-text">Push Notification</span>
-      </button>
-      {% endif %}
-    </div>
     {% else %}
     <div class="scanner-all-services-off" role="status">
       <i class="bi bi-slash-circle scanner-all-services-off-icon" aria-hidden="true"></i>
@@ -1748,60 +1927,98 @@
     {% endif %}
   </main>
 
+  {% if vehicle_data and scanner_has_any_channel %}
+  <footer class="notify-action-dock" id="notifyActionDock" role="region" aria-label="Contact actions" aria-hidden="true">
+    <div class="notify-dock-panel">
+      <div class="notify-sheet-handle" aria-hidden="true"></div>
+      <p class="notify-dock-phase" id="notifyDockPhaseHint">Your number → Call / SMS / Push</p>
+      <p class="notify-dock-mode" id="notifyDockModeLabel">Contact vehicle owner</p>
+      <p class="notify-dock-hint" id="notifyDockReasonHint">Select a reason above to send SMS or push notification.</p>
+      <div class="notify-dock-summary" id="notifyDockSummary">
+        <span class="notify-dock-summary-kicker">Selected reason</span>
+        <p class="notify-dock-summary-text" id="notifySelectedReasonText">—</p>
+      </div>
+      <div id="callFlowEmergencyPlateWrap" class="notify-dock-field notify-dock-plate" hidden style="display: none;">
+        <label class="notify-field-label" for="callFlowPlateInput">Last 4 digits of plate</label>
+        <input type="text" class="notify-field-input call-flow-plate-input" id="callFlowPlateInput"
+          inputmode="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
+          placeholder="e.g. 6001" aria-describedby="callFlowPlateError">
+        <p class="notify-field-error" id="callFlowPlateError" role="alert"></p>
+      </div>
+      <div class="notify-dock-field notify-dock-phone" id="notifyDockPhoneBlock">
+        <label class="notify-field-label" for="callerPhoneInput">Your mobile number</label>
+        <div class="notify-phone-row">
+          <span class="notify-phone-prefix" aria-hidden="true">+91</span>
+          <input type="tel" inputmode="numeric" class="notify-field-input" id="callerPhoneInput" maxlength="10"
+            placeholder="10-digit mobile" autocomplete="tel-national" aria-label="Your 10-digit mobile number">
+        </div>
+        <p class="notify-field-error" id="callRouteError" role="alert"></p>
+      </div>
+      <div class="notify-dock-actions">
+      {% if call_register_ready or emergency_call_ready %}
+      <button type="button" class="action-btn call-highlight-btn notify-dock-btn" id="callMainBtn" title="Call">
+        <i class="bi bi-telephone-fill btn-icon" aria-hidden="true"></i>
+        <span class="btn-text" id="callMainBtnLabel">Call Owner</span>
+      </button>
+      {% endif %}
+      {% if owner_sms_ready or emergency_sms_ready %}
+      <button type="button" class="action-btn sms-btn notify-dock-btn" id="smsBtn">
+        <i class="bi bi-chat-text-fill btn-icon" aria-hidden="true"></i>
+        <span class="btn-text" id="smsBtnLabel">Send SMS</span>
+      </button>
+      {% endif %}
+      {% if push_ready %}
+      <button type="button" class="action-btn push-btn notify-dock-btn" id="pushBtn">
+        <i class="bi bi-bell-fill btn-icon" aria-hidden="true"></i>
+        <span class="btn-text">Push Notification</span>
+      </button>
+      {% endif %}
+      </div>
+      <button type="button" class="notify-dock-dismiss" id="notifyDockDismiss">Change reason</button>
+    </div>
+  </footer>
+  {% endif %}
+
   <!-- Success Modal -->
   <div class="modal-overlay" id="successModal">
-    <div class="success-modal">
-      <div class="success-icon" id="successIcon">
-        <i class="bi bi-check-circle-fill"></i>
-      </div>
-      <h3 class="success-title" id="successTitle">Notification sent</h3>
+    <div class="success-modal sudo-flow-modal" role="dialog" aria-labelledby="successTitle" aria-describedby="successMessage">
+      <div class="sudo-flow-modal-hero">
+        <div class="sudo-flow-icon-wrap sudo-flow-icon-wrap--success">
+          <div class="success-icon" id="successIcon">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+        </div>
+        <p class="sudo-flow-eyebrow" id="successEyebrow">Complete</p>
+        <h3 class="success-title" id="successTitle">Notification sent</h3>
       <p class="success-text" id="successMessage">Your notification was delivered.</p>
 
-      <button type="button" class="success-modal-btn" id="continueBtn">
-        OK
+      </div>
+      <button type="button" class="success-modal-btn sudo-flow-modal-btn--primary" id="continueBtn">
+        <i class="bi bi-check-lg" aria-hidden="true"></i>
+        Done
       </button>
     </div>
   </div>
 
-  <!-- Call flow: register routing, then open system dialer with DID (tel:) -->
-  <div class="modal-overlay" id="callFlowModal" style="display: none;">
-    <div class="call-flow-dialog" id="callFlowDialogInner" role="dialog" aria-labelledby="callFlowTitle">
-      <h3 id="callFlowTitle"><i class="bi bi-telephone-outbound-fill" aria-hidden="true"></i><span id="callFlowTitleText"> Call the owner</span></h3>
-      <div id="callFlowEmergencyPlateWrap" class="call-flow-emergency-plate" style="display: none;" hidden>
-        <label class="call-route-label" for="callFlowPlateInput">Enter last 4 characters of registration (as on the plate)</label>
-        <input type="text" class="call-route-input call-flow-plate-input" id="callFlowPlateInput"
-          inputmode="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
-          placeholder="As shown on the vehicle" autocomplete="off" spellcheck="false" maxlength="24"
-          aria-describedby="callFlowPlateError" inputmode="text">
-        <p class="call-flow-plate-error" id="callFlowPlateError" role="alert"></p>
-      </div>
-      <label class="call-route-label" for="callerPhoneInput">Your mobile number</label>
-      <input type="tel" inputmode="numeric" class="call-route-input" id="callerPhoneInput" maxlength="10"
-        placeholder="Your mobile number" autocomplete="tel-national"
-        aria-label="Your mobile number">
-      <div class="call-route-error-wrap">
-        <p class="call-route-error" id="callRouteError" role="alert"></p>
-      </div>
-      <div class="call-flow-actions">
-        <button type="button" class="action-btn call-highlight-btn" id="callPrepareBtn">
-          <i class="bi bi-telephone-fill btn-icon"></i>
-          <span class="btn-text">Call now</span>
-        </button>
-        <button type="button" class="action-btn push-btn" id="callModalClose">
-          <i class="bi bi-x-lg btn-icon"></i>
-          <span class="btn-text">Close</span>
-        </button>
-      </div>
+  <div id="callFlowModal" class="notify-call-modal-legacy" style="display: none;" aria-hidden="true">
+    <div id="callFlowDialogInner" hidden>
+      <span id="callFlowTitle" class="visually-hidden"><span id="callFlowTitleText">Call</span></span>
+      <button type="button" id="callPrepareBtn" hidden tabindex="-1">Call</button>
+      <button type="button" id="callModalClose" hidden tabindex="-1">Close</button>
     </div>
   </div>
 
   <!-- Error Details Modal -->
   <div class="modal-overlay" id="errorModal">
-    <div class="success-modal">
-      <h3 class="success-title" style="color: var(--notification-red);">
-        <i class="bi bi-exclamation-triangle-fill"></i> Unable to Send
-      </h3>
-      <p class="success-text" id="errorMainMessage">There was an issue sending your notification.</p>
+    <div class="success-modal sudo-flow-modal" role="alertdialog" aria-labelledby="errorModalTitle">
+      <div class="sudo-flow-modal-hero">
+        <div class="sudo-flow-icon-wrap sudo-flow-icon-wrap--error">
+          <div class="success-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        </div>
+        <p class="sudo-flow-eyebrow sudo-flow-eyebrow--error">Unable to send</p>
+        <h3 class="success-title" id="errorModalTitle">Notification failed</h3>
+        <p class="success-text" id="errorMainMessage">There was an issue sending your notification.</p>
+      </div>
 
       <div class="error-details">
         <div class="error-title" id="errorTitle">Error Details</div>
@@ -1813,19 +2030,27 @@
         <div class="suggestion-text" id="suggestionText">Please try a different notification method.</div>
       </div>
 
-      <div class="phone-actions" style="margin-top: 15px; display: flex; gap: 10px;">
-        <button class="action-btn push-btn" id="errorCloseBtn" style="min-height: 45px;">Close</button>
-        <button class="action-btn sms-btn" id="errorRetryBtn" style="min-height: 45px;">Try Again</button>
+      <div class="phone-actions sudo-flow-modal-actions">
+        <button type="button" class="action-btn sms-btn sudo-flow-modal-btn--primary" id="errorRetryBtn">
+          <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+          Try again
+        </button>
+        <button type="button" class="action-btn push-btn sudo-flow-modal-btn--secondary" id="errorCloseBtn">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+          Close
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Daily Limit Modal -->
   <div class="modal-overlay" id="dailyLimitModal">
-    <div class="daily-limit-modal">
+    <div class="daily-limit-modal sudo-flow-modal" role="alertdialog" aria-labelledby="limitModalTitle">
       <div class="daily-limit-header">
-        <div class="daily-limit-modal-icon" id="limitModalIcon">
-          <i class="bi bi-exclamation-triangle-fill"></i>
+        <div class="sudo-flow-icon-wrap sudo-flow-icon-wrap--warn">
+          <div class="daily-limit-modal-icon" id="limitModalIcon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
         </div>
         <div class="daily-limit-content">
           <h3 class="daily-limit-modal-title" id="limitModalTitle">Daily Limit Reached</h3>
@@ -1854,8 +2079,10 @@
       </div>
 
       <div class="daily-limit-modal-subcopy" id="limitModalSubcopy"></div>
-      <button class="action-btn sms-btn daily-limit-modal-button" id="limitModalClose" style="min-height: auto;">Got
-        it</button>
+      <button type="button" class="success-modal-btn sudo-flow-modal-btn--primary daily-limit-modal-button" id="limitModalClose">
+        <i class="bi bi-check-lg" aria-hidden="true"></i>
+        Got it
+      </button>
     </div>
   </div>
 
@@ -1865,15 +2092,8 @@
     <span id="toastMessage">Notification sent successfully!</span>
   </div>
 
-  <!-- Fullscreen Loader -->
-  <div class="full-loader-overlay" id="fullLoader">
-    <div class="full-loader-container" id="fullLoaderContainer"></div>
-  </div>
-
   <!-- Vendor JS Files -->
   <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <!-- Lottie for wheel loader -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
 
   <script>
     // Owner's phone number from backend
@@ -1985,17 +2205,86 @@
     let selectedReason = '';
     let selectedMethod = '';
     let lastNotificationData = null;
+    var dockChannels = { call: false, sms: false, push: false };
+
+    function requireSelectedReasonForMessaging() {
+      if (!selectedReason) {
+        showToast('Select a reason first to send SMS or push notification', 'error');
+        return false;
+      }
+      if (selectedReason === 'custom' && customMessage && customMessage.value.trim() === '') {
+        showToast('Please type your message', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    function syncNotifyDockChannels() {
+      if (contactMode === 'emergency') {
+        var ed = String(emergencyDestinationDigits || '').replace(/\D/g, '');
+        dockChannels.call = !!(emergencyCallReady && ed.length === 10);
+        dockChannels.sms = !!emergencySmsReady;
+        dockChannels.push = false;
+        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call emergency contact';
+        if (smsBtnLabel) smsBtnLabel.textContent = 'SMS emergency contact';
+      } else {
+        var digits = String(ownerDestinationDigits || '').replace(/\D/g, '');
+        dockChannels.call = !!(ownerCallReady && digits && digits.length === 10);
+        dockChannels.sms = !!ownerSmsReady;
+        dockChannels.push = !!pushReady;
+        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call Owner';
+        if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
+      }
+
+      var hasReason = !!selectedReason;
+      var dock = document.getElementById('notifyActionDock');
+      if (dock) {
+        dock.classList.toggle('notify-dock--call-only', !hasReason);
+      }
+      var summary = document.getElementById('notifyDockSummary');
+      var hint = document.getElementById('notifyDockReasonHint');
+      if (summary) {
+        summary.style.display = hasReason ? '' : 'none';
+      }
+      if (hint) {
+        hint.hidden = hasReason;
+      }
+      if (callMainBtn) {
+        callMainBtn.style.display = dockChannels.call ? 'flex' : 'none';
+      }
+      if (smsBtn) {
+        smsBtn.style.display = dockChannels.sms && hasReason ? 'flex' : 'none';
+      }
+      if (pushBtn) {
+        pushBtn.style.display = dockChannels.push && hasReason ? 'flex' : 'none';
+      }
+    }
+
+    function updateNotifyModalLock() {
+      var gate = document.getElementById('emergencyGateModal');
+      var mode = document.getElementById('contactModeModal');
+      var locked =
+        (gate && gate.style.display === 'flex') ||
+        (mode && mode.style.display === 'flex');
+      document.body.classList.toggle('notify-modal-lock', locked);
+      if (locked) {
+        closeNotifyDock();
+      }
+    }
 
     function openContactModeModal() {
       if (!contactModeModal) return;
+      closeNotifyDock();
       contactModeModal.style.display = 'flex';
       contactModeModal.setAttribute('aria-hidden', 'false');
+      updateNotifyModalLock();
     }
 
     function closeContactModeModal() {
       if (!contactModeModal) return;
       contactModeModal.style.display = 'none';
       contactModeModal.setAttribute('aria-hidden', 'true');
+      updateNotifyModalLock();
     }
 
     function ensureContactTargetSelected() {
@@ -2025,6 +2314,7 @@
       if (err) err.textContent = '';
       var inp = document.getElementById('vehiclePlateLast4Input');
       if (inp) inp.value = '';
+      updateNotifyModalLock();
     }
 
     function openEmergencyGateModal(onVerified) {
@@ -2034,6 +2324,7 @@
         if (typeof onVerified === 'function') onVerified();
         return;
       }
+      closeNotifyDock();
       pendingEmergencyCallback = (typeof onVerified === 'function') ? onVerified : null;
       var err = document.getElementById('vehiclePlateLast4Error');
       if (err) err.textContent = '';
@@ -2041,9 +2332,23 @@
       if (inp) inp.value = '';
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
+      updateNotifyModalLock();
       setTimeout(function () {
         if (inp) inp.focus();
       }, 120);
+    }
+
+    function isNotifyDockBlocked() {
+      if (document.body.classList.contains('notify-modal-lock')) {
+        return true;
+      }
+      if (hasEmergencyContact && !contactMode) {
+        return true;
+      }
+      if (contactMode === 'emergency' && !emergencyContactConfirmed) {
+        return true;
+      }
+      return false;
     }
 
     function syncMainSections() {
@@ -2093,46 +2398,48 @@
     function dismissCallFlowModal() {
       clearCallRouteError();
       clearCallFlowPlateError();
-      var pci = document.getElementById('callFlowPlateInput');
-      if (pci) pci.value = '';
-      if (callerPhoneInput) callerPhoneInput.value = '';
-      setCallFlowDialogEmergencyVisual(false);
-      if (callFlowModal) callFlowModal.style.display = 'none';
+    }
 
-      if (hasEmergencyContact && contactMode === 'emergency') {
-        contactMode = 'owner';
-        emergencyContactConfirmed = false;
-        vehiclePlateLast4VerifiedValue = '';
-        syncContactModeUi();
+    function closeNotifyDock() {
+      var dock = document.getElementById('notifyActionDock');
+      if (dock) {
+        dock.classList.remove('is-open');
+        dock.setAttribute('aria-hidden', 'true');
+      }
+      if (typeof window.updateNotifyDockPadding === 'function') {
+        window.updateNotifyDockPadding();
+      }
+    }
+
+    function openNotifyDock() {
+      if (isNotifyDockBlocked()) {
+        closeNotifyDock();
+        return;
+      }
+      var dock = document.getElementById('notifyActionDock');
+      if (!dock) return;
+      syncNotifyDockChannels();
+      dock.classList.add('is-open');
+      dock.removeAttribute('aria-hidden');
+      syncEmergencyPlateWrapInCallModal();
+      if (typeof window.updateNotifyDockPadding === 'function') {
+        requestAnimationFrame(window.updateNotifyDockPadding);
       }
     }
 
     function openCallFlowModal() {
       clearCallRouteError();
       clearCallFlowPlateError();
-      if (contactMode === 'emergency') {
-        var pc = document.getElementById('callFlowPlateInput');
-        if (pc) pc.value = '';
-      }
-      if (callerPhoneInput) callerPhoneInput.value = '';
       syncEmergencyPlateWrapInCallModal();
-      setCallFlowDialogEmergencyVisual(contactMode === 'emergency');
-      if (!callFlowModal) return;
-      callFlowModal.style.display = 'flex';
+      openNotifyDock();
       setTimeout(function () {
-        if (contactMode === 'emergency') {
-          if (isEmergencyPlateGateSatisfied()) {
-            if (callerPhoneInput) {
-              callerPhoneInput.focus();
-            }
-          } else {
-            var plateEl = document.getElementById('callFlowPlateInput');
-            if (plateEl) plateEl.focus();
-          }
+        if (contactMode === 'emergency' && !isEmergencyPlateGateSatisfied()) {
+          var plateEl = document.getElementById('callFlowPlateInput');
+          if (plateEl) plateEl.focus();
         } else if (callerPhoneInput) {
           callerPhoneInput.focus();
         }
-      }, 120);
+      }, 200);
     }
 
     function syncContactModeUi() {
@@ -2172,33 +2479,36 @@
         }
       }
 
+      var dockModeLabel = document.getElementById('notifyDockModeLabel');
+      if (dockModeLabel) {
+        dockModeLabel.textContent = contactMode === 'emergency'
+          ? 'Emergency contact'
+          : 'Contact vehicle owner';
+      }
+
       if (callFlowTitleText) {
         callFlowTitleText.textContent = contactMode === 'emergency'
           ? ' Emergency Contact'
           : ' Call the owner';
       }
 
-      if (contactMode === 'emergency') {
-        var ed = String(emergencyDestinationDigits || '').replace(/\D/g, '');
-        var showCallEmerg = !!(emergencyCallReady && ed.length === 10);
-        if (callMainBtn) callMainBtn.style.display = showCallEmerg ? 'flex' : 'none';
-        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call emergency contact';
-        if (smsBtn) smsBtn.style.display = emergencySmsReady ? 'flex' : 'none';
-        if (smsBtnLabel) smsBtnLabel.textContent = 'SMS emergency contact';
-        if (pushBtn) pushBtn.style.display = 'none';
-        return;
+      var stepLine = document.getElementById('notifyMainStepLine');
+      var phaseHint = document.getElementById('notifyDockPhaseHint');
+      if (stepLine) {
+        stepLine.textContent =
+          hasEmergencyContact && contactMode === 'emergency'
+            ? 'You can call anytime from the bottom bar. To send SMS, pick a reason above first, then open the bar.'
+            : 'Choose a reason below, then swipe up the bottom bar to enter your number and send.';
+      }
+      if (phaseHint) {
+        phaseHint.textContent =
+          hasEmergencyContact && contactMode === 'emergency'
+            ? 'Your number → emergency call or SMS'
+            : 'Your number → Call / SMS / Push';
       }
 
-      var digits = String(ownerDestinationDigits || '').replace(/\D/g, '');
-      var showCallOwner = !!(ownerCallReady && digits && digits.length === 10);
-      if (callMainBtn) callMainBtn.style.display = showCallOwner ? 'flex' : 'none';
-      if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call Owner';
-
-      if (smsBtn) smsBtn.style.display = ownerSmsReady ? 'flex' : 'none';
-      if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
-      if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
-
-      if (pushBtn) pushBtn.style.display = pushReady ? 'flex' : 'none';
+      syncEmergencyPlateWrapInCallModal();
+      syncNotifyDockChannels();
     }
 
     document.addEventListener('visibilitychange', function () {
@@ -2219,6 +2529,17 @@
 
       if (customMessageContainer) customMessageContainer.style.display = 'none';
 
+      function updateNotifyDockPadding() {
+        var dock = document.getElementById('notifyActionDock');
+        var scroll = document.querySelector('.notify-scroll-area');
+        if (!dock || !scroll) return;
+        var pad = dock.classList.contains('is-open') ? dock.offsetHeight + 16 : 20;
+        document.documentElement.style.setProperty('--notify-dock-pad', pad + 'px');
+      }
+
+      window.updateNotifyDockPadding = updateNotifyDockPadding;
+      window.addEventListener('resize', updateNotifyDockPadding);
+
       if (customMessage && charCount) {
         customMessage.addEventListener('input', function () {
           charCount.textContent = this.value.length;
@@ -2237,8 +2558,13 @@
         contactMode = 'owner';
       }
       syncContactModeUi();
+      updateNotifyModalLock();
+      if (contactMode && !isNotifyDockBlocked()) {
+        openNotifyDock();
+      }
 
       function startEmergencyContactCallFlow() {
+        closeNotifyDock();
         var dest = String(emergencyDestinationDigits || '').replace(/\D/g, '');
         if (dest.length !== 10) {
           showToast('Emergency contact isn’t available for this vehicle.', 'error');
@@ -2265,33 +2591,12 @@
           });
           return;
         }
-        function afterEmergencyGateOk() {
-          if (emergencyCallReady) {
-            if (contactMode === 'emergency') {
-              openCallFlowModal();
-              return;
-            }
-            contactMode = 'emergency';
-            closeContactModeModal();
-            closeEmergencyGateModal();
-            syncContactModeUi();
-            setTimeout(function () {
-              openCallFlowModal();
-            }, 180);
-            return;
-          }
-          if (emergencySmsReady) {
-            contactMode = 'emergency';
-            closeContactModeModal();
-            closeEmergencyGateModal();
-            syncContactModeUi();
-            return;
-          }
-          showToast('Emergency contact isn’t available for this vehicle.', 'error');
-        }
-        afterEmergencyGateOk();
+        contactMode = 'emergency';
+        closeContactModeModal();
+        closeEmergencyGateModal();
+        syncContactModeUi();
+        openNotifyDock();
       }
-
       var emergencyGateConfirmBtn = document.getElementById('emergencyGateConfirmBtn');
       var emergencyGateCancelBtn = document.getElementById('emergencyGateCancelBtn');
       var vehiclePlateLast4Field = document.getElementById('vehiclePlateLast4Input');
@@ -2347,6 +2652,7 @@
           vehiclePlateLast4VerifiedValue = '';
           closeContactModeModal();
           syncContactModeUi();
+          openNotifyDock();
         });
       }
 
@@ -2360,10 +2666,28 @@
           vehiclePlateLast4VerifiedValue = '';
           closeContactModeModal();
           syncContactModeUi();
+          openNotifyDock();
         });
       }
       if (quickSwitchEmergencyBtn) {
         quickSwitchEmergencyBtn.addEventListener('click', startEmergencyContactCallFlow);
+      }
+
+      var notifyDockDismiss = document.getElementById('notifyDockDismiss');
+      if (notifyDockDismiss) {
+        notifyDockDismiss.addEventListener('click', function () {
+          selectedReason = '';
+          document.querySelectorAll('.reason-item').forEach(function (item) {
+            item.classList.remove('selected');
+          });
+          if (customMessageContainer) customMessageContainer.style.display = 'none';
+          if (customMessage) customMessage.value = '';
+          if (charCount) charCount.textContent = '0';
+          var rt = document.getElementById('notifySelectedReasonText');
+          if (rt) rt.textContent = '—';
+          closeNotifyDock();
+          syncNotifyDockChannels();
+        });
       }
     });
 
@@ -2385,6 +2709,23 @@
       } else {
         if (customMessageContainer) customMessageContainer.style.display = 'none';
       }
+
+      var reasonText = document.getElementById('notifySelectedReasonText');
+      if (reasonText) {
+        reasonText.textContent = reason === 'custom' ? 'Other — type your message above' : reason;
+      }
+      syncNotifyDockChannels();
+      if (!isNotifyDockBlocked()) {
+        openNotifyDock();
+        requestAnimationFrame(function () {
+          if (typeof window.updateNotifyDockPadding === 'function') {
+            window.updateNotifyDockPadding();
+          }
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      } else {
+        closeNotifyDock();
+      }
     }
 
     // Push notification button click
@@ -2393,14 +2734,7 @@
         if (!ensureContactTargetSelected()) {
           return;
         }
-        if (!selectedReason) {
-          showToast('Please select a reason first', 'error');
-          return;
-        }
-
-        // If custom reason is selected but no message
-        if (selectedReason === 'custom' && customMessage.value.trim() === '') {
-          showToast('Please type your message', 'error');
+        if (!requireSelectedReasonForMessaging()) {
           return;
         }
 
@@ -2499,10 +2833,11 @@
       callFlowPlateInputBind.addEventListener('focus', clearCallFlowPlateError);
     }
 
-    if (callMainBtn && callFlowModal) {
+    if (callMainBtn) {
       callMainBtn.addEventListener('click', function () {
         if (!ensureContactTargetSelected()) return;
-        openCallFlowModal();
+        openNotifyDock();
+        if (callPrepareBtn) callPrepareBtn.click();
       });
     }
 
@@ -2564,6 +2899,8 @@
 
           selectedMethod = 'call';
           callPrepareBtn.disabled = true;
+          setNotifyDockSending(true);
+          if (callMainBtn) callMainBtn.disabled = true;
 
           fetch(callRegisterUrl, {
             method: 'POST',
@@ -2609,6 +2946,8 @@
             })
             .finally(function () {
               callPrepareBtn.disabled = false;
+              setNotifyDockSending(false);
+              if (callMainBtn) callMainBtn.disabled = false;
             });
         }
 
@@ -2645,14 +2984,7 @@
     if (smsBtn) {
       smsBtn.addEventListener('click', function () {
         if (!ensureContactTargetSelected()) return;
-        if (!selectedReason) {
-          showToast('Please select a reason first', 'error');
-          return;
-        }
-        if (selectedReason === 'custom' && customMessage.value.trim() === '') {
-          showToast('Please type your message', 'error');
-          return;
-        }
+        if (!requireSelectedReasonForMessaging()) return;
 
         selectedMethod = 'sms';
         sendNotificationDirectly();
@@ -2757,6 +3089,25 @@
       sendNotification(messageToSend);
     }
 
+    /** SMS / push / call: light loading on bottom sheet (no fullscreen wheel.json). */
+    function setNotifyDockSending(on) {
+      var dock = document.getElementById('notifyActionDock');
+      document.querySelectorAll('#notifyActionDock .notify-dock-btn.is-sending').forEach(function (btn) {
+        btn.classList.remove('is-sending');
+      });
+      if (dock) {
+        dock.classList.toggle('notify-dock-sending', !!on);
+      }
+      if (!on) return;
+      var sp = null;
+      if (selectedMethod === 'sms') sp = smsBtn;
+      else if (selectedMethod === 'push') sp = pushBtn;
+      else if (selectedMethod === 'call') sp = callMainBtn;
+      if (sp && sp.classList && sp.classList.contains('notify-dock-btn')) {
+        sp.classList.add('is-sending');
+      }
+    }
+
     // Function to send notification to server
     function sendNotification(message) {
       if (!ensureContactTargetSelected()) {
@@ -2784,31 +3135,11 @@
         return;
       }
 
-      // Show fullscreen loading overlay using wheel.json animation
-      const fullLoader = document.getElementById('fullLoader');
-      const fullLoaderContainer = document.getElementById('fullLoaderContainer');
-      const activeButton = getActiveButton();
-
+      var activeButton = getActiveButton();
       if (activeButton) {
         activeButton.disabled = true;
       }
-
-      if (fullLoader && fullLoaderContainer && window.lottie) {
-        fullLoader.style.display = 'flex';
-
-        // Clean up any previous animation
-        if (window.currentFullLoaderAnimation) {
-          window.currentFullLoaderAnimation.destroy();
-        }
-
-        window.currentFullLoaderAnimation = lottie.loadAnimation({
-          container: fullLoaderContainer,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          path: '{% static "images/wheel.json" %}'
-        });
-      }
+      setNotifyDockSending(true);
 
       fetch('', {
         method: 'POST',
@@ -2973,21 +3304,10 @@
           );
         })
         .finally(() => {
-          // Reset button state and hide fullscreen loader
-          const activeButton = getActiveButton();
-          const fullLoader = document.getElementById('fullLoader');
-
-          if (window.currentFullLoaderAnimation) {
-            window.currentFullLoaderAnimation.destroy();
-            window.currentFullLoaderAnimation = null;
-          }
-
-          if (fullLoader) {
-            fullLoader.style.display = 'none';
-          }
-
-          if (activeButton) {
-            activeButton.disabled = false;
+          setNotifyDockSending(false);
+          var btnDone = getActiveButton();
+          if (btnDone) {
+            btnDone.disabled = false;
           }
         });
     }

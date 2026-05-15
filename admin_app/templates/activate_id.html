@@ -3,7 +3,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1C1C1C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Activate Vehicle QR Code | SudoTag</title>
   <link href="{% static 'assets/img/WhatsApp Image 2025-11-05 at 02.37.19_e40cf66b.jpg' %}" rel="apple-touch-icon">
 
@@ -15,156 +18,26 @@
   <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
 
   <style>
+    /* Layout & look: sudo_mobile_flow.css — colors unchanged */
     :root {
       --primary-black: #1C1C1C;
       --accent-orange: #E58147;
       --secondary-gray: #282828;
       --text-white: #FFFFFF;
       --notification-red: #FF4500;
-      
-      --bg-color: var(--primary-black);
-      --text-color: var(--text-white);
-      --card-bg: var(--secondary-gray);
       --border-color: #333333;
-      --shadow-color: rgba(0, 0, 0, 0.3);
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    @keyframes successPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      70% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
     }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--primary-black);
-      color: var(--text-white);
-      display: flex;
-      flex-direction: column;
-      padding: 0;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Header */
-    .header {
-      background-color: var(--secondary-gray);
-      padding: 12px 0;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      flex-shrink: 0;
-    }
-
-    .brand-logo {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--accent-orange);
-      text-decoration: none;
-      letter-spacing: 1px;
-    }
-
-    .brand-dot {
-      color: var(--text-white);
-      font-weight: 800;
-    }
-
-    .header-title {
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: var(--text-white);
-      margin: 3px 0 0 0;
-    }
-
-    /* Main Content */
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      max-width: 500px;
-      margin: 0 auto;
-      width: 100%;
-      overflow-y: auto;
-    }
-
-    .main-content::-webkit-scrollbar {
-      display: none;
-    }
-
-    .main-content {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    /* Card Styles */
-    .card {
-      background-color: var(--secondary-gray);
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-white);
-      margin-bottom: 15px;
-      text-align: center;
-    }
-
-    /* Form Styles */
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    .form-label {
-      font-weight: 500;
-      margin-bottom: 5px;
-      display: block;
-      color: var(--text-white);
-      font-size: 0.8rem;
-    }
-
-    .form-control {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 0.8rem;
-      background-color: var(--primary-black);
-      color: var(--text-white);
-      text-transform: uppercase;
-    }
-
-    .form-control:focus {
-      outline: none;
-      border-color: var(--accent-orange);
-    }
-
-    /* Phone input specific styling */
-    .phone-input-container {
-      display: flex;
-      gap: 8px;
-    }
-
-    .country-code-select {
-      width: 100px;
-      flex-shrink: 0;
-      text-transform: none;
-    }
-
-    .phone-input {
-      flex: 1;
-      text-transform: none;
-    }
-
-    /* Email, phone, and name should not be capitalized */
     input[type="email"],
     input[type="tel"],
     .name-input {
@@ -175,348 +48,200 @@
       text-transform: none;
     }
 
-    /* Button Styles */
-    .btn {
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
+    .form-control {
+      text-transform: uppercase;
     }
 
-    .btn-primary {
-      background-color: var(--accent-orange);
-      color: var(--text-white);
+    .form-control.vehicle-select,
+    .form-control.vehicle-manual-input {
+      text-transform: none;
     }
 
-    .btn-primary:hover {
-      background-color: #D46C35;
-      transform: translateY(-1px);
-    }
-
-    .btn-block {
-      display: block;
-      width: 100%;
-    }
-
-    /* Checkbox styling */
-    .form-check {
-      margin-bottom: 15px;
-    }
-
-    .form-check-input {
-      background-color: var(--primary-black);
-      border: 1px solid var(--border-color);
-    }
-
-    .form-check-label {
-      font-size: 0.75rem;
-      color: var(--text-white);
-    }
-
-    .form-check-label a {
-      color: var(--accent-orange);
-      text-decoration: none;
-    }
-
-    .form-check-label a:hover {
-      text-decoration: underline;
-    }
-
-    /* Success Message */
-    .success-message {
-      display: none;
-      text-align: center;
-      padding: 20px;
-    }
-
-    .success-icon {
-      font-size: 2.5rem;
-      color: #4CAF50;
-      margin-bottom: 10px;
-    }
-
-    .success-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-white);
-    }
-
-    .success-text {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 15px;
-    }
-
-    /* In-app copy of email content (user may miss email) */
-    .email-mirror-panel {
-      display: none;
-      text-align: left;
-      background-color: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(229, 129, 71, 0.45);
-      border-radius: 10px;
-      padding: 14px;
-      margin: 0 0 16px 0;
+    .vehicle-catalog-hint {
       font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+      margin: 0 0 12px;
       line-height: 1.45;
     }
 
-    .email-mirror-panel.visible {
-      display: block;
+    .vehicle-mode-block[hidden] {
+      display: none !important;
     }
 
-    .email-mirror-panel h4 {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--accent-orange);
-      margin: 0 0 8px 0;
-      text-align: center;
-    }
-
-    .email-mirror-panel .mirror-lead {
-      color: rgba(255, 255, 255, 0.85);
-      margin-bottom: 12px;
-      text-align: center;
-      font-size: 0.76rem;
-    }
-
-    .mirror-section-title {
-      font-weight: 600;
-      color: var(--text-white);
-      margin: 10px 0 6px 0;
-      font-size: 0.78rem;
-    }
-
-    .mirror-dl {
-      margin: 0;
-      padding: 0;
-    }
-
-    .mirror-dl div {
+    .phone-input-container {
       display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 0.76rem;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 8px;
     }
 
-    .mirror-dl dt {
-      color: rgba(255, 255, 255, 0.55);
-      font-weight: 500;
-      flex-shrink: 0;
+    .phone-prefix-static {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 14px;
+      border-radius: 14px;
+      background-color: #282828;
+      border: 1px solid #333333;
+      color: #FFFFFF;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
 
-    .mirror-dl dd {
-      margin: 0;
-      color: var(--text-white);
-      text-align: right;
-      word-break: break-word;
+    .phone-input-container .phone-input {
+      flex: 1;
+      min-width: 0;
     }
 
-    .mirror-credentials {
-      background-color: rgba(255, 69, 0, 0.12);
-      border: 1px solid rgba(255, 69, 0, 0.35);
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 8px;
-    }
-
-    .mirror-credentials .mirror-hint {
-      color: rgba(255, 255, 255, 0.75);
-      font-size: 0.72rem;
-      margin-bottom: 8px;
-    }
-
-    .mirror-credentials code {
-      display: block;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.8rem;
-      color: #fff;
-      word-break: break-all;
-      margin-top: 4px;
-    }
-
-    /* Modal Styles */
-    .modal-content {
-      background-color: var(--secondary-gray);
-      color: var(--text-white);
-      border: 1px solid var(--border-color);
-    }
-
-    .modal-header {
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .modal-footer {
-      border-top: 1px solid var(--border-color);
-    }
-
-    /* Toast notifications removed - using inline error messages instead */
-
-    /* Loading Spinner */
-    .spinner-container {
+    /* Success state: hide form header when confirmation is shown */
+    .content-card:has(#successMessage[style*="display: block"]) #formCardHeader {
       display: none;
+    }
+
+    /* Activation submit bar — always visible, full width */
+    body.activate-app #activationDock.activation-dock {
       position: fixed;
-      top: 0;
+      bottom: 0;
       left: 0;
       right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.7);
-      z-index: 1200;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .spinner-container.active {
-      display: flex;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--secondary-gray);
-      border-top-color: var(--accent-orange);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Error Styling */
-    .is-invalid {
-      border-color: var(--notification-red) !important;
-    }
-
-    .invalid-feedback {
       width: 100%;
-      margin-top: 4px;
-      font-size: 0.7rem;
-      color: var(--notification-red);
+      max-width: 100%;
+      transform: none;
+      z-index: 200;
     }
 
-    /* Responsive Design */
-    @media (max-width: 480px) {
-      .main-content {
-        padding: 8px;
-      }
-      
-      .card {
-        padding: 12px;
-      }
-      
-      .form-control {
-        padding: 8px 10px;
-        font-size: 0.75rem;
-      }
-      
-      .btn {
-        padding: 8px;
-        font-size: 0.8rem;
+    body.activate-app #activationDock .activation-dock-inner {
+      width: 100%;
+      padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.activate-app #activateSubmitBtn {
+      width: 100% !important;
+      min-height: 58px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    @media (min-width: 520px) {
+      body.activate-app #activationDock.activation-dock {
+        left: 50%;
+        right: auto;
+        width: 100%;
+        max-width: 440px;
+        transform: translateX(-50%);
       }
     }
   </style>
+  <link href="{% static 'assets/css/sudo_mobile_flow.css' %}" rel="stylesheet">
 </head>
 
-<body>
-  <!-- Header -->
-  <header class="header">
-      <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
-      <h1 class="header-title">ACTIVATE VEHICLE QR CODE</h1>
+<body class="activate-app sudo-mobile-flow">
+  <header class="app-header sudo-app-header">
+    <a href="/" class="brand-logo" aria-label="SudoTag home">
+      <img src="{% static 'assets/img/sudotag-logo.png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+    </a>
+    <h1 class="header-title">ACTIVATE VEHICLE QR CODE</h1>
   </header>
 
-  <!-- Main Content -->
-  <main class="main-content">
-    <div class="card">
-      <h3 class="card-title">VEHICLE REGISTRATION</h3>
-      
+  <main class="app-main sudo-app-main">
+    <div class="content-card" id="contentCard">
+      <div class="card-header-block" id="formCardHeader">
+        <p class="card-title">Vehicle registration</p>
+        <p class="card-subtitle">Enter your vehicle and contact details</p>
+      </div>
+
+      <div class="form-body">
       <div id="activationFormContainer">
         <form id="activationForm">
           <input type="hidden" id="adminAddedUser" value="true">
-          <!-- Vehicle Information -->
-          <div class="form-group">
-            <label for="make" class="form-label">Vehicle Brand</label>
-            <input type="text" class="form-control" id="make" placeholder="Enter vehicle brand (e.g., Toyota, Honda, Maruti)" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="model" class="form-label">Vehicle Model</label>
-            <input type="text" class="form-control" id="model" placeholder="Enter vehicle model (e.g., Camry, Civic, Swift)" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="registrationNumber" class="form-label">License Plate Number</label>
-            <input type="text" class="form-control" id="registrationNumber" placeholder="Enter license plate number (e.g., KL11AB1234)" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="vehicleType" class="form-label">Vehicle Type</label>
-            <select class="form-control" id="vehicleType" required>
-              <option value="" disabled selected>Select vehicle type</option>
-              <option value="Car">Car</option>
-              <option value="Bike">Bike</option>
-              <!-- <option value="SUV">SUV</option> -->
-              <option value="Lorry">Lorry</option>
-              <option value="Bus">Bus</option>
-              <option value="Auto">Auto</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
 
-          <div class="form-group">
-            <label for="yearOfManufacturing" class="form-label">Year of Manufacturing</label>
-            <select class="form-control" id="yearOfManufacturing" required>
-              <option value="" disabled selected>Select year</option>
-            </select>
-          </div>
-          
-          <!-- Owner Information -->
+          <section class="form-section" aria-labelledby="vehicleSectionLabel">
+            <h3 class="section-label" id="vehicleSectionLabel">
+              <i class="bi bi-car-front-fill" aria-hidden="true"></i> Vehicle details
+            </h3>
+            <div class="form-group">
+              <label for="registrationNumber" class="form-label">License Plate Number</label>
+              <input type="text" class="form-control" id="registrationNumber" placeholder="Enter license plate number (e.g., KL11AB1234)" required>
+            </div>
+
+            <div class="form-group">
+              <label for="vehicleType" class="form-label">Vehicle Category</label>
+              <select class="form-control" id="vehicleType" required>
+                <option value="" disabled selected>Select vehicle category</option>
+                <option value="Car">Car</option>
+                <option value="Bike">Bike</option>
+                <option value="Lorry">Lorry</option>
+                <option value="Bus">Bus</option>
+                <option value="Auto">Auto</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div id="carMakeModelFields" class="vehicle-mode-block" hidden>
+              <p class="vehicle-catalog-hint">Choose brand and model from the list, or select <strong>Other</strong> to type manually.</p>
+              <div class="form-group" id="makeSelectGroup">
+                <label for="make" class="form-label">Vehicle Brand</label>
+                <select class="form-control vehicle-select" id="make">
+                  <option value="" disabled selected>Loading brands…</option>
+                </select>
+              </div>
+              <div class="form-group" id="makeCarOtherGroup" hidden>
+                <label for="makeCarOther" class="form-label">Vehicle Brand (other)</label>
+                <input type="text" class="form-control vehicle-manual-input" id="makeCarOther" placeholder="Enter vehicle brand" autocomplete="organization">
+              </div>
+              <div class="form-group" id="modelSelectGroup">
+                <label for="model" class="form-label">Vehicle Model</label>
+                <select class="form-control vehicle-select" id="model" disabled>
+                  <option value="" disabled selected>Select brand first</option>
+                </select>
+              </div>
+              <div class="form-group" id="modelCarOtherGroup" hidden>
+                <label for="modelCarOther" class="form-label">Vehicle Model (other)</label>
+                <input type="text" class="form-control vehicle-manual-input" id="modelCarOther" placeholder="Enter vehicle model" autocomplete="off">
+              </div>
+            </div>
+
+            <div id="manualMakeModelFields" class="vehicle-mode-block" hidden>
+              <div class="form-group">
+                <label for="makeManual" class="form-label">Vehicle Brand</label>
+                <input type="text" class="form-control vehicle-manual-input" id="makeManual" placeholder="Enter vehicle brand" autocomplete="organization">
+              </div>
+              <div class="form-group">
+                <label for="modelManual" class="form-label">Vehicle Model</label>
+                <input type="text" class="form-control vehicle-manual-input" id="modelManual" placeholder="Enter vehicle model" autocomplete="off">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="yearOfManufacturing" class="form-label">Year of Manufacturing</label>
+              <select class="form-control" id="yearOfManufacturing" required>
+                <option value="" disabled selected>Select year</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="form-section" aria-labelledby="ownerSectionLabel">
+            <h3 class="section-label" id="ownerSectionLabel">
+              <i class="bi bi-person-fill" aria-hidden="true"></i> Your details
+            </h3>
           <div class="form-group">
             <label for="fullName" class="form-label">Your Full Name</label>
             <input type="text" class="form-control name-input" id="fullName" placeholder="Enter your full name (e.g., John Smith)" required>
           </div>
           
           <div class="form-group">
-            <label for="contactNumber" class="form-label">Mobile Number</label>
+            <label for="contactNumber" class="form-label">Mobile Number (India)</label>
             <div class="phone-input-container">
-              <select class="form-control country-code-select" id="countryCode">
-                <option value="+91">+91 (India)</option>
-                <option value="+1">+1 (USA)</option>
-                <option value="+44">+44 (UK)</option>
-                <option value="+971">+971 (UAE)</option>
-                <option value="+65">+65 (Singapore)</option>
-                <option value="+60">+60 (Malaysia)</option>
-                <option value="+966">+966 (Saudi Arabia)</option>
-                <option value="+974">+974 (Qatar)</option>
-                <option value="+973">+973 (Bahrain)</option>
-                <option value="+968">+968 (Oman)</option>
-                <option value="+20">+20 (Egypt)</option>
-                <option value="+27">+27 (South Africa)</option>
-                <option value="+61">+61 (Australia)</option>
-                <option value="+64">+64 (New Zealand)</option>
-                <option value="+33">+33 (France)</option>
-                <option value="+49">+49 (Germany)</option>
-                <option value="+39">+39 (Italy)</option>
-                <option value="+34">+34 (Spain)</option>
-                <option value="+7">+7 (Russia)</option>
-                <option value="+81">+81 (Japan)</option>
-                <option value="+82">+82 (South Korea)</option>
-                <option value="+86">+86 (China)</option>
-                <option value="+852">+852 (Hong Kong)</option>
-                <option value="+853">+853 (Macau)</option>
-                <option value="+886">+886 (Taiwan)</option>
-              </select>
+              <span class="phone-prefix-static" aria-hidden="true">+91</span>
               <input type="tel" class="form-control phone-input" id="contactNumber" inputmode="numeric" autocomplete="tel-national"
-                maxlength="10" placeholder="10-digit mobile without +91 — e.g. 9876543210" title="Indian mobile: exactly 10 digits" required>
+                maxlength="10" placeholder="10-digit mobile e.g. 9876543210" title="Indian mobile: exactly 10 digits" required>
             </div>
           </div>
           
@@ -529,30 +254,18 @@
             <label for="city" class="form-label">City</label>
             <input type="text" class="form-control" id="city" placeholder="Enter your city name (e.g., Mumbai, Delhi, Bangalore)" required>
           </div>
-          
-          <div class="form-check">
-  <input type="checkbox" class="form-check-input" id="termsCheck" required>
-  <label class="form-check-label" for="termsCheck">
-    I agree to the 
-    <a href="{% url 'terms' %}" target="_blank" class="terms-link">Terms & Conditions</a>
-    and 
-    <a href="{% url 'privacy' %}" target="_blank" class="terms-link">Privacy Policy</a>
-  </label>
-</div>
-          
-          <button type="submit" class="btn btn-primary btn-block">
-            <i class="bi bi-check-circle-fill"></i> Activate QR Code
-          </button>
+          </section>
         </form>
       </div>
 
-      <!-- Success Message -->
-      <div id="successMessage" class="success-message">
-        <div class="success-icon">
-          <i class="bi bi-check-circle-fill"></i>
+      <div id="successMessage" class="success-message" style="display: none;">
+        <div class="success-hero">
+          <div class="success-icon-wrap">
+            <i class="bi bi-check-circle-fill success-icon"></i>
+          </div>
+          <h3 class="success-title" id="successTitle">Activation Successful!</h3>
+          <p class="success-text" id="successText">Your vehicle QR code is now active. Others can scan it to contact you.</p>
         </div>
-        <h3 class="success-title" id="successTitle">Activation Successful!</h3>
-        <p class="success-text" id="successText">Your vehicle QR code is now active. Others can scan it to contact you.</p>
 
         <div id="uiEmailMirrorPanel" class="email-mirror-panel" aria-live="polite">
           <h4 id="mirrorPanelTitle">Also sent to your email</h4>
@@ -566,16 +279,37 @@
           <p class="mirror-lead" style="margin-top: 12px; margin-bottom: 0;" id="mirrorSupportLine"></p>
         </div>
         
-        <button class="btn btn-primary" id="continueBtn" style="display: none;">
-    <i class="bi bi-arrow-right"></i> Continue
-</button>
+        <button class="btn btn-primary btn-block sudo-dock-submit" id="continueBtn" style="display: none;">
+          <i class="bi bi-arrow-right"></i> Continue
+        </button>
+      </div>
       </div>
     </div>
   </main>
 
+  <footer id="activationDock" class="activation-dock sudo-bottom-dock" aria-label="Complete registration">
+    <div class="activation-dock-inner">
+      <div class="sudo-dock-terms-box">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="termsCheck" form="activationForm" required>
+          <label class="form-check-label" for="termsCheck">
+            I agree to the
+            <a href="{% url 'terms' %}" target="_blank" class="terms-link">Terms &amp; Conditions</a>
+            and
+            <a href="{% url 'privacy' %}" target="_blank" class="terms-link">Privacy Policy</a>
+          </label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block w-100 sudo-dock-submit" form="activationForm" id="activateSubmitBtn">
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <span>Activate QR Code</span>
+      </button>
+    </div>
+  </footer>
+
   <!-- Terms & Conditions Modal -->
   <div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Terms & Conditions</h5>
@@ -599,7 +333,7 @@
 
   <!-- Privacy Policy Modal -->
   <div class="modal fade" id="privacyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Privacy Policy</h5>
@@ -622,7 +356,8 @@
 
   <!-- Loading Spinner -->
   <div class="spinner-container" id="loadingSpinner">
-    <div class="spinner"></div>
+    <div class="spinner" role="status" aria-label="Loading"></div>
+    <p class="spinner-label">Activating your QR code…</p>
   </div>
 
   <!-- Toast notifications removed - using inline error messages instead -->
@@ -646,7 +381,8 @@
       const mirrorWelcomeBox = document.getElementById('mirrorWelcomeBox');
       const mirrorSupportLine = document.getElementById('mirrorSupportLine');
       const contactNumber = document.getElementById('contactNumber');
-      const countryCode = document.getElementById('countryCode');
+      const INDIA_COUNTRY_CODE = '+91';
+      const INDIA_PHONE_PATTERN = /^\d{10}$/;
       const yearOfManufacturingEl = document.getElementById('yearOfManufacturing');
       const currentYear = new Date().getFullYear();
       for (let y = currentYear; y >= 1970; y--) {
@@ -656,84 +392,245 @@
         yearOfManufacturingEl.appendChild(opt);
       }
 
-      // Phone number validation patterns by country code
-      const phonePatterns = {
-        '+91': /^\d{10}$/, // India: 10 digits
-        '+1': /^\d{10}$/, // USA/Canada: 10 digits
-        '+44': /^\d{10,11}$/, // UK: 10-11 digits
-        '+971': /^\d{9}$/, // UAE: 9 digits
-        '+65': /^\d{8}$/, // Singapore: 8 digits
-        '+60': /^\d{9,10}$/, // Malaysia: 9-10 digits
-        '+966': /^\d{9}$/, // Saudi Arabia: 9 digits
-        '+974': /^\d{8}$/, // Qatar: 8 digits
-        '+973': /^\d{8}$/, // Bahrain: 8 digits
-        '+968': /^\d{8}$/, // Oman: 8 digits
-        '+20': /^\d{10}$/, // Egypt: 10 digits
-        '+27': /^\d{9}$/, // South Africa: 9 digits
-        '+61': /^\d{9}$/, // Australia: 9 digits
-        '+64': /^\d{8,9}$/, // New Zealand: 8-9 digits
-        '+33': /^\d{9}$/, // France: 9 digits
-        '+49': /^\d{10,11}$/, // Germany: 10-11 digits
-        '+39': /^\d{9,10}$/, // Italy: 9-10 digits
-        '+34': /^\d{9}$/, // Spain: 9 digits
-        '+7': /^\d{10}$/, // Russia: 10 digits
-        '+81': /^\d{10}$/, // Japan: 10 digits
-        '+82': /^\d{9,10}$/, // South Korea: 9-10 digits
-        '+86': /^\d{11}$/, // China: 11 digits
-        '+852': /^\d{8}$/, // Hong Kong: 8 digits
-        '+853': /^\d{8}$/, // Macau: 8 digits
-        '+886': /^\d{9}$/ // Taiwan: 9 digits
-      };
+      // Vehicle: Car = dataset dropdowns (+ Other for manual); other categories = manual brand/model
+      const CAR_OTHER = 'Other';
+      const vehicleTypeSelect = document.getElementById('vehicleType');
+      const carMakeModelFields = document.getElementById('carMakeModelFields');
+      const manualMakeModelFields = document.getElementById('manualMakeModelFields');
+      const makeSelect = document.getElementById('make');
+      const modelSelect = document.getElementById('model');
+      const makeManualInput = document.getElementById('makeManual');
+      const modelManualInput = document.getElementById('modelManual');
+      const makeCarOtherInput = document.getElementById('makeCarOther');
+      const modelCarOtherInput = document.getElementById('modelCarOther');
+      const makeCarOtherGroup = document.getElementById('makeCarOtherGroup');
+      const modelCarOtherGroup = document.getElementById('modelCarOtherGroup');
+      const modelSelectGroup = document.getElementById('modelSelectGroup');
+      let vehicleCatalog = { brands: [], models: {} };
 
-      // Phone number placeholder examples by country code
-      const phonePlaceholders = {
-        '+91': '9876543210 (10 digits, no prefix)',
-        '+1': '5551234567',
-        '+44': '7911123456',
-        '+971': '501234567',
-        '+65': '91234567',
-        '+60': '123456789',
-        '+966': '512345678',
-        '+974': '33123456',
-        '+973': '36123456',
-        '+968': '92123456',
-        '+20': '1001234567',
-        '+27': '821234567',
-        '+61': '412345678',
-        '+64': '211234567',
-        '+33': '612345678',
-        '+49': '15123456789',
-        '+39': '3123456789',
-        '+34': '612345678',
-        '+7': '9123456789',
-        '+81': '9012345678',
-        '+82': '1023456789',
-        '+86': '13123456789',
-        '+852': '51234567',
-        '+853': '66123456',
-        '+886': '912345678'
-      };
+      function isCarCategory() {
+        return vehicleTypeSelect.value === 'Car';
+      }
 
-      function syncPhoneFieldConstraints() {
-        const selectedCode = countryCode.value;
-        const exampleNumber = phonePlaceholders[selectedCode] || 'see country format';
-        if (selectedCode === '+91') {
-          contactNumber.setAttribute('maxlength', '10');
-          contactNumber.placeholder =
-            `10-digit mobile without +91 (e.g. ${phonePlaceholders['+91'].split(' ')[0]})`;
+      function isCarMakeOther() {
+        return isCarCategory() && makeSelect.value === CAR_OTHER;
+      }
+
+      function isCarModelOther() {
+        return isCarCategory() && !isCarMakeOther() && modelSelect.value === CAR_OTHER;
+      }
+
+      function getVehicleMakeValue() {
+        if (!isCarCategory()) {
+          return makeManualInput.value.trim();
+        }
+        if (isCarMakeOther()) {
+          return makeCarOtherInput.value.trim();
+        }
+        return makeSelect.value.trim();
+      }
+
+      function getVehicleModelValue() {
+        if (!isCarCategory()) {
+          return modelManualInput.value.trim();
+        }
+        if (isCarMakeOther() || isCarModelOther()) {
+          return modelCarOtherInput.value.trim();
+        }
+        return modelSelect.value.trim();
+      }
+
+      function clearCarMakeModel() {
+        if (makeSelect.options.length) {
+          makeSelect.selectedIndex = 0;
+        }
+        makeCarOtherInput.value = '';
+        modelCarOtherInput.value = '';
+        resetModelSelect('Select brand first', true);
+        updateCarOtherUI();
+      }
+
+      function clearManualMakeModel() {
+        makeManualInput.value = '';
+        modelManualInput.value = '';
+      }
+
+      function appendOtherOption(selectEl) {
+        const opt = document.createElement('option');
+        opt.value = CAR_OTHER;
+        opt.textContent = 'Other (type manually)';
+        selectEl.appendChild(opt);
+      }
+
+      function updateCarOtherUI() {
+        if (!isCarCategory()) {
+          makeCarOtherGroup.hidden = true;
+          modelCarOtherGroup.hidden = true;
+          modelSelectGroup.hidden = false;
+          makeCarOtherInput.removeAttribute('required');
+          modelCarOtherInput.removeAttribute('required');
+          return;
+        }
+
+        const brandOther = isCarMakeOther();
+        const modelOther = isCarModelOther();
+
+        makeCarOtherGroup.hidden = !brandOther;
+        modelSelectGroup.hidden = brandOther;
+        modelCarOtherGroup.hidden = !(brandOther || modelOther);
+
+        if (brandOther) {
+          makeCarOtherInput.setAttribute('required', 'required');
+          modelCarOtherInput.setAttribute('required', 'required');
+          modelSelect.removeAttribute('required');
+        } else if (modelOther) {
+          makeCarOtherInput.removeAttribute('required');
+          modelCarOtherInput.setAttribute('required', 'required');
+          modelSelect.setAttribute('required', 'required');
         } else {
-          contactNumber.removeAttribute('maxlength');
-          contactNumber.placeholder =
-            `Enter mobile number (${exampleNumber}) — digits only`;
+          makeCarOtherInput.removeAttribute('required');
+          modelCarOtherInput.removeAttribute('required');
+          modelSelect.setAttribute('required', 'required');
         }
       }
 
-      countryCode.addEventListener('change', function() {
-        contactNumber.value = '';
-        syncPhoneFieldConstraints();
+      function updateMakeModelMode() {
+        const type = vehicleTypeSelect.value;
+        makeSelect.classList.remove('is-invalid');
+        modelSelect.classList.remove('is-invalid');
+        makeManualInput.classList.remove('is-invalid');
+        modelManualInput.classList.remove('is-invalid');
+        makeCarOtherInput.classList.remove('is-invalid');
+        modelCarOtherInput.classList.remove('is-invalid');
+
+        if (!type) {
+          carMakeModelFields.hidden = true;
+          manualMakeModelFields.hidden = true;
+          makeSelect.removeAttribute('required');
+          modelSelect.removeAttribute('required');
+          makeManualInput.removeAttribute('required');
+          modelManualInput.removeAttribute('required');
+          makeCarOtherInput.removeAttribute('required');
+          modelCarOtherInput.removeAttribute('required');
+          return;
+        }
+
+        if (isCarCategory()) {
+          carMakeModelFields.hidden = false;
+          manualMakeModelFields.hidden = true;
+          makeSelect.setAttribute('required', 'required');
+          makeManualInput.removeAttribute('required');
+          modelManualInput.removeAttribute('required');
+          clearManualMakeModel();
+          updateCarOtherUI();
+        } else {
+          carMakeModelFields.hidden = true;
+          manualMakeModelFields.hidden = false;
+          makeSelect.removeAttribute('required');
+          modelSelect.removeAttribute('required');
+          makeCarOtherInput.removeAttribute('required');
+          modelCarOtherInput.removeAttribute('required');
+          makeManualInput.setAttribute('required', 'required');
+          modelManualInput.setAttribute('required', 'required');
+          clearCarMakeModel();
+        }
+      }
+
+      vehicleTypeSelect.addEventListener('change', updateMakeModelMode);
+
+      function resetModelSelect(message, disabled) {
+        modelSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        placeholder.textContent = message;
+        modelSelect.appendChild(placeholder);
+        modelSelect.disabled = disabled;
+        modelSelect.value = '';
+      }
+
+      function populateModelOptions(brand) {
+        resetModelSelect('Select vehicle model', false);
+        const models = vehicleCatalog.models[brand] || [];
+        models.forEach(function (modelName) {
+          const opt = document.createElement('option');
+          opt.value = modelName;
+          opt.textContent = modelName;
+          modelSelect.appendChild(opt);
+        });
+        appendOtherOption(modelSelect);
+      }
+
+      makeSelect.addEventListener('change', function () {
+        makeSelect.classList.remove('is-invalid');
+        modelSelect.classList.remove('is-invalid');
+        makeCarOtherInput.classList.remove('is-invalid');
+        modelCarOtherInput.classList.remove('is-invalid');
+        makeCarOtherInput.value = '';
+        modelCarOtherInput.value = '';
+
+        if (!makeSelect.value) {
+          resetModelSelect('Select brand first', true);
+          updateCarOtherUI();
+          return;
+        }
+
+        if (isCarMakeOther()) {
+          resetModelSelect('Type model below', true);
+          updateCarOtherUI();
+          return;
+        }
+
+        populateModelOptions(makeSelect.value);
+        updateCarOtherUI();
       });
 
-      syncPhoneFieldConstraints();
+      modelSelect.addEventListener('change', function () {
+        modelSelect.classList.remove('is-invalid');
+        modelCarOtherInput.classList.remove('is-invalid');
+        if (!isCarModelOther()) {
+          modelCarOtherInput.value = '';
+        }
+        updateCarOtherUI();
+      });
+
+      fetch("{% static 'assets/data/vehicle_brands_models.json' %}")
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Failed to load vehicle data');
+          }
+          return response.json();
+        })
+        .then(function (data) {
+          vehicleCatalog = data;
+          makeSelect.innerHTML = '';
+          const brandPlaceholder = document.createElement('option');
+          brandPlaceholder.value = '';
+          brandPlaceholder.disabled = true;
+          brandPlaceholder.selected = true;
+          brandPlaceholder.textContent = 'Select vehicle brand';
+          makeSelect.appendChild(brandPlaceholder);
+
+          (data.brands || []).forEach(function (brand) {
+            const opt = document.createElement('option');
+            opt.value = brand;
+            opt.textContent = brand;
+            makeSelect.appendChild(opt);
+          });
+          appendOtherOption(makeSelect);
+        })
+        .catch(function () {
+          makeSelect.innerHTML = '';
+          const errOpt = document.createElement('option');
+          errOpt.value = '';
+          errOpt.disabled = true;
+          errOpt.selected = true;
+          errOpt.textContent = 'Could not load vehicle list — refresh the page';
+          makeSelect.appendChild(errOpt);
+          makeSelect.disabled = true;
+          resetModelSelect('Vehicle list unavailable', true);
+        });
 
       // Auto-capitalization for text inputs (except name field)
       const textInputs = document.querySelectorAll('input[type="text"]:not(.name-input)');
@@ -779,29 +676,10 @@
           existingError.remove();
         }
         
-        // Remove any non-digit characters
         let value = this.value.replace(/\D/g, '');
-        
-        // Get the selected country code
-        const selectedCode = countryCode.value;
-        
-        // Get the maximum length for this country (if defined)
-        const pattern = phonePatterns[selectedCode];
-        let maxLength = 15; // Default maximum
-        
-        if (pattern) {
-          // Extract max length from pattern (approximate)
-          const match = pattern.toString().match(/\d{(\d+),?(\d+)?}/);
-          if (match) {
-            maxLength = match[2] ? parseInt(match[2]) : parseInt(match[1]);
-          }
+        if (value.length > 10) {
+          value = value.substring(0, 10);
         }
-        
-        // Limit to maxLength digits
-        if (value.length > maxLength) {
-          value = value.substring(0, maxLength);
-        }
-        
         this.value = value;
       });
 
@@ -830,21 +708,9 @@
       contactNumber.addEventListener('blur', function(e) {
         const phoneValue = this.value.trim();
         if (phoneValue) {
-          const selectedCode = countryCode.value;
-          const phonePattern = phonePatterns[selectedCode];
-          
-          if (phonePattern && !phonePattern.test(phoneValue)) {
-            let errorMessage = 'Enter a valid phone number';
-            if (selectedCode === '+91') {
-              errorMessage = 'Enter a valid 10-digit mobile number';
-            } else if (selectedCode === '+1') {
-              errorMessage = 'Enter a valid 10-digit phone number';
-            } else if (selectedCode === '+44') {
-              errorMessage = 'Enter a valid UK phone number (10-11 digits)';
-            }
-            showFieldError(this, errorMessage);
+          if (!INDIA_PHONE_PATTERN.test(phoneValue)) {
+            showFieldError(this, 'Enter a valid 10-digit mobile number');
           } else {
-            // Clear error if format is valid
             this.classList.remove('is-invalid');
             const existingError = this.closest('.form-group')?.querySelector('.invalid-feedback');
             if (existingError) {
@@ -868,7 +734,7 @@
         
         // Validate form
         const requiredFields = [
-          'make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing',
+          'registrationNumber', 'vehicleType', 'yearOfManufacturing',
           'fullName', 'contactNumber', 'emailAddress', 'city'
         ];
         
@@ -881,6 +747,25 @@
             isValid = false;
           }
         });
+
+        if (vehicleTypeSelect.value) {
+          if (!getVehicleMakeValue()) {
+            let makeErrorEl = makeManualInput;
+            if (isCarCategory()) {
+              makeErrorEl = isCarMakeOther() ? makeCarOtherInput : makeSelect;
+            }
+            showFieldError(makeErrorEl, 'This field is required');
+            isValid = false;
+          }
+          if (!getVehicleModelValue()) {
+            let modelErrorEl = modelManualInput;
+            if (isCarCategory()) {
+              modelErrorEl = (isCarMakeOther() || isCarModelOther()) ? modelCarOtherInput : modelSelect;
+            }
+            showFieldError(modelErrorEl, 'This field is required');
+            isValid = false;
+          }
+        }
         
         if (!document.getElementById('termsCheck').checked) {
           showFieldError(document.getElementById('termsCheck'), 'You must accept the terms');
@@ -894,36 +779,11 @@
           isValid = false;
         }
         
-        // Validate phone number format based on country code
-        // Only validate format if field is not empty (empty is handled by required check above)
-        const selectedCountryCode = countryCode.value;
-        const phonePattern = phonePatterns[selectedCountryCode];
         const phone = document.getElementById('contactNumber');
         const phoneValue = phone.value.trim();
-        
-        // Only validate format if phone has a value (empty is already handled by required check)
-        if (phoneValue) {
-          if (phonePattern && !phonePattern.test(phoneValue)) {
-            let errorMessage = 'Enter a valid phone number';
-            
-            // Provide specific error messages for common countries
-            if (selectedCountryCode === '+91') {
-              errorMessage = 'Enter a valid 10-digit mobile number';
-            } else if (selectedCountryCode === '+1') {
-              errorMessage = 'Enter a valid 10-digit phone number';
-            } else if (selectedCountryCode === '+44') {
-              errorMessage = 'Enter a valid UK phone number (10-11 digits)';
-            }
-            
-            showFieldError(phone, errorMessage);
-            isValid = false;
-          } else if (!phonePattern) {
-            // For countries without a specific pattern, just check it has digits
-            if (!/^\d+$/.test(phoneValue)) {
-              showFieldError(phone, 'Enter a valid phone number');
-              isValid = false;
-            }
-          }
+        if (phoneValue && !INDIA_PHONE_PATTERN.test(phoneValue)) {
+          showFieldError(phone, 'Enter a valid 10-digit mobile number');
+          isValid = false;
         }
         
         if (!isValid) {
@@ -938,13 +798,13 @@
         
         // Prepare data for submission (append country code to phone)
         const formData = {
-          make: document.getElementById('make').value.trim(),
-          model: document.getElementById('model').value.trim(),
+          make: getVehicleMakeValue(),
+          model: getVehicleModelValue(),
           registrationNumber: document.getElementById('registrationNumber').value.trim(),
-          vehicleType: document.getElementById('vehicleType').value,
+          vehicleType: vehicleTypeSelect.value,
           yearOfManufacturing: document.getElementById('yearOfManufacturing').value,
           fullName: document.getElementById('fullName').value.trim(),
-          contactNumber: selectedCountryCode + document.getElementById('contactNumber').value.trim(),
+          contactNumber: INDIA_COUNTRY_CODE + document.getElementById('contactNumber').value.trim(),
           emailAddress: document.getElementById('emailAddress').value.trim(),
           city: document.getElementById('city').value.trim(),
           adminAddedUser: document.getElementById('adminAddedUser').value === 'true'
@@ -975,6 +835,7 @@
           if (data.status === 'success') {
             // Show success message with appropriate text
             activationFormContainer.style.display = 'none';
+            document.getElementById('activationDock').style.display = 'none';
             successMessage.style.display = 'block';
             
             if (data.is_new_user) {
@@ -1076,7 +937,7 @@
             let generalError = formContainer.querySelector('.general-error-message');
             if (!generalError) {
               generalError = document.createElement('div');
-              generalError.className = 'general-error-message invalid-feedback';
+              generalError.className = 'sudo-form-error-banner general-error-message';
               generalError.style.display = 'block';
               generalError.style.marginBottom = '15px';
               formContainer.insertBefore(generalError, formContainer.firstChild);

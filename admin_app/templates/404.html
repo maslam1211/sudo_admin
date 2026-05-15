@@ -2,148 +2,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Not Found - SudoTag</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-    
-    <style>
-        :root {
-            --primary-block: #1C1C1C;
-            --accent-orange: #E58147;
-            --secondary-gray: #282828;
-            --text-white: #FFFFFF;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--primary-block);
-            color: var(--text-white);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .error-container {
-            max-width: 500px;
-            width: 100%;
-        }
-        
-        .error-icon {
-            font-size: 4rem;
-            color: var(--accent-orange);
-            margin-bottom: 20px;
-        }
-        
-        .error-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-white);
-            margin-bottom: 10px;
-        }
-        
-        .error-subtitle {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 20px;
-        }
-        
-        .error-message {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .action-btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .home-btn {
-            background-color: var(--accent-orange);
-            color: var(--text-white);
-            border: 1px solid var(--accent-orange);
-        }
-        
-        .home-btn:hover {
-            background-color: #D46C35;
-            transform: translateY(-2px);
-        }
-        
-        .back-btn {
-            background-color: var(--secondary-gray);
-            color: var(--text-white);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .back-btn:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-color: var(--accent-orange);
-        }
-        
-        .brand-logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-orange);
-            text-decoration: none;
-            margin-bottom: 30px;
-            display: block;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1C1C1C">
+  <title>Page Not Found | SudoTag</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/sudo_mobile_flow.css' %}" rel="stylesheet">
 </head>
-<body>
-    <a href="https://sudo-70852.firebaseapp.com" class="brand-logo">SudoTag</a>
-    
-    <div class="error-container">
-        <div class="error-icon">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-        </div>
-        
-        <h1 class="error-title">Page Not Found</h1>
-        
-        <p class="error-subtitle">Oops! The page you're looking for doesn't exist.</p>
-        
-        <p class="error-message">
-            The page might have been moved, deleted, or you entered an incorrect URL.
-        </p>
-        
-        <div class="action-buttons">
-            <a href="/" class="action-btn home-btn">
-                <i class="bi bi-house-fill"></i> Go Home
-            </a>
-            <button onclick="history.back()" class="action-btn back-btn">
-                <i class="bi bi-arrow-left"></i> Go Back
-            </button>
-        </div>
-    </div>
+<body class="sudo-mobile-flow sudo-error-page">
+  <header class="app-header sudo-app-header">
+    <a href="/" class="brand-logo" aria-label="SudoTag home">
+      <img src="{% static 'assets/img/sudotag-logo.png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+    </a>
+    <h1 class="header-title">404</h1>
+  </header>
+
+  <main class="app-main sudo-app-main sudo-error-main">
+    <article class="sudo-error-card error-card" role="alert">
+      <div class="sudo-error-icon-wrap sudo-error-icon-wrap--info" aria-hidden="true">
+        <i class="bi bi-compass-fill"></i>
+      </div>
+      <p class="sudo-error-eyebrow">Page not found</p>
+      <h1 class="sudo-error-title">This page doesn’t exist</h1>
+      <p class="sudo-error-message">
+        The page may have moved, been removed, or the link may be incorrect.
+      </p>
+      <div class="sudo-error-actions">
+        <a href="https://sudo-70852.firebaseapp.com" class="sudo-error-btn sudo-error-btn--primary btn-home">
+          <i class="bi bi-house-door-fill" aria-hidden="true"></i>
+          Return home
+        </a>
+        <button type="button" class="sudo-error-btn sudo-error-btn--ghost" onclick="history.back()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
+          Go back
+        </button>
+      </div>
+    </article>
+  </main>
 </body>
 </html>

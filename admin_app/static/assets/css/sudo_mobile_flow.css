@@ -1,0 +1,1454 @@
+/**
+ * SudoTag mobile QR flows — UI v2 (activation + contact owner)
+ * Palette locked: #1C1C1C #282828 #E58147 #FFFFFF #333333 #2196F3 #FF4500 #4CAF50
+ */
+:root {
+  --sudo-black: #1C1C1C;
+  --sudo-gray: #282828;
+  --sudo-orange: #E58147;
+  --sudo-orange-hover: #D46C35;
+  --sudo-white: #FFFFFF;
+  --sudo-red: #FF4500;
+  --sudo-green: #4CAF50;
+  --sudo-blue: #2196F3;
+  --sudo-border: #333333;
+  --sudo-shadow: rgba(0, 0, 0, 0.35);
+  --sudo-touch: 52px;
+  --sudo-r-xl: 24px;
+  --sudo-r-lg: 18px;
+  --sudo-r-md: 14px;
+  --sudo-r-sm: 10px;
+  --sudo-space: 16px;
+  --sudo-font: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ═══════════════════════════════════════════
+   SHELL
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow {
+  font-family: var(--sudo-font);
+  background-color: var(--sudo-black);
+  color: var(--sudo-white);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.sudo-mobile-flow::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 120% 45% at 50% -10%, rgba(229, 129, 71, 0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 30% at 100% 0%, rgba(33, 150, 243, 0.05) 0%, transparent 50%);
+}
+
+body.sudo-mobile-flow > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header — minimal bar */
+body.sudo-mobile-flow .sudo-app-header,
+body.sudo-mobile-flow .app-header,
+body.sudo-mobile-flow header.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  text-align: center;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) var(--sudo-space) 12px;
+  background-color: var(--sudo-black);
+  border-bottom: none;
+}
+
+body.sudo-mobile-flow .brand-logo {
+  display: inline-block;
+  line-height: 0;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+body.sudo-mobile-flow .brand-logo-img {
+  display: block;
+  height: 56px;
+  width: auto;
+  max-width: min(260px, 85vw);
+  object-fit: contain;
+  /* Logo file has a black fill; lighten hides it on the dark header */
+  mix-blend-mode: lighten;
+}
+
+@media (max-width: 360px) {
+  body.sudo-mobile-flow .brand-logo-img {
+    height: 50px;
+    max-width: min(240px, 88vw);
+  }
+}
+
+body.sudo-mobile-flow .brand-dot {
+  color: var(--sudo-white);
+  font-weight: 800;
+}
+
+body.sudo-mobile-flow .header-title {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 5px 12px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  background-color: var(--sudo-gray);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+body.sudo-mobile-flow.flow-emergency .header-title {
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 69, 0, 0.35);
+  background-color: rgba(255, 69, 0, 0.12);
+}
+
+/* Main scroll area */
+body.sudo-mobile-flow .sudo-app-main,
+body.sudo-mobile-flow .app-main,
+body.sudo-mobile-flow main.main-content {
+  flex: 1;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 8px var(--sudo-space) 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: none !important;
+}
+
+body.sudo-mobile-flow main.main-content:has(.sudo-bottom-dock),
+body.sudo-mobile-flow .app-main:has(.sudo-bottom-dock) {
+  padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+}
+
+body.sudo-mobile-flow .app-main:has(.form-actions.sudo-bottom-dock),
+body.sudo-mobile-flow.activate-app .sudo-app-main {
+  padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+}
+
+body.sudo-mobile-flow .app-main:has(#successMessage[style*="display: block"]) {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ═══════════════════════════════════════════
+   PANELS (cards)
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow .content-card,
+body.sudo-mobile-flow .vehicle-info,
+body.sudo-mobile-flow .sudo-surface {
+  background-color: var(--sudo-gray);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--sudo-r-xl);
+  box-shadow: 0 12px 40px var(--sudo-shadow);
+  margin-bottom: var(--sudo-space);
+}
+
+body.sudo-mobile-flow .content-card::before,
+body.sudo-mobile-flow .vehicle-info::before {
+  display: none;
+}
+
+body.sudo-mobile-flow .content-card {
+  overflow: hidden;
+  width: 100%;
+  border-left: 4px solid var(--sudo-orange);
+}
+
+/* Vehicle hero */
+body.sudo-mobile-flow .vehicle-info {
+  padding: 20px var(--sudo-space);
+  text-align: center;
+  border-left: 4px solid var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .vehicle-info .vehicle-model {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+body.sudo-mobile-flow .vehicle-info .vehicle-year {
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  opacity: 1 !important;
+  margin: 0 0 12px !important;
+}
+
+body.sudo-mobile-flow .plate-number {
+  display: inline-block;
+  margin: 0;
+  padding: 10px 20px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--sudo-orange);
+  background-color: var(--sudo-black);
+  border: 2px solid rgba(229, 129, 71, 0.4);
+  border-radius: var(--sudo-r-sm);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+body.sudo-mobile-flow.flow-emergency .plate-number {
+  color: var(--sudo-white);
+  border-color: rgba(255, 69, 0, 0.5);
+  text-shadow: none;
+}
+
+/* Activation card header */
+body.sudo-mobile-flow .card-header-block {
+  padding: 20px var(--sudo-space) 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.sudo-mobile-flow .card-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--sudo-white);
+  text-align: left;
+}
+
+body.sudo-mobile-flow .card-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
+  text-align: left;
+}
+
+/* ═══════════════════════════════════════════
+   SECTIONS & FORM
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow .form-body {
+  padding: 4px var(--sudo-space) 12px;
+}
+
+body.sudo-mobile-flow .form-section {
+  margin-bottom: 20px;
+  padding: var(--sudo-space);
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: var(--sudo-r-lg);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body.sudo-mobile-flow .section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 6px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sudo-orange);
+  background-color: rgba(229, 129, 71, 0.1);
+  border: none;
+  border-radius: 999px;
+}
+
+body.sudo-mobile-flow .section-label i {
+  font-size: 0.95rem;
+  color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .form-group {
+  margin-bottom: 12px;
+}
+
+body.sudo-mobile-flow .form-group:last-child {
+  margin-bottom: 0;
+}
+
+body.sudo-mobile-flow .form-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+body.sudo-mobile-flow .form-control {
+  min-height: var(--sudo-touch);
+  padding: 0 14px;
+  font-size: 16px;
+  font-family: var(--sudo-font);
+  border-radius: var(--sudo-r-md);
+  border: 1.5px solid var(--sudo-border);
+  background-color: var(--sudo-black);
+  color: var(--sudo-white);
+  transition: border-color 0.2s ease;
+}
+
+body.sudo-mobile-flow .form-control::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.9rem;
+}
+
+body.sudo-mobile-flow .form-control:focus {
+  outline: none;
+  border-color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow select.form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%23E58147'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+body.sudo-mobile-flow .phone-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 360px) {
+  body.sudo-mobile-flow .phone-input-container {
+    flex-direction: row;
+  }
+
+  body.sudo-mobile-flow .country-code-select {
+    flex: 0 0 38%;
+    max-width: 140px;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CONTACT — question & reasons
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow .question-section {
+  margin-bottom: 12px;
+}
+
+body.sudo-mobile-flow .question-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--sudo-white);
+  text-align: left;
+  margin: 0 0 12px;
+  padding-left: 2px;
+}
+
+body.sudo-mobile-flow .reasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--sudo-space);
+}
+
+body.sudo-mobile-flow .reason-item {
+  position: relative;
+  min-height: var(--sudo-touch);
+  padding: 14px 40px 14px 14px;
+  border-radius: var(--sudo-r-md);
+  border: 1.5px solid transparent;
+  background-color: var(--sudo-gray);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transform: none !important;
+}
+
+body.sudo-mobile-flow .reason-item::after {
+  content: '\F285';
+  font-family: 'bootstrap-icons';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.25);
+  transition: color 0.2s ease;
+}
+
+body.sudo-mobile-flow .reason-item.selected {
+  background-color: rgba(229, 129, 71, 0.12);
+  border-color: var(--sudo-orange);
+  border-left-width: 4px;
+  padding-left: 11px;
+}
+
+body.sudo-mobile-flow .reason-item.selected::after {
+  color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .reason-item i {
+  width: 36px;
+  height: 36px;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem !important;
+  color: var(--sudo-orange) !important;
+  background: rgba(229, 129, 71, 0.15) !important;
+  border-radius: var(--sudo-r-sm);
+  flex-shrink: 0;
+}
+
+body.sudo-mobile-flow .reason-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-left: 12px;
+  line-height: 1.35;
+  color: var(--sudo-white);
+}
+
+/* Custom message */
+body.sudo-mobile-flow .custom-message-container {
+  margin-bottom: var(--sudo-space);
+}
+
+body.sudo-mobile-flow .custom-message {
+  border-radius: var(--sudo-r-md);
+  border: 1.5px solid var(--sudo-border);
+  background-color: var(--sudo-black);
+  min-height: 110px;
+}
+
+body.sudo-mobile-flow .custom-message-notice {
+  border-radius: var(--sudo-r-md);
+  margin-bottom: 10px;
+}
+
+/* Switch contact */
+body.sudo-mobile-flow .switch-contact-wrap {
+  margin-bottom: var(--sudo-space);
+}
+
+body.sudo-mobile-flow .switch-contact-hint {
+  font-size: 0.72rem;
+  text-align: left;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+body.sudo-mobile-flow .switch-contact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px;
+  background-color: var(--sudo-gray);
+  border-radius: var(--sudo-r-lg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.sudo-mobile-flow .switch-contact-pill {
+  min-height: var(--sudo-touch);
+  border-radius: var(--sudo-r-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--sudo-black);
+  box-shadow: none;
+  transform: none !important;
+}
+
+body.sudo-mobile-flow .switch-contact-pill--active.switch-contact-pill--owner {
+  border-color: var(--sudo-blue);
+  background-color: rgba(33, 150, 243, 0.15);
+}
+
+body.sudo-mobile-flow .switch-contact-pill--active.switch-contact-pill--emergency {
+  border-color: var(--sudo-red);
+  background-color: rgba(255, 69, 0, 0.12);
+}
+
+/* ═══════════════════════════════════════════
+   BOTTOM DOCK — stacked action rows (new style)
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow .sudo-bottom-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  margin: 0 !important;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+body.sudo-mobile-flow .action-buttons.sudo-bottom-dock {
+  display: block;
+}
+
+body.sudo-mobile-flow .sudo-dock-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px var(--sudo-space) calc(12px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--sudo-gray);
+  border-radius: var(--sudo-r-xl) var(--sudo-r-xl) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* Contact actions — full-width rows */
+body.sudo-mobile-flow .sudo-dock-tile.action-btn {
+  flex: none;
+  width: 100%;
+  min-height: var(--sudo-touch);
+  max-width: none;
+  margin: 0;
+  padding: 0 18px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  border-radius: var(--sudo-r-md);
+  font-family: var(--sudo-font);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transform: none !important;
+  box-shadow: none !important;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.action-btn:active {
+  transform: scale(0.99) !important;
+  opacity: 0.92;
+}
+
+body.sudo-mobile-flow .sudo-dock-tile .btn-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: var(--sudo-r-sm);
+  font-size: 1.15rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+body.sudo-mobile-flow .sudo-dock-tile .btn-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: normal;
+  text-overflow: unset;
+  overflow: visible;
+  flex: 1;
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.call-highlight-btn {
+  background: linear-gradient(90deg, #1565C0 0%, #1E88E5 100%);
+  color: var(--sudo-white);
+  border: none;
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.call-highlight-btn .btn-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--sudo-white);
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.sms-btn {
+  background-color: var(--sudo-orange);
+  color: var(--sudo-white);
+  border: none;
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.sms-btn .btn-icon {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--sudo-white);
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.push-btn {
+  background-color: var(--sudo-black);
+  color: var(--sudo-white);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+body.sudo-mobile-flow .sudo-dock-tile.push-btn .btn-icon {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sudo-white);
+}
+
+/* Activation dock */
+body.sudo-mobile-flow .form-actions.sudo-bottom-dock,
+body.sudo-mobile-flow #activationDock.activation-dock .activation-dock-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px var(--sudo-space) calc(14px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--sudo-gray);
+  border-radius: var(--sudo-r-xl) var(--sudo-r-xl) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* Activation dock — fixed bar (no transform on full viewport width) */
+body.sudo-mobile-flow #activationDock.activation-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+  transform: none;
+  z-index: 200;
+  box-sizing: border-box;
+}
+
+body.sudo-mobile-flow #activationDock.activation-dock .activation-dock-inner {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+
+body.sudo-mobile-flow .form-actions.sudo-bottom-dock {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+
+body.sudo-mobile-flow .sudo-dock-terms-box {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--sudo-black);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--sudo-r-md);
+  padding: 12px 14px;
+}
+
+body.sudo-mobile-flow:has(#successMessage[style*="display: block"]) #activationDock {
+  display: none !important;
+}
+
+/* Full-width bottom primary actions (activation + contact dock) */
+body.sudo-mobile-flow .sudo-bottom-dock .sudo-dock-submit,
+body.sudo-mobile-flow .sudo-bottom-dock .btn.sudo-dock-submit,
+body.sudo-mobile-flow .sudo-bottom-dock button.sudo-dock-submit,
+body.sudo-mobile-flow #activationDock #activateSubmitBtn {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 58px;
+  margin: 0 !important;
+  padding: 0 20px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: var(--sudo-r-md) !important;
+}
+
+body.sudo-mobile-flow .form-actions.sudo-bottom-dock .form-check,
+body.sudo-mobile-flow #activationDock .form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+}
+
+body.sudo-mobile-flow .form-actions.sudo-bottom-dock .form-check-input,
+body.sudo-mobile-flow #activationDock .form-check-input {
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-color: var(--sudo-border);
+  background-color: var(--sudo-gray);
+}
+
+body.sudo-mobile-flow .form-actions.sudo-bottom-dock .form-check-input:checked,
+body.sudo-mobile-flow #activationDock .form-check-input:checked {
+  background-color: var(--sudo-orange);
+  border-color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .form-actions.sudo-bottom-dock .form-check-label,
+body.sudo-mobile-flow #activationDock .form-check-label {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body.sudo-mobile-flow .form-check-label a {
+  color: var(--sudo-orange);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body.sudo-mobile-flow .sudo-dock-submit.btn,
+body.sudo-mobile-flow #activationDock .sudo-dock-submit {
+  border: none;
+  border-radius: var(--sudo-r-md);
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  gap: 10px;
+  background-color: var(--sudo-orange);
+  color: var(--sudo-white);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+body.sudo-mobile-flow .sudo-bottom-dock .sudo-dock-row {
+  width: 100%;
+  align-items: stretch;
+}
+
+body.sudo-mobile-flow .sudo-dock-submit.btn:active {
+  background-color: var(--sudo-orange-hover);
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════
+   SUCCESS & MIRROR
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow .success-message {
+  padding: 28px var(--sudo-space) 24px;
+  text-align: center;
+}
+
+body.sudo-mobile-flow .success-icon-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(76, 175, 80, 0.12);
+  border: 2px solid rgba(76, 175, 80, 0.35);
+}
+
+body.sudo-mobile-flow .success-icon {
+  font-size: 2.25rem;
+  color: var(--sudo-green);
+}
+
+body.sudo-mobile-flow .success-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+body.sudo-mobile-flow .success-text {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.55;
+}
+
+body.sudo-mobile-flow .email-mirror-panel {
+  text-align: left;
+  margin-top: 20px;
+  padding: var(--sudo-space);
+  border-radius: var(--sudo-r-lg);
+  background-color: var(--sudo-black);
+  border: 1px solid rgba(229, 129, 71, 0.45);
+}
+
+body.sudo-mobile-flow .email-mirror-panel h4 {
+  color: var(--sudo-orange);
+  font-size: 0.85rem;
+}
+
+body.sudo-mobile-flow .mirror-dl div {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.sudo-mobile-flow .mirror-dl dt {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+body.sudo-mobile-flow .mirror-dl dd {
+  color: var(--sudo-white);
+  font-weight: 600;
+}
+
+body.sudo-mobile-flow .content-card:has(#successMessage[style*="display: block"]) #formCardHeader {
+  display: none;
+}
+
+body.sudo-mobile-flow.activate-app:has(#successMessage[style*="display: block"]) .sudo-app-main {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.sudo-mobile-flow #continueBtn.sudo-dock-submit {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 20px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* ═══════════════════════════════════════════
+   MODALS
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow .modal-overlay {
+  align-items: flex-end;
+  padding: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+body.sudo-mobile-flow .contact-mode-dialog,
+body.sudo-mobile-flow .emergency-gate-dialog,
+body.sudo-mobile-flow .call-flow-dialog,
+body.sudo-mobile-flow .success-modal,
+body.sudo-mobile-flow .daily-limit-modal,
+body.sudo-mobile-flow .modal-content {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border-radius: var(--sudo-r-xl) var(--sudo-r-xl) 0 0 !important;
+  background-color: var(--sudo-gray) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--sudo-white) !important;
+}
+
+body.sudo-mobile-flow .success-modal-btn,
+body.sudo-mobile-flow .emergency-gate-btn--primary,
+body.sudo-mobile-flow .sudo-flow-modal-btn--primary,
+body.sudo-mobile-flow .daily-limit-modal-button {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 58px;
+  margin: 0 !important;
+  padding: 0 20px !important;
+  border-radius: var(--sudo-r-md);
+  font-family: var(--sudo-font);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--sudo-orange) !important;
+  color: var(--sudo-white) !important;
+  border: none !important;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.sudo-mobile-flow .success-modal-btn:active,
+body.sudo-mobile-flow .sudo-flow-modal-btn--primary:active,
+body.sudo-mobile-flow .daily-limit-modal-button:active {
+  background-color: var(--sudo-orange-hover) !important;
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* Notification flow — final / error / limit sheets */
+body.sudo-mobile-flow .success-modal.sudo-flow-modal,
+body.sudo-mobile-flow .daily-limit-modal.sudo-flow-modal {
+  padding: 28px var(--sudo-space) calc(24px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: sudoSheetUp 0.35s ease-out;
+}
+
+@keyframes sudoSheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.sudo-mobile-flow .sudo-flow-modal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--success {
+  background: rgba(76, 175, 80, 0.12);
+  border: 2px solid rgba(76, 175, 80, 0.35);
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--error {
+  background: rgba(255, 69, 0, 0.12);
+  border: 2px solid rgba(255, 69, 0, 0.35);
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--warn {
+  background: rgba(229, 129, 71, 0.12);
+  border: 2px solid rgba(229, 129, 71, 0.4);
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap .success-icon,
+body.sudo-mobile-flow .sudo-flow-icon-wrap .daily-limit-modal-icon {
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--success .success-icon,
+body.sudo-mobile-flow .sudo-flow-icon-wrap--success .success-icon.sms {
+  color: var(--sudo-green);
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--success .success-icon.push {
+  color: var(--sudo-blue);
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--error .success-icon,
+body.sudo-mobile-flow .sudo-flow-icon-wrap--warn .daily-limit-modal-icon {
+  color: var(--sudo-red);
+}
+
+body.sudo-mobile-flow .sudo-flow-icon-wrap--warn .daily-limit-modal-icon {
+  color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .sudo-flow-eyebrow {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 4px 12px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.28);
+  border-radius: 999px;
+}
+
+body.sudo-mobile-flow .sudo-flow-eyebrow--error {
+  background-color: rgba(255, 69, 0, 0.12);
+  border-color: rgba(255, 69, 0, 0.28);
+}
+
+body.sudo-mobile-flow .sudo-flow-eyebrow--warn {
+  background-color: rgba(229, 129, 71, 0.12);
+  border-color: rgba(229, 129, 71, 0.35);
+}
+
+body.sudo-mobile-flow .success-modal .success-title {
+  font-size: 1.28rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--sudo-white);
+}
+
+body.sudo-mobile-flow .success-modal .success-text {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.68);
+  margin: 0 0 4px;
+}
+
+body.sudo-mobile-flow .success-modal .error-details,
+body.sudo-mobile-flow .success-modal .suggestion-box {
+  width: 100%;
+  text-align: left;
+  margin-top: 4px;
+  padding: 14px;
+  border-radius: var(--sudo-r-md);
+  background-color: var(--sudo-black);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+
+body.sudo-mobile-flow .success-modal .suggestion-box {
+  border-color: rgba(229, 129, 71, 0.35);
+  background: rgba(229, 129, 71, 0.08);
+}
+
+body.sudo-mobile-flow .success-modal .error-title,
+body.sudo-mobile-flow .success-modal .suggestion-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sudo-orange);
+  margin-bottom: 6px;
+}
+
+body.sudo-mobile-flow .success-modal .error-message,
+body.sudo-mobile-flow .success-modal .suggestion-text {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.sudo-mobile-flow .success-modal .error-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--sudo-red);
+}
+
+body.sudo-mobile-flow .daily-limit-modal.sudo-flow-modal {
+  text-align: left;
+}
+
+body.sudo-mobile-flow .daily-limit-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+body.sudo-mobile-flow .daily-limit-content {
+  flex: 1;
+  min-width: 0;
+}
+
+body.sudo-mobile-flow .daily-limit-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--sudo-white);
+}
+
+body.sudo-mobile-flow .daily-limit-modal-message {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+}
+
+body.sudo-mobile-flow .daily-limit-usage {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body.sudo-mobile-flow .daily-limit-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+body.sudo-mobile-flow .daily-limit-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sudo-orange), var(--sudo-red));
+  transition: width 0.3s ease;
+}
+
+body.sudo-mobile-flow .daily-limit-alt-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 8px;
+}
+
+body.sudo-mobile-flow .daily-limit-alt-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+body.sudo-mobile-flow .daily-limit-alt-button,
+body.sudo-mobile-flow .sudo-flow-modal-btn--secondary {
+  width: 100% !important;
+  min-height: 52px;
+  margin: 0;
+  padding: 0 16px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--sudo-r-md);
+  font-family: var(--sudo-font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: var(--sudo-black);
+  color: var(--sudo-white);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.sudo-mobile-flow .daily-limit-alt-button:active,
+body.sudo-mobile-flow .sudo-flow-modal-btn--secondary:active {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+body.sudo-mobile-flow .daily-limit-modal-subcopy {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 12px;
+  border-radius: var(--sudo-r-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.sudo-mobile-flow .call-flow-actions,
+body.sudo-mobile-flow .phone-actions,
+body.sudo-mobile-flow .sudo-flow-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+body.sudo-mobile-flow .call-flow-actions .action-btn,
+body.sudo-mobile-flow .phone-actions .action-btn {
+  flex: none;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 52px;
+  flex-direction: row;
+  padding: 0 18px;
+  font-size: 0.9rem;
+  transform: none !important;
+  border-radius: var(--sudo-r-md);
+  box-shadow: none !important;
+}
+
+body.sudo-mobile-flow .call-flow-actions .btn-icon,
+body.sudo-mobile-flow .phone-actions .btn-icon {
+  width: auto;
+  height: auto;
+  background: none !important;
+  font-size: 1rem;
+}
+
+/* Status banners */
+body.sudo-mobile-flow .scanner-service-status-inner {
+  border-radius: var(--sudo-r-md);
+  background-color: rgba(33, 150, 243, 0.1);
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+body.sudo-mobile-flow .scanner-all-services-off {
+  border-radius: var(--sudo-r-lg);
+  background-color: var(--sudo-gray);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Spinner */
+body.sudo-mobile-flow .spinner-container {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+body.sudo-mobile-flow .spinner {
+  border-color: var(--sudo-gray);
+  border-top-color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .spinner-label {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.85rem;
+}
+
+/* ═══════════════════════════════════════════
+   ERROR PAGES (invalid QR, generic errors, 404)
+   ═══════════════════════════════════════════ */
+body.sudo-mobile-flow.sudo-error-page .sudo-error-main,
+body.sudo-mobile-flow.sudo-error-page .app-main.sudo-app-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px var(--sudo-space) calc(32px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+body.sudo-mobile-flow .sudo-error-card {
+  width: 100%;
+  background-color: var(--sudo-gray);
+  border-radius: var(--sudo-r-xl);
+  padding: 28px 22px 24px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid var(--sudo-red);
+  box-shadow: 0 16px 48px var(--sudo-shadow);
+}
+
+body.sudo-mobile-flow .sudo-error-icon-wrap {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 69, 0, 0.12);
+  border: 2px solid rgba(255, 69, 0, 0.35);
+}
+
+body.sudo-mobile-flow .sudo-error-icon-wrap--warn {
+  background: rgba(229, 129, 71, 0.12);
+  border-color: rgba(229, 129, 71, 0.4);
+}
+
+body.sudo-mobile-flow .sudo-error-icon-wrap--info {
+  background: rgba(33, 150, 243, 0.12);
+  border-color: rgba(33, 150, 243, 0.35);
+}
+
+body.sudo-mobile-flow .sudo-error-icon-wrap i {
+  font-size: 2.25rem;
+  color: var(--sudo-red);
+  line-height: 1;
+}
+
+body.sudo-mobile-flow .sudo-error-icon-wrap--warn i {
+  color: var(--sudo-orange);
+}
+
+body.sudo-mobile-flow .sudo-error-icon-wrap--info i {
+  color: var(--sudo-blue);
+}
+
+body.sudo-mobile-flow .sudo-error-eyebrow {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 4px 12px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(255, 69, 0, 0.12);
+  border: 1px solid rgba(255, 69, 0, 0.28);
+  border-radius: 999px;
+}
+
+body.sudo-mobile-flow .sudo-error-title {
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 12px;
+  color: var(--sudo-white);
+}
+
+body.sudo-mobile-flow .sudo-error-message {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.68);
+  margin: 0 0 22px;
+}
+
+body.sudo-mobile-flow .sudo-error-hint {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.45);
+  margin: -10px 0 20px;
+}
+
+body.sudo-mobile-flow .sudo-error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.sudo-mobile-flow .sudo-error-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--sudo-touch);
+  padding: 0 20px;
+  border-radius: var(--sudo-r-md);
+  font-family: var(--sudo-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+body.sudo-mobile-flow .sudo-error-btn:active {
+  transform: scale(0.98);
+}
+
+body.sudo-mobile-flow .sudo-error-btn--primary,
+body.sudo-mobile-flow .btn-home {
+  background-color: var(--sudo-orange);
+  color: var(--sudo-white);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+body.sudo-mobile-flow .sudo-error-btn--primary:active,
+body.sudo-mobile-flow .btn-home:active {
+  background-color: var(--sudo-orange-hover);
+  box-shadow: none;
+}
+
+body.sudo-mobile-flow .sudo-error-btn--ghost {
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+}
+
+body.sudo-mobile-flow .sudo-error-btn--ghost:active {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Legacy aliases */
+body.sudo-mobile-flow .error-card {
+  border-left: 4px solid var(--sudo-red);
+}
+
+/* Inline / form error banners */
+body.sudo-mobile-flow .sudo-form-error-banner,
+body.sudo-mobile-flow .general-error-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: var(--sudo-r-md);
+  background: rgba(255, 69, 0, 0.12);
+  border: 1px solid rgba(255, 69, 0, 0.32);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+body.sudo-mobile-flow .sudo-form-error-banner::before,
+body.sudo-mobile-flow .general-error-message::before {
+  content: '\F33A';
+  font-family: 'bootstrap-icons';
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--sudo-red);
+  line-height: 1.3;
+}
+
+body.sudo-mobile-flow .invalid-feedback {
+  color: var(--sudo-red);
+  font-size: 0.78rem;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+body.sudo-mobile-flow .form-control.is-invalid {
+  border-color: var(--sudo-red) !important;
+  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.15);
+}
+
+/* Desktop cap */
+@media (min-width: 520px) {
+  body.sudo-mobile-flow .sudo-app-main,
+  body.sudo-mobile-flow .app-main,
+  body.sudo-mobile-flow main.main-content {
+    max-width: 440px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  body.sudo-mobile-flow .sudo-bottom-dock {
+    left: 50%;
+    right: auto;
+    width: 100%;
+    max-width: 440px;
+    transform: translateX(-50%);
+    box-sizing: border-box;
+  }
+
+  body.sudo-mobile-flow #activationDock.activation-dock {
+    left: 50%;
+    right: auto;
+    width: 100%;
+    max-width: 440px;
+    transform: translateX(-50%);
+  }
+
+  body.sudo-mobile-flow .contact-mode-dialog,
+  body.sudo-mobile-flow .emergency-gate-dialog,
+  body.sudo-mobile-flow .call-flow-dialog,
+  body.sudo-mobile-flow .success-modal,
+  body.sudo-mobile-flow .daily-limit-modal {
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    border-radius: var(--sudo-r-xl) !important;
+  }
+
+  body.sudo-mobile-flow .modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+
+  /* Bottom dock: keep full-width stacked buttons on all screen sizes */
+  body.sudo-mobile-flow .sudo-dock-tile.action-btn {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0 18px;
+    text-align: left;
+  }
+}
+
+/* Kill legacy inline transforms on notify page */
+body.sudo-mobile-flow.notify-app .action-btn.sudo-dock-tile {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+body.sudo-mobile-flow .is-invalid {
+  border-color: var(--sudo-red) !important;
+}

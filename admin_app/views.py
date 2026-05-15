@@ -84,10 +84,25 @@ def _get_fasttag_qr_layout(template_img):
     """
     Detect the orange FastTag bracket area and return QR placement.
     Returns (qr_size, qr_x, qr_y) where qr_size=(w, h).
+
+    The coarse orange bbox is taller/wider than the white cavity (L-brackets leave a gap
+    in the vertical bars at mid-height). We probe inner edges so the QR uses the full
+    inner square, not the smaller min(outer_w, outer_h) * ratio.
     """
     template_rgb = template_img.convert('RGB')
     template_width, template_height = template_rgb.size
     pixels = template_rgb.load()
+
+    def is_orange_xy(x, y):
+        if x < 0 or x >= template_width or y < 0 or y >= template_height:
+            return False
+        r, g, b = pixels[x, y]
+        return (
+            r > 160 and
+            60 < g < 190 and
+            b < 120 and
+            r > g > b
+        )
 
     x_counts = {}
     y_counts = {}
@@ -95,14 +110,7 @@ def _get_fasttag_qr_layout(template_img):
     # Detect orange corner lines (sample every pixel for accurate anchors).
     for y in range(template_height):
         for x in range(template_width):
-            r, g, b = pixels[x, y]
-            is_orange = (
-                r > 160 and
-                60 < g < 190 and
-                b < 120 and
-                r > g > b
-            )
-            if is_orange:
+            if is_orange_xy(x, y):
                 x_counts[x] = x_counts.get(x, 0) + 1
                 y_counts[y] = y_counts.get(y, 0) + 1
 
@@ -124,24 +132,120 @@ def _get_fasttag_qr_layout(template_img):
         bracket_top = int(template_height * 0.13)
         bracket_bottom = int(template_height * 0.87)
 
-    bracket_w = max(1, bracket_right - bracket_left)
-    bracket_h = max(1, bracket_bottom - bracket_top)
+    cx = (bracket_left + bracket_right) // 2
+    cy = (bracket_top + bracket_bottom) // 2
 
-    # Fit QR to 90% of detected orange border area.
-    qr_edge_px = int(min(bracket_w, bracket_h) * 0.90)
-    qr_edge_px = max(1, qr_edge_px)
+    # --- Inner white cavity (between L-bracket arms), not outer orange bbox ---
+    inner_left = inner_right = inner_top = inner_bottom = None
+    best_width = 0
+    for y in range(
+        bracket_top + 3,
+        min(bracket_top + max(30, (bracket_bottom - bracket_top) // 5), bracket_bottom - 6),
+        2,
+    ):
+        x = cx
+        while x >= bracket_left and not is_orange_xy(x, y):
+            x -= 1
+        if x < bracket_left:
+            continue
+        inner_l = x + 1
+        x = cx
+        while x <= bracket_right and not is_orange_xy(x, y):
+            x += 1
+        if x > bracket_right:
+            continue
+        inner_r = x - 1
+        if inner_r > inner_l:
+            w = inner_r - inner_l + 1
+            if w > best_width:
+                best_width = w
+                inner_left, inner_right = inner_l, inner_r
+
+    if inner_left is None:
+        inner_left = bracket_left + max(1, (bracket_right - bracket_left) // 12)
+        inner_right = bracket_right - max(1, (bracket_right - bracket_left) // 12)
+
+    # Sit on the left vertical bar (not center x, which can sit in the mid-height gap in the bar).
+    x_probe = min(inner_right - 10, inner_left + 20)
+    y = cy
+    while y >= bracket_top and not is_orange_xy(x_probe, y):
+        y -= 1
+    if y >= bracket_top:
+        inner_top = y + 1
+    y = cy
+    while y <= bracket_bottom and not is_orange_xy(x_probe, y):
+        y += 1
+    if y <= bracket_bottom:
+        inner_bottom = y - 1
+
+    if inner_top is None or inner_bottom is None or inner_bottom <= inner_top:
+        inner_top = bracket_top + max(1, (bracket_bottom - bracket_top) // 10)
+        inner_bottom = bracket_bottom - max(1, (bracket_bottom - bracket_top) // 10)
+
+    inner_w = max(1, inner_right - inner_left + 1)
+    inner_h = max(1, inner_bottom - inner_top + 1)
+    inner_min = min(inner_w, inner_h)
+
+    # Inset on each side so black modules do not touch the orange L-brackets (cleaner print look).
+    inset_px = max(8, min(18, int(round(inner_min * 0.024))))
+    qr_edge_px = max(1, inner_min - 2 * inset_px)
     qr_size = (qr_edge_px, qr_edge_px)
 
-    qr_center_x = (bracket_left + bracket_right) // 2
-    qr_center_y = (bracket_top + bracket_bottom) // 2
-    qr_x = qr_center_x - (qr_size[0] // 2)
-    qr_y = qr_center_y - (qr_size[1] // 2)
+    icx = (inner_left + inner_right) // 2
+    icy = (inner_top + inner_bottom) // 2
+    qr_x = icx - (qr_size[0] // 2)
+    qr_y = icy - (qr_size[1] // 2)
 
     # Keep QR fully inside image bounds.
     qr_x = max(0, min(qr_x, template_width - qr_size[0]))
     qr_y = max(0, min(qr_y, template_height - qr_size[1]))
 
     return qr_size, qr_x, qr_y
+
+
+def _trim_and_resize_qr_for_sticker(qr_img, qr_size):
+    """
+    Remove the qrcode library's outer quiet zone, then scale to qr_size.
+
+    Resizing the full raster leaves a thick white band inside the orange bracket; the
+    sticker artwork already provides margin, so the modules can use almost the full slot.
+    """
+    from PIL import Image as _PILImage
+
+    im = qr_img.convert("RGB")
+    px = im.load()
+    w, h = im.size
+    white = 253
+    min_x, min_y = w, h
+    max_x, max_y = -1, -1
+    for yy in range(h):
+        for xx in range(w):
+            r, g, b = px[xx, yy]
+            if r < white or g < white or b < white:
+                if xx < min_x:
+                    min_x = xx
+                if xx > max_x:
+                    max_x = xx
+                if yy < min_y:
+                    min_y = yy
+                if yy > max_y:
+                    max_y = yy
+    if max_x < min_x:
+        cropped = im
+    else:
+        pad = 0
+        min_x = max(0, min_x - pad)
+        min_y = max(0, min_y - pad)
+        max_x = min(w - 1, max_x + pad)
+        max_y = min(h - 1, max_y + pad)
+        cropped = im.crop((min_x, min_y, max_x + 1, max_y + 1))
+    tw, th = qr_size
+    out = cropped.resize((tw, th), _PILImage.Resampling.LANCZOS).convert("RGB")
+    # Remove soft anti-aliased fringes that read as extra white margin around modules.
+    g = out.convert("L")
+    bw = g.point(lambda p: 255 if p > 200 else 0)
+    return bw.convert("RGB")
+
 
 def custom_404(request, exception):
     """
@@ -583,9 +687,7 @@ def generate_qr(request):
                     qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
                     qr.make(fit=True)
                     qr_img = qr.make_image(fill_color="black", back_color="white")
-                    
-                    # Resize QR code to fit inside orange brackets
-                    qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
+                    qr_img = _trim_and_resize_qr_for_sticker(qr_img, qr_size)
                     
                     # Paste QR code inside orange bracket area on right side
                     final_img = template_img.copy()
@@ -827,9 +929,9 @@ def download_qr_pdf(request):
 
     buffer = io.BytesIO()
 
-    # FASTag-style windshield sticker footprint (~100mm × 62mm); one composite per page.
+    # FASTag-style windshield sticker footprint: 10 cm × 5.5 cm (100 mm × 55 mm); one composite per page.
     page_w_pt = mm_to_pt(100)
-    page_h_pt = mm_to_pt(62)
+    page_h_pt = mm_to_pt(55)
     page_size = (page_w_pt, page_h_pt)
 
     margin_pt = mm_to_pt(1.5)
@@ -845,8 +947,11 @@ def download_qr_pdf(request):
 
     elements = []
 
-    page_width = page_size[0] - doc.leftMargin - doc.rightMargin
-    page_height = page_size[1] - doc.topMargin - doc.bottomMargin
+    # SimpleDocTemplate uses platypus.frames.Frame with default 6pt padding on each
+    # side; drawable area is doc.width/height minus 12pt per axis (not the full margin box).
+    _frame_edge_pad_pt = 12.0
+    page_width = doc.width - _frame_edge_pad_pt
+    page_height = doc.height - _frame_edge_pad_pt
 
     for i, qr in enumerate(qr_data):
         if i > 0:
@@ -918,7 +1023,10 @@ def register_admin(request):
     # Check PIN verification
     if not request.session.get('auth_pin_verified'):
         return redirect(f"{reverse('verify_auth_pin')}?action=register")
-    
+
+    _register_panel_pin_session_key = 'register_admin_panel_pin_ok'
+    pin_gate_done = bool(request.session.get(_register_panel_pin_session_key))
+
     if request.method == 'POST':
         if not pin_gate_done:
             if request.POST.get('panel_pin', '').strip() != '4455':
@@ -928,6 +1036,7 @@ def register_admin(request):
                     'register_admin.html',
                     {'pin_gate_done': False},
                 )
+            request.session[_register_panel_pin_session_key] = True
             request.session['auth_pin_verified'] = True
             request.session.modified = True
             pin_gate_done = True
@@ -950,17 +1059,12 @@ def register_admin(request):
         )
         if phone_err:
             messages.error(request, phone_err)
-            return render(request, 'register_admin.html')
-        
-        # Verify password
-        admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
-        if password != admin_password:
-            messages.error(
+            return render(
                 request,
-                'Invalid password. Use the admin panel password configured for this environment.',
+                'register_admin.html',
+                {'pin_gate_done': pin_gate_done},
             )
-            return render(request, 'register_admin.html')
-        
+
         try:
             # Check if user already exists (email stored normalized to lowercase)
             existing_user = False
@@ -1013,6 +1117,7 @@ def register_admin(request):
             )
             # Keep auth_pin_verified so the next page (login) loads without a second PIN; cleared on login.
             logger.info('Admin registered: email=%s doc_id=%s', email, user_id)
+            request.session.pop(_register_panel_pin_session_key, None)
             return redirect('admin_login')
 
         except Exception as e:
@@ -3559,8 +3664,7 @@ def regenerate_qr(request, qr_id):
         template_img = PILImage.open(template_path).convert('RGB')
         qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
 
-        # Resize QR code to fit inside orange brackets
-        qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
+        qr_img = _trim_and_resize_qr_for_sticker(qr_img, qr_size)
         
         # Paste QR code inside orange bracket area on right side
         final_img = template_img.copy()

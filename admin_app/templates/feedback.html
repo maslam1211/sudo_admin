@@ -55,16 +55,18 @@
         }
 
         .brand-logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-orange);
+            display: inline-block;
+            line-height: 0;
             text-decoration: none;
-            letter-spacing: 1px;
         }
 
-        .brand-dot {
-            color: var(--text-white);
-            font-weight: 800;
+        .brand-logo-img {
+            display: block;
+            height: 56px;
+            width: auto;
+            max-width: min(260px, 85vw);
+            object-fit: contain;
+            mix-blend-mode: lighten;
         }
 
         .header-title {
@@ -403,7 +405,9 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <a href="/" class="brand-logo">SudoTag<span class="brand-dot">.</span></a>
+        <a href="/" class="brand-logo" aria-label="SudoTag home">
+            <img src="{% static 'assets/img/sudotag-logo.png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+        </a>
         <h1 class="header-title">SHARE YOUR FEEDBACK</h1>
     </header>
 
