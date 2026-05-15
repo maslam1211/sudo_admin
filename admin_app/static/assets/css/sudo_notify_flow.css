@@ -81,6 +81,16 @@ body.notify-app .modal-overlay {
   padding: 0;
 }
 
+/* Center-stack dialogs (success / error / daily limit) — not contact/emergency sheets */
+body.notify-app #successModal.modal-overlay,
+body.notify-app #errorModal.modal-overlay,
+body.notify-app #dailyLimitModal.modal-overlay {
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+}
+
 body.notify-app .notify-flow-sheet,
 body.notify-app .emergency-gate-dialog,
 body.notify-app .contact-mode-dialog {
@@ -782,6 +792,23 @@ body.notify-app .notify-dock-actions {
   flex-direction: column;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* `hidden` beats author .notify-dock-btn { display:flex } (fixes stray Call / SMS / Push). */
+body.notify-app .notify-dock-actions .notify-dock-btn[hidden] {
+  display: none !important;
+}
+
+body.notify-app #notifyOwnerChannelPick[hidden] {
+  display: none !important;
+}
+
+/* `hidden` on dock chrome (summary headline, phase, mode label, dismiss) */
+body.notify-app .notify-dock-summary[hidden],
+body.notify-app .notify-dock-phase[hidden],
+body.notify-app .notify-dock-mode[hidden],
+body.notify-app .notify-dock-dismiss[hidden] {
+  display: none !important;
 }
 
 body.notify-app .notify-dock-btn {

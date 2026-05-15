@@ -1800,7 +1800,7 @@
       background-color: var(--notification-red);
     }
 
-    /* Sending SMS / push: subtle dock + button spinner (no fullscreen Lottie) */
+    /* Sending: wheel spinner on Voice dock button OR on SMS/Push channel cards */
     @keyframes notify-send-spin {
       to {
         transform: rotate(360deg);
@@ -1810,6 +1810,11 @@
     body.notify-app .notify-action-dock.notify-dock-sending {
       pointer-events: none;
       opacity: 0.9;
+    }
+
+    /* SMS/Push sending: block extra taps without dimming the dock */
+    body.notify-app .notify-action-dock.notify-dock-sending.notify-dock-sending-instant-msg {
+      opacity: 1;
     }
 
     body.notify-app .notify-dock-btn.is-sending {
@@ -2223,6 +2228,16 @@
       padding: 0;
     }
 
+    /* Success / error / limit: centered dialog, not bottom-sheet */
+    body.notify-app #successModal.modal-overlay,
+    body.notify-app #errorModal.modal-overlay,
+    body.notify-app #dailyLimitModal.modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+    }
+
     @media (min-width: 576px) {
       body.notify-app .modal-overlay {
         align-items: center;
@@ -2290,15 +2305,17 @@
       max-width: 100% !important;
     }
 
-    /* Flow modals — override legacy inline success/limit styles */
+    /* Flow modals — centered card (overlay uses flex center for these IDs) */
     body.notify-app .success-modal.sudo-flow-modal,
     body.notify-app .daily-limit-modal.sudo-flow-modal {
       background: var(--secondary-gray) !important;
       border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.5) !important;
-      margin: 0 !important;
-      width: 100% !important;
-      max-width: none !important;
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55) !important;
+      margin: auto !important;
+      width: min(440px, calc(100vw - 32px)) !important;
+      max-width: min(440px, var(--app-max-width, 560px)) !important;
+      max-height: min(90vh, 720px) !important;
+      overflow-y: auto !important;
       animation: none !important;
     }
 
@@ -2368,6 +2385,221 @@
       }
     }
   </style>
+  <!-- Owner sheet: stacked sudo-dock-tile channel picks (same pattern as sudo_mobile_flow.css) -->
+  <style id="notify-owner-flow-simple">
+    .notify-question-lead {
+      margin-top: 6px;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.52);
+    }
+
+    .notify-switch-below-reasons {
+      margin-bottom: 14px;
+    }
+
+    /* Win over .notify-dock-btn { display: flex } so only chosen CTA shows */
+    body.notify-app .notify-dock-actions .notify-dock-btn[hidden],
+    body.notify-app #notifyOwnerChannelPick[hidden] {
+      display: none !important;
+    }
+
+    body.notify-app .notify-dock-summary[hidden] {
+      display: none !important;
+    }
+
+    body.notify-app .notify-dock-phase[hidden],
+    body.notify-app .notify-dock-mode[hidden],
+    body.notify-app .notify-dock-dismiss[hidden] {
+      display: none !important;
+    }
+
+    body.notify-app .notify-owner-channel-pick-label {
+      margin: 0 0 10px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #e58147;
+    }
+    /* Owner: fixed vehicle → reasons → inline composer (no bottom sheet). Emergency keeps floating dock. */
+    body.notify-app:not(.flow-emergency) .notify-action-dock.notify-action-dock-owner {
+      position: relative !important;
+      left: auto !important;
+      right: auto !important;
+      bottom: auto !important;
+      top: auto !important;
+      transform: none !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 2;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto 24px;
+    }
+
+    body.notify-app:not(.flow-emergency) .notify-action-dock-owner .notify-dock-panel {
+      border-radius: var(--sudo-r-xl, 24px) !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 14px !important;
+    }
+
+    body.notify-app:not(.flow-emergency) .notify-action-dock-owner .notify-sheet-handle {
+      display: none !important;
+    }
+
+    body.notify-app.flow-emergency .notify-action-dock-owner {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 200;
+      max-width: none;
+      margin: 0;
+    }
+
+    body.notify-app.flow-emergency .notify-action-dock-owner:not(.is-open) {
+      transform: translateY(105%);
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    body.notify-app.flow-emergency .notify-action-dock-owner.is-open {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    body.notify-app .notify-owner-channel-cards {
+      margin: 12px 0 16px;
+    }
+
+    body.notify-app .notify-channel-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    body.notify-app .notify-channel-box {
+      width: 100%;
+      margin: 0;
+      padding: 14px 16px;
+      min-height: var(--touch-min, 52px);
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      cursor: pointer;
+      font-family: var(--sudo-font, 'Poppins', sans-serif);
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text-white, #fff);
+      background-color: var(--secondary-gray, #282828);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease,
+        transform 0.15s ease;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    body.notify-app .notify-channel-box:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    body.notify-app .notify-channel-box:not(:disabled):active {
+      transform: scale(0.99) !important;
+    }
+
+    body.notify-app .notify-channel-box.is-selected {
+      background-color: rgba(229, 129, 71, 0.15);
+      border-color: #e58147;
+    }
+
+    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled) {
+      position: relative;
+      pointer-events: none;
+      cursor: wait;
+    }
+
+    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled) > .notify-channel-box-text,
+    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled) > i.bi:first-of-type {
+      visibility: hidden !important;
+    }
+
+    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled)::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 28px;
+      height: 28px;
+      margin: -14px 0 0 -14px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: notify-send-spin 0.62s linear infinite;
+      box-sizing: border-box;
+    }
+
+    body.notify-app .notify-channel-box > i.bi:first-of-type {
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    body.notify-app .notify-channel-box--call > i.bi:first-of-type {
+      background: rgba(33, 150, 243, 0.2);
+      color: #90caf9;
+    }
+
+    body.notify-app .notify-channel-box--sms > i.bi:first-of-type {
+      background: rgba(229, 129, 71, 0.2);
+      color: var(--accent-orange, #e58147);
+    }
+
+    body.notify-app .notify-channel-box--push > i.bi:first-of-type {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    body.notify-app .notify-channel-box-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    body.notify-app .notify-channel-box-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    body.notify-app .notify-channel-box-sub {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.52);
+      line-height: 1.3;
+    }
+
+    body.notify-app .notify-channel-box .notify-channel-unavailable {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.42);
+    }
+  </style>
 </head>
 
 <body class="notify-app sudo-mobile-flow">
@@ -2383,14 +2615,6 @@
   <!-- Main Content -->
   <main class="main-content sudo-app-main notify-scroll-area">
     {% if vehicle_data %}
-    <section class="vehicle-info notify-vehicle-card" aria-label="Vehicle details">
-      <h2 class="notify-vehicle-name">{% if vehicle_data.display_name %}{{ vehicle_data.display_name }}{% else %}{{ vehicle_data.make }} {{ vehicle_data.model }}{% endif %}</h2>
-      {% if vehicle_data.yearOfManufacturing %}
-      <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
-      {% endif %}
-      <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
-    </section>
-
     {% if has_emergency_contact %}
     <div class="modal-overlay notify-flow-modal" id="contactModeModal" style="display: none;" aria-hidden="true">
       <div class="notify-flow-sheet contact-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="contactModeTitle">
@@ -2482,33 +2706,36 @@
     </div>
     {% endif %}
 
+    <div id="ownerNotifySection">
+    {% if scanner_has_any_channel %}
+    <section class="vehicle-info notify-vehicle-card" aria-label="Vehicle details">
+      <h2 class="notify-vehicle-name">{% if vehicle_data.display_name %}{{ vehicle_data.display_name }}{% else %}{{ vehicle_data.make }} {{ vehicle_data.model }}{% endif %}</h2>
+      {% if vehicle_data.yearOfManufacturing %}
+      <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
+      {% endif %}
+      <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
+    </section>
+
     {% if has_emergency_contact %}
-    <div class="switch-contact-wrap" id="switchContactWrap" hidden style="display: none;">
-      <p class="switch-contact-hint">Change who you’re contacting</p>
+    <div class="switch-contact-wrap notify-switch-below-reasons" id="switchContactWrap" hidden style="display: none;">
+      <p class="switch-contact-hint">Who are you contacting?</p>
       <div class="switch-contact-actions">
         <button type="button" class="switch-contact-pill switch-contact-pill--owner" id="quickSwitchOwnerBtn" aria-current="false">
           <i class="bi bi-car-front-fill" aria-hidden="true"></i>
-          <span>Contact vehicle owner</span>
+          <span>Vehicle owner</span>
         </button>
         <button type="button" class="switch-contact-pill switch-contact-pill--emergency" id="quickSwitchEmergencyBtn" aria-current="false">
           <i class="bi bi-heart-pulse-fill" aria-hidden="true"></i>
-          <span>Emergency Contact</span>
+          <span>Emergency</span>
         </button>
       </div>
     </div>
     {% endif %}
 
-    <div id="ownerNotifySection">
-    {% if scanner_has_any_channel %}
-    <section class="notify-flow-step-banner" id="notifyMainStepBanner">
-      <span class="notify-flow-step-kicker">Step 2</span>
-      <span class="notify-flow-step-line" id="notifyMainStepLine">
-        Choose a reason below, then swipe up the bottom bar to enter your number and send.
-      </span>
-    </section>
     <section class="notify-reasons-panel" aria-labelledby="notifyReasonsHeading">
     <div class="question-section">
-      <p class="question-title" id="notifyReasonsHeading">Why would you like to contact the vehicle owner?</p>
+      <p class="question-title" id="notifyReasonsHeading">What’s happening with this vehicle?</p>
+      <p class="notify-question-lead">Choose one reason.</p>
     </div>
 
     <div class="reasons-list">
@@ -2560,6 +2787,111 @@
     </div>
     </section>
 
+    <aside class="notify-action-dock notify-action-dock-owner" id="notifyActionDock" role="region" aria-label="Contact actions" aria-hidden="false">
+      <div class="notify-dock-panel">
+        <div class="notify-sheet-handle notify-dock-drag-hint-owner" aria-hidden="true"></div>
+        <p class="notify-dock-phase" id="notifyDockPhaseHint"></p>
+        <p class="notify-dock-mode" id="notifyDockModeLabel">Contact vehicle owner</p>
+        <div class="notify-dock-summary" id="notifyDockSummary" hidden>
+          <span class="notify-dock-summary-kicker">Selected reason</span>
+          <p class="notify-dock-summary-text" id="notifySelectedReasonText">—</p>
+        </div>
+
+        <div id="notifyOwnerChannelPick" class="notify-owner-channel-cards" role="group" aria-labelledby="notifyOwnerChannelPickLabel">
+          <p class="notify-owner-channel-pick-label" id="notifyOwnerChannelPickLabel">How do you want to reach them?</p>
+          <div class="notify-channel-cards-list">
+            {% if call_register_ready %}
+            <button type="button" class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" id="pickMethodCall" data-channel="call">
+              <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+              <span class="notify-channel-box-text">
+                <span class="notify-channel-box-title">Voice call</span>
+                <span class="notify-channel-box-sub">Call via your phone (fastest)</span>
+              </span>
+            </button>
+            {% else %}
+            <button type="button" class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" disabled aria-disabled="true">
+              <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+              <span class="notify-channel-box-text">
+                <span class="notify-channel-box-title">Voice call <span class="notify-channel-unavailable">(unavailable)</span></span>
+              </span>
+            </button>
+            {% endif %}
+            {% if owner_sms_ready %}
+            <button type="button" class="notify-channel-box notify-channel-box--sms notify-channel-pick-btn" id="pickMethodSms" data-channel="sms">
+              <i class="bi bi-chat-text-fill" aria-hidden="true"></i>
+              <span class="notify-channel-box-text">
+                <span class="notify-channel-box-title">SMS</span>
+                <span class="notify-channel-box-sub">Text message to the owner</span>
+              </span>
+            </button>
+            {% else %}
+            <button type="button" class="notify-channel-box notify-channel-box--sms notify-channel-pick-btn" disabled aria-disabled="true">
+              <i class="bi bi-chat-text-fill" aria-hidden="true"></i>
+              <span class="notify-channel-box-text">
+                <span class="notify-channel-box-title">SMS <span class="notify-channel-unavailable">(unavailable)</span></span>
+              </span>
+            </button>
+            {% endif %}
+            {% if push_ready %}
+            <button type="button" class="notify-channel-box notify-channel-box--push notify-channel-pick-btn" id="pickMethodPush" data-channel="push">
+              <i class="bi bi-bell-fill" aria-hidden="true"></i>
+              <span class="notify-channel-box-text">
+                <span class="notify-channel-box-title">Push notification</span>
+                <span class="notify-channel-box-sub">Alert in the owner&apos;s app</span>
+              </span>
+            </button>
+            {% else %}
+            <button type="button" class="notify-channel-box notify-channel-box--push notify-channel-pick-btn" disabled aria-disabled="true">
+              <i class="bi bi-bell-fill" aria-hidden="true"></i>
+              <span class="notify-channel-box-text">
+                <span class="notify-channel-box-title">Push notification <span class="notify-channel-unavailable">(unavailable)</span></span>
+              </span>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+
+        <p class="notify-dock-hint" id="notifyDockReasonHint" hidden>Select a channel below.</p>
+        <div id="callFlowEmergencyPlateWrap" class="notify-dock-field notify-dock-plate" hidden style="display: none;">
+          <label class="notify-field-label" for="callFlowPlateInput">Last 4 digits of plate</label>
+          <input type="text" class="notify-field-input call-flow-plate-input" id="callFlowPlateInput"
+            inputmode="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
+            placeholder="e.g. 6001" aria-describedby="callFlowPlateError">
+          <p class="notify-field-error" id="callFlowPlateError" role="alert"></p>
+        </div>
+        <div class="notify-dock-field notify-dock-phone" id="notifyDockPhoneBlock">
+          <label class="notify-field-label" for="callerPhoneInput">Your mobile number</label>
+          <div class="notify-phone-row">
+            <span class="notify-phone-prefix" aria-hidden="true">+91</span>
+            <input type="tel" inputmode="numeric" class="notify-field-input" id="callerPhoneInput" maxlength="10"
+              placeholder="10-digit mobile" autocomplete="tel-national" aria-label="Your 10-digit mobile number">
+          </div>
+          <p class="notify-field-error" id="callRouteError" role="alert"></p>
+        </div>
+        <div class="notify-dock-actions" id="notifyDockActionsWrap">
+          {% if call_register_ready or emergency_call_ready %}
+          <button type="button" class="action-btn call-highlight-btn notify-dock-btn" id="callMainBtn" title="Call" hidden>
+            <i class="bi bi-telephone-fill btn-icon" aria-hidden="true"></i>
+            <span class="btn-text" id="callMainBtnLabel">Voice call</span>
+          </button>
+          {% endif %}
+          {% if owner_sms_ready %}
+          <button type="button" class="action-btn sms-btn notify-dock-btn" id="smsBtn" hidden>
+            <i class="bi bi-chat-text-fill btn-icon" aria-hidden="true"></i>
+            <span class="btn-text" id="smsBtnLabel">Send SMS</span>
+          </button>
+          {% endif %}
+          {% if push_ready %}
+          <button type="button" class="action-btn push-btn notify-dock-btn" id="pushBtn" hidden>
+            <i class="bi bi-bell-fill btn-icon" aria-hidden="true"></i>
+            <span class="btn-text">Send notification</span>
+          </button>
+          {% endif %}
+        </div>
+        <button type="button" class="notify-dock-dismiss" id="notifyDockDismiss">Change choices</button>
+      </div>
+    </aside>
+
     {% if service_status_lines %}
     <aside class="scanner-service-status" role="status" aria-live="polite">
       <div class="scanner-service-status-inner">
@@ -2597,58 +2929,6 @@
     </div>
     {% endif %}
   </main>
-
-  {% if vehicle_data and scanner_has_any_channel %}
-  <footer class="notify-action-dock" id="notifyActionDock" role="region" aria-label="Contact actions" aria-hidden="true">
-    <div class="notify-dock-panel">
-      <div class="notify-sheet-handle" aria-hidden="true"></div>
-      <p class="notify-dock-phase" id="notifyDockPhaseHint">Your number → Call / SMS / Push</p>
-      <p class="notify-dock-mode" id="notifyDockModeLabel">Contact vehicle owner</p>
-      <p class="notify-dock-hint" id="notifyDockReasonHint">Select a reason above to send SMS or push notification.</p>
-      <div class="notify-dock-summary" id="notifyDockSummary">
-        <span class="notify-dock-summary-kicker">Selected reason</span>
-        <p class="notify-dock-summary-text" id="notifySelectedReasonText">—</p>
-      </div>
-      <div id="callFlowEmergencyPlateWrap" class="notify-dock-field notify-dock-plate" hidden style="display: none;">
-        <label class="notify-field-label" for="callFlowPlateInput">Last 4 digits of plate</label>
-        <input type="text" class="notify-field-input call-flow-plate-input" id="callFlowPlateInput"
-          inputmode="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
-          placeholder="e.g. 6001" aria-describedby="callFlowPlateError">
-        <p class="notify-field-error" id="callFlowPlateError" role="alert"></p>
-      </div>
-      <div class="notify-dock-field notify-dock-phone" id="notifyDockPhoneBlock">
-        <label class="notify-field-label" for="callerPhoneInput">Your mobile number</label>
-        <div class="notify-phone-row">
-          <span class="notify-phone-prefix" aria-hidden="true">+91</span>
-          <input type="tel" inputmode="numeric" class="notify-field-input" id="callerPhoneInput" maxlength="10"
-            placeholder="10-digit mobile" autocomplete="tel-national" aria-label="Your 10-digit mobile number">
-        </div>
-        <p class="notify-field-error" id="callRouteError" role="alert"></p>
-      </div>
-      <div class="notify-dock-actions">
-      {% if call_register_ready or emergency_call_ready %}
-      <button type="button" class="action-btn call-highlight-btn notify-dock-btn" id="callMainBtn" title="Call">
-        <i class="bi bi-telephone-fill btn-icon" aria-hidden="true"></i>
-        <span class="btn-text" id="callMainBtnLabel">Call Owner</span>
-      </button>
-      {% endif %}
-      {% if owner_sms_ready %}
-      <button type="button" class="action-btn sms-btn notify-dock-btn" id="smsBtn">
-        <i class="bi bi-chat-text-fill btn-icon" aria-hidden="true"></i>
-        <span class="btn-text" id="smsBtnLabel">Send SMS</span>
-      </button>
-      {% endif %}
-      {% if push_ready %}
-      <button type="button" class="action-btn push-btn notify-dock-btn" id="pushBtn">
-        <i class="bi bi-bell-fill btn-icon" aria-hidden="true"></i>
-        <span class="btn-text">Push Notification</span>
-      </button>
-      {% endif %}
-      </div>
-      <button type="button" class="notify-dock-dismiss" id="notifyDockDismiss">Change reason</button>
-    </div>
-  </footer>
-  {% endif %}
 
   <!-- Success Modal -->
   <div class="modal-overlay" id="successModal">
@@ -2874,12 +3154,28 @@
     // Selected reason and method
     let selectedReason = '';
     let selectedMethod = '';
+    /** @type {null | 'sms' | 'push' | 'call'} */
+    let selectedOwnerChannel = null;
     let lastNotificationData = null;
     var dockChannels = { call: false, sms: false, push: false };
 
+    function clearOwnerMethodSelection() {
+      selectedOwnerChannel = null;
+      selectedMethod = '';
+      document.querySelectorAll('.notify-channel-box').forEach(function (b) {
+        b.classList.remove('is-selected');
+      });
+    }
+
+    function dockActionBtnSetVisible(btn, visible) {
+      if (!btn) return;
+      btn.hidden = !visible;
+      btn.style.display = '';
+    }
+
     function requireSelectedReasonForMessaging() {
       if (!selectedReason) {
-        showToast('Select a reason first to send SMS or push notification', 'error');
+        showToast('Select a reason first', 'error');
         return false;
       }
       if (selectedReason === 'custom' && customMessage && customMessage.value.trim() === '') {
@@ -2890,43 +3186,122 @@
     }
 
     function syncNotifyDockChannels() {
+      var dock = document.getElementById('notifyActionDock');
+      var channelPick = document.getElementById('notifyOwnerChannelPick');
+      var summary = document.getElementById('notifyDockSummary');
+      var hint = document.getElementById('notifyDockReasonHint');
+      var phoneBlock = document.getElementById('notifyDockPhoneBlock');
+      var actionsWrap = document.getElementById('notifyDockActionsWrap');
+      var phaseHint = document.getElementById('notifyDockPhaseHint');
+      var hasReason = !!selectedReason;
+
       if (contactMode === 'emergency') {
+        clearOwnerMethodSelection();
+        if (channelPick) channelPick.hidden = true;
+
         var ed = String(emergencyDestinationDigits || '').replace(/\D/g, '');
         dockChannels.call = !!(emergencyCallReady && ed.length === 10);
         dockChannels.sms = false;
         dockChannels.push = false;
+
         if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call emergency contact';
         if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
-      } else {
-        var digits = String(ownerDestinationDigits || '').replace(/\D/g, '');
-        dockChannels.call = !!(ownerCallReady && digits && digits.length === 10);
-        dockChannels.sms = !!ownerSmsReady;
-        dockChannels.push = !!pushReady;
-        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call Owner';
-        if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
+
+        if (dock) dock.classList.toggle('notify-dock--call-only', !hasReason);
+        if (summary) summary.hidden = !hasReason;
+        if (hint) {
+          hint.hidden = hasReason;
+          if (!hint.hidden) {
+            hint.textContent = 'Select a reason above to place an emergency voice call.';
+          }
+        }
+        dockActionBtnSetVisible(callMainBtn, !!(dockChannels.call && hasReason));
+        dockActionBtnSetVisible(smsBtn, false);
+        dockActionBtnSetVisible(pushBtn, false);
+        if (phoneBlock) phoneBlock.style.display = hasReason && dockChannels.call ? '' : 'none';
+        if (actionsWrap) actionsWrap.style.display = hasReason && dockChannels.call ? '' : 'none';
+        if (phaseHint) {
+          phaseHint.textContent = hasReason ? 'Enter your number, then call' : 'Your number → emergency call';
+          phaseHint.hidden = false;
+        }
+        var dockModeLabelEmerg = document.getElementById('notifyDockModeLabel');
+        var dockDismissEmerg = document.getElementById('notifyDockDismiss');
+        if (dockModeLabelEmerg) dockModeLabelEmerg.hidden = false;
+        if (dockDismissEmerg) dockDismissEmerg.hidden = false;
+        if (dock) {
+          dock.style.display = '';
+        }
+        if (typeof window.updateNotifyDockPadding === 'function') {
+          requestAnimationFrame(window.updateNotifyDockPadding);
+        }
+        return;
       }
 
-      var hasReason = !!selectedReason;
-      var dock = document.getElementById('notifyActionDock');
-      if (dock) {
-        dock.classList.toggle('notify-dock--call-only', !hasReason);
+      var dockModeLabelEl = document.getElementById('notifyDockModeLabel');
+      var dockDismiss = document.getElementById('notifyDockDismiss');
+
+      // Owner: SMS & push send from channel rows only (spinner on card). Bottom row is Voice call only.
+      if (channelPick) channelPick.hidden = false;
+
+      var digits = String(ownerDestinationDigits || '').replace(/\D/g, '');
+      dockChannels.call = !!(ownerCallReady && digits && digits.length === 10);
+      dockChannels.sms = !!ownerSmsReady;
+      dockChannels.push = !!pushReady;
+
+      if (callMainBtnLabel) callMainBtnLabel.textContent = 'Voice call';
+      if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
+
+      document.querySelectorAll('.notify-channel-box').forEach(function (b) {
+        b.classList.remove('is-selected');
+      });
+      if (selectedOwnerChannel === 'sms') {
+        var tS = document.getElementById('pickMethodSms');
+        if (tS && !tS.disabled) tS.classList.add('is-selected');
+      } else if (selectedOwnerChannel === 'push') {
+        var tP = document.getElementById('pickMethodPush');
+        if (tP && !tP.disabled) tP.classList.add('is-selected');
+      } else if (selectedOwnerChannel === 'call') {
+        var tCx = document.getElementById('pickMethodCall');
+        if (tCx && !tCx.disabled) tCx.classList.add('is-selected');
       }
-      var summary = document.getElementById('notifyDockSummary');
-      var hint = document.getElementById('notifyDockReasonHint');
-      if (summary) {
-        summary.style.display = hasReason ? '' : 'none';
-      }
+
+      dockActionBtnSetVisible(callMainBtn, !!dockChannels.call);
+      dockActionBtnSetVisible(smsBtn, false);
+      dockActionBtnSetVisible(pushBtn, false);
+
+      // Voice only: ask for scanner number after user picks Voice (card or first tap on Voice button).
+      var showPhoneOwner = selectedOwnerChannel === 'call' && dockChannels.call;
+      if (phoneBlock) phoneBlock.style.display = showPhoneOwner ? '' : 'none';
+      if (actionsWrap) actionsWrap.style.display = dockChannels.call ? '' : 'none';
+
+      if (summary) summary.hidden = !hasReason;
+
       if (hint) {
-        hint.hidden = hasReason;
+        hint.hidden = true;
       }
-      if (callMainBtn) {
-        callMainBtn.style.display = dockChannels.call ? 'flex' : 'none';
+
+      if (phaseHint) {
+        phaseHint.hidden = false;
+        phaseHint.textContent = !hasReason
+          ? 'Choose what’s happening — then tap SMS or push to send instantly, or Voice to call.'
+          : 'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then Voice call.';
       }
-      if (smsBtn) {
-        smsBtn.style.display = dockChannels.sms && hasReason ? 'flex' : 'none';
+      if (dockModeLabelEl) {
+        dockModeLabelEl.hidden = false;
       }
-      if (pushBtn) {
-        pushBtn.style.display = dockChannels.push && hasReason ? 'flex' : 'none';
+
+      if (dockDismiss) {
+        dockDismiss.hidden = !(hasReason || selectedOwnerChannel);
+      }
+
+      if (dock) {
+        dock.classList.remove('notify-dock--call-only');
+        dock.style.display = '';
+        dock.classList.remove('is-open');
+        dock.removeAttribute('aria-hidden');
+      }
+      if (typeof window.updateNotifyDockPadding === 'function') {
+        requestAnimationFrame(window.updateNotifyDockPadding);
       }
     }
 
@@ -3071,6 +3446,12 @@
     }
 
     function closeNotifyDock() {
+      if (!document.body.classList.contains('flow-emergency')) {
+        if (typeof window.updateNotifyDockPadding === 'function') {
+          window.updateNotifyDockPadding();
+        }
+        return;
+      }
       var dock = document.getElementById('notifyActionDock');
       if (dock) {
         dock.classList.remove('is-open');
@@ -3082,6 +3463,13 @@
     }
 
     function openNotifyDock() {
+      if (!document.body.classList.contains('flow-emergency')) {
+        syncNotifyDockChannels();
+        if (typeof window.updateNotifyDockPadding === 'function') {
+          requestAnimationFrame(window.updateNotifyDockPadding);
+        }
+        return;
+      }
       if (isNotifyDockBlocked()) {
         closeNotifyDock();
         return;
@@ -3116,6 +3504,11 @@
       if (!hasEmergencyContact) {
         contactMode = 'owner';
       }
+
+      if (typeof window.__notifyPersistedMode !== 'undefined' && window.__notifyPersistedMode !== contactMode) {
+        clearOwnerMethodSelection();
+      }
+      window.__notifyPersistedMode = contactMode;
 
       syncMainSections();
 
@@ -3163,30 +3556,22 @@
       }
 
       var stepLine = document.getElementById('notifyMainStepLine');
-      var phaseHint = document.getElementById('notifyDockPhaseHint');
       if (stepLine) {
         stepLine.textContent =
           hasEmergencyContact && contactMode === 'emergency'
-            ? 'You can call anytime from the bottom bar. Pick a reason above first, then open the bar to call.'
-            : 'Choose a reason below, then swipe up the bottom bar to enter your number and send.';
-      }
-      if (phaseHint) {
-        phaseHint.textContent =
-          hasEmergencyContact && contactMode === 'emergency'
-            ? 'Your number → emergency call'
-            : 'Your number → Call / SMS / Push';
-      }
-
-      var reasonHintDock = document.getElementById('notifyDockReasonHint');
-      if (reasonHintDock) {
-        reasonHintDock.textContent =
-          hasEmergencyContact && contactMode === 'emergency'
-            ? 'Select a reason above to place an emergency voice call.'
-            : 'Select a reason above to send SMS or push notification.';
+            ? 'Select a reason first, then confirm your number below to call the emergency contact.'
+            : 'Tap SMS or push on the rows below to send right away · Voice opens your number when you choose it.';
       }
 
       syncEmergencyPlateWrapInCallModal();
       syncNotifyDockChannels();
+      if (
+        selectedReason &&
+        contactMode === 'emergency' &&
+        !isNotifyDockBlocked()
+      ) {
+        openNotifyDock();
+      }
     }
 
     document.addEventListener('visibilitychange', function () {
@@ -3210,9 +3595,23 @@
       function updateNotifyDockPadding() {
         var dock = document.getElementById('notifyActionDock');
         var scroll = document.querySelector('.notify-scroll-area');
-        if (!dock || !scroll) return;
-        var pad = dock.classList.contains('is-open') ? dock.offsetHeight + 16 : 20;
-        document.documentElement.style.setProperty('--notify-dock-pad', pad + 'px');
+        if (!scroll) return;
+        if (!dock || dock.style.display === 'none') {
+          document.documentElement.style.setProperty('--notify-dock-pad', '24px');
+          return;
+        }
+        if (document.body.classList.contains('flow-emergency')) {
+          var padEmergency = dock.classList.contains('is-open')
+            ? dock.offsetHeight + 16
+            : 22;
+          document.documentElement.style.setProperty('--notify-dock-pad', padEmergency + 'px');
+          return;
+        }
+        var padOwner = Math.max(
+          32,
+          Math.round(dock.offsetHeight || 0) + 28
+        );
+        document.documentElement.style.setProperty('--notify-dock-pad', padOwner + 'px');
       }
 
       window.updateNotifyDockPadding = updateNotifyDockPadding;
@@ -3237,7 +3636,7 @@
       }
       syncContactModeUi();
       updateNotifyModalLock();
-      if (contactMode && !isNotifyDockBlocked()) {
+      if (contactMode && contactMode === 'emergency' && !isNotifyDockBlocked()) {
         openNotifyDock();
       }
 
@@ -3330,7 +3729,6 @@
           vehiclePlateLast4VerifiedValue = '';
           closeContactModeModal();
           syncContactModeUi();
-          openNotifyDock();
         });
       }
 
@@ -3344,7 +3742,6 @@
           vehiclePlateLast4VerifiedValue = '';
           closeContactModeModal();
           syncContactModeUi();
-          openNotifyDock();
         });
       }
       if (quickSwitchEmergencyBtn) {
@@ -3355,7 +3752,8 @@
       if (notifyDockDismiss) {
         notifyDockDismiss.addEventListener('click', function () {
           selectedReason = '';
-          document.querySelectorAll('.reason-item').forEach(function (item) {
+          clearOwnerMethodSelection();
+          document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
             item.classList.remove('selected');
           });
           if (customMessageContainer) customMessageContainer.style.display = 'none';
@@ -3367,13 +3765,49 @@
           syncNotifyDockChannels();
         });
       }
+
+      function bindOwnerMethodPick(btnId, channel) {
+        var el = document.getElementById(btnId);
+        if (!el || el.disabled) return;
+        el.addEventListener('click', function () {
+          if (contactMode !== 'owner') return;
+          if (channel === 'sms') {
+            if (!ensureContactTargetSelected()) return;
+            if (!requireSelectedReasonForMessaging()) return;
+            selectedOwnerChannel = 'sms';
+            selectedMethod = 'sms';
+            sendNotificationDirectly();
+            return;
+          }
+          if (channel === 'push') {
+            if (!ensureContactTargetSelected()) return;
+            if (!requireSelectedReasonForMessaging()) return;
+            selectedOwnerChannel = 'push';
+            selectedMethod = 'push';
+            sendNotificationDirectly();
+            return;
+          }
+          selectedOwnerChannel = 'call';
+          selectedMethod = 'call';
+          syncNotifyDockChannels();
+          requestAnimationFrame(function () {
+            if (typeof window.updateNotifyDockPadding === 'function') {
+              window.updateNotifyDockPadding();
+            }
+            if (callerPhoneInput) callerPhoneInput.focus();
+          });
+        });
+      }
+      bindOwnerMethodPick('pickMethodSms', 'sms');
+      bindOwnerMethodPick('pickMethodPush', 'push');
+      bindOwnerMethodPick('pickMethodCall', 'call');
     });
 
     // Function to select reason
     function selectReason(element, reason) {
-      // Remove selected class from all items
-      const reasonItems = document.querySelectorAll('.reason-item');
-      reasonItems.forEach(item => {
+      clearOwnerMethodSelection();
+
+      document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
         item.classList.remove('selected');
       });
 
@@ -3399,26 +3833,16 @@
           if (typeof window.updateNotifyDockPadding === 'function') {
             window.updateNotifyDockPadding();
           }
-          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (contactMode === 'emergency') {
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            var pickEl = document.getElementById('notifyOwnerChannelPick');
+            if (pickEl) pickEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         });
       } else {
         closeNotifyDock();
       }
-    }
-
-    // Push notification button click
-    if (pushBtn) {
-      pushBtn.addEventListener('click', function () {
-        if (!ensureContactTargetSelected()) {
-          return;
-        }
-        if (!requireSelectedReasonForMessaging()) {
-          return;
-        }
-
-        selectedMethod = 'push';
-        sendNotificationDirectly();
-      });
     }
 
     /** Aligns with server call-route normalization */
@@ -3514,7 +3938,25 @@
     if (callMainBtn) {
       callMainBtn.addEventListener('click', function () {
         if (!ensureContactTargetSelected()) return;
-        openNotifyDock();
+        if (
+          contactMode === 'owner' &&
+          dockChannels.call &&
+          selectedOwnerChannel !== 'call'
+        ) {
+          selectedOwnerChannel = 'call';
+          selectedMethod = 'call';
+          syncNotifyDockChannels();
+          requestAnimationFrame(function () {
+            if (typeof window.updateNotifyDockPadding === 'function') {
+              window.updateNotifyDockPadding();
+            }
+            if (callerPhoneInput) callerPhoneInput.focus();
+          });
+          return;
+        }
+        if (document.body.classList.contains('flow-emergency')) {
+          openNotifyDock();
+        }
         if (callPrepareBtn) callPrepareBtn.click();
       });
     }
@@ -3658,32 +4100,23 @@
       });
     }
 
-    // SMS button click
-    if (smsBtn) {
-      smsBtn.addEventListener('click', function () {
-        if (!ensureContactTargetSelected()) return;
-        if (!requireSelectedReasonForMessaging()) return;
-
-        selectedMethod = 'sms';
-        sendNotificationDirectly();
-      });
-    }
-
     // Continue button in success modal
     continueBtn.addEventListener('click', function () {
       successModal.style.display = 'none';
 
       // Reset form
-      const reasonItems = document.querySelectorAll('.reason-item');
+      const reasonItems = document.querySelectorAll('.reasons-list > .reason-item');
       reasonItems.forEach(item => {
         item.classList.remove('selected');
       });
       selectedReason = '';
+      clearOwnerMethodSelection();
       customMessage.value = '';
       customMessageContainer.style.display = 'none';
       charCount.textContent = '0';
       selectedMethod = '';
       lastNotificationData = null;
+      syncNotifyDockChannels();
     });
 
     // Error modal close button
@@ -3695,6 +4128,12 @@
     errorRetryBtn.addEventListener('click', function () {
       errorModal.style.display = 'none';
       if (lastNotificationData) {
+        var rm = lastNotificationData.method;
+        if (rm === 'sms' || rm === 'push') {
+          selectedOwnerChannel = rm;
+          selectedMethod = rm;
+          syncNotifyDockChannels();
+        }
         sendNotificationDirectly();
       }
     });
@@ -3767,22 +4206,59 @@
       sendNotification(messageToSend);
     }
 
-    /** SMS / push / call: light loading on bottom sheet (no fullscreen wheel.json). */
+    /** Owner SMS/push: spinning wheel on channel card only. Voice / emergency: spinner on dock Voice button. */
     function setNotifyDockSending(on) {
       var dock = document.getElementById('notifyActionDock');
       document.querySelectorAll('#notifyActionDock .notify-dock-btn.is-sending').forEach(function (btn) {
         btn.classList.remove('is-sending');
       });
+      document.querySelectorAll('#notifyOwnerChannelPick .notify-channel-box.is-sending').forEach(function (el) {
+        el.classList.remove('is-sending');
+      });
+
+      var ownerMsg =
+        contactMode === 'owner' &&
+        (selectedMethod === 'sms' || selectedMethod === 'push');
+
       if (dock) {
-        dock.classList.toggle('notify-dock-sending', !!on);
+        if (on && ownerMsg) {
+          dock.classList.add('notify-dock-sending', 'notify-dock-sending-instant-msg');
+        } else if (!on) {
+          dock.classList.remove('notify-dock-sending', 'notify-dock-sending-instant-msg');
+        } else {
+          dock.classList.add('notify-dock-sending');
+          dock.classList.remove('notify-dock-sending-instant-msg');
+        }
       }
       if (!on) return;
-      var sp = null;
-      if (selectedMethod === 'sms') sp = smsBtn;
-      else if (selectedMethod === 'push') sp = pushBtn;
-      else if (selectedMethod === 'call') sp = callMainBtn;
-      if (sp && sp.classList && sp.classList.contains('notify-dock-btn')) {
-        sp.classList.add('is-sending');
+
+      var cardEl = null;
+      var dockBtn = null;
+
+      function msgChannelCard() {
+        if (selectedOwnerChannel === 'sms' || selectedMethod === 'sms') {
+          return document.getElementById('pickMethodSms');
+        }
+        if (selectedOwnerChannel === 'push' || selectedMethod === 'push') {
+          return document.getElementById('pickMethodPush');
+        }
+        return null;
+      }
+
+      if (ownerMsg) {
+        cardEl = msgChannelCard();
+      } else if (contactMode === 'owner' && (selectedOwnerChannel === 'call' || selectedMethod === 'call')) {
+        dockBtn = callMainBtn;
+      } else if (selectedMethod === 'call') {
+        dockBtn = callMainBtn;
+      }
+
+      if (cardEl && !cardEl.disabled && cardEl.classList.contains('notify-channel-box')) {
+        cardEl.classList.add('is-sending');
+        return;
+      }
+      if (dockBtn && dockBtn.classList && dockBtn.classList.contains('notify-dock-btn')) {
+        dockBtn.classList.add('is-sending');
       }
     }
 
@@ -4024,12 +4500,26 @@
       successModal.style.display = 'flex';
     }
 
-    // Get the active button based on selected method
+    // Get the control to disable during send (owner SMS/push = channel row, not hidden dock buttons).
     function getActiveButton() {
+      if (contactMode === 'owner') {
+        if (selectedMethod === 'sms') {
+          var pickS = document.getElementById('pickMethodSms');
+          if (pickS) return pickS;
+        }
+        if (selectedMethod === 'push') {
+          var pickP = document.getElementById('pickMethodPush');
+          if (pickP) return pickP;
+        }
+        if (selectedMethod === 'call') return callPrepareBtn;
+      }
       switch (selectedMethod) {
-        case 'push': return pushBtn;
-        case 'sms': return smsBtn;
-        case 'call': return callPrepareBtn;
+        case 'push':
+          return pushBtn;
+        case 'sms':
+          return smsBtn;
+        case 'call':
+          return callPrepareBtn;
         default:
           return pushBtn || smsBtn || callMainBtn || callPrepareBtn;
       }
@@ -4147,13 +4637,17 @@
       closeDailyLimitModal();
 
       if (method === 'push') {
+        selectedOwnerChannel = 'push';
         selectedMethod = 'push';
+        syncNotifyDockChannels();
         sendNotificationDirectly();
         return;
       }
 
       if (method === 'sms') {
+        selectedOwnerChannel = 'sms';
         selectedMethod = 'sms';
+        syncNotifyDockChannels();
         sendNotificationDirectly();
         return;
       }
