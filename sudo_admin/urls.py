@@ -30,8 +30,19 @@ def favicon_view(request):
     return HttpResponse(status=204)
 
 
+def brand_logo_view(request):
+    """Serve SudoTag mark from the app bundle (survives /static/ misconfig or stale collectstatic)."""
+    logo = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'img' / 'sudotag-logo.png'
+    if logo.is_file():
+        resp = FileResponse(logo.open('rb'), content_type='image/png')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
 urlpatterns = [
     path('favicon.ico', favicon_view, name='site_favicon'),
+    path('admin/brand-logo.png', brand_logo_view, name='brand_logo_png'),
     path('django-admin/', admin.site.urls),
     path('admin/', include('admin_app.urls')),
     path('', include('landing.urls')),  # Landing page at root path

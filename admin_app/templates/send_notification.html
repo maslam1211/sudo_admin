@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Contact Vehicle Owner | SudoTag</title>
-  <link href="{% static 'assets/img/sudotag-logo.png' %}" rel="apple-touch-icon">
+  <link href="{% url 'brand_logo_png' %}" rel="apple-touch-icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -2239,7 +2239,7 @@
   <!-- Header -->
   <header class="header sudo-app-header">
     <a href="/" class="brand-logo" aria-label="SudoTag home">
-      <img src="{% static 'assets/img/sudotag-logo.png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+      <img src="{% url 'brand_logo_png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
     </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
   </header>
