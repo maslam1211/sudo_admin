@@ -3052,7 +3052,7 @@
     <div class="modal-overlay notify-flow-modal" id="contactModeModal" style="display: none;" aria-hidden="true">
       <div class="notify-flow-modal-center-brand" aria-hidden="true">
         <img
-          src="{% static 'images/sudomainlogo.png' %}"
+          src="{% url 'notify_flow_center_logo_png' %}"
           alt=""
           class="notify-flow-center-brand-img"
           width="140"
@@ -3439,7 +3439,7 @@
         <div class="notify-session-terminal-brand-row">
           <img
             class="notify-session-terminal-brand"
-            src="{% static 'images/sudomainlogo.png' %}"
+            src="{% url 'notify_flow_center_logo_png' %}"
             width="128"
             height="128"
             alt=""
@@ -3598,7 +3598,7 @@
     const emergencyCallReady = ("{{ emergency_call_ready|yesno:'yes,no' }}" === "yes");
     const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
-    const NOTIFY_SENDING_WHEEL_JSON = "{% static 'images/wheel.json' %}";
+    const NOTIFY_SENDING_WHEEL_JSON = "{% url 'notify_sending_wheel_json' %}";
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =

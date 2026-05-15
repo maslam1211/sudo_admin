@@ -40,9 +40,39 @@ def brand_logo_view(request):
     return HttpResponse(status=404)
 
 
+def notify_flow_center_logo_view(request):
+    """Notify-flow modal mark (same resilience as brand_logo_png for QR pages on sudotag.com)."""
+    logo = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'sudomainlogo.png'
+    if logo.is_file():
+        resp = FileResponse(logo.open('rb'), content_type='image/png')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
+def notify_sending_wheel_json_view(request):
+    """Lottie JSON for notify sending overlay (avoids broken animation when /static/ is misconfigured)."""
+    wheel = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'wheel.json'
+    if wheel.is_file():
+        resp = FileResponse(wheel.open('rb'), content_type='application/json')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
 urlpatterns = [
     path('favicon.ico', favicon_view, name='site_favicon'),
     path('admin/brand-logo.png', brand_logo_view, name='brand_logo_png'),
+    path(
+        'admin/sudomain-logo.png',
+        notify_flow_center_logo_view,
+        name='notify_flow_center_logo_png',
+    ),
+    path(
+        'admin/notify-sending-wheel.json',
+        notify_sending_wheel_json_view,
+        name='notify_sending_wheel_json',
+    ),
     path('django-admin/', admin.site.urls),
     path('admin/', include('admin_app.urls')),
     path('', include('landing.urls')),  # Landing page at root path
