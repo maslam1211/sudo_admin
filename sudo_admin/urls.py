@@ -60,6 +60,26 @@ def notify_sending_wheel_json_view(request):
     return HttpResponse(status=404)
 
 
+def sudo_mobile_flow_css_view(request):
+    """Mobile QR flow theme — survives broken STATIC_URL / nginx / missing collectstatic."""
+    css = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'css' / 'sudo_mobile_flow.css'
+    if css.is_file():
+        resp = FileResponse(css.open('rb'), content_type='text/css; charset=utf-8')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
+def vehicle_brands_models_json_view(request):
+    """Vehicle catalog for activate-id page fetch()."""
+    data = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'data' / 'vehicle_brands_models.json'
+    if data.is_file():
+        resp = FileResponse(data.open('rb'), content_type='application/json; charset=utf-8')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
 urlpatterns = [
     path('favicon.ico', favicon_view, name='site_favicon'),
     path('admin/brand-logo.png', brand_logo_view, name='brand_logo_png'),
@@ -72,6 +92,16 @@ urlpatterns = [
         'admin/notify-sending-wheel.json',
         notify_sending_wheel_json_view,
         name='notify_sending_wheel_json',
+    ),
+    path(
+        'admin/css/sudo-mobile-flow.css',
+        sudo_mobile_flow_css_view,
+        name='sudo_mobile_flow_css',
+    ),
+    path(
+        'admin/data/vehicle-brands-models.json',
+        vehicle_brands_models_json_view,
+        name='vehicle_brands_models_json',
     ),
     path('django-admin/', admin.site.urls),
     path('admin/', include('admin_app.urls')),

@@ -2239,6 +2239,17 @@
       pointer-events: none;
     }
 
+    body.notify-app .notify-dock-btn.call-highlight-btn.notify-voice-cool-blocked {
+      opacity: 0.92;
+      cursor: not-allowed;
+      filter: grayscale(0.35);
+    }
+
+    body.notify-app .notify-dock-btn.call-highlight-btn.notify-voice-cool-blocked .btn-text {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+
     /* Sending: fullscreen dim mask + centered Lottie (wheel.json) */
     body.notify-app.notify-sending-overlay-open {
       overflow: hidden;
@@ -3610,6 +3621,8 @@
     const NOTIFY_SENDING_WHEEL_JSON = "{% url 'notify_sending_wheel_json' %}";
     var NOTIFY_PRIORITY_VOICE_SUB_DEFAULT = 'Recommended · fastest way to reach them';
     var NOTIFY_PICK_CALL_SUB_DEFAULT = 'Call via your phone (fastest)';
+    var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
+      'Enter your 10-digit mobile number, then call the emergency contact on file for this vehicle.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
@@ -3771,19 +3784,28 @@
           );
         }
 
-        if (callMainBtnLabel) {
-          callMainBtnLabel.textContent = 'Call Emergency Contact';
-        }
         if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
 
-        var canDial = !!(dockChannels.call && emergencyContactConfirmed && voiceCd <= 0);
+        var showEmergCallBtn = !!(dockChannels.call && emergencyContactConfirmed);
+        var emergVoiceCooldown = !!(showEmergCallBtn && voiceCd > 0);
 
         if (dock) dock.classList.remove('notify-dock--call-only');
         if (summary) summary.hidden = true;
         if (hint) hint.hidden = true;
-        dockActionBtnSetVisible(callMainBtn, canDial);
+        dockActionBtnSetVisible(callMainBtn, showEmergCallBtn);
         dockActionBtnSetVisible(smsBtn, false);
         dockActionBtnSetVisible(pushBtn, false);
+
+        if (callMainBtn) {
+          callMainBtn.disabled = emergVoiceCooldown;
+          callMainBtn.setAttribute('aria-disabled', emergVoiceCooldown ? 'true' : 'false');
+          callMainBtn.classList.toggle('notify-voice-cool-blocked', emergVoiceCooldown);
+        }
+        if (callMainBtnLabel) {
+          callMainBtnLabel.textContent = emergVoiceCooldown
+            ? 'Wait ' + voiceCdMmSs + ' · emergency voice'
+            : 'Call Emergency Contact';
+        }
 
         if (phoneBlock) {
           phoneBlock.style.display =
@@ -3828,6 +3850,12 @@
           pickSubEl.textContent = NOTIFY_PICK_CALL_SUB_DEFAULT;
           pickSubEl.classList.remove('notify-voice-cooldown-active');
         }
+        var emergLead = document.getElementById('notifyEmergencyCallPanelLead');
+        if (emergLead && inlineEmerg) {
+          emergLead.textContent = emergVoiceCooldown
+            ? 'Emergency voice retries in ' + voiceCdMmSs + '.'
+            : NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT;
+        }
         var dockModeLabelEmerg = document.getElementById('notifyDockModeLabel');
         var dockDismissEmerg = document.getElementById('notifyDockDismiss');
         if (dockModeLabelEmerg) {
@@ -3866,6 +3894,11 @@
         pickCx.disabled = coolBlockVoice;
         pickCx.setAttribute('aria-disabled', coolBlockVoice ? 'true' : 'false');
         pickCx.classList.toggle('notify-voice-cool-blocked', coolBlockVoice);
+      }
+
+      if (callMainBtn) {
+        callMainBtn.classList.remove('notify-voice-cool-blocked');
+        callMainBtn.removeAttribute('aria-disabled');
       }
 
       if (callMainBtnLabel) callMainBtnLabel.textContent = 'Voice call';
@@ -4901,6 +4934,7 @@
               callPrepareBtn.disabled = false;
               setNotifyDockSending(false);
               if (callMainBtn) callMainBtn.disabled = false;
+              syncNotifyDockChannels();
             });
         }
 

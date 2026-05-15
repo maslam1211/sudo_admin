@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,14 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Activate Vehicle QR Code | SudoTag</title>
-  <link href="{% static 'assets/img/WhatsApp Image 2025-11-05 at 02.37.19_e40cf66b.jpg' %}" rel="apple-touch-icon">
+  <link href="{% url 'brand_logo_png' %}" rel="apple-touch-icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Vendor CSS Files -->
-  <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  {# Bootstrap from CDN: repo ships bootstrap.css / bootstrap.bundle.js only — .min paths often 404 on deploy. #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
 
   <style>
     /* Layout & look: sudo_mobile_flow.css — colors unchanged */
@@ -139,7 +138,8 @@
       }
     }
   </style>
-  <link href="{% static 'assets/css/sudo_mobile_flow.css' %}" rel="stylesheet">
+  {# Theme served by Django so dark shell + orange accents still apply when /static/ is wrong on production. #}
+  <link href="{% url 'sudo_mobile_flow_css' %}" rel="stylesheet">
 </head>
 
 <body class="activate-app sudo-mobile-flow">
@@ -363,7 +363,7 @@
   <!-- Toast notifications removed - using inline error messages instead -->
 
   <!-- Vendor JS Files -->
-  <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -595,7 +595,7 @@
         updateCarOtherUI();
       });
 
-      fetch("{% static 'assets/data/vehicle_brands_models.json' %}")
+      fetch("{% url 'vehicle_brands_models_json' %}")
         .then(function (response) {
           if (!response.ok) {
             throw new Error('Failed to load vehicle data');
