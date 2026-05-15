@@ -506,6 +506,15 @@
       color: rgba(255, 255, 255, 0.55);
     }
 
+    body.notify-app .notify-priority-voice-sub.notify-voice-cooldown-active,
+    body.notify-app .notify-channel-box-sub.notify-voice-cooldown-active {
+      letter-spacing: 0.04em;
+      text-transform: none;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--sudo-orange, #e58147);
+    }
+
     body.notify-app.flow-emergency .notify-priority-voice-btn {
       border-color: rgba(229, 115, 115, 0.55);
       background: linear-gradient(135deg, rgba(229, 83, 80, 0.32) 0%, rgba(183, 28, 28, 0.22) 55%, rgba(99, 17, 17, 0.2) 100%);
@@ -3186,7 +3195,7 @@
         </span>
         <span class="notify-priority-voice-text">
           <span class="notify-priority-voice-title">Voice call</span>
-          <span class="notify-priority-voice-sub">Recommended · fastest way to reach them</span>
+          <span class="notify-priority-voice-sub" id="notifyPriorityVoiceSub">Recommended · fastest way to reach them</span>
         </span>
       </button>
     </div>
@@ -3271,7 +3280,7 @@
               <i class="bi bi-telephone-fill" aria-hidden="true"></i>
               <span class="notify-channel-box-text">
                 <span class="notify-channel-box-title">Voice call</span>
-                <span class="notify-channel-box-sub">Call via your phone (fastest)</span>
+                <span class="notify-channel-box-sub" id="notifyPickMethodCallSub">Call via your phone (fastest)</span>
               </span>
             </button>
             {% else %}
@@ -3599,6 +3608,8 @@
     const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
     const NOTIFY_SENDING_WHEEL_JSON = "{% url 'notify_sending_wheel_json' %}";
+    var NOTIFY_PRIORITY_VOICE_SUB_DEFAULT = 'Recommended · fastest way to reach them';
+    var NOTIFY_PICK_CALL_SUB_DEFAULT = 'Call via your phone (fastest)';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
@@ -3720,6 +3731,13 @@
       return true;
     }
 
+    function formatNotifyVoiceCooldownMmSs(sec) {
+      sec = Math.max(0, Math.floor(Number(sec) || 0));
+      var m = Math.floor(sec / 60);
+      var s = sec % 60;
+      return m + ':' + (s < 10 ? '0' + s : String(s));
+    }
+
     function syncNotifyDockChannels() {
       var dock = document.getElementById('notifyActionDock');
       var channelPick = document.getElementById('notifyOwnerChannelPick');
@@ -3731,6 +3749,9 @@
       var prioVoiceBtn = document.getElementById('notifyPriorityVoiceBtn');
       var hasReason = !!selectedReason;
       var voiceCd = notifyVoiceCooldownRemainingSec();
+      var voiceCdMmSs = formatNotifyVoiceCooldownMmSs(voiceCd);
+      var prioSubEl = document.getElementById('notifyPriorityVoiceSub');
+      var pickSubEl = document.getElementById('notifyPickMethodCallSub');
 
       syncEmergencyCallLayout();
 
@@ -3782,9 +3803,10 @@
         if (phaseHint) {
           if (inlineEmerg) {
             phaseHint.hidden = true;
-          } else         if (voiceCd > 0 && dockChannels.call && emergencyContactConfirmed) {
+          } else if (voiceCd > 0 && dockChannels.call && emergencyContactConfirmed) {
             phaseHint.hidden = false;
-            phaseHint.textContent = formatNotifyVoiceCooldownLine(voiceCd);
+            phaseHint.textContent =
+              'Emergency voice call resumes in ' + voiceCdMmSs + '. SMS / push are unaffected.';
           } else {
             phaseHint.hidden = false;
             phaseHint.textContent =
@@ -3792,6 +3814,19 @@
                 ? 'Enter your mobile number below, then tap Call.'
                 : 'Verify this vehicle above to enable an emergency voice call.';
           }
+        }
+        if (prioSubEl) {
+          if (voiceCd > 0 && dockChannels.call) {
+            prioSubEl.textContent = 'Next voice call in ' + voiceCdMmSs;
+            prioSubEl.classList.add('notify-voice-cooldown-active');
+          } else {
+            prioSubEl.textContent = NOTIFY_PRIORITY_VOICE_SUB_DEFAULT;
+            prioSubEl.classList.remove('notify-voice-cooldown-active');
+          }
+        }
+        if (pickSubEl) {
+          pickSubEl.textContent = NOTIFY_PICK_CALL_SUB_DEFAULT;
+          pickSubEl.classList.remove('notify-voice-cooldown-active');
         }
         var dockModeLabelEmerg = document.getElementById('notifyDockModeLabel');
         var dockDismissEmerg = document.getElementById('notifyDockDismiss');
@@ -3870,14 +3905,36 @@
 
       if (phaseHint) {
         phaseHint.hidden = false;
-        if (voiceCd > 0 && dockChannels.call && selectedOwnerChannel === 'call') {
-          phaseHint.textContent = formatNotifyVoiceCooldownLine(voiceCd);
+        if (voiceCd > 0 && dockChannels.call) {
+          phaseHint.textContent =
+            'Voice call resumes in ' +
+            voiceCdMmSs +
+            '. SMS and push still send when you tap their rows.';
         } else if (!hasReason) {
           phaseHint.textContent =
             'Choose what’s happening — then tap SMS or push to send instantly, or Voice to call.';
         } else {
           phaseHint.textContent =
             'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then Voice call.';
+        }
+      }
+
+      if (prioSubEl) {
+        if (voiceCd > 0 && dockChannels.call) {
+          prioSubEl.textContent = 'Next voice call in ' + voiceCdMmSs;
+          prioSubEl.classList.add('notify-voice-cooldown-active');
+        } else {
+          prioSubEl.textContent = NOTIFY_PRIORITY_VOICE_SUB_DEFAULT;
+          prioSubEl.classList.remove('notify-voice-cooldown-active');
+        }
+      }
+      if (pickSubEl) {
+        if (voiceCd > 0 && dockChannels.call) {
+          pickSubEl.textContent = 'Wait ' + voiceCdMmSs + ' · SMS & push still work';
+          pickSubEl.classList.add('notify-voice-cooldown-active');
+        } else {
+          pickSubEl.textContent = NOTIFY_PICK_CALL_SUB_DEFAULT;
+          pickSubEl.classList.remove('notify-voice-cooldown-active');
         }
       }
       if (dockModeLabelEl) {
@@ -4969,25 +5026,8 @@
       return Math.max(0, Math.ceil((notifyVoiceCooldownUntilMs - Date.now()) / 1000));
     }
 
-    function formatNotifyVoiceCooldownLine(sec) {
-      sec = Math.max(0, Math.floor(Number(sec) || 0));
-      if (sec <= 0) return 'Please wait a moment.';
-      var minutesWhole = Math.floor(sec / 60);
-      var rem = sec % 60;
-      if (minutesWhole >= 2) {
-        return 'Please wait ' + minutesWhole + ' minutes.';
-      }
-      if (minutesWhole === 1) {
-        if (rem === 0) return 'Please wait 1 minute.';
-        return rem >= 31 ? 'Please wait 2 minutes.' : 'Please wait 1 minute.';
-      }
-      if (sec === 1) return 'Please wait 1 second.';
-      return 'Please wait ' + sec + ' seconds.';
-    }
-
     function syncNotifyVoiceCooldownOverlay() {
       var overlay = document.getElementById('notifyVoiceCooldownOverlay');
-      var line = document.getElementById('notifyVoiceCooldownLine');
       var r = notifyVoiceCooldownRemainingSec();
       if (r <= 0) {
         notifyVoiceCooldownUntilMs = 0;
@@ -5003,12 +5043,10 @@
         syncNotifyDockChannels();
         return;
       }
-      if (line) {
-        line.textContent = formatNotifyVoiceCooldownLine(r);
-      }
+      /* Countdown is shown on Voice rows + dock hint (see syncNotifyDockChannels); avoid fullscreen block. */
       if (overlay) {
-        overlay.classList.add('is-visible');
-        overlay.setAttribute('aria-hidden', 'false');
+        overlay.classList.remove('is-visible');
+        overlay.setAttribute('aria-hidden', 'true');
       }
       if (!notifyVoiceCooldownTicker) {
         notifyVoiceCooldownTicker = setInterval(function () {
