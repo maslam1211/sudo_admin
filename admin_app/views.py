@@ -4,6 +4,7 @@ import uuid, os
 import secrets
 import string
 import json
+import math
 import requests
 import logging
 
@@ -29,6 +30,11 @@ from dotenv import load_dotenv
 
 from call_routing.constants import CALL_ROUTING_EXPECTED_DID
 
+from .scanner_notify_session_controls import (
+    is_notify_sheet_done,
+    mark_notify_sheet_done,
+    pop_notify_sheet_done_for_terminal_view,
+)
 from .scanner_contact_prefs import (
     merge_user_scanner_subdocuments,
     merge_vehicle_scanner_subdocuments,
@@ -1868,6 +1874,20 @@ def send_notification(request, qr_id):
                 if not isinstance(data, dict):
                     data = {}
 
+                _nm_quick = str(data.get('notification_method') or '').strip()
+                if _nm_quick != 'verify_plate' and is_notify_sheet_done(request, qr_id):
+                    return JsonResponse(
+                        {
+                            'status': 'error',
+                            'error_type': 'notify_session_expired',
+                            'message': (
+                                'This scan section is no longer active. '
+                                'Open the QR again if you need another contact request.'
+                            ),
+                        },
+                        status=410,
+                    )
+
                 reason = (data.get('reason') if data.get('reason') is not None else '') or ''
                 plate_digits = data.get('plate_digits')
                 user_phone = data.get('user_phone', '')
@@ -2026,34 +2046,34 @@ def send_notification(request, qr_id):
                             },
                             status=400,
                         )
-                    reg_norm = normalize_vehicle_registration(
+                    expected_plate_tail = registration_last_four_digits(
                         vehicle_data.get('registrationNumber', '')
                     )
-                    if not reg_norm or len(reg_norm) < 4:
+                    if len(expected_plate_tail) != 4:
                         return JsonResponse(
                             {
                                 'status': 'error',
                                 'message': (
-                                    'Vehicle registration on file is too short to verify '
-                                    'emergency access.'
+                                    'Vehicle registration on file does not include enough '
+                                    'digits to verify emergency access.'
                                 ),
                                 'error_type': 'emergency_vehicle_unavailable',
                             },
                             status=400,
                         )
-                    expected_plate_tail = reg_norm[-4:]
                     raw_prov = data.get('vehicle_registration_last4')
                     if raw_prov in (None, ''):
                         raw_prov = data.get('emergency_last_four')
-                    prov = normalize_vehicle_registration(raw_prov)
+                    prov = ''.join(c for c in str(raw_prov or '') if c.isdigit())
                     prov = prov[-4:] if len(prov) >= 4 else prov
                     if len(prov) != 4 or prov != expected_plate_tail:
                         return JsonResponse(
                             {
                                 'status': 'error',
                                 'message': (
-                                    'Verification failed. Enter the last 4 characters of '
-                                    'this vehicle\'s registration number (same as on the plate).'
+                                    'Verification failed. Enter the last four numeric digits '
+                                    'from this vehicle\'s registration (same as shown on '
+                                    'the plate).'
                                 ),
                                 'error_type': 'emergency_verify_failed',
                             },
@@ -2139,6 +2159,7 @@ def send_notification(request, qr_id):
                             logger.warning(f"FCM vehicle-doc cleanup failed: {cleanup_err}")
 
                     if success_count > 0:
+                        mark_notify_sheet_done(request, qr_id)
                         return JsonResponse({
                             'status': 'success',
                             'message': 'We have sent your message to the vehicle owner.',
@@ -2221,6 +2242,7 @@ def send_notification(request, qr_id):
                                     if contact_target == 'emergency'
                                     else 'SMS sent successfully to the vehicle owner.'
                                 )
+                                mark_notify_sheet_done(request, qr_id)
                                 return JsonResponse({
                                     'status': 'success',
                                     'message': sms_msg,
@@ -2267,10 +2289,9 @@ def send_notification(request, qr_id):
         emerg_path_on = _scanner_eff['emergency']
         push_on = _scanner_eff['push']
         emergency_voice_on = _scanner_eff['emergency_voice']
-        reg_norm = normalize_vehicle_registration(
+        vehicle_registration_last4 = registration_last_four_digits(
             vehicle_data.get('registrationNumber', '')
         )
-        vehicle_registration_last4 = reg_norm[-4:] if len(reg_norm) >= 4 else ''
         has_emergency_digits = bool(emergency_digits_for_call)
         has_emergency_contact = has_emergency_digits and emerg_path_on
         call_register_ready = (
@@ -2318,6 +2339,12 @@ def send_notification(request, qr_id):
             service_status_lines.append(
                 'Emergency Call service is disabled.'
             )
+        scanner_notify_show_terminal_sheet = False
+        if request.method == 'GET':
+            scanner_notify_show_terminal_sheet = pop_notify_sheet_done_for_terminal_view(
+                request, qr_id
+            )
+
         context = {
             'vehicle_data': _notify_vehicle_context(vehicle_data),
             'owner_phone': owner_phone,
@@ -2335,6 +2362,7 @@ def send_notification(request, qr_id):
             'qr_id': qr_id,
             'scanner_has_any_channel': scanner_has_any_channel,
             'service_status_lines': service_status_lines,
+            'scanner_notify_show_terminal_sheet': scanner_notify_show_terminal_sheet,
         }
         
         return render(request, 'send_notification.html', context)
@@ -5600,6 +5628,17 @@ def normalize_vehicle_registration(raw):
     if raw is None:
         return ''
     return ''.join(c for c in str(raw).upper().strip() if c.isalnum())
+
+
+def registration_last_four_digits(registration_raw):
+    """
+    Emergency plate check: compare only the last four *digits* in the registration.
+
+    Letters on the plate are ignored for this PIN (user enters numeric digits only).
+    """
+    reg_norm = normalize_vehicle_registration(registration_raw)
+    digs = ''.join(c for c in reg_norm if c.isdigit())
+    return digs[-4:] if len(digs) >= 4 else ''
 
 
 def normalize_phone_number(phone_number):

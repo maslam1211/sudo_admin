@@ -92,9 +92,18 @@ def register_call_destination(request):
             send_scanner_voice_call_attempt_push,
             validate_scanner_call_for_qr,
         )
+        from admin_app.scanner_notify_session_controls import (
+            mark_notify_sheet_done,
+            voice_register_maybe_block,
+            voice_register_record_success,
+        )
     except Exception as exc:
         logger.exception('call_route register deps: %s', exc)
         return JsonResponse({'error': 'Server misconfigured'}, status=500)
+
+    block = voice_register_maybe_block(request, qr_id, key)
+    if block is not None:
+        return block
 
     policy_err = validate_scanner_call_for_qr(db, qr_id, dest_key)
     if policy_err:
@@ -112,6 +121,11 @@ def register_call_destination(request):
         send_scanner_voice_call_attempt_push(db, qr_id, dest_key, key)
     except Exception as exc:
         logger.warning('call_route register owner push alert failed: %s', exc)
+    try:
+        voice_register_record_success(request, qr_id, key)
+        mark_notify_sheet_done(request, qr_id)
+    except Exception as exc:
+        logger.warning('call_route session throttle / sheet mark failed: %s', exc)
     return JsonResponse({'status': 'ok'})
 
 

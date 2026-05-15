@@ -325,6 +325,155 @@
       border-radius: var(--sudo-r-xl);
     }
 
+    body.notify-app .notify-emergency-call-panel.notify-reasons-panel {
+      padding: 16px 14px;
+      margin-bottom: 14px;
+    }
+
+    body.notify-app #notifyEmergencyCallPanel[hidden] {
+      display: none !important;
+    }
+
+    body.notify-app #notifyEmergencyCallPanel:not([hidden]) {
+      display: block !important;
+    }
+
+    body.notify-app .notify-emergency-call-panel .notify-emergency-call-title {
+      margin: 0 0 8px;
+      font-size: 1.08rem;
+      font-weight: 800;
+      line-height: 1.35;
+      color: #ffcdd2;
+      letter-spacing: 0.02em;
+    }
+
+    body.notify-app .notify-emergency-call-panel .notify-emergency-call-lead {
+      margin: 0 0 16px;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    body.notify-app .notify-emergency-call-panel .notify-dock-phone,
+    body.notify-app .notify-emergency-call-panel .notify-dock-actions {
+      margin-bottom: 12px;
+    }
+
+    body.notify-app .notify-emergency-call-panel .notify-dock-actions {
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    body.notify-app .notify-emergency-call-panel .notify-dock-actions .notify-dock-btn {
+      width: 100%;
+      min-height: 52px;
+    }
+
+    body.notify-app.flow-emergency #notifyOwnerReasonsSection {
+      display: none !important;
+    }
+
+    body.notify-app .notify-priority-voice-wrap {
+      margin: 0 0 16px;
+    }
+
+    body.notify-app .notify-priority-voice-btn {
+      width: 100%;
+      margin: 0;
+      padding: 14px 16px;
+      min-height: 56px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      text-align: left;
+      cursor: pointer;
+      font-family: var(--sudo-font, 'Poppins', sans-serif);
+      color: var(--text-white, #fff);
+      border: 1.5px solid rgba(33, 150, 243, 0.55);
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(33, 150, 243, 0.35) 0%, rgba(25, 118, 210, 0.22) 50%, rgba(20, 85, 140, 0.18) 100%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 8px 26px rgba(33, 150, 243, 0.28);
+      transition: filter 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+    }
+
+    body.notify-app .notify-priority-voice-btn:active {
+      transform: scale(0.99);
+    }
+
+    body.notify-app .notify-priority-voice-btn:focus-visible {
+      outline: none;
+      border-color: rgba(144, 202, 249, 0.95);
+      box-shadow:
+        0 0 0 3px rgba(33, 150, 243, 0.35),
+        0 8px 26px rgba(33, 150, 243, 0.32);
+    }
+
+    body.notify-app .notify-priority-voice-btn:hover {
+      filter: brightness(1.06);
+    }
+
+    body.notify-app .notify-priority-voice-btn[disabled],
+    body.notify-app .notify-priority-voice-btn[aria-disabled='true'] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: none;
+    }
+
+    body.notify-app .notify-priority-voice-icon {
+      flex-shrink: 0;
+      width: 46px;
+      height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #bbdefb;
+      font-size: 1.35rem;
+    }
+
+    body.notify-app .notify-priority-voice-text {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    body.notify-app .notify-priority-voice-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
+
+    body.notify-app .notify-priority-voice-sub {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    body.notify-app.flow-emergency .notify-priority-voice-btn {
+      border-color: rgba(229, 115, 115, 0.55);
+      background: linear-gradient(135deg, rgba(229, 83, 80, 0.32) 0%, rgba(183, 28, 28, 0.22) 55%, rgba(99, 17, 17, 0.2) 100%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 8px 26px rgba(229, 83, 80, 0.26);
+    }
+
+    body.notify-app.flow-emergency .notify-priority-voice-icon {
+      color: #ffcdd2;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
     body.notify-app .question-title {
       font-size: 0.92rem;
       line-height: 1.45;
@@ -1800,44 +1949,309 @@
       background-color: var(--notification-red);
     }
 
-    /* Sending: wheel spinner on Voice dock button OR on SMS/Push channel cards */
-    @keyframes notify-send-spin {
+    /* Voice-call-only cooldown overlay (SMS / push stay available) */
+    body.notify-app .notify-voice-cooldown-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1150;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    body.notify-app .notify-voice-cooldown-overlay.is-visible {
+      display: flex;
+    }
+
+    body.notify-app .notify-voice-cooldown-card {
+      width: min(400px, 100%);
+      background: linear-gradient(
+        155deg,
+        rgba(38, 38, 38, 0.98) 0%,
+        rgba(22, 22, 22, 0.99) 100%
+      );
+      border: 1px solid rgba(229, 129, 71, 0.45);
+      border-radius: 18px;
+      padding: clamp(22px, 6vw, 28px);
+      text-align: center;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5);
+      color: rgba(255, 255, 255, 0.93);
+      font-family: inherit;
+      line-height: 1.42;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    body.notify-app .notify-voice-cooldown-card .cooldown-accent {
+      color: var(--accent-orange, #e58147);
+      font-weight: 700;
+      margin-top: 10px;
+      font-size: 1.08rem;
+    }
+
+    body.notify-app .notify-voice-cooldown-card .cooldown-muted {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.45);
+      margin-top: 8px;
+    }
+
+    body.notify-app.notify-session-terminal-open .main-content.sudo-app-main,
+    body.notify-app.notify-session-terminal-open .sudo-app-header {
+      filter: blur(4px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    body.notify-app .notify-session-terminal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: max(28px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
+      font-family: var(--sudo-font, 'Poppins', sans-serif);
+      background:
+        radial-gradient(
+          ellipse 95% 70% at 50% 35%,
+          rgba(229, 129, 71, 0.14) 0%,
+          transparent 55%
+        ),
+        rgba(15, 15, 15, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    body.notify-app .notify-session-terminal-overlay.is-visible {
+      display: flex;
+    }
+
+    body.notify-app .notify-session-terminal-card {
+      position: relative;
+      width: min(392px, 100%);
+      background: linear-gradient(
+        165deg,
+        var(--sudo-black, #1c1c1c) 0%,
+        #222 48%,
+        var(--sudo-gray, #282828) 100%
+      );
+      border: 1px solid rgba(229, 129, 71, 0.22);
+      border-radius: var(--sudo-r-xl, 24px);
+      padding: 0 clamp(22px, 6vw, 30px) clamp(24px, 6vw, 30px);
+      text-align: center;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 24px 56px rgba(0, 0, 0, 0.55),
+        0 0 40px rgba(229, 129, 71, 0.06);
+      color: var(--sudo-white, #fff);
+      overflow: hidden;
+    }
+
+    body.notify-app .notify-session-terminal-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      border-radius: var(--sudo-r-xl, 24px) 0 0 var(--sudo-r-xl, 24px);
+      background: linear-gradient(
+        180deg,
+        var(--sudo-orange, #e58147) 0%,
+        rgba(229, 129, 71, 0.45) 100%
+      );
+    }
+
+    body.notify-app .notify-session-terminal-hero {
+      padding: clamp(22px, 6vw, 28px) 8px clamp(14px, 4vw, 18px);
+      margin: 0 calc(-1 * clamp(22px, 6vw, 30px));
+      margin-bottom: 4px;
+      background: linear-gradient(
+        180deg,
+        rgba(229, 129, 71, 0.1) 0%,
+        transparent 100%
+      );
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    body.notify-app .notify-session-terminal-brand-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    body.notify-app .notify-session-terminal-brand {
+      height: clamp(42px, 11vw, 52px);
+      width: auto;
+      max-width: min(220px, 85%);
+      object-fit: contain;
+      filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.4));
+    }
+
+    body.notify-app .notify-session-terminal-icon-ring {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(229, 129, 71, 0.12);
+      border: 1.5px solid rgba(229, 129, 71, 0.35);
+      color: var(--sudo-orange, #e58147);
+      font-size: 1.45rem;
+      box-shadow: 0 0 24px rgba(229, 129, 71, 0.15);
+    }
+
+    body.notify-app .notify-session-terminal-eyebrow {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--sudo-orange, #e58147);
+      margin: 0 0 8px;
+      opacity: 0.92;
+    }
+
+    body.notify-app .notify-session-terminal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1.35;
+      margin: 0 0 14px;
+      color: var(--sudo-white, #fff);
+    }
+
+    body.notify-app .notify-session-terminal-text {
+      font-size: 0.86rem;
+      font-weight: 500;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.68);
+      margin: 0 0 24px;
+    }
+
+    body.notify-app .notify-session-terminal-ok {
+      width: 100%;
+      min-height: var(--touch-min, 52px);
+      border: none;
+      border-radius: var(--sudo-r-md, 14px);
+      padding: 14px 18px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      background: linear-gradient(
+        180deg,
+        var(--sudo-orange, #e58147) 0%,
+        var(--sudo-orange-hover, #d46c35) 100%
+      );
+      color: var(--sudo-black, #111);
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(229, 129, 71, 0.28);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    body.notify-app .notify-session-terminal-ok:hover {
+      filter: brightness(1.04);
+      box-shadow: 0 12px 32px rgba(229, 129, 71, 0.36);
+    }
+
+    body.notify-app .notify-session-terminal-ok:active {
+      transform: scale(0.98);
+    }
+
+    body.notify-app .notify-session-terminal-ok:focus-visible {
+      outline: 2px solid var(--sudo-orange, #e58147);
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body.notify-app .notify-session-terminal-ok {
+        transition: none;
+      }
+      body.notify-app .notify-session-terminal-ok:active {
+        transform: none;
+      }
+    }
+
+    body.notify-app .notify-channel-box.notify-voice-cool-blocked[disabled],
+    body.notify-app .notify-priority-voice-btn.notify-voice-cool-blocked {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* Sending: fullscreen dim mask + centered Lottie (wheel.json) */
+    body.notify-app.notify-sending-overlay-open {
+      overflow: hidden;
+    }
+
+    body.notify-app .notify-action-dock.notify-dock-sending {
+      pointer-events: none;
+      opacity: 0.92;
+    }
+
+    body.notify-app .notify-action-dock.notify-dock-sending.notify-dock-sending-instant-msg {
+      opacity: 1;
+    }
+
+    body.notify-app .notify-sending-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    body.notify-app .notify-sending-overlay-inner {
+      width: min(112px, 28vw);
+      height: min(112px, 28vw);
+      max-width: 100%;
+      max-height: 100%;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.notify-app .notify-sending-lottie-mount {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.notify-app .notify-sending-lottie-mount svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    @keyframes notify-sending-fallback-spin {
       to {
         transform: rotate(360deg);
       }
     }
 
-    body.notify-app .notify-action-dock.notify-dock-sending {
-      pointer-events: none;
-      opacity: 0.9;
-    }
-
-    /* SMS/Push sending: block extra taps without dimming the dock */
-    body.notify-app .notify-action-dock.notify-dock-sending.notify-dock-sending-instant-msg {
-      opacity: 1;
-    }
-
-    body.notify-app .notify-dock-btn.is-sending {
-      position: relative;
-    }
-
-    body.notify-app .notify-dock-btn.is-sending .btn-text,
-    body.notify-app .notify-dock-btn.is-sending .btn-icon {
-      visibility: hidden;
-    }
-
-    body.notify-app .notify-dock-btn.is-sending::after {
-      content: '';
-      position: absolute;
-      width: 24px;
-      height: 24px;
-      left: 50%;
-      top: 50%;
-      margin: -12px 0 0 -12px;
+    body.notify-app .notify-sending-css-fallback {
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      border: 3px solid rgba(255, 255, 255, 0.22);
-      border-top-color: rgba(255, 255, 255, 0.95);
-      animation: notify-send-spin 0.65s linear infinite;
+      border: 3px solid rgba(255, 255, 255, 0.18);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      animation: notify-sending-fallback-spin 0.65s linear infinite;
+      box-sizing: border-box;
     }
 
     /* Daily Limit Modal */
@@ -2521,32 +2935,6 @@
       border-color: #e58147;
     }
 
-    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled) {
-      position: relative;
-      pointer-events: none;
-      cursor: wait;
-    }
-
-    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled) > .notify-channel-box-text,
-    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled) > i.bi:first-of-type {
-      visibility: hidden !important;
-    }
-
-    body.notify-app .notify-channel-box.notify-channel-pick-btn.is-sending:not(:disabled)::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 28px;
-      height: 28px;
-      margin: -14px 0 0 -14px;
-      border-radius: 50%;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      border-top-color: rgba(255, 255, 255, 0.92);
-      animation: notify-send-spin 0.62s linear infinite;
-      box-sizing: border-box;
-    }
-
     body.notify-app .notify-channel-box > i.bi:first-of-type {
       font-size: 1.35rem;
       flex-shrink: 0;
@@ -2602,7 +2990,7 @@
   </style>
 </head>
 
-<body class="notify-app sudo-mobile-flow">
+<body class="notify-app sudo-mobile-flow" data-notify-terminal="{% if scanner_notify_show_terminal_sheet %}1{% else %}0{% endif %}">
   {% csrf_token %}
   <!-- Header -->
   <header class="header sudo-app-header">
@@ -2693,8 +3081,8 @@
         </p>
 
         <div class="emergency-gate-verify">
-          <label for="vehiclePlateLast4Input">Enter the <strong>last 4 characters</strong> of this vehicle’s <strong>registration number</strong> (letters and digits, as shown on the physical plate on this vehicle only), then validate to continue.</label>
-          <input type="text" id="vehiclePlateLast4Input" name="vehicle_plate_last4" inputmode="text" autocomplete="off" maxlength="4" autocapitalize="characters" spellcheck="false" placeholder="e.g. AB12" aria-describedby="vehiclePlateLast4Error">
+          <label for="vehiclePlateLast4Input">Enter the <strong>last 4 numeric digits</strong> of this vehicle’s <strong>registration number</strong> (digits only, from the physical plate on this vehicle), then validate to continue.</label>
+          <input type="text" id="vehiclePlateLast4Input" name="vehicle_plate_last4" inputmode="numeric" autocomplete="off" maxlength="4" autocapitalize="off" spellcheck="false" placeholder="e.g. 1234" pattern="[0-9]*" aria-describedby="vehiclePlateLast4Error">
           <p class="emergency-gate-error" id="vehiclePlateLast4Error" role="alert"></p>
         </div>
 
@@ -2732,7 +3120,22 @@
     </div>
     {% endif %}
 
-    <section class="notify-reasons-panel" aria-labelledby="notifyReasonsHeading">
+    <section class="notify-reasons-panel" id="notifyOwnerReasonsSection" aria-labelledby="notifyReasonsHeading">
+    <div id="notifyOwnerReasonsInner">
+    {% if call_register_ready or emergency_call_ready %}
+    <div class="notify-priority-voice-wrap">
+      <button type="button" class="notify-priority-voice-btn" id="notifyPriorityVoiceBtn"
+        aria-label="Voice call — recommended fastest option">
+        <span class="notify-priority-voice-icon" aria-hidden="true">
+          <i class="bi bi-telephone-fill"></i>
+        </span>
+        <span class="notify-priority-voice-text">
+          <span class="notify-priority-voice-title">Voice call</span>
+          <span class="notify-priority-voice-sub">Recommended · fastest way to reach them</span>
+        </span>
+      </button>
+    </div>
+    {% endif %}
     <div class="question-section">
       <p class="question-title" id="notifyReasonsHeading">What’s happening with this vehicle?</p>
       <p class="notify-question-lead">Choose one reason.</p>
@@ -2785,8 +3188,16 @@
         maxlength="200"></textarea>
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>
+    </div>
     </section>
 
+    <section class="notify-reasons-panel notify-emergency-call-panel" id="notifyEmergencyCallPanel" hidden>
+      <h2 class="notify-emergency-call-title" id="notifyEmergencyCallPanelTitle">Emergency call</h2>
+      <p class="notify-emergency-call-lead" id="notifyEmergencyCallPanelLead">
+        Enter your 10-digit mobile number, then call the emergency contact on file for this vehicle.
+      </p>
+      <!-- Caller phone (#notifyDockPhoneBlock) + actions (#notifyDockActionsWrap) are moved here via JS -->
+    </section>
     <aside class="notify-action-dock notify-action-dock-owner" id="notifyActionDock" role="region" aria-label="Contact actions" aria-hidden="false">
       <div class="notify-dock-panel">
         <div class="notify-sheet-handle notify-dock-drag-hint-owner" aria-hidden="true"></div>
@@ -2855,8 +3266,8 @@
         <div id="callFlowEmergencyPlateWrap" class="notify-dock-field notify-dock-plate" hidden style="display: none;">
           <label class="notify-field-label" for="callFlowPlateInput">Last 4 digits of plate</label>
           <input type="text" class="notify-field-input call-flow-plate-input" id="callFlowPlateInput"
-            inputmode="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"
-            placeholder="e.g. 6001" aria-describedby="callFlowPlateError">
+            inputmode="numeric" maxlength="4" autocomplete="off" autocapitalize="off" spellcheck="false"
+            placeholder="e.g. 6001" pattern="[0-9]*" aria-describedby="callFlowPlateError">
           <p class="notify-field-error" id="callFlowPlateError" role="alert"></p>
         </div>
         <div class="notify-dock-field notify-dock-phone" id="notifyDockPhoneBlock">
@@ -2929,6 +3340,70 @@
     </div>
     {% endif %}
   </main>
+
+  <!-- Fullscreen sending mask (wheel.json via Lottie) -->
+  <div
+    id="notifySendingOverlay"
+    class="notify-sending-overlay"
+    style="display: none;"
+    aria-hidden="true"
+  >
+    <div class="notify-sending-overlay-inner">
+      <div id="notifySendingLottieMount" class="notify-sending-lottie-mount" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- Voice-only cooldown after repeated calls -->
+  <div
+    id="notifyVoiceCooldownOverlay"
+    class="notify-voice-cooldown-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="notifyVoiceCooldownTitle"
+    aria-hidden="true"
+  >
+    <div class="notify-voice-cooldown-card">
+      <p id="notifyVoiceCooldownTitle">Voice calling is temporarily paused</p>
+      <p id="notifyVoiceCooldownLine" class="cooldown-accent" aria-live="polite"></p>
+      <p class="cooldown-muted">SMS and notifications still work on this screen.</p>
+    </div>
+  </div>
+
+  <!-- Completed scan sheet (one shot per completed action) -->
+  <div
+    id="notifySessionTerminalOverlay"
+    class="notify-session-terminal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="notifySessionTerminalHeading"
+    aria-describedby="notifySessionTerminalDesc"
+    aria-hidden="true"
+  >
+    <div class="notify-session-terminal-card">
+      <div class="notify-session-terminal-hero">
+        <div class="notify-session-terminal-brand-row">
+          <img
+            class="notify-session-terminal-brand"
+            src="{% static 'assets/img/sudotag-logo.png' %}"
+            width="200"
+            height="52"
+            alt="SudoTag"
+            decoding="async"
+            fetchpriority="low"
+          />
+          <div class="notify-session-terminal-icon-ring" aria-hidden="true">
+            <i class="bi bi-hourglass-bottom"></i>
+          </div>
+        </div>
+      </div>
+      <p class="notify-session-terminal-eyebrow">Section closed</p>
+      <p class="notify-session-terminal-title" id="notifySessionTerminalHeading">This section has been expired.</p>
+      <p class="notify-session-terminal-text" id="notifySessionTerminalDesc">
+        Your contact action for this scan is finished. Go back to the home page or scan another code for a new request.
+      </p>
+      <button type="button" class="notify-session-terminal-ok" id="notifySessionTerminalOkBtn">OK</button>
+    </div>
+  </div>
 
   <!-- Success Modal -->
   <div class="modal-overlay" id="successModal">
@@ -3051,6 +3526,9 @@
     const ownerPhone = '{{ owner_phone|default:"" }}';
     const callRegisterUrl = "{% url 'register_call_destination' %}";
     const notifyPageQrId = '{{ qr_id|default:""|escapejs }}';
+    const sudoTagHomeUrl = '{% url "index" %}';
+    var SUDO_NOTIFY_TERMINAL_GATE =
+      document.body && document.body.getAttribute('data-notify-terminal') === '1';
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
     const callRouteDidRaw = "{{ call_route_did|default:'' }}";
     const vehiclePlateLast4Expected = "{{ vehicle_registration_last4|default:''|escapejs }}";
@@ -3065,6 +3543,8 @@
     const emergencyCallReady = ("{{ emergency_call_ready|yesno:'yes,no' }}" === "yes");
     const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
+    const NOTIFY_SENDING_WHEEL_JSON = "{% static 'images/wheel.json' %}";
+    var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
       '{{ vehicle_data.registrationNumber|default:""|escapejs }}';
@@ -3193,7 +3673,11 @@
       var phoneBlock = document.getElementById('notifyDockPhoneBlock');
       var actionsWrap = document.getElementById('notifyDockActionsWrap');
       var phaseHint = document.getElementById('notifyDockPhaseHint');
+      var prioVoiceBtn = document.getElementById('notifyPriorityVoiceBtn');
       var hasReason = !!selectedReason;
+      var voiceCd = notifyVoiceCooldownRemainingSec();
+
+      syncEmergencyCallLayout();
 
       if (contactMode === 'emergency') {
         clearOwnerMethodSelection();
@@ -3204,32 +3688,63 @@
         dockChannels.sms = false;
         dockChannels.push = false;
 
-        if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call emergency contact';
+        if (prioVoiceBtn) {
+          prioVoiceBtn.classList.toggle(
+            'notify-voice-cool-blocked',
+            !!(voiceCd > 0 && dockChannels.call)
+          );
+        }
+
+        if (callMainBtnLabel) {
+          callMainBtnLabel.textContent = 'Call Emergency Contact';
+        }
         if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
 
-        if (dock) dock.classList.toggle('notify-dock--call-only', !hasReason);
-        if (summary) summary.hidden = !hasReason;
-        if (hint) {
-          hint.hidden = hasReason;
-          if (!hint.hidden) {
-            hint.textContent = 'Select a reason above to place an emergency voice call.';
-          }
-        }
-        dockActionBtnSetVisible(callMainBtn, !!(dockChannels.call && hasReason));
+        var canDial = !!(dockChannels.call && emergencyContactConfirmed && voiceCd <= 0);
+
+        if (dock) dock.classList.remove('notify-dock--call-only');
+        if (summary) summary.hidden = true;
+        if (hint) hint.hidden = true;
+        dockActionBtnSetVisible(callMainBtn, canDial);
         dockActionBtnSetVisible(smsBtn, false);
         dockActionBtnSetVisible(pushBtn, false);
-        if (phoneBlock) phoneBlock.style.display = hasReason && dockChannels.call ? '' : 'none';
-        if (actionsWrap) actionsWrap.style.display = hasReason && dockChannels.call ? '' : 'none';
+
+        if (phoneBlock) {
+          phoneBlock.style.display =
+            emergencyContactConfirmed && dockChannels.call ? '' : 'none';
+        }
+        if (actionsWrap) {
+          actionsWrap.style.display =
+            emergencyContactConfirmed && dockChannels.call ? '' : 'none';
+        }
+
+        var inlineEmerg =
+          emergencyContactConfirmed &&
+          (function () {
+            var p = document.getElementById('notifyEmergencyCallPanel');
+            return p && !p.hidden;
+          })();
         if (phaseHint) {
-          phaseHint.textContent = hasReason ? 'Enter your number, then call' : 'Your number → emergency call';
-          phaseHint.hidden = false;
+          if (inlineEmerg) {
+            phaseHint.hidden = true;
+          } else         if (voiceCd > 0 && dockChannels.call && emergencyContactConfirmed) {
+            phaseHint.hidden = false;
+            phaseHint.textContent = formatNotifyVoiceCooldownLine(voiceCd);
+          } else {
+            phaseHint.hidden = false;
+            phaseHint.textContent =
+              emergencyContactConfirmed && dockChannels.call
+                ? 'Enter your mobile number below, then tap Call.'
+                : 'Verify this vehicle above to enable an emergency voice call.';
+          }
         }
         var dockModeLabelEmerg = document.getElementById('notifyDockModeLabel');
         var dockDismissEmerg = document.getElementById('notifyDockDismiss');
-        if (dockModeLabelEmerg) dockModeLabelEmerg.hidden = false;
-        if (dockDismissEmerg) dockDismissEmerg.hidden = false;
-        if (dock) {
-          dock.style.display = '';
+        if (dockModeLabelEmerg) {
+          dockModeLabelEmerg.hidden = inlineEmerg ? true : false;
+        }
+        if (dockDismissEmerg) {
+          dockDismissEmerg.hidden = true;
         }
         if (typeof window.updateNotifyDockPadding === 'function') {
           requestAnimationFrame(window.updateNotifyDockPadding);
@@ -3248,6 +3763,21 @@
       dockChannels.sms = !!ownerSmsReady;
       dockChannels.push = !!pushReady;
 
+      if (prioVoiceBtn) {
+        prioVoiceBtn.classList.toggle(
+          'notify-voice-cool-blocked',
+          !!(voiceCd > 0 && dockChannels.call)
+        );
+      }
+
+      var pickCx = document.getElementById('pickMethodCall');
+      if (pickCx) {
+        var coolBlockVoice = !!(dockChannels.call && voiceCd > 0);
+        pickCx.disabled = coolBlockVoice;
+        pickCx.setAttribute('aria-disabled', coolBlockVoice ? 'true' : 'false');
+        pickCx.classList.toggle('notify-voice-cool-blocked', coolBlockVoice);
+      }
+
       if (callMainBtnLabel) callMainBtnLabel.textContent = 'Voice call';
       if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
 
@@ -3262,10 +3792,13 @@
         if (tP && !tP.disabled) tP.classList.add('is-selected');
       } else if (selectedOwnerChannel === 'call') {
         var tCx = document.getElementById('pickMethodCall');
-        if (tCx && !tCx.disabled) tCx.classList.add('is-selected');
+        if (tCx) tCx.classList.add('is-selected');
       }
 
-      dockActionBtnSetVisible(callMainBtn, !!dockChannels.call);
+      dockActionBtnSetVisible(
+        callMainBtn,
+        !!(dockChannels.call && selectedOwnerChannel === 'call' && voiceCd <= 0)
+      );
       dockActionBtnSetVisible(smsBtn, false);
       dockActionBtnSetVisible(pushBtn, false);
 
@@ -3282,9 +3815,15 @@
 
       if (phaseHint) {
         phaseHint.hidden = false;
-        phaseHint.textContent = !hasReason
-          ? 'Choose what’s happening — then tap SMS or push to send instantly, or Voice to call.'
-          : 'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then Voice call.';
+        if (voiceCd > 0 && dockChannels.call && selectedOwnerChannel === 'call') {
+          phaseHint.textContent = formatNotifyVoiceCooldownLine(voiceCd);
+        } else if (!hasReason) {
+          phaseHint.textContent =
+            'Choose what’s happening — then tap SMS or push to send instantly, or Voice to call.';
+        } else {
+          phaseHint.textContent =
+            'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then Voice call.';
+        }
       }
       if (dockModeLabelEl) {
         dockModeLabelEl.hidden = false;
@@ -3396,6 +3935,49 @@
       return false;
     }
 
+    /**
+     * Emergency (after plate verification): show only phone + call in #notifyEmergencyCallPanel;
+     * move shared nodes out of the dock. Owner mode restores them into the dock.
+     */
+    function syncEmergencyCallLayout() {
+      var panel = document.getElementById('notifyEmergencyCallPanel');
+      var dock = document.getElementById('notifyActionDock');
+      var dockPanel = dock ? dock.querySelector('.notify-dock-panel') : null;
+      var phoneBlock = document.getElementById('notifyDockPhoneBlock');
+      var actionsWrap = document.getElementById('notifyDockActionsWrap');
+      var dismissBtn = document.getElementById('notifyDockDismiss');
+      if (!panel || !phoneBlock || !actionsWrap || !dismissBtn || !dockPanel) return;
+
+      var showInlineEmerg =
+        hasEmergencyContact &&
+        contactMode === 'emergency' &&
+        emergencyContactConfirmed;
+
+      if (showInlineEmerg) {
+        panel.hidden = false;
+        if (phoneBlock.parentElement !== panel) {
+          panel.appendChild(phoneBlock);
+        }
+        if (actionsWrap.parentElement !== panel) {
+          panel.appendChild(actionsWrap);
+        }
+        if (dock) {
+          dock.style.display = 'none';
+        }
+      } else {
+        panel.hidden = true;
+        if (phoneBlock.parentElement !== dockPanel && dockPanel.contains(dismissBtn)) {
+          dockPanel.insertBefore(phoneBlock, dismissBtn);
+        }
+        if (actionsWrap.parentElement !== dockPanel && dockPanel.contains(dismissBtn)) {
+          dockPanel.insertBefore(actionsWrap, dismissBtn);
+        }
+        if (dock) {
+          dock.style.display = '';
+        }
+      }
+    }
+
     function syncMainSections() {
       if (!hasEmergencyContact) {
         if (ownerNotifySection) ownerNotifySection.style.display = '';
@@ -3472,6 +4054,17 @@
       }
       if (isNotifyDockBlocked()) {
         closeNotifyDock();
+        return;
+      }
+      if (
+        emergencyContactConfirmed &&
+        callerPhoneInput &&
+        callerPhoneInput.closest('#notifyEmergencyCallPanel')
+      ) {
+        syncNotifyDockChannels();
+        if (typeof window.updateNotifyDockPadding === 'function') {
+          requestAnimationFrame(window.updateNotifyDockPadding);
+        }
         return;
       }
       var dock = document.getElementById('notifyActionDock');
@@ -3559,19 +4152,12 @@
       if (stepLine) {
         stepLine.textContent =
           hasEmergencyContact && contactMode === 'emergency'
-            ? 'Select a reason first, then confirm your number below to call the emergency contact.'
+            ? 'After verification above, enter only digits in your mobile field and call emergency contact.'
             : 'Tap SMS or push on the rows below to send right away · Voice opens your number when you choose it.';
       }
 
       syncEmergencyPlateWrapInCallModal();
       syncNotifyDockChannels();
-      if (
-        selectedReason &&
-        contactMode === 'emergency' &&
-        !isNotifyDockBlocked()
-      ) {
-        openNotifyDock();
-      }
     }
 
     document.addEventListener('visibilitychange', function () {
@@ -3589,6 +4175,10 @@
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function () {
       resetUiAfterEmergencyDialerReturn();
+
+      if (!SUDO_NOTIFY_TERMINAL_GATE) {
+        clearNotifySheetDoneLocal();
+      }
 
       if (customMessageContainer) customMessageContainer.style.display = 'none';
 
@@ -3636,8 +4226,17 @@
       }
       syncContactModeUi();
       updateNotifyModalLock();
-      if (contactMode && contactMode === 'emergency' && !isNotifyDockBlocked()) {
-        openNotifyDock();
+      if (
+        contactMode &&
+        contactMode === 'emergency' &&
+        emergencyContactConfirmed &&
+        !isNotifyDockBlocked()
+      ) {
+        requestAnimationFrame(function () {
+          if (callerPhoneInput) callerPhoneInput.focus();
+          var ep = document.getElementById('notifyEmergencyCallPanel');
+          if (ep && !ep.hidden) ep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
       }
 
       function startEmergencyContactCallFlow() {
@@ -3653,7 +4252,7 @@
         }
         if (!vehiclePlateLast4Expected || vehiclePlateLast4Expected.length !== 4) {
           showToast(
-            'This vehicle\'s registration is missing or too short — emergency contact cannot be verified.',
+            'This vehicle\'s registration does not include four digits — emergency contact cannot be verified.',
             'error'
           );
           return;
@@ -3672,21 +4271,25 @@
         closeContactModeModal();
         closeEmergencyGateModal();
         syncContactModeUi();
-        openNotifyDock();
+        requestAnimationFrame(function () {
+          if (callerPhoneInput) callerPhoneInput.focus();
+          var ep = document.getElementById('notifyEmergencyCallPanel');
+          if (ep && !ep.hidden) ep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
       }
       var emergencyGateConfirmBtn = document.getElementById('emergencyGateConfirmBtn');
       var emergencyGateCancelBtn = document.getElementById('emergencyGateCancelBtn');
       var vehiclePlateLast4Field = document.getElementById('vehiclePlateLast4Input');
       if (vehiclePlateLast4Field) {
         vehiclePlateLast4Field.addEventListener('input', function () {
-          this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+          this.value = String(this.value || '').replace(/\D/g, '').slice(0, 4);
         });
       }
       if (emergencyGateConfirmBtn) {
         emergencyGateConfirmBtn.addEventListener('click', function () {
           var errEl = document.getElementById('vehiclePlateLast4Error');
           var inp = document.getElementById('vehiclePlateLast4Input');
-          var got = inp ? inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+          var got = inp ? String(inp.value || '').replace(/\D/g, '') : '';
           if (!vehiclePlateLast4Expected || vehiclePlateLast4Expected.length !== 4) {
             emergencyContactConfirmed = true;
             vehiclePlateLast4VerifiedValue = '';
@@ -3698,7 +4301,8 @@
           }
           if (got.length !== 4 || got !== vehiclePlateLast4Expected) {
             if (errEl) {
-              errEl.textContent = 'Enter the last 4 characters of this vehicle\'s registration (must match the plate above).';
+              errEl.textContent =
+                'Enter the last 4 numeric digits of this registration (must match the plate above).';
             }
             return;
           }
@@ -3801,7 +4405,85 @@
       bindOwnerMethodPick('pickMethodSms', 'sms');
       bindOwnerMethodPick('pickMethodPush', 'push');
       bindOwnerMethodPick('pickMethodCall', 'call');
+
+      var notifyPriorityVoiceBtn = document.getElementById('notifyPriorityVoiceBtn');
+      if (notifyPriorityVoiceBtn) {
+        notifyPriorityVoiceBtn.addEventListener('click', function () {
+          triggerNotifyPriorityVoice();
+        });
+      }
+
+      var notifyTermOk = document.getElementById('notifySessionTerminalOkBtn');
+      if (notifyTermOk) {
+        notifyTermOk.addEventListener('click', function () {
+          hideNotifySessionTerminalOverlay();
+          window.location.href = sudoTagHomeUrl;
+        });
+      }
+
+      if (SUDO_NOTIFY_TERMINAL_GATE) {
+        markNotifySheetDoneLocal();
+        showNotifySessionTerminalOverlay(
+          'This scan section is no longer active. Open the QR again if you need another contact request.'
+        );
+      } else if (isNotifySheetDoneLocal()) {
+        showNotifySessionTerminalOverlay(
+          'This scan section is no longer active. Open the QR again if you need another contact request.'
+        );
+      }
+
+      initNotifyVoiceCooldownUi();
     });
+
+    window.addEventListener('pageshow', function () {
+      initNotifyVoiceCooldownUi();
+      if (isNotifySheetDoneLocal()) {
+        showNotifySessionTerminalOverlay(
+          'This scan section is no longer active. Open the QR again if you need another contact request.'
+        );
+      }
+    });
+
+    function triggerNotifyPriorityVoice() {
+      if (!ensureContactTargetSelected()) return;
+      if (contactMode === 'emergency') {
+        if (!emergencyContactConfirmed) {
+          showToast('Complete emergency verification (plate check) above first.', 'info');
+          return;
+        }
+        syncNotifyDockChannels();
+        requestAnimationFrame(function () {
+          if (typeof window.updateNotifyDockPadding === 'function') {
+            window.updateNotifyDockPadding();
+          }
+          if (callerPhoneInput) callerPhoneInput.focus();
+          var epPanel = document.getElementById('notifyEmergencyCallPanel');
+          if (epPanel && !epPanel.hidden) {
+            epPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+        return;
+      }
+
+      var pick = document.getElementById('pickMethodCall');
+      if (!pick || pick.disabled) {
+        if (pick && notifyVoiceCooldownRemainingSec() > 0) {
+          syncNotifyVoiceCooldownOverlay();
+          return;
+        }
+        showToast('Voice calling isn’t available for this page right now.', 'error');
+        return;
+      }
+      pick.click();
+      requestAnimationFrame(function () {
+        if (typeof window.updateNotifyDockPadding === 'function') {
+          window.updateNotifyDockPadding();
+        }
+        if (callerPhoneInput) callerPhoneInput.focus();
+        var dockScroll = document.getElementById('notifyActionDock');
+        if (dockScroll) dockScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
 
     // Function to select reason
     function selectReason(element, reason) {
@@ -3828,17 +4510,23 @@
       }
       syncNotifyDockChannels();
       if (!isNotifyDockBlocked()) {
-        openNotifyDock();
+        var inlineEmergUi =
+          contactMode === 'emergency' &&
+          emergencyContactConfirmed &&
+          callerPhoneInput &&
+          callerPhoneInput.closest('#notifyEmergencyCallPanel');
+        if (!inlineEmergUi) {
+          openNotifyDock();
+        }
         requestAnimationFrame(function () {
           if (typeof window.updateNotifyDockPadding === 'function') {
             window.updateNotifyDockPadding();
           }
           if (contactMode === 'emergency') {
-            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          } else {
-            var pickEl = document.getElementById('notifyOwnerChannelPick');
-            if (pickEl) pickEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
           }
+          var pickEl = document.getElementById('notifyOwnerChannelPick');
+          if (pickEl) pickEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
       } else {
         closeNotifyDock();
@@ -3872,13 +4560,6 @@
       if (cpe) cpe.textContent = '';
     }
 
-    /** Same rules as Django `normalize_vehicle_registration` */
-    function normalizeVehicleRegistrationClient(raw) {
-      return String(raw || '')
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '');
-    }
-
     /**
      * Emergency-only: plate must match before dialer prep (same as owner: then register API + DID tel:).
      * @returns {boolean} true if ok or not in emergency mode
@@ -3898,27 +4579,23 @@
         return true;
       }
       var raw = input.value.trim();
-      if (!raw) {
-        if (errEl) errEl.textContent = 'Enter the last 4 characters of the registration number.';
+      var enteredDigits = String(raw || '').replace(/\D/g, '');
+      if (!enteredDigits) {
+        if (errEl) errEl.textContent = 'Enter the last 4 numeric digits of the registration number.';
         return false;
       }
 
-      var enteredCanon = normalizeVehicleRegistrationClient(raw);
-      var expectedTail = String(vehiclePlateLast4Expected || '')
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '');
+      var expectedTail = String(vehiclePlateLast4Expected || '').replace(/\D/g, '');
       if (!expectedTail || expectedTail.length !== 4) {
         if (errEl) errEl.textContent = 'Vehicle registration is not available for this QR code.';
         return false;
       }
       var enteredTail =
-        enteredCanon.length >= 4
-          ? enteredCanon.slice(-4)
-          : enteredCanon;
+        enteredDigits.length >= 4 ? enteredDigits.slice(-4) : enteredDigits;
       if (enteredTail !== expectedTail) {
         if (errEl)
           errEl.textContent =
-            'Does not match this vehicle. Enter the same last 4 characters as on the plate.';
+            'Does not match this vehicle. Enter the same last 4 digits as on the plate.';
         return false;
       }
 
@@ -3930,7 +4607,7 @@
     if (callFlowPlateInputBind) {
       callFlowPlateInputBind.addEventListener('input', function () {
         clearCallFlowPlateError();
-        this.value = String(this.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+        this.value = String(this.value || '').replace(/\D/g, '').slice(0, 4);
       });
       callFlowPlateInputBind.addEventListener('focus', clearCallFlowPlateError);
     }
@@ -3955,7 +4632,15 @@
           return;
         }
         if (document.body.classList.contains('flow-emergency')) {
-          openNotifyDock();
+          var useDockSheet =
+            !(
+              emergencyContactConfirmed &&
+              callerPhoneInput &&
+              callerPhoneInput.closest('#notifyEmergencyCallPanel')
+            );
+          if (useDockSheet) {
+            openNotifyDock();
+          }
         }
         if (callPrepareBtn) callPrepareBtn.click();
       });
@@ -3973,6 +4658,14 @@
         if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
         if (d.length > 10) d = d.slice(0, 10);
         this.value = d;
+      });
+      callerPhoneInput.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        var k = e.key;
+        if (k === 'Dead' || k.length !== 1) return;
+        if (!/[0-9]/.test(k)) {
+          e.preventDefault();
+        }
       });
     }
 
@@ -4018,6 +4711,9 @@
           }
 
           selectedMethod = 'call';
+          if (!assertVoiceCooldownAllowsDial()) {
+            return;
+          }
           callPrepareBtn.disabled = true;
           setNotifyDockSending(true);
           if (callMainBtn) callMainBtn.disabled = true;
@@ -4033,11 +4729,14 @@
           })
             .then(function (response) {
               return response.json().then(function (data) {
-                return { ok: response.ok, data: data };
+                return { ok: response.ok, status: response.status, data: data };
               });
             })
             .then(function (result) {
               if (result.ok && result.data && result.data.status === 'ok') {
+                hideNotifySendingOverlay();
+                var dockEl = document.getElementById('notifyActionDock');
+                if (dockEl) dockEl.classList.remove('notify-dock-sending', 'notify-dock-sending-instant-msg');
                 var d = String(callRouteDidRaw || '').replace(/\D/g, '');
                 if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
                 if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
@@ -4051,7 +4750,29 @@
                   setCallFlowDialogEmergencyVisual(false);
                   callFlowModal.style.display = 'none';
                 }
-                window.location.href = telUri;
+                try {
+                  sessionStorage.setItem(notifyLocalTerminalKey(), '1');
+                } catch (e2) {}
+                window.setTimeout(function () {
+                  window.location.href = telUri;
+                }, NOTIFY_CALL_PREPARE_DIAL_DELAY_MS);
+                return;
+              }
+              if (
+                result.status === 429 &&
+                result.data &&
+                result.data.error_type === 'voice_call_cooldown'
+              ) {
+                if (result.data.cooldown_seconds_remaining != null) {
+                  applyVoiceCooldownFromServer(result.data.cooldown_seconds_remaining);
+                } else {
+                  syncNotifyVoiceCooldownOverlay();
+                }
+                return;
+              }
+              if (result.status === 429) {
+                var gen429 = (result.data && result.data.message) || 'Please wait before trying again.';
+                showToast(gen429, 'error');
               } else {
                 var msg = (result.data && (result.data.error || result.data.message)) || 'Could not prepare call.';
                 if (callRouteError) {
@@ -4100,23 +4821,25 @@
       });
     }
 
-    // Continue button in success modal
-    continueBtn.addEventListener('click', function () {
+    function dismissSuccessModalFully() {
+      if (!successModal) return;
       successModal.style.display = 'none';
-
-      // Reset form
-      const reasonItems = document.querySelectorAll('.reasons-list > .reason-item');
-      reasonItems.forEach(item => {
+      document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
         item.classList.remove('selected');
       });
       selectedReason = '';
       clearOwnerMethodSelection();
-      customMessage.value = '';
-      customMessageContainer.style.display = 'none';
-      charCount.textContent = '0';
+      if (customMessage) customMessage.value = '';
+      if (customMessageContainer) customMessageContainer.style.display = 'none';
+      if (charCount) charCount.textContent = '0';
       selectedMethod = '';
       lastNotificationData = null;
       syncNotifyDockChannels();
+    }
+
+    // Continue button in success modal
+    continueBtn.addEventListener('click', function () {
+      dismissSuccessModalFully();
     });
 
     // Error modal close button
@@ -4157,8 +4880,185 @@
       }, 4000);
     }
 
+    var notifyVoiceCooldownUntilMs = 0;
+    var notifyVoiceCooldownTicker = null;
+
+    function notifyVoiceCooldownStorageKey() {
+      return 'sudo_notify_voice_cd_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function readNotifyVoiceCooldownFromStorage() {
+      try {
+        var raw = sessionStorage.getItem(notifyVoiceCooldownStorageKey());
+        if (!raw) return 0;
+        var ms = parseInt(raw, 10);
+        if (!Number.isFinite(ms)) return 0;
+        return ms > Date.now() ? ms : 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    function writeNotifyVoiceCooldownToStorage(absMs) {
+      try {
+        if (!absMs || absMs <= Date.now()) {
+          sessionStorage.removeItem(notifyVoiceCooldownStorageKey());
+        } else {
+          sessionStorage.setItem(notifyVoiceCooldownStorageKey(), String(absMs));
+        }
+      } catch (e) {}
+    }
+
+    function notifyVoiceCooldownRemainingSec() {
+      if (!notifyVoiceCooldownUntilMs) return 0;
+      return Math.max(0, Math.ceil((notifyVoiceCooldownUntilMs - Date.now()) / 1000));
+    }
+
+    function formatNotifyVoiceCooldownLine(sec) {
+      sec = Math.max(0, Math.floor(Number(sec) || 0));
+      if (sec <= 0) return 'Please wait a moment.';
+      var minutesWhole = Math.floor(sec / 60);
+      var rem = sec % 60;
+      if (minutesWhole >= 2) {
+        return 'Please wait ' + minutesWhole + ' minutes.';
+      }
+      if (minutesWhole === 1) {
+        if (rem === 0) return 'Please wait 1 minute.';
+        return rem >= 31 ? 'Please wait 2 minutes.' : 'Please wait 1 minute.';
+      }
+      if (sec === 1) return 'Please wait 1 second.';
+      return 'Please wait ' + sec + ' seconds.';
+    }
+
+    function syncNotifyVoiceCooldownOverlay() {
+      var overlay = document.getElementById('notifyVoiceCooldownOverlay');
+      var line = document.getElementById('notifyVoiceCooldownLine');
+      var r = notifyVoiceCooldownRemainingSec();
+      if (r <= 0) {
+        notifyVoiceCooldownUntilMs = 0;
+        writeNotifyVoiceCooldownToStorage(0);
+        if (overlay) {
+          overlay.classList.remove('is-visible');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+        if (notifyVoiceCooldownTicker) {
+          clearInterval(notifyVoiceCooldownTicker);
+          notifyVoiceCooldownTicker = null;
+        }
+        syncNotifyDockChannels();
+        return;
+      }
+      if (line) {
+        line.textContent = formatNotifyVoiceCooldownLine(r);
+      }
+      if (overlay) {
+        overlay.classList.add('is-visible');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+      if (!notifyVoiceCooldownTicker) {
+        notifyVoiceCooldownTicker = setInterval(function () {
+          syncNotifyVoiceCooldownOverlay();
+        }, 1000);
+      }
+      syncNotifyDockChannels();
+    }
+
+    function applyVoiceCooldownFromServer(seconds) {
+      var sec = Math.max(0, Math.floor(Number(seconds) || 0));
+      if (sec <= 0) return;
+      var until = Date.now() + sec * 1000;
+      notifyVoiceCooldownUntilMs = Math.max(notifyVoiceCooldownUntilMs || 0, until);
+      writeNotifyVoiceCooldownToStorage(notifyVoiceCooldownUntilMs);
+      syncNotifyVoiceCooldownOverlay();
+    }
+
+    function assertVoiceCooldownAllowsDial() {
+      var r = notifyVoiceCooldownRemainingSec();
+      if (r <= 0) return true;
+      syncNotifyVoiceCooldownOverlay();
+      return false;
+    }
+
+    function initNotifyVoiceCooldownUi() {
+      var stored = readNotifyVoiceCooldownFromStorage();
+      if (stored) {
+        notifyVoiceCooldownUntilMs = Math.max(notifyVoiceCooldownUntilMs || 0, stored);
+      }
+      syncNotifyVoiceCooldownOverlay();
+    }
+
+    function notifyLocalTerminalKey() {
+      return 'sudo_notify_sheet_done_local_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function isNotifySheetDoneLocal() {
+      try {
+        return sessionStorage.getItem(notifyLocalTerminalKey()) === '1';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function markNotifySheetDoneLocal() {
+      try {
+        sessionStorage.setItem(notifyLocalTerminalKey(), '1');
+      } catch (e) {}
+    }
+
+    function clearNotifySheetDoneLocal() {
+      try {
+        sessionStorage.removeItem(notifyLocalTerminalKey());
+      } catch (e) {}
+    }
+
+    function hideNotifySessionTerminalOverlay() {
+      var overlay = document.getElementById('notifySessionTerminalOverlay');
+      if (overlay) {
+        overlay.classList.remove('is-visible');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+      document.body.classList.remove('notify-session-terminal-open');
+    }
+
+    function showNotifySessionTerminalOverlay(detailMessage) {
+      var overlay = document.getElementById('notifySessionTerminalOverlay');
+      var sub = document.querySelector('.notify-session-terminal-text');
+      if (sub && typeof detailMessage === 'string' && detailMessage.trim()) {
+        sub.textContent = detailMessage.trim();
+      }
+      hideNotifySendingOverlay();
+      var voiceOv = document.getElementById('notifyVoiceCooldownOverlay');
+      if (voiceOv) {
+        voiceOv.classList.remove('is-visible');
+        voiceOv.setAttribute('aria-hidden', 'true');
+      }
+      if (overlay) {
+        overlay.classList.add('is-visible');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+      document.body.classList.add('notify-session-terminal-open');
+    }
+
+    function assertNotifySheetAllowsPost() {
+      if (isNotifySheetDoneLocal()) {
+        showNotifySessionTerminalOverlay(
+          'This scan section is no longer active. Open the QR again if you need another contact request.'
+        );
+        return false;
+      }
+      return true;
+    }
+
+    function presentNotifyTransportSuccessTerminal() {
+      markNotifySheetDoneLocal();
+      showNotifySessionTerminalOverlay(
+        'This scan section is no longer active. Open the QR again if you need another contact request.'
+      );
+    }
+
     // Function to show detailed error modal
     function showErrorModal(mainMessage, detailedMessage, errorType = 'general', suggestion = '') {
+      hideNotifySendingOverlay();
       errorMainMessage.textContent = mainMessage;
       errorDetailedMessage.textContent = detailedMessage;
 
@@ -4206,16 +5106,105 @@
       sendNotification(messageToSend);
     }
 
-    /** Owner SMS/push: spinning wheel on channel card only. Voice / emergency: spinner on dock Voice button. */
+    function getNotifySendingLottieGlobal() {
+      return window.lottie || window.bodymovin;
+    }
+
+    var notifySendingLottieLibPromise = null;
+    var notifySendingOverlayAnim = null;
+
+    function hideNotifySendingOverlay() {
+      var overlay = document.getElementById('notifySendingOverlay');
+      var mount = document.getElementById('notifySendingLottieMount');
+      if (notifySendingOverlayAnim) {
+        try {
+          notifySendingOverlayAnim.destroy();
+        } catch (e) {}
+        notifySendingOverlayAnim = null;
+      }
+      if (mount) {
+        mount.innerHTML = '';
+      }
+      if (overlay) {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.removeAttribute('aria-busy');
+      }
+      document.body.classList.remove('notify-sending-overlay-open');
+    }
+
+    function showNotifySendingCssFallback(mount) {
+      mount.innerHTML = '';
+      var fb = document.createElement('div');
+      fb.className = 'notify-sending-css-fallback';
+      fb.setAttribute('aria-hidden', 'true');
+      mount.appendChild(fb);
+    }
+
+    function loadNotifySendingLottieLib() {
+      var existing = getNotifySendingLottieGlobal();
+      if (existing) {
+        return Promise.resolve(existing);
+      }
+      if (notifySendingLottieLibPromise) {
+        return notifySendingLottieLibPromise;
+      }
+      notifySendingLottieLibPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+        s.async = true;
+        s.onload = function () {
+          var L = getNotifySendingLottieGlobal();
+          if (L) {
+            resolve(L);
+          } else {
+            reject(new Error('lottie global missing'));
+          }
+        };
+        s.onerror = function () {
+          reject(new Error('lottie script failed'));
+        };
+        document.head.appendChild(s);
+      });
+      return notifySendingLottieLibPromise;
+    }
+
+    function showNotifySendingOverlay() {
+      var overlay = document.getElementById('notifySendingOverlay');
+      var mount = document.getElementById('notifySendingLottieMount');
+      if (!overlay || !mount) {
+        return;
+      }
+      hideNotifySendingOverlay();
+      overlay.style.display = 'flex';
+      overlay.setAttribute('aria-hidden', 'false');
+      overlay.setAttribute('aria-busy', 'true');
+      document.body.classList.add('notify-sending-overlay-open');
+
+      loadNotifySendingLottieLib()
+        .then(function (LottieApi) {
+          if (!overlay.isConnected || overlay.style.display !== 'flex') {
+            return;
+          }
+          notifySendingOverlayAnim = LottieApi.loadAnimation({
+            container: mount,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: NOTIFY_SENDING_WHEEL_JSON
+          });
+        })
+        .catch(function () {
+          if (!overlay.isConnected || overlay.style.display !== 'flex') {
+            return;
+          }
+          showNotifySendingCssFallback(mount);
+        });
+    }
+
+    /** Fullscreen dim overlay + centered wheel during outgoing notify/call-register requests; dock classes gate duplicate taps. */
     function setNotifyDockSending(on) {
       var dock = document.getElementById('notifyActionDock');
-      document.querySelectorAll('#notifyActionDock .notify-dock-btn.is-sending').forEach(function (btn) {
-        btn.classList.remove('is-sending');
-      });
-      document.querySelectorAll('#notifyOwnerChannelPick .notify-channel-box.is-sending').forEach(function (el) {
-        el.classList.remove('is-sending');
-      });
-
       var ownerMsg =
         contactMode === 'owner' &&
         (selectedMethod === 'sms' || selectedMethod === 'push');
@@ -4230,36 +5219,13 @@
           dock.classList.remove('notify-dock-sending-instant-msg');
         }
       }
-      if (!on) return;
 
-      var cardEl = null;
-      var dockBtn = null;
-
-      function msgChannelCard() {
-        if (selectedOwnerChannel === 'sms' || selectedMethod === 'sms') {
-          return document.getElementById('pickMethodSms');
-        }
-        if (selectedOwnerChannel === 'push' || selectedMethod === 'push') {
-          return document.getElementById('pickMethodPush');
-        }
-        return null;
-      }
-
-      if (ownerMsg) {
-        cardEl = msgChannelCard();
-      } else if (contactMode === 'owner' && (selectedOwnerChannel === 'call' || selectedMethod === 'call')) {
-        dockBtn = callMainBtn;
-      } else if (selectedMethod === 'call') {
-        dockBtn = callMainBtn;
-      }
-
-      if (cardEl && !cardEl.disabled && cardEl.classList.contains('notify-channel-box')) {
-        cardEl.classList.add('is-sending');
+      if (!on) {
+        hideNotifySendingOverlay();
         return;
       }
-      if (dockBtn && dockBtn.classList && dockBtn.classList.contains('notify-dock-btn')) {
-        dockBtn.classList.add('is-sending');
-      }
+
+      showNotifySendingOverlay();
     }
 
     // Function to send notification to server
@@ -4268,10 +5234,17 @@
         return;
       }
 
+      if (!assertNotifySheetAllowsPost()) {
+        return;
+      }
+
       if (getEffectiveContactTarget() === 'emergency') {
         var needLast4 = vehiclePlateLast4Expected && vehiclePlateLast4Expected.length === 4;
         if (needLast4 && vehiclePlateLast4VerifiedValue.length !== 4) {
-          showToast('Enter the last 4 characters of this vehicle\'s registration, then try again.', 'error');
+          showToast(
+            'Enter the last 4 numeric digits of this vehicle\'s registration, then try again.',
+            'error'
+          );
           openEmergencyGateModal(function () {
             sendNotification(message);
           });
@@ -4331,6 +5304,22 @@
             return response.json();
           };
 
+          if (response.status === 410) {
+            hideNotifySendingOverlay();
+            let errPayload = null;
+            if (ct.includes('application/json')) {
+              try {
+                errPayload = await response.json();
+              } catch (eJ) {}
+            }
+            markNotifySheetDoneLocal();
+            var expiredMsg410 =
+              (errPayload && errPayload.message && String(errPayload.message)) ||
+              'This scan section is no longer active. Open the QR again if you need another contact request.';
+            showNotifySessionTerminalOverlay(expiredMsg410);
+            return null;
+          }
+
           if (!response.ok) {
             if (response.status === 500) {
               throw new Error('Server error. Please try again later.');
@@ -4347,14 +5336,26 @@
                 'Request blocked (403). Refresh the page and try again — often a session or security (CSRF) issue.'
               );
             }
+            if (response.status === 429) {
+              const errData = ct.includes('application/json')
+                ? await response.json().catch(() => null)
+                : null;
+              const msg =
+                errData && errData.message
+                  ? errData.message
+                  : 'Please wait before contacting this vehicle again.';
+              throw new Error(msg);
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           return readJson();
         })
         .then(data => {
+          if (data == null) {
+            return;
+          }
           if (data.status === 'success') {
-            // Show success modal with method-specific styling
-            showSuccessModal(data.notification_type);
+            presentNotifyTransportSuccessTerminal();
           } else {
             // Handle server-side errors with detailed messages
             let errorType = data.error_type || 'server';
@@ -4379,7 +5380,8 @@
                 suggestion = 'Switch to vehicle owner if their number is on file, or use push notification.';
                 break;
               case 'emergency_verify_failed':
-                suggestion = 'Check the registration number shown at the top of this page — use only the last 4 letters/digits, matching the plate. If you are not at this vehicle, use Contact vehicle owner instead.';
+                suggestion =
+                  'Check the registration number at the top — enter the last 4 numeric digits only, in the same order as on the plate. If you are not at this vehicle, use Contact vehicle owner instead.';
                 break;
               case 'emergency_vehicle_unavailable':
                 suggestion = 'This QR\'s vehicle record has no usable registration for verification. Use Contact vehicle owner or another channel.';
@@ -4471,6 +5473,7 @@
 
     // Show success modal with method-specific styling (check animation + short copy only)
     function showSuccessModal(method) {
+      hideNotifySendingOverlay();
       let iconClass = '';
       let title = '';
       let subtitle = '';
@@ -4537,6 +5540,8 @@
       if (!dailyLimitModal) {
         return;
       }
+
+      hideNotifySendingOverlay();
 
       const emojiMap = {
         sms: { icon: 'bi-chat-square-dots-fill', title: 'Daily SMS Limit Reached' },
