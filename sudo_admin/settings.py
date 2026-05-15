@@ -156,6 +156,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this if using CORS
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'admin_app.middleware.DisableCSRFForAPI',  # Custom middleware to exempt API endpoints
@@ -163,7 +164,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware'
 ]
 
 ROOT_URLCONF = 'sudo_admin.urls'
@@ -233,14 +233,15 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
     os.path.join(BASE_DIR, 'admin_app', 'static'),  # Explicitly include admin_app static files
 ]
-# Use WhiteNoise for serving static files in production
-# Note: For production, use CompressedManifestStaticFilesStorage
-# For development or if manifest issues occur, use CompressedStaticFilesStorage
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# WhiteNoise compressed files at stable URLs (/static/path/file.css — no hashed filenames).
+# Manifest storage breaks pages when templates expect hashed names but collectstatic/output
+# is stale — logo + sudo_* CSS 404 otherwise (broken images + unstyled bottom dock).
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-# WhiteNoise configuration
-WHITENOISE_USE_FINDERS = True  # Allow WhiteNoise to find static files during development
-WHITENOISE_AUTOREFRESH = True  # Auto-refresh static files (useful for development)
+# WhiteNoise: in production rely on STATIC_ROOT after collectstatic. Finders/autorefresh
+# avoid accidental drift vs nginx /static (and match runserver-less deploys).
+WHITENOISE_USE_FINDERS = DEBUG
+WHITENOISE_AUTOREFRESH = DEBUG
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
