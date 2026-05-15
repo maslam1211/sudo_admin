@@ -2248,7 +2248,7 @@
   <main class="main-content sudo-app-main notify-scroll-area">
     {% if vehicle_data %}
     <section class="vehicle-info notify-vehicle-card" aria-label="Vehicle details">
-      <h2 class="notify-vehicle-name">{{ vehicle_data.make }} {{ vehicle_data.model }}</h2>
+      <h2 class="notify-vehicle-name">{{ vehicle_data.display_name }}</h2>
       {% if vehicle_data.yearOfManufacturing %}
       <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
       {% endif %}
@@ -2276,7 +2276,7 @@
             <span class="notify-mode-direct-icon" aria-hidden="true"><i class="bi bi-heart-pulse-fill"></i></span>
             <span class="notify-mode-direct-text">
               <span class="notify-mode-direct-title">Emergency contact</span>
-              <span class="notify-mode-direct-desc">Verify plate, then call or SMS — urgent use only</span>
+              <span class="notify-mode-direct-desc">Verify plate, then voice call — urgent use only</span>
             </span>
             <span class="notify-mode-direct-chevron" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
           </button>
@@ -2496,7 +2496,7 @@
         <span class="btn-text" id="callMainBtnLabel">Call Owner</span>
       </button>
       {% endif %}
-      {% if owner_sms_ready or emergency_sms_ready %}
+      {% if owner_sms_ready %}
       <button type="button" class="action-btn sms-btn notify-dock-btn" id="smsBtn">
         <i class="bi bi-chat-text-fill btn-icon" aria-hidden="true"></i>
         <span class="btn-text" id="smsBtnLabel">Send SMS</span>
@@ -2648,7 +2648,6 @@
     const ownerCallReady = ("{{ call_register_ready|yesno:'yes,no' }}" === "yes");
     const emergencyCallReady = ("{{ emergency_call_ready|yesno:'yes,no' }}" === "yes");
     const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
-    const emergencySmsReady = ("{{ emergency_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
@@ -2758,10 +2757,10 @@
       if (contactMode === 'emergency') {
         var ed = String(emergencyDestinationDigits || '').replace(/\D/g, '');
         dockChannels.call = !!(emergencyCallReady && ed.length === 10);
-        dockChannels.sms = !!emergencySmsReady;
+        dockChannels.sms = false;
         dockChannels.push = false;
         if (callMainBtnLabel) callMainBtnLabel.textContent = 'Call emergency contact';
-        if (smsBtnLabel) smsBtnLabel.textContent = 'SMS emergency contact';
+        if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
       } else {
         var digits = String(ownerDestinationDigits || '').replace(/\D/g, '');
         dockChannels.call = !!(ownerCallReady && digits && digits.length === 10);
@@ -3032,14 +3031,22 @@
       if (stepLine) {
         stepLine.textContent =
           hasEmergencyContact && contactMode === 'emergency'
-            ? 'You can call anytime from the bottom bar. To send SMS, pick a reason above first, then open the bar.'
+            ? 'You can call anytime from the bottom bar. Pick a reason above first, then open the bar to call.'
             : 'Choose a reason below, then swipe up the bottom bar to enter your number and send.';
       }
       if (phaseHint) {
         phaseHint.textContent =
           hasEmergencyContact && contactMode === 'emergency'
-            ? 'Your number → emergency call or SMS'
+            ? 'Your number → emergency call'
             : 'Your number → Call / SMS / Push';
+      }
+
+      var reasonHintDock = document.getElementById('notifyDockReasonHint');
+      if (reasonHintDock) {
+        reasonHintDock.textContent =
+          hasEmergencyContact && contactMode === 'emergency'
+            ? 'Select a reason above to place an emergency voice call.'
+            : 'Select a reason above to send SMS or push notification.';
       }
 
       syncEmergencyPlateWrapInCallModal();
@@ -3105,7 +3112,7 @@
           showToast('Emergency contact isn’t available for this vehicle.', 'error');
           return;
         }
-        if (!emergencyCallReady && !emergencySmsReady) {
+        if (!emergencyCallReady) {
           showToast('Emergency contact isn’t available for this vehicle.', 'error');
           return;
         }
@@ -3783,6 +3790,9 @@
               case 'emergency_sms_app_disabled':
                 suggestion = 'The owner has turned off SMS to the emergency contact. Try another method if it appears.';
                 break;
+              case 'emergency_sms_not_supported':
+                suggestion = 'For emergency contact, use voice call from the bottom bar after choosing a reason.';
+                break;
               case 'emergency_disabled':
                 suggestion = 'Use Contact vehicle owner if that path is still available.';
                 break;
@@ -3890,7 +3900,10 @@
     }
 
     function smsAvailableForCurrentMode() {
-      return contactMode === 'emergency' ? emergencySmsReady : ownerSmsReady;
+      if (contactMode === 'emergency') {
+        return false;
+      }
+      return ownerSmsReady;
     }
 
     // Function to show daily limit snackbar

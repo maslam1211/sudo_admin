@@ -1927,6 +1927,18 @@ def send_notification(request, qr_id):
                         )
 
                 if notification_method == 'sms':
+                    if contact_target == 'emergency':
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'SMS is not available for emergency contact. '
+                                    'Please use voice call.'
+                                ),
+                                'error_type': 'emergency_sms_not_supported',
+                            },
+                            status=400,
+                        )
                     if not _scanner_f['sms']:
                         return JsonResponse(
                             {
@@ -1950,31 +1962,17 @@ def send_notification(request, qr_id):
                             },
                             status=400,
                         )
-                    if contact_target == 'emergency':
-                        if not _app_prefs['emergency_sms_allowed']:
-                            return JsonResponse(
-                                {
-                                    'status': 'error',
-                                    'message': (
-                                        'The vehicle owner has turned off SMS to the '
-                                        'emergency contact in the mobile app.'
-                                    ),
-                                    'error_type': 'emergency_sms_app_disabled',
-                                },
-                                status=400,
-                            )
-                    else:
-                        if not _app_prefs['owner_sms_allowed']:
-                            return JsonResponse(
-                                {
-                                    'status': 'error',
-                                    'message': (
-                                        'The vehicle owner has turned off SMS in the mobile app.'
-                                    ),
-                                    'error_type': 'sms_app_disabled',
-                                },
-                                status=400,
-                            )
+                    if not _app_prefs['owner_sms_allowed']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'The vehicle owner has turned off SMS in the mobile app.'
+                                ),
+                                'error_type': 'sms_app_disabled',
+                            },
+                            status=400,
+                        )
 
                 if notification_method == 'push':
                     if not _scanner_f['push']:
@@ -2290,19 +2288,14 @@ def send_notification(request, qr_id):
         owner_sms_ready = (
             bool(owner_digits_for_call) and sms_on and _app_prefs['owner_sms_allowed']
         )
-        emergency_sms_ready = (
-            bool(emergency_digits_for_call)
-            and sms_on
-            and emerg_path_on
-            and _app_prefs['emergency_sms_allowed']
-        )
+        # Emergency QR path is voice-call only (no SMS to emergency contact).
+        emergency_sms_ready = False
         push_ready = bool(has_fcm_token) and push_on and _app_prefs['push_allowed']
         scanner_has_any_channel = bool(
             push_ready
             or call_register_ready
             or owner_sms_ready
             or emergency_call_ready
-            or emergency_sms_ready
         )
         service_status_lines = []
         if bool(owner_digits_for_call) and not call_register_ready:
@@ -2331,6 +2324,10 @@ def send_notification(request, qr_id):
                 'registrationNumber': vehicle_data.get('registrationNumber', ''),
                 'make': vehicle_data.get('make', ''),
                 'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
+                'display_name': _vehicle_make_model_display(
+                    vehicle_data.get('make'),
+                    vehicle_data.get('model'),
+                ),
             },
             'owner_phone': owner_phone,
             'has_fcm_token': has_fcm_token,
@@ -2548,6 +2545,31 @@ def _safe_str(value, default=''):
     if value is None:
         return default
     return str(value) if value else default
+
+
+def _vehicle_make_model_display(make, model):
+    """
+    One line for scanner UI: Firestore often stores model as 'Make Model …' while
+    make is also set, producing 'BENTLEY BENTLEY CONTINENTAL…'. Collapse duplicates.
+    """
+    m = _safe_str(make, '').strip()
+    mo = _safe_str(model, '').strip()
+    if not m:
+        return mo
+    if not mo:
+        return m
+    words = mo.split()
+    m_cf = m.casefold()
+    while (
+        len(words) >= 2
+        and words[0].casefold() == m_cf
+        and words[1].casefold() == m_cf
+    ):
+        words = words[1:]
+    mo_rest = ' '.join(words)
+    if words and words[0].casefold() == m_cf:
+        return mo_rest
+    return f'{m} {mo_rest}'.strip()
 
 
 def _serialize_firestore_data(data):
