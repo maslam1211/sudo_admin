@@ -2319,16 +2319,7 @@ def send_notification(request, qr_id):
                 'Emergency Call service is disabled.'
             )
         context = {
-            'vehicle_data': {
-                'model': vehicle_data.get('model', ''),
-                'registrationNumber': vehicle_data.get('registrationNumber', ''),
-                'make': vehicle_data.get('make', ''),
-                'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
-                'display_name': _vehicle_make_model_display(
-                    vehicle_data.get('make'),
-                    vehicle_data.get('model'),
-                ),
-            },
+            'vehicle_data': _notify_vehicle_context(vehicle_data),
             'owner_phone': owner_phone,
             'has_fcm_token': has_fcm_token,
             'push_ready': push_ready,
@@ -2570,6 +2561,63 @@ def _vehicle_make_model_display(make, model):
     if words and words[0].casefold() == m_cf:
         return mo_rest
     return f'{m} {mo_rest}'.strip()
+
+
+def _vehicle_resolve_make_model(vehicle_dict):
+    """Read make/model from alternate Firestore/client field names."""
+    if not isinstance(vehicle_dict, dict):
+        return '', ''
+    d = vehicle_dict
+    make = _safe_str(
+        d.get('make')
+        or d.get('vehicleMake')
+        or d.get('brand')
+        or d.get('manufacturer'),
+        '',
+    ).strip()
+    model = _safe_str(
+        d.get('model') or d.get('vehicleModel'), ''
+    ).strip()
+    return make, model
+
+
+def _vehicle_resolve_registration(vehicle_dict):
+    if not isinstance(vehicle_dict, dict):
+        return ''
+    d = vehicle_dict
+    return _safe_str(
+        d.get('registrationNumber')
+        or d.get('registration')
+        or d.get('registrationNo')
+        or d.get('regNumber'),
+        '',
+    ).strip()
+
+
+def _notify_vehicle_context(vehicle_dict):
+    """
+    Template-safe vehicle block for send_notification (stable keys, never empty title
+    when any identifier exists).
+    """
+    make, model = _vehicle_resolve_make_model(vehicle_dict)
+    reg = _vehicle_resolve_registration(vehicle_dict)
+    line = _vehicle_make_model_display(make, model).strip()
+    if not line:
+        line = ' '.join(p for p in (make, model) if p).strip()
+    if not line:
+        line = reg
+    if not line:
+        line = 'Vehicle'
+    yom = None
+    if isinstance(vehicle_dict, dict):
+        yom = vehicle_dict.get('yearOfManufacturing')
+    return {
+        'make': make,
+        'model': model,
+        'registrationNumber': reg,
+        'yearOfManufacturing': yom,
+        'display_name': line,
+    }
 
 
 def _serialize_firestore_data(data):

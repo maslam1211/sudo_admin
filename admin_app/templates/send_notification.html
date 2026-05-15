@@ -36,6 +36,18 @@
       --sudo-r-sm: 10px;
       --sudo-space: 16px;
       --sudo-font: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+      /* Mirror names used elsewhere on this page (Bootstrap / legacy blocks). */
+      --primary-block: #1C1C1C;
+      --accent-orange: #E58147;
+      --secondary-gray: #282828;
+      --text-white: #FFFFFF;
+      --notification-red: #FF4500;
+      --success-green: #4CAF50;
+      --info-blue: #2196F3;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --app-max-width: 480px;
+      --touch-min: 52px;
     }
 
     body.notify-app.sudo-mobile-flow {
@@ -60,13 +72,73 @@
       box-sizing: border-box;
     }
 
-    body.notify-app .notify-scroll-area>.notify-vehicle-card {
+    body.notify-app .notify-scroll-area > .notify-vehicle-card {
       position: sticky;
       top: 0;
       z-index: 120;
-      background: var(--sudo-black);
+      background: var(--sudo-gray);
       padding-top: 4px;
       margin-top: -4px;
+      box-sizing: border-box;
+    }
+
+    /* Vehicle summary — orange rail + framed plate (works even when sudo_notify_flow.css misses) */
+    body.notify-app .vehicle-info.notify-vehicle-card {
+      text-align: left;
+      border-left: 4px solid var(--sudo-orange);
+      padding: 18px 16px 18px 18px;
+      margin-bottom: 16px;
+      background-color: var(--sudo-gray);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    body.notify-app .vehicle-info.notify-vehicle-card .notify-vehicle-name {
+      font-size: 1.06rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      line-height: 1.35;
+      color: var(--sudo-white);
+    }
+
+    body.notify-app .vehicle-info.notify-vehicle-card .notify-vehicle-year {
+      margin: 0 0 14px;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.8rem;
+    }
+
+    body.notify-app .vehicle-info.notify-vehicle-card .plate-number {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 14px 14px;
+      text-align: center;
+      border: 2px solid rgba(229, 129, 71, 0.6);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.42);
+      box-sizing: border-box;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      font-family: 'Poppins', ui-monospace, monospace;
+      color: var(--sudo-orange);
+    }
+
+    body.notify-app.sudo-mobile-flow header.header .header-title {
+      display: inline-block;
+      margin: 10px 0 0;
+      padding: 6px 14px;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.72);
+      background-color: var(--sudo-gray);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
     }
 
     body.notify-app .modal-overlay.notify-flow-modal {
@@ -683,6 +755,20 @@
       color: #ff6b6b;
       font-weight: 700;
       letter-spacing: 0.04em;
+    }
+
+    body.notify-app.sudo-mobile-flow .header .header-title {
+      display: inline-block;
+      margin: 10px 0 0;
+      padding: 6px 14px;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.72);
+      background-color: var(--secondary-gray);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
     }
 
     body.flow-emergency .plate-number {
@@ -2232,6 +2318,56 @@
       display: none !important;
     }
   </style>
+  {# Hard hex accents: some in-app browsers / high-contrast squash CSS vars on nested rules. #}
+  <style id="notify-accent-visible">
+    html {
+      color-scheme: dark;
+    }
+
+    body.notify-app.sudo-mobile-flow .brand-logo-img {
+      mix-blend-mode: normal;
+    }
+
+    body.notify-app.sudo-mobile-flow .vehicle-info.notify-vehicle-card {
+      border-inline-start: 4px solid #e58147 !important;
+    }
+
+    body.notify-app.sudo-mobile-flow .vehicle-info.notify-vehicle-card .plate-number {
+      color: #e58147 !important;
+      border-color: #e58147 !important;
+      border-width: 2px;
+      border-style: solid;
+      -webkit-text-fill-color: #e58147;
+    }
+
+    body.notify-app.sudo-mobile-flow .notify-flow-eyebrow,
+    body.notify-app.sudo-mobile-flow .notify-flow-step-kicker {
+      color: #e58147 !important;
+      -webkit-text-fill-color: #e58147;
+    }
+
+    body.notify-app.sudo-mobile-flow .notify-reasons-panel .reason-item > i.bi {
+      color: #e58147 !important;
+      -webkit-text-fill-color: #e58147;
+    }
+
+    body.notify-app.sudo-mobile-flow .notify-dock-btn.sms-btn {
+      background-color: #e58147 !important;
+      background-image: none !important;
+      color: #fff !important;
+    }
+
+    body.notify-app.sudo-mobile-flow .notify-phone-prefix {
+      color: #e58147 !important;
+      border-color: rgba(229, 129, 71, 0.75) !important;
+    }
+
+    @media (forced-colors: active) {
+      body.notify-app.sudo-mobile-flow .vehicle-info.notify-vehicle-card .plate-number {
+        forced-color-adjust: none;
+      }
+    }
+  </style>
 </head>
 
 <body class="notify-app sudo-mobile-flow">
@@ -2248,7 +2384,7 @@
   <main class="main-content sudo-app-main notify-scroll-area">
     {% if vehicle_data %}
     <section class="vehicle-info notify-vehicle-card" aria-label="Vehicle details">
-      <h2 class="notify-vehicle-name">{{ vehicle_data.display_name }}</h2>
+      <h2 class="notify-vehicle-name">{% if vehicle_data.display_name %}{{ vehicle_data.display_name }}{% else %}{{ vehicle_data.make }} {{ vehicle_data.model }}{% endif %}</h2>
       {% if vehicle_data.yearOfManufacturing %}
       <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
       {% endif %}

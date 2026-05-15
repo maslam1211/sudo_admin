@@ -481,31 +481,56 @@ body.notify-app .main-content {
   padding-bottom: 0 !important;
 }
 
-/* Vehicle card */
-body.notify-app .notify-vehicle-card {
-  padding: 16px;
-  margin-bottom: 12px;
+/* Vehicle card — orange rail + framed plate (scanner branded layout) */
+body.notify-app .vehicle-info.notify-vehicle-card {
+  padding: 18px 16px 18px 18px;
+  margin-bottom: 16px;
   text-align: left;
+  background-color: var(--sudo-gray);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid var(--sudo-orange);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.notify-app .notify-vehicle-card {
+  background-color: var(--sudo-gray);
+}
+
+body.notify-app .notify-scroll-area > .notify-vehicle-card {
+  background: var(--sudo-gray);
 }
 
 body.notify-app .notify-vehicle-name {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 1.06rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin: 0 0 4px;
-  line-height: 1.3;
+  margin: 0 0 8px;
+  line-height: 1.35;
 }
 
 body.notify-app .notify-vehicle-year {
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 0 0 14px;
 }
 
 body.notify-app .notify-vehicle-card .plate-number {
   display: block;
   width: 100%;
+  margin: 0;
+  padding: 14px 14px;
   text-align: center;
+  border: 2px solid rgba(229, 129, 71, 0.6);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.42);
+  box-sizing: border-box;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-family: var(--sudo-font);
+  color: var(--sudo-orange);
 }
 
 /* Contact switch — segmented */
