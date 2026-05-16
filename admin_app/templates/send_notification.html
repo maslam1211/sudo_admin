@@ -404,15 +404,34 @@
       margin-bottom: 12px;
     }
 
-    body.notify-app .notify-emergency-call-panel .notify-dock-actions {
-      flex-direction: column;
-      gap: 10px;
+    body.notify-app .notify-emergency-call-panel .notify-dock-phone {
+      margin-bottom: 14px;
+    }
+
+    body.notify-app .notify-emergency-call-panel .notify-swipe-call-wrap,
+    body.notify-app .notify-emergency-swipe-slot .notify-swipe-call-wrap {
+      display: block;
+      width: 100%;
       margin-top: 4px;
     }
 
-    body.notify-app .notify-emergency-call-panel .notify-dock-actions .notify-dock-btn {
+    body.notify-app #notifyEmergencyCallPanel .notify-dock-swipe-slot--owner {
+      display: none !important;
+    }
+
+    body.notify-app .notify-dock-phone .notify-dock-swipe-slot--owner {
+      margin-top: 12px;
+    }
+
+    body.notify-app .notify-dock-phone .notify-dock-swipe-slot--owner .notify-swipe-call-wrap {
+      display: block;
       width: 100%;
-      min-height: 52px;
+      margin-top: 0;
+    }
+
+    body.notify-app #notifyEmergencyCallPanel .notify-dock-btn.call-highlight-btn,
+    body.notify-app #notifyEmergencyCallPanel .action-btn.call-highlight-btn {
+      display: none !important;
     }
 
     body.notify-app.flow-emergency #notifyOwnerReasonsSection {
@@ -2250,6 +2269,155 @@
       letter-spacing: 0.02em;
     }
 
+    /* Slide-to-call (replaces tap button after mobile number is entered) */
+    body.notify-app .notify-swipe-call-wrap {
+      width: 100%;
+      margin-top: 2px;
+    }
+
+    body.notify-app .notify-swipe-call-wrap[hidden] {
+      display: none !important;
+    }
+
+    body.notify-app .notify-swipe-call-track {
+      position: relative;
+      width: 100%;
+      height: 56px;
+      border-radius: 999px;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      background: linear-gradient(90deg, #1565c0 0%, #1e88e5 55%, #42a5f5 100%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+        0 8px 24px rgba(21, 101, 192, 0.35);
+    }
+
+    body.notify-app.flow-emergency .notify-swipe-call-track {
+      background: linear-gradient(90deg, #b71c1c 0%, #e53935 55%, #ef5350 100%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+        0 8px 24px rgba(229, 57, 53, 0.32);
+    }
+
+    body.notify-app .notify-swipe-call-track.is-complete {
+      background: linear-gradient(90deg, #2e7d32, #43a047);
+    }
+
+    body.notify-app .notify-swipe-call-track.is-blocked {
+      filter: grayscale(0.35);
+      opacity: 0.92;
+      pointer-events: none;
+    }
+
+    body.notify-app .notify-swipe-call-track.is-phone-gated {
+      filter: grayscale(0.25);
+      opacity: 0.9;
+    }
+
+    body.notify-app .notify-swipe-call-track.is-phone-gated .notify-swipe-call-thumb {
+      cursor: not-allowed;
+    }
+
+    body.notify-app .notify-swipe-call-track.is-sending {
+      pointer-events: none;
+      opacity: 0.88;
+    }
+
+    body.notify-app .notify-swipe-call-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      pointer-events: none;
+      transition: width 0.05s linear;
+    }
+
+    body.notify-app .notify-swipe-call-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* Keep text clear of the 48px thumb on the left */
+      padding: 0 14px 0 58px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      z-index: 1;
+    }
+
+    body.notify-app .notify-swipe-call-label.notify-swipe-call-label--phone-gated {
+      justify-content: center;
+      padding: 0 10px 0 58px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+
+    @media (max-width: 380px) {
+      body.notify-app .notify-swipe-call-label.notify-swipe-call-label--phone-gated {
+        font-size: 0.7rem;
+        padding-right: 6px;
+      }
+    }
+
+    body.notify-app .notify-swipe-call-label.notify-voice-cooldown-active {
+      letter-spacing: 0.02em;
+      text-transform: none;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.78rem;
+      color: #fff;
+    }
+
+    body.notify-app .notify-swipe-call-thumb {
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      width: 48px;
+      height: 48px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      color: #1565c0;
+      font-size: 1.2rem;
+      cursor: grab;
+      z-index: 2;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+      transition: box-shadow 0.15s ease, transform 0.05s linear;
+      touch-action: none;
+    }
+
+    body.notify-app.flow-emergency .notify-swipe-call-thumb {
+      color: #c62828;
+    }
+
+    body.notify-app .notify-swipe-call-thumb:active {
+      cursor: grabbing;
+    }
+
+    body.notify-app .notify-swipe-call-thumb:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
     /* Sending: fullscreen dim mask + centered Lottie (wheel.json) */
     body.notify-app.notify-sending-overlay-open {
       overflow: hidden;
@@ -3269,9 +3437,30 @@
     <section class="notify-reasons-panel notify-emergency-call-panel" id="notifyEmergencyCallPanel" hidden>
       <h2 class="notify-emergency-call-title" id="notifyEmergencyCallPanelTitle">Emergency call</h2>
       <p class="notify-emergency-call-lead" id="notifyEmergencyCallPanelLead">
-        Enter your 10-digit mobile number, then call the emergency contact on file for this vehicle.
+        Enter your 10-digit mobile number, then slide right to call the emergency contact on file.
       </p>
-      <!-- Caller phone (#notifyDockPhoneBlock) + actions (#notifyDockActionsWrap) are moved here via JS -->
+      <!-- Phone (#notifyDockPhoneBlock) moved here via JS -->
+      <div class="notify-emergency-swipe-slot">
+        <div class="notify-swipe-call-wrap notify-swipe-call-wrap--emergency" id="notifyEmergencySwipeCallWrap" hidden>
+          <div
+            class="notify-swipe-call-track"
+            id="notifyEmergencySwipeCallTrack"
+            role="group"
+            aria-labelledby="notifyEmergencySwipeCallLabel"
+          >
+            <span class="notify-swipe-call-fill" id="notifyEmergencySwipeCallFill" aria-hidden="true"></span>
+            <span class="notify-swipe-call-label" id="notifyEmergencySwipeCallLabel">Slide to call emergency</span>
+            <button
+              type="button"
+              class="notify-swipe-call-thumb"
+              id="notifyEmergencySwipeCallThumb"
+              aria-label="Slide right to call emergency contact"
+            >
+              <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
     <aside class="notify-action-dock notify-action-dock-owner" id="notifyActionDock" role="region" aria-label="Contact actions" aria-hidden="false">
       <div class="notify-dock-panel">
@@ -3353,14 +3542,31 @@
               placeholder="10-digit mobile" autocomplete="tel-national" aria-label="Your 10-digit mobile number">
           </div>
           <p class="notify-field-error" id="callRouteError" role="alert"></p>
+          {% if call_register_ready or emergency_call_ready %}
+          <div class="notify-dock-swipe-slot notify-dock-swipe-slot--owner">
+            <div class="notify-swipe-call-wrap" id="notifySwipeCallWrap" hidden>
+              <div
+                class="notify-swipe-call-track"
+                id="notifySwipeCallTrack"
+                role="group"
+                aria-labelledby="notifySwipeCallLabel"
+              >
+                <span class="notify-swipe-call-fill" id="notifySwipeCallFill" aria-hidden="true"></span>
+                <span class="notify-swipe-call-label" id="notifySwipeCallLabel">Slide to call</span>
+                <button
+                  type="button"
+                  class="notify-swipe-call-thumb"
+                  id="notifySwipeCallThumb"
+                  aria-label="Slide right to place voice call"
+                >
+                  <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
         <div class="notify-dock-actions" id="notifyDockActionsWrap">
-          {% if call_register_ready or emergency_call_ready %}
-          <button type="button" class="action-btn call-highlight-btn notify-dock-btn" id="callMainBtn" title="Call" hidden>
-            <i class="bi bi-telephone-fill btn-icon" aria-hidden="true"></i>
-            <span class="btn-text" id="callMainBtnLabel">Voice call</span>
-          </button>
-          {% endif %}
           {% if owner_sms_ready %}
           <button type="button" class="action-btn sms-btn notify-dock-btn" id="smsBtn" hidden>
             <i class="bi bi-chat-text-fill btn-icon" aria-hidden="true"></i>
@@ -3622,7 +3828,7 @@
     var NOTIFY_PRIORITY_VOICE_SUB_DEFAULT = 'Recommended · fastest way to reach them';
     var NOTIFY_PICK_CALL_SUB_DEFAULT = 'Call via your phone (fastest)';
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
-      'Enter your 10-digit mobile number, then call the emergency contact on file for this vehicle.';
+      'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
@@ -3654,7 +3860,16 @@
     // DOM Elements
     const pushBtn = document.getElementById('pushBtn');
     const smsBtn = document.getElementById('smsBtn');
-    const callMainBtn = document.getElementById('callMainBtn');
+    const notifySwipeCallWrap = document.getElementById('notifySwipeCallWrap');
+    const notifySwipeCallTrack = document.getElementById('notifySwipeCallTrack');
+    const notifySwipeCallThumb = document.getElementById('notifySwipeCallThumb');
+    const notifySwipeCallLabel = document.getElementById('notifySwipeCallLabel');
+    const notifySwipeCallFill = document.getElementById('notifySwipeCallFill');
+    const notifyEmergencySwipeCallWrap = document.getElementById('notifyEmergencySwipeCallWrap');
+    const notifyEmergencySwipeCallTrack = document.getElementById('notifyEmergencySwipeCallTrack');
+    const notifyEmergencySwipeCallThumb = document.getElementById('notifyEmergencySwipeCallThumb');
+    const notifyEmergencySwipeCallLabel = document.getElementById('notifyEmergencySwipeCallLabel');
+    const notifyEmergencySwipeCallFill = document.getElementById('notifyEmergencySwipeCallFill');
     const callFlowModal = document.getElementById('callFlowModal');
     const callModalClose = document.getElementById('callModalClose');
     const callPrepareBtn = document.getElementById('callPrepareBtn');
@@ -3669,7 +3884,10 @@
     const quickSwitchEmergencyBtn = document.getElementById('quickSwitchEmergencyBtn');
     const switchContactWrap = document.getElementById('switchContactWrap');
     const callFlowDialogInner = document.getElementById('callFlowDialogInner');
-    const callMainBtnLabel = document.getElementById('callMainBtnLabel');
+    var NOTIFY_SWIPE_CALL_LABEL_DEFAULT = 'Slide to call';
+    var NOTIFY_SWIPE_CALL_LABEL_EMERGENCY = 'Slide to call emergency';
+    var NOTIFY_SWIPE_LABEL_NEED_PHONE = 'Enter your mobile number, then slide';
+    var NOTIFY_SWIPE_LABEL_NEED_PHONE_EMERGENCY = 'Enter your mobile number, then slide';
     const smsBtnLabel = document.getElementById('smsBtnLabel');
     const ownerNotifySection = document.getElementById('ownerNotifySection');
     const pageHeaderTitle = document.getElementById('pageHeaderTitle');
@@ -3732,6 +3950,349 @@
       btn.style.display = '';
     }
 
+    function getSwipeCallInst(key) {
+      if (key === 'emergency') {
+        return {
+          wrap: notifyEmergencySwipeCallWrap,
+          track: notifyEmergencySwipeCallTrack,
+          thumb: notifyEmergencySwipeCallThumb,
+          label: notifyEmergencySwipeCallLabel,
+          fill: notifyEmergencySwipeCallFill
+        };
+      }
+      return {
+        wrap: notifySwipeCallWrap,
+        track: notifySwipeCallTrack,
+        thumb: notifySwipeCallThumb,
+        label: notifySwipeCallLabel,
+        fill: notifySwipeCallFill
+      };
+    }
+
+    function getActiveSwipeCallInst() {
+      return contactMode === 'emergency'
+        ? getSwipeCallInst('emergency')
+        : getSwipeCallInst('owner');
+    }
+
+    function dockSwipeCallSetVisible(visible) {
+      var inst = getSwipeCallInst('owner');
+      if (!inst.wrap) return;
+      inst.wrap.hidden = !visible;
+      inst.wrap.style.display = visible ? '' : 'none';
+      if (visible) inst.wrap.removeAttribute('hidden');
+      if (visible) syncNotifySwipeCallPhoneGate();
+    }
+
+    function dockEmergencySwipeCallSetVisible(visible) {
+      var inst = getSwipeCallInst('emergency');
+      if (!inst.wrap) return;
+      var panel = document.getElementById('notifyEmergencyCallPanel');
+      var show = !!(visible && panel && !panel.hidden);
+      inst.wrap.hidden = !show;
+      inst.wrap.style.display = show ? '' : 'none';
+      if (show) inst.wrap.removeAttribute('hidden');
+      if (show) syncNotifySwipeCallPhoneGate();
+    }
+
+    var notifySwipeDrag = {
+      active: false,
+      startX: 0,
+      startOffset: 0,
+      maxOffset: 0,
+      pointerId: null,
+      key: 'owner'
+    };
+
+    function swipeMaxOffsetFor(inst) {
+      if (!inst || !inst.track || !inst.thumb) return 0;
+      return Math.max(0, inst.track.clientWidth - inst.thumb.offsetWidth - 8);
+    }
+
+    function restoreSwipeCallLabel(inst) {
+      if (!inst || !inst.label || !inst.track) return;
+      if (inst.track.classList.contains('is-blocked')) return;
+      if (inst.track.classList.contains('is-sending')) return;
+      if (notifyVoiceCooldownRemainingSec() > 0) return;
+      var isEmerg =
+        inst.wrap && inst.wrap.id === 'notifyEmergencySwipeCallWrap';
+      if (!callerPhoneDigitsReady()) {
+        inst.label.textContent = isEmerg
+          ? NOTIFY_SWIPE_LABEL_NEED_PHONE_EMERGENCY
+          : NOTIFY_SWIPE_LABEL_NEED_PHONE;
+        inst.label.classList.add('notify-swipe-call-label--phone-gated');
+        inst.label.classList.remove('notify-voice-cooldown-active');
+        return;
+      }
+      inst.label.textContent = isEmerg
+        ? NOTIFY_SWIPE_CALL_LABEL_EMERGENCY
+        : NOTIFY_SWIPE_CALL_LABEL_DEFAULT;
+      inst.label.classList.remove(
+        'notify-voice-cooldown-active',
+        'notify-swipe-call-label--phone-gated'
+      );
+    }
+
+    function resetSwipeInst(inst, animate) {
+      if (!inst || !inst.track) return;
+      if (inst.thumb) {
+        inst.thumb.style.transition = animate ? 'left 0.22s ease' : '';
+        inst.thumb.style.left = '4px';
+        window.setTimeout(function () {
+          if (inst.thumb) inst.thumb.style.transition = '';
+        }, animate ? 240 : 0);
+      }
+      if (inst.fill) {
+        inst.fill.style.transition = animate ? 'width 0.22s ease' : '';
+        inst.fill.style.width = '0';
+        window.setTimeout(function () {
+          if (inst.fill) inst.fill.style.transition = '';
+        }, animate ? 240 : 0);
+      }
+      inst.track.classList.remove('is-complete');
+      restoreSwipeCallLabel(inst);
+    }
+
+    function resetNotifySwipeCall(animate) {
+      notifySwipeDrag.active = false;
+      resetSwipeInst(getSwipeCallInst('owner'), animate);
+      resetSwipeInst(getSwipeCallInst('emergency'), animate);
+    }
+
+    function setSwipeInstBlocked(inst, blocked, labelText) {
+      if (!inst || !inst.track) return;
+      inst.track.classList.toggle('is-blocked', !!blocked);
+      if (blocked) {
+        inst.track.classList.remove('is-phone-gated');
+      }
+      if (inst.thumb) {
+        inst.thumb.disabled = !!blocked;
+        inst.thumb.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+      }
+      if (inst.label && typeof labelText === 'string') {
+        inst.label.textContent = labelText;
+        inst.label.classList.toggle(
+          'notify-voice-cooldown-active',
+          !!(blocked && labelText.indexOf(':') !== -1)
+        );
+        inst.label.classList.remove('notify-swipe-call-label--phone-gated');
+      }
+    }
+
+    function setSwipeInstPhoneGated(inst, gated, labelText) {
+      if (!inst || !inst.track) return;
+      if (inst.track.classList.contains('is-blocked')) return;
+      inst.track.classList.toggle('is-phone-gated', !!gated);
+      if (inst.thumb) {
+        inst.thumb.disabled = false;
+        inst.thumb.setAttribute('aria-disabled', gated ? 'true' : 'false');
+      }
+      if (inst.label) {
+        inst.label.classList.toggle('notify-swipe-call-label--phone-gated', !!gated);
+        if (typeof labelText === 'string') {
+          inst.label.textContent = labelText;
+        }
+        inst.label.classList.remove('notify-voice-cooldown-active');
+      }
+      if (gated) {
+        resetSwipeInst(inst, true);
+      }
+    }
+
+    function isSwipeWrapVisible(inst) {
+      if (!inst || !inst.wrap) return false;
+      return !inst.wrap.hidden && inst.wrap.style.display !== 'none';
+    }
+
+    function callerPhoneDigitsReady() {
+      if (!callerPhoneInput) return false;
+      return !!normalizeIndianMobile(callerPhoneInput.value);
+    }
+
+    function hintCallerPhoneForSwipe() {
+      if (callerPhoneDigitsReady()) return;
+      if (callRouteError) {
+        callRouteError.textContent =
+          'Enter a valid 10-digit Indian mobile number before sliding to call.';
+      }
+      if (callerPhoneInput) {
+        callerPhoneInput.focus();
+      }
+    }
+
+    function syncNotifySwipeCallPhoneGate() {
+      if (notifyVoiceCooldownRemainingSec() > 0) return;
+
+      var ready = callerPhoneDigitsReady();
+      var ownerInst = getSwipeCallInst('owner');
+      var emergInst = getSwipeCallInst('emergency');
+      var ownerVis = isSwipeWrapVisible(ownerInst);
+      var emergVis = isSwipeWrapVisible(emergInst);
+
+      if (ownerVis) {
+        if (!ready) {
+          setSwipeInstPhoneGated(ownerInst, true, NOTIFY_SWIPE_LABEL_NEED_PHONE);
+        } else {
+          setSwipeInstPhoneGated(ownerInst, false, NOTIFY_SWIPE_CALL_LABEL_DEFAULT);
+        }
+      }
+      if (emergVis) {
+        if (!ready) {
+          setSwipeInstPhoneGated(
+            emergInst,
+            true,
+            NOTIFY_SWIPE_LABEL_NEED_PHONE_EMERGENCY
+          );
+        } else {
+          setSwipeInstPhoneGated(
+            emergInst,
+            false,
+            NOTIFY_SWIPE_CALL_LABEL_EMERGENCY
+          );
+        }
+      }
+    }
+
+    function setNotifySwipeCallBlocked(blocked, labelText) {
+      var ownerLabel =
+        contactMode === 'emergency'
+          ? NOTIFY_SWIPE_CALL_LABEL_EMERGENCY
+          : NOTIFY_SWIPE_CALL_LABEL_DEFAULT;
+      var lbl = typeof labelText === 'string' ? labelText : ownerLabel;
+      setSwipeInstBlocked(getSwipeCallInst('owner'), blocked, lbl);
+      setSwipeInstBlocked(getSwipeCallInst('emergency'), blocked, lbl);
+      if (blocked) {
+        resetNotifySwipeCall(true);
+      } else {
+        if (!notifySwipeDrag.active) {
+          resetNotifySwipeCall(false);
+        }
+        syncNotifySwipeCallPhoneGate();
+      }
+    }
+
+    function showSwipeCallConnecting() {
+      var inst = getActiveSwipeCallInst();
+      if (!inst || !inst.track) return;
+      inst.track.classList.add('is-complete');
+      if (inst.label) inst.label.textContent = 'Connecting…';
+      applySwipeOffset(swipeMaxOffsetFor(inst), inst);
+    }
+
+    function setNotifySwipeCallSending(on) {
+      var owner = getSwipeCallInst('owner');
+      var emerg = getSwipeCallInst('emergency');
+      if (owner.track) owner.track.classList.toggle('is-sending', !!on);
+      if (emerg.track) emerg.track.classList.toggle('is-sending', !!on);
+      if (!on) {
+        resetNotifySwipeCall(true);
+        syncNotifySwipeCallPhoneGate();
+      }
+    }
+
+    function applySwipeOffset(px, inst) {
+      var max = swipeMaxOffsetFor(inst);
+      var x = Math.max(0, Math.min(max, px));
+      if (inst.thumb) inst.thumb.style.left = 4 + x + 'px';
+      if (inst.fill) {
+        var thumbW = inst.thumb ? inst.thumb.offsetWidth : 48;
+        inst.fill.style.width = 4 + x + thumbW * 0.5 + 'px';
+      }
+      return max > 0 ? x / max : 0;
+    }
+
+    function completeNotifySwipeCall() {
+      var inst = getActiveSwipeCallInst();
+      if (!inst.track || inst.track.classList.contains('is-blocked')) return;
+      if (
+        inst.track.classList.contains('is-phone-gated') ||
+        !callerPhoneDigitsReady()
+      ) {
+        hintCallerPhoneForSwipe();
+        resetSwipeInst(inst, true);
+        return;
+      }
+      if (!inst.track.classList.contains('is-sending') && callPrepareBtn) {
+        callPrepareBtn.click();
+      }
+    }
+
+    function bindSwipeInst(key) {
+      var inst = getSwipeCallInst(key);
+      if (!inst.thumb || !inst.track || inst.thumb.dataset.bound === '1') return;
+      inst.thumb.dataset.bound = '1';
+
+      inst.thumb.addEventListener('pointerdown', function (e) {
+        if (inst.track.classList.contains('is-blocked') || inst.track.classList.contains('is-sending')) {
+          return;
+        }
+        if (inst.track.classList.contains('is-phone-gated') || !callerPhoneDigitsReady()) {
+          hintCallerPhoneForSwipe();
+          return;
+        }
+        notifySwipeDrag.active = true;
+        notifySwipeDrag.key = key;
+        notifySwipeDrag.pointerId = e.pointerId;
+        notifySwipeDrag.startX = e.clientX;
+        notifySwipeDrag.startOffset = parseFloat(inst.thumb.style.left || '4') - 4 || 0;
+        inst.thumb.setPointerCapture(e.pointerId);
+        inst.thumb.style.transition = '';
+        if (inst.fill) inst.fill.style.transition = '';
+      });
+
+      inst.thumb.addEventListener('pointermove', function (e) {
+        if (!notifySwipeDrag.active || notifySwipeDrag.key !== key) return;
+        if (e.pointerId !== notifySwipeDrag.pointerId) return;
+        if (
+          inst.track.classList.contains('is-phone-gated') ||
+          !callerPhoneDigitsReady()
+        ) {
+          return;
+        }
+        applySwipeOffset(notifySwipeDrag.startOffset + (e.clientX - notifySwipeDrag.startX), inst);
+      });
+
+      function onPointerUp(e) {
+        if (!notifySwipeDrag.active || notifySwipeDrag.key !== key) return;
+        if (e.pointerId !== notifySwipeDrag.pointerId) return;
+        notifySwipeDrag.active = false;
+        try {
+          inst.thumb.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+        if (
+          inst.track.classList.contains('is-phone-gated') ||
+          !callerPhoneDigitsReady()
+        ) {
+          hintCallerPhoneForSwipe();
+          resetSwipeInst(inst, true);
+          return;
+        }
+        var max = swipeMaxOffsetFor(inst);
+        var current = parseFloat(inst.thumb.style.left || '4') - 4 || 0;
+        if (max > 0 && current / max >= 0.82) {
+          notifySwipeDrag.key = key;
+          completeNotifySwipeCall();
+        } else {
+          resetSwipeInst(inst, true);
+        }
+      }
+
+      inst.thumb.addEventListener('pointerup', onPointerUp);
+      inst.thumb.addEventListener('pointercancel', onPointerUp);
+    }
+
+    function initNotifySwipeCall() {
+      bindSwipeInst('owner');
+      bindSwipeInst('emergency');
+      resetNotifySwipeCall(false);
+      if (!window.__notifySwipeResizeBound) {
+        window.__notifySwipeResizeBound = true;
+        window.addEventListener('resize', function () {
+          resetNotifySwipeCall(false);
+        });
+      }
+    }
+
     function requireSelectedReasonForMessaging() {
       if (!selectedReason) {
         showToast('Select a reason first', 'error');
@@ -3792,19 +4353,18 @@
         if (dock) dock.classList.remove('notify-dock--call-only');
         if (summary) summary.hidden = true;
         if (hint) hint.hidden = true;
-        dockActionBtnSetVisible(callMainBtn, showEmergCallBtn);
+        dockSwipeCallSetVisible(false);
+        dockEmergencySwipeCallSetVisible(showEmergCallBtn);
         dockActionBtnSetVisible(smsBtn, false);
         dockActionBtnSetVisible(pushBtn, false);
 
-        if (callMainBtn) {
-          callMainBtn.disabled = emergVoiceCooldown;
-          callMainBtn.setAttribute('aria-disabled', emergVoiceCooldown ? 'true' : 'false');
-          callMainBtn.classList.toggle('notify-voice-cool-blocked', emergVoiceCooldown);
-        }
-        if (callMainBtnLabel) {
-          callMainBtnLabel.textContent = emergVoiceCooldown
-            ? 'Wait ' + voiceCdMmSs + ' · emergency voice'
-            : 'Call Emergency Contact';
+        if (emergVoiceCooldown) {
+          setNotifySwipeCallBlocked(
+            true,
+            'Wait ' + voiceCdMmSs + ' · emergency voice'
+          );
+        } else {
+          setNotifySwipeCallBlocked(false, NOTIFY_SWIPE_CALL_LABEL_EMERGENCY);
         }
 
         if (phoneBlock) {
@@ -3812,8 +4372,7 @@
             emergencyContactConfirmed && dockChannels.call ? '' : 'none';
         }
         if (actionsWrap) {
-          actionsWrap.style.display =
-            emergencyContactConfirmed && dockChannels.call ? '' : 'none';
+          actionsWrap.style.display = 'none';
         }
 
         var inlineEmerg =
@@ -3833,7 +4392,7 @@
             phaseHint.hidden = false;
             phaseHint.textContent =
               emergencyContactConfirmed && dockChannels.call
-                ? 'Enter your mobile number below, then tap Call.'
+                ? 'Enter your mobile number below, then slide to call.'
                 : 'Verify this vehicle above to enable an emergency voice call.';
           }
         }
@@ -3864,6 +4423,7 @@
         if (dockDismissEmerg) {
           dockDismissEmerg.hidden = true;
         }
+        syncNotifySwipeCallPhoneGate();
         if (typeof window.updateNotifyDockPadding === 'function') {
           requestAnimationFrame(window.updateNotifyDockPadding);
         }
@@ -3896,12 +4456,6 @@
         pickCx.classList.toggle('notify-voice-cool-blocked', coolBlockVoice);
       }
 
-      if (callMainBtn) {
-        callMainBtn.classList.remove('notify-voice-cool-blocked');
-        callMainBtn.removeAttribute('aria-disabled');
-      }
-
-      if (callMainBtnLabel) callMainBtnLabel.textContent = 'Voice call';
       if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
 
       document.querySelectorAll('.notify-channel-box').forEach(function (b) {
@@ -3918,17 +4472,32 @@
         if (tCx) tCx.classList.add('is-selected');
       }
 
-      dockActionBtnSetVisible(
-        callMainBtn,
-        !!(dockChannels.call && selectedOwnerChannel === 'call' && voiceCd <= 0)
-      );
+      var showOwnerSwipe =
+        !!(dockChannels.call && selectedOwnerChannel === 'call');
+      dockSwipeCallSetVisible(showOwnerSwipe);
       dockActionBtnSetVisible(smsBtn, false);
       dockActionBtnSetVisible(pushBtn, false);
+
+      if (showOwnerSwipe) {
+        if (voiceCd > 0) {
+          setNotifySwipeCallBlocked(
+            true,
+            'Wait ' + voiceCdMmSs + ' · voice call'
+          );
+        } else {
+          setNotifySwipeCallBlocked(false, NOTIFY_SWIPE_CALL_LABEL_DEFAULT);
+        }
+      } else {
+        syncNotifySwipeCallPhoneGate();
+      }
 
       // Voice only: ask for scanner number after user picks Voice (card or first tap on Voice button).
       var showPhoneOwner = selectedOwnerChannel === 'call' && dockChannels.call;
       if (phoneBlock) phoneBlock.style.display = showPhoneOwner ? '' : 'none';
-      if (actionsWrap) actionsWrap.style.display = dockChannels.call ? '' : 'none';
+      if (actionsWrap) {
+        var showOwnerDockActions = !!(dockChannels.sms || dockChannels.push);
+        actionsWrap.style.display = showOwnerDockActions ? '' : 'none';
+      }
 
       if (summary) summary.hidden = !hasReason;
 
@@ -3948,7 +4517,7 @@
             'Choose what’s happening — then tap SMS or push to send instantly, or Voice to call.';
         } else {
           phaseHint.textContent =
-            'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then Voice call.';
+            'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then slide to call.';
         }
       }
 
@@ -4098,24 +4667,36 @@
         contactMode === 'emergency' &&
         emergencyContactConfirmed;
 
+      var emergSwipeSlot = panel.querySelector('.notify-emergency-swipe-slot');
+
       if (showInlineEmerg) {
         panel.hidden = false;
-        if (phoneBlock.parentElement !== panel) {
-          panel.appendChild(phoneBlock);
-        }
-        if (actionsWrap.parentElement !== panel) {
-          panel.appendChild(actionsWrap);
+        panel.removeAttribute('hidden');
+        if (phoneBlock) {
+          if (emergSwipeSlot && phoneBlock.parentElement !== panel) {
+            panel.insertBefore(phoneBlock, emergSwipeSlot);
+          } else if (phoneBlock.parentElement !== panel) {
+            panel.appendChild(phoneBlock);
+          }
         }
         if (dock) {
           dock.style.display = 'none';
         }
+        requestAnimationFrame(function () {
+          var showCall = !!(emergencyCallReady && emergencyContactConfirmed);
+          dockEmergencySwipeCallSetVisible(showCall);
+          resetNotifySwipeCall(false);
+          if (typeof window.updateNotifyDockPadding === 'function') {
+            window.updateNotifyDockPadding();
+          }
+        });
       } else {
         panel.hidden = true;
+        panel.setAttribute('hidden', '');
+        dockEmergencySwipeCallSetVisible(false);
         if (phoneBlock.parentElement !== dockPanel && dockPanel.contains(dismissBtn)) {
-          dockPanel.insertBefore(phoneBlock, dismissBtn);
-        }
-        if (actionsWrap.parentElement !== dockPanel && dockPanel.contains(dismissBtn)) {
-          dockPanel.insertBefore(actionsWrap, dismissBtn);
+          var ownerDockAnchor = actionsWrap || dismissBtn;
+          dockPanel.insertBefore(phoneBlock, ownerDockAnchor);
         }
         if (dock) {
           dock.style.display = '';
@@ -4297,7 +4878,7 @@
       if (stepLine) {
         stepLine.textContent =
           hasEmergencyContact && contactMode === 'emergency'
-            ? 'After verification above, enter only digits in your mobile field and call emergency contact.'
+            ? 'After verification above, enter your mobile number, then slide right to call emergency contact.'
             : 'Tap SMS or push on the rows below to send right away · Voice opens your number when you choose it.';
       }
 
@@ -4757,43 +5338,13 @@
       callFlowPlateInputBind.addEventListener('focus', clearCallFlowPlateError);
     }
 
-    if (callMainBtn) {
-      callMainBtn.addEventListener('click', function () {
-        if (!ensureContactTargetSelected()) return;
-        if (
-          contactMode === 'owner' &&
-          dockChannels.call &&
-          selectedOwnerChannel !== 'call'
-        ) {
-          selectedOwnerChannel = 'call';
-          selectedMethod = 'call';
-          syncNotifyDockChannels();
-          requestAnimationFrame(function () {
-            if (typeof window.updateNotifyDockPadding === 'function') {
-              window.updateNotifyDockPadding();
-            }
-            if (callerPhoneInput) callerPhoneInput.focus();
-          });
-          return;
-        }
-        if (document.body.classList.contains('flow-emergency')) {
-          var useDockSheet =
-            !(
-              emergencyContactConfirmed &&
-              callerPhoneInput &&
-              callerPhoneInput.closest('#notifyEmergencyCallPanel')
-            );
-          if (useDockSheet) {
-            openNotifyDock();
-          }
-        }
-        if (callPrepareBtn) callPrepareBtn.click();
-      });
-    }
+    initNotifySwipeCall();
 
     if (callerPhoneInput) {
       callerPhoneInput.addEventListener('input', function () {
         sanitizeCallerPhoneInput(this);
+        clearCallRouteError();
+        syncNotifySwipeCallPhoneGate();
       });
       callerPhoneInput.addEventListener('paste', function (e) {
         e.preventDefault();
@@ -4803,6 +5354,8 @@
         if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
         if (d.length > 10) d = d.slice(0, 10);
         this.value = d;
+        clearCallRouteError();
+        syncNotifySwipeCallPhoneGate();
       });
       callerPhoneInput.addEventListener('keydown', function (e) {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -4841,6 +5394,7 @@
               callRouteError.textContent =
                 'Enter a valid 10-digit Indian mobile number.';
             }
+            abortSwipeCallPrep();
             return;
           }
           var destDigits = getActiveDestinationDigits();
@@ -4852,16 +5406,19 @@
                   ? 'Emergency number unavailable.'
                   : 'Owner number unavailable.';
             }
+            abortSwipeCallPrep();
             return;
           }
 
           selectedMethod = 'call';
           if (!assertVoiceCooldownAllowsDial()) {
+            abortSwipeCallPrep();
             return;
           }
           callPrepareBtn.disabled = true;
           setNotifyDockSending(true);
-          if (callMainBtn) callMainBtn.disabled = true;
+          setNotifySwipeCallSending(true);
+          showSwipeCallConnecting();
 
           fetch(callRegisterUrl, {
             method: 'POST',
@@ -4933,13 +5490,19 @@
             .finally(function () {
               callPrepareBtn.disabled = false;
               setNotifyDockSending(false);
-              if (callMainBtn) callMainBtn.disabled = false;
+              setNotifySwipeCallSending(false);
+              resetNotifySwipeCall(true);
               syncNotifyDockChannels();
             });
         }
 
+        function abortSwipeCallPrep() {
+          setNotifySwipeCallSending(false);
+        }
+
         if (contactMode === 'emergency') {
           if (!validateEmergencyPlateLocalSync()) {
+            abortSwipeCallPrep();
             return;
           }
         }
@@ -4950,6 +5513,7 @@
             callRouteError.textContent =
               'Enter a valid 10-digit Indian mobile number.';
           }
+          abortSwipeCallPrep();
           return;
         }
         var destEarly = getActiveDestinationDigits();
@@ -4960,6 +5524,7 @@
                 ? 'Emergency number unavailable.'
                 : 'Owner number unavailable.';
           }
+          abortSwipeCallPrep();
           return;
         }
 
@@ -5651,7 +6216,7 @@
         case 'call':
           return callPrepareBtn;
         default:
-          return pushBtn || smsBtn || callMainBtn || callPrepareBtn;
+          return pushBtn || smsBtn || notifySwipeCallWrap || callPrepareBtn;
       }
     }
 
