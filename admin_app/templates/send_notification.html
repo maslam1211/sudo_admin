@@ -3347,22 +3347,6 @@
       <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
     </section>
 
-    {% if has_emergency_contact %}
-    <div class="switch-contact-wrap notify-switch-below-reasons" id="switchContactWrap" hidden style="display: none;">
-      <p class="switch-contact-hint">Who are you contacting?</p>
-      <div class="switch-contact-actions">
-        <button type="button" class="switch-contact-pill switch-contact-pill--owner" id="quickSwitchOwnerBtn" aria-current="false">
-          <i class="bi bi-car-front-fill" aria-hidden="true"></i>
-          <span>Vehicle owner</span>
-        </button>
-        <button type="button" class="switch-contact-pill switch-contact-pill--emergency" id="quickSwitchEmergencyBtn" aria-current="false">
-          <i class="bi bi-heart-pulse-fill" aria-hidden="true"></i>
-          <span>Emergency</span>
-        </button>
-      </div>
-    </div>
-    {% endif %}
-
     <section class="notify-reasons-panel" id="notifyOwnerReasonsSection" aria-labelledby="notifyReasonsHeading">
     <div id="notifyOwnerReasonsInner">
     {% if call_register_ready or emergency_call_ready %}
@@ -3880,9 +3864,6 @@
     const contactModeModal = document.getElementById('contactModeModal');
     const chooseEmergencyContactBtn = document.getElementById('chooseEmergencyContactBtn');
     const chooseOwnerContactBtn = document.getElementById('chooseOwnerContactBtn');
-    const quickSwitchOwnerBtn = document.getElementById('quickSwitchOwnerBtn');
-    const quickSwitchEmergencyBtn = document.getElementById('quickSwitchEmergencyBtn');
-    const switchContactWrap = document.getElementById('switchContactWrap');
     const callFlowDialogInner = document.getElementById('callFlowDialogInner');
     var NOTIFY_SWIPE_CALL_LABEL_DEFAULT = 'Slide to call';
     var NOTIFY_SWIPE_CALL_LABEL_EMERGENCY = 'Slide to call emergency';
@@ -4836,23 +4817,6 @@
         !!(hasEmergencyContact && contactMode === 'emergency')
       );
 
-      if (switchContactWrap) {
-        if (hasEmergencyContact && contactMode) {
-          switchContactWrap.removeAttribute('hidden');
-          switchContactWrap.style.display = 'flex';
-        } else {
-          switchContactWrap.setAttribute('hidden', '');
-          switchContactWrap.style.display = 'none';
-        }
-      }
-
-      if (quickSwitchOwnerBtn && quickSwitchEmergencyBtn) {
-        quickSwitchOwnerBtn.classList.toggle('switch-contact-pill--active', contactMode === 'owner');
-        quickSwitchEmergencyBtn.classList.toggle('switch-contact-pill--active', contactMode === 'emergency');
-        quickSwitchOwnerBtn.setAttribute('aria-current', contactMode === 'owner' ? 'true' : 'false');
-        quickSwitchEmergencyBtn.setAttribute('aria-current', contactMode === 'emergency' ? 'true' : 'false');
-      }
-
       if (pageHeaderTitle) {
         if (contactMode === 'emergency') {
           pageHeaderTitle.textContent = 'EMERGENCY CONTACT';
@@ -4983,6 +4947,9 @@
           );
           return;
         }
+        contactMode = 'emergency';
+        closeContactModeModal();
+        syncContactModeUi();
         var needGate =
           vehiclePlateLast4Expected &&
           vehiclePlateLast4Expected.length === 4 &&
@@ -4993,8 +4960,6 @@
           });
           return;
         }
-        contactMode = 'emergency';
-        closeContactModeModal();
         closeEmergencyGateModal();
         syncContactModeUi();
         requestAnimationFrame(function () {
@@ -5044,9 +5009,11 @@
         emergencyGateCancelBtn.addEventListener('click', function () {
           pendingEmergencyCallback = null;
           closeEmergencyGateModal();
-          if (!contactMode) {
-            openContactModeModal();
-          }
+          contactMode = null;
+          emergencyContactConfirmed = false;
+          vehiclePlateLast4VerifiedValue = '';
+          openContactModeModal();
+          syncContactModeUi();
         });
       }
       if (chooseEmergencyContactBtn) {
@@ -5060,22 +5027,6 @@
           closeContactModeModal();
           syncContactModeUi();
         });
-      }
-
-      if (quickSwitchOwnerBtn) {
-        quickSwitchOwnerBtn.addEventListener('click', function () {
-          if (contactMode === 'owner') {
-            return;
-          }
-          contactMode = 'owner';
-          emergencyContactConfirmed = false;
-          vehiclePlateLast4VerifiedValue = '';
-          closeContactModeModal();
-          syncContactModeUi();
-        });
-      }
-      if (quickSwitchEmergencyBtn) {
-        quickSwitchEmergencyBtn.addEventListener('click', startEmergencyContactCallFlow);
       }
 
       var notifyDockDismiss = document.getElementById('notifyDockDismiss');
