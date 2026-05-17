@@ -93,6 +93,7 @@ def register_call_destination(request):
             validate_scanner_call_for_qr,
         )
         from admin_app.scanner_notify_session_controls import (
+            is_notify_sheet_done,
             mark_notify_sheet_done,
             voice_register_maybe_block,
             voice_register_record_success,
@@ -104,6 +105,18 @@ def register_call_destination(request):
     block = voice_register_maybe_block(request, qr_id, key)
     if block is not None:
         return block
+
+    if qr_id and is_notify_sheet_done(request, qr_id):
+        return JsonResponse(
+            {
+                'status': 'error',
+                'error_type': 'notify_session_expired',
+                'message': (
+                    'Session expired. Please rescan the QR code to continue.'
+                ),
+            },
+            status=410,
+        )
 
     policy_err = validate_scanner_call_for_qr(db, qr_id, dest_key)
     if policy_err:

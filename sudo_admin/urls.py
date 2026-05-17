@@ -22,12 +22,34 @@ from pathlib import Path
 from django.http import FileResponse, HttpResponse
 
 
+_FAVICON_DIR = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'img'
+
+
+def _favicon_file_response(filename, content_type):
+    path = _FAVICON_DIR / filename
+    if path.is_file():
+        resp = FileResponse(path.open('rb'), content_type=content_type)
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
 def favicon_view(request):
-    """Avoid 404 noise from browsers requesting /favicon.ico (works with runserver and WhiteNoise)."""
-    icon = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'car.png'
-    if icon.is_file():
-        return FileResponse(icon.open('rb'), content_type='image/png')
-    return HttpResponse(status=204)
+    """SudoTag favicon — orange suologo on #000 (landing, admin, QR flow)."""
+    resp = _favicon_file_response('favicon.ico', 'image/x-icon')
+    return resp if resp.status_code != 404 else HttpResponse(status=204)
+
+
+def favicon_32_view(request):
+    return _favicon_file_response('favicon-32x32.png', 'image/png')
+
+
+def favicon_96_view(request):
+    return _favicon_file_response('favicon-96x96.png', 'image/png')
+
+
+def apple_touch_icon_view(request):
+    return _favicon_file_response('apple-touch-icon.png', 'image/png')
 
 
 def brand_logo_view(request):
@@ -82,6 +104,9 @@ def vehicle_brands_models_json_view(request):
 
 urlpatterns = [
     path('favicon.ico', favicon_view, name='site_favicon'),
+    path('favicon-32x32.png', favicon_32_view, name='site_favicon_32'),
+    path('favicon-96x96.png', favicon_96_view, name='site_favicon_96'),
+    path('apple-touch-icon.png', apple_touch_icon_view, name='site_apple_touch_icon'),
     path('admin/brand-logo.png', brand_logo_view, name='brand_logo_png'),
     path(
         'admin/sudomain-logo.png',

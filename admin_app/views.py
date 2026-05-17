@@ -31,6 +31,7 @@ from dotenv import load_dotenv
 from call_routing.constants import CALL_ROUTING_EXPECTED_DID
 
 from .scanner_notify_session_controls import (
+    clear_notify_sheet_done,
     is_notify_sheet_done,
     mark_notify_sheet_done,
     pop_notify_sheet_done_for_terminal_view,
@@ -47,6 +48,7 @@ from .firestore_admin_added_user import (
     admin_added_user_update_payload,
     truthy_admin_added_user_from_json,
 )
+from .fcm_push import send_fcm_to_token
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -1881,8 +1883,7 @@ def send_notification(request, qr_id):
                             'status': 'error',
                             'error_type': 'notify_session_expired',
                             'message': (
-                                'This scan section is no longer active. '
-                                'Open the QR again if you need another contact request.'
+                                'Session expired. Please rescan the QR code to continue.'
                             ),
                         },
                         status=410,
@@ -2106,10 +2107,6 @@ def send_notification(request, qr_id):
                             'message': 'User is not registered on app.'
                         })
 
-                    notification = messaging.Notification(
-                        title="Vehicle Alert",
-                        body=reason,
-                    )
                     fcm_data = {
                         'vehicleId': str(qr_data.get('vehicleID', '') or ''),
                         'qrId': str(qr_id or ''),
@@ -2121,11 +2118,12 @@ def send_notification(request, qr_id):
                     last_error = None
                     for t in tokens:
                         try:
-                            messaging.send(messaging.Message(
-                                notification=notification,
+                            send_fcm_to_token(
+                                title='Vehicle Alert',
+                                body=reason,
                                 token=t,
                                 data=fcm_data,
-                            ))
+                            )
                             success_count += 1
                         except Exception as e:
                             last_error = e
@@ -2341,9 +2339,12 @@ def send_notification(request, qr_id):
             )
         scanner_notify_show_terminal_sheet = False
         if request.method == 'GET':
-            scanner_notify_show_terminal_sheet = pop_notify_sheet_done_for_terminal_view(
-                request, qr_id
-            )
+            if request.GET.get('_sudo_rescan') == '1':
+                clear_notify_sheet_done(request, qr_id)
+            else:
+                scanner_notify_show_terminal_sheet = pop_notify_sheet_done_for_terminal_view(
+                    request, qr_id
+                )
 
         context = {
             'vehicle_data': _notify_vehicle_context(vehicle_data),

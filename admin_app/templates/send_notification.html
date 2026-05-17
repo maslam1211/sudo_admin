@@ -4,12 +4,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#1C1C1C">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Contact Vehicle Owner | SudoTag</title>
-  <link href="{% url 'brand_logo_png' %}" rel="apple-touch-icon">
+  {% include 'includes/qr_flow_head.html' %}
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1955,6 +1951,10 @@
       color: var(--success-green);
     }
 
+    .success-icon.call {
+      color: #90caf9;
+    }
+
     .success-title {
       font-size: 1.3rem;
       font-weight: 600;
@@ -2226,6 +2226,10 @@
       cursor: pointer;
       box-shadow: 0 10px 28px rgba(229, 129, 71, 0.28);
       transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
 
     body.notify-app .notify-session-terminal-ok:hover {
@@ -3661,12 +3665,12 @@
           </div>
         </div>
       </div>
-      <p class="notify-session-terminal-eyebrow">Section closed</p>
-      <p class="notify-session-terminal-title" id="notifySessionTerminalHeading">This section has been expired.</p>
+      <p class="notify-session-terminal-eyebrow">Session expired</p>
+      <p class="notify-session-terminal-title" id="notifySessionTerminalHeading">Session Has Been Expired</p>
       <p class="notify-session-terminal-text" id="notifySessionTerminalDesc">
-        Your contact action for this scan is finished. Go back to the home page or scan another code for a new request.
+        Your current session has expired. To continue sending notifications, SMS, or Voice Calls, please rescan the QR code and start the session again.
       </p>
-      <button type="button" class="notify-session-terminal-ok" id="notifySessionTerminalOkBtn">OK</button>
+      <button type="button" class="notify-session-terminal-ok" id="notifySessionRescanBtn">OK</button>
     </div>
   </div>
 
@@ -3686,7 +3690,7 @@
       </div>
       <button type="button" class="success-modal-btn sudo-flow-modal-btn--primary" id="continueBtn">
         <i class="bi bi-check-lg" aria-hidden="true"></i>
-        Done
+        OK
       </button>
     </div>
   </div>
@@ -3814,6 +3818,12 @@
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
       'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
+    var NOTIFY_SECTION_EXPIRY_DELAY_MS = 15000;
+    var notifySectionExpiryTimer = null;
+    var NOTIFY_SESSION_EXPIRED_MESSAGE =
+      'Your current session has expired. To continue sending notifications, SMS, or Voice Calls, please rescan the QR code and start the session again.';
+    var NOTIFY_SESSION_EXPIRED_SHORT =
+      'Session expired. Please rescan the QR code to continue.';
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
       '{{ vehicle_data.registrationNumber|default:""|escapejs }}';
@@ -3835,6 +3845,7 @@
         return;
       }
       if (!shouldReset || !hasEmergencyContact) return;
+      if (isNotifySheetDoneLocal()) return;
       contactMode = 'owner';
       closeContactModeModal();
       dismissCallFlowModal();
@@ -5090,23 +5101,23 @@
         });
       }
 
-      var notifyTermOk = document.getElementById('notifySessionTerminalOkBtn');
-      if (notifyTermOk) {
-        notifyTermOk.addEventListener('click', function () {
-          hideNotifySessionTerminalOverlay();
+      var notifySessionRescanBtn = document.getElementById('notifySessionRescanBtn');
+      if (notifySessionRescanBtn) {
+        notifySessionRescanBtn.addEventListener('click', function () {
           window.location.href = sudoTagHomeUrl;
         });
       }
 
-      if (SUDO_NOTIFY_TERMINAL_GATE) {
+      if (isNotifyRescanLanding()) {
+        clearNotifySheetDoneLocal();
+        hideNotifySessionTerminalOverlay();
+        resetNotifyFlowForFreshSession();
+        stripNotifyRescanQueryFromHistory();
+      } else if (SUDO_NOTIFY_TERMINAL_GATE) {
         markNotifySheetDoneLocal();
-        showNotifySessionTerminalOverlay(
-          'This scan section is no longer active. Open the QR again if you need another contact request.'
-        );
+        presentNotifySessionExpired();
       } else if (isNotifySheetDoneLocal()) {
-        showNotifySessionTerminalOverlay(
-          'This scan section is no longer active. Open the QR again if you need another contact request.'
-        );
+        presentNotifySessionExpired();
       }
 
       initNotifyVoiceCooldownUi();
@@ -5114,14 +5125,16 @@
 
     window.addEventListener('pageshow', function () {
       initNotifyVoiceCooldownUi();
+      if (isNotifyRescanLanding()) {
+        return;
+      }
       if (isNotifySheetDoneLocal()) {
-        showNotifySessionTerminalOverlay(
-          'This scan section is no longer active. Open the QR again if you need another contact request.'
-        );
+        presentNotifySessionExpired();
       }
     });
 
     function triggerNotifyPriorityVoice() {
+      if (!assertNotifySheetAllowsPost()) return;
       if (!ensureContactTargetSelected()) return;
       if (contactMode === 'emergency') {
         if (!emergencyContactConfirmed) {
@@ -5164,6 +5177,7 @@
 
     // Function to select reason
     function selectReason(element, reason) {
+      if (!assertNotifySheetAllowsPost()) return;
       clearOwnerMethodSelection();
 
       document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
@@ -5338,6 +5352,10 @@
         clearCallFlowPlateError();
 
         function runCallRegisterBridge() {
+          if (!assertNotifySheetAllowsPost()) {
+            abortSwipeCallPrep();
+            return;
+          }
           var fromDigits = normalizeIndianMobile(callerPhoneInput.value);
           if (!fromDigits) {
             callPrepareBtn.disabled = false;
@@ -5389,11 +5407,13 @@
               if (result.ok && result.data && result.data.status === 'ok') {
                 hideNotifySendingOverlay();
                 var dockEl = document.getElementById('notifyActionDock');
-                if (dockEl) dockEl.classList.remove('notify-dock-sending', 'notify-dock-sending-instant-msg');
+                if (dockEl) {
+                  dockEl.classList.remove('notify-dock-sending', 'notify-dock-sending-instant-msg');
+                }
                 var d = String(callRouteDidRaw || '').replace(/\D/g, '');
                 if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
                 if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
-                var telUri = (d.length === 10) ? ('tel:+91' + d) : ('tel:+' + d);
+                var telUri = d.length === 10 ? 'tel:+91' + d : 'tel:+' + d;
                 if (contactMode === 'emergency') {
                   try {
                     sessionStorage.setItem(EMERGENCY_TEL_RETURN_KEY, '1');
@@ -5403,12 +5423,16 @@
                   setCallFlowDialogEmergencyVisual(false);
                   callFlowModal.style.display = 'none';
                 }
-                try {
-                  sessionStorage.setItem(notifyLocalTerminalKey(), '1');
-                } catch (e2) {}
+                showSuccessModal('call');
+                scheduleNotifySectionExpiredAfterSuccess();
                 window.setTimeout(function () {
                   window.location.href = telUri;
                 }, NOTIFY_CALL_PREPARE_DIAL_DELAY_MS);
+                return;
+              }
+              if (result.status === 410) {
+                markNotifySheetDoneLocal();
+                presentNotifySessionExpired();
                 return;
               }
               if (
@@ -5499,10 +5523,17 @@
       syncNotifyDockChannels();
     }
 
-    // Continue button in success modal
-    continueBtn.addEventListener('click', function () {
-      dismissSuccessModalFully();
-    });
+    // OK on success modal → leave to SudoTag home (session stays consumed)
+    if (continueBtn) {
+      continueBtn.addEventListener('click', function () {
+        cancelNotifySectionExpiryTimer();
+        markNotifySheetDoneLocal();
+        if (successModal) {
+          successModal.style.display = 'none';
+        }
+        window.location.href = sudoTagHomeUrl;
+      });
+    }
 
     // Error modal close button
     errorCloseBtn.addEventListener('click', function () {
@@ -5654,6 +5685,50 @@
       } catch (e) {}
     }
 
+    function isNotifyRescanLanding() {
+      try {
+        return new URLSearchParams(window.location.search).get('_sudo_rescan') === '1';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function getNotifyPageRescanUrl() {
+      var path = window.location.pathname || '/';
+      return path + '?_sudo_rescan=1&t=' + String(Date.now());
+    }
+
+    function stripNotifyRescanQueryFromHistory() {
+      if (!isNotifyRescanLanding()) return;
+      try {
+        var cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState(null, '', cleanUrl);
+      } catch (e) {}
+    }
+
+    function resetNotifyFlowForFreshSession() {
+      contactMode = hasEmergencyContact ? null : 'owner';
+      emergencyContactConfirmed = false;
+      vehiclePlateLast4VerifiedValue = '';
+      selectedReason = '';
+      selectedMethod = '';
+      clearOwnerMethodSelection();
+      if (customMessage) customMessage.value = '';
+      if (customMessageContainer) customMessageContainer.style.display = 'none';
+      if (charCount) charCount.textContent = '0';
+      document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
+        item.classList.remove('selected');
+      });
+      closeContactModeModal();
+      closeEmergencyGateModal();
+      dismissCallFlowModal();
+      closeNotifyDock();
+      syncContactModeUi();
+      if (hasEmergencyContact && contactModeModal) {
+        openContactModeModal();
+      }
+    }
+
     function hideNotifySessionTerminalOverlay() {
       var overlay = document.getElementById('notifySessionTerminalOverlay');
       if (overlay) {
@@ -5665,11 +5740,17 @@
 
     function showNotifySessionTerminalOverlay(detailMessage) {
       var overlay = document.getElementById('notifySessionTerminalOverlay');
-      var sub = document.querySelector('.notify-session-terminal-text');
-      if (sub && typeof detailMessage === 'string' && detailMessage.trim()) {
-        sub.textContent = detailMessage.trim();
+      var sub = document.getElementById('notifySessionTerminalDesc');
+      if (sub) {
+        sub.textContent =
+          typeof detailMessage === 'string' && detailMessage.trim()
+            ? detailMessage.trim()
+            : NOTIFY_SESSION_EXPIRED_MESSAGE;
       }
       hideNotifySendingOverlay();
+      if (successModal) {
+        successModal.style.display = 'none';
+      }
       var voiceOv = document.getElementById('notifyVoiceCooldownOverlay');
       if (voiceOv) {
         voiceOv.classList.remove('is-visible');
@@ -5682,21 +5763,45 @@
       document.body.classList.add('notify-session-terminal-open');
     }
 
+    function cancelNotifySectionExpiryTimer() {
+      if (notifySectionExpiryTimer) {
+        clearTimeout(notifySectionExpiryTimer);
+        notifySectionExpiryTimer = null;
+      }
+    }
+
+    function presentNotifySessionExpired() {
+      cancelNotifySectionExpiryTimer();
+      if (successModal) {
+        successModal.style.display = 'none';
+      }
+      markNotifySheetDoneLocal();
+      showNotifySessionTerminalOverlay(NOTIFY_SESSION_EXPIRED_MESSAGE);
+    }
+
+    function navigateNotifyRescanQr() {
+      cancelNotifySectionExpiryTimer();
+      clearNotifySheetDoneLocal();
+      try {
+        sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
+      } catch (e) {}
+      window.location.replace(getNotifyPageRescanUrl());
+    }
+
     function assertNotifySheetAllowsPost() {
       if (isNotifySheetDoneLocal()) {
-        showNotifySessionTerminalOverlay(
-          'This scan section is no longer active. Open the QR again if you need another contact request.'
-        );
+        presentNotifySessionExpired();
         return false;
       }
       return true;
     }
 
-    function presentNotifyTransportSuccessTerminal() {
-      markNotifySheetDoneLocal();
-      showNotifySessionTerminalOverlay(
-        'This scan section is no longer active. Open the QR again if you need another contact request.'
-      );
+    function scheduleNotifySectionExpiredAfterSuccess() {
+      cancelNotifySectionExpiryTimer();
+      notifySectionExpiryTimer = window.setTimeout(function () {
+        notifySectionExpiryTimer = null;
+        presentNotifySessionExpired();
+      }, NOTIFY_SECTION_EXPIRY_DELAY_MS);
     }
 
     // Function to show detailed error modal
@@ -5958,7 +6063,7 @@
             markNotifySheetDoneLocal();
             var expiredMsg410 =
               (errPayload && errPayload.message && String(errPayload.message)) ||
-              'This scan section is no longer active. Open the QR again if you need another contact request.';
+              NOTIFY_SESSION_EXPIRED_SHORT;
             showNotifySessionTerminalOverlay(expiredMsg410);
             return null;
           }
@@ -5998,7 +6103,12 @@
             return;
           }
           if (data.status === 'success') {
-            presentNotifyTransportSuccessTerminal();
+            var successMethod =
+              (data.notification_type && String(data.notification_type)) ||
+              selectedMethod ||
+              'push';
+            showSuccessModal(successMethod);
+            scheduleNotifySectionExpiredAfterSuccess();
           } else {
             // Handle server-side errors with detailed messages
             let errorType = data.error_type || 'server';
@@ -6120,6 +6230,7 @@
       let iconClass = '';
       let title = '';
       let subtitle = '';
+      let eyebrow = 'Complete';
 
       switch (method) {
         case 'push':
@@ -6132,14 +6243,25 @@
           title = 'SMS sent';
           subtitle = 'SMS sent successfully.';
           break;
+        case 'call':
+          iconClass = 'call';
+          eyebrow = 'Voice call';
+          title = 'Voice call successful';
+          subtitle =
+            'Your call request was accepted. Your phone will connect shortly.';
+          break;
         default:
           iconClass = 'push';
           title = 'Notification sent';
           subtitle = 'Your notification was delivered.';
       }
 
-      successIcon.className = `success-icon ${iconClass}`;
-      successIcon.innerHTML = `<i class="bi bi-check-circle-fill"></i>`;
+      var successEyebrowEl = document.getElementById('successEyebrow');
+      if (successEyebrowEl) {
+        successEyebrowEl.textContent = eyebrow;
+      }
+      successIcon.className = 'success-icon ' + iconClass;
+      successIcon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
       successTitle.textContent = title;
       successMessage.textContent = subtitle;
 

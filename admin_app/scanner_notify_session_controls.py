@@ -27,6 +27,14 @@ def is_notify_sheet_done(request, qr_id: str) -> bool:
     return bool(request.session.get(notify_sheet_session_key(qr_id)))
 
 
+def clear_notify_sheet_done(request, qr_id: str) -> None:
+    """Allow a fresh scanner session after the user rescans the QR."""
+    key = notify_sheet_session_key(qr_id)
+    if key in request.session:
+        request.session.pop(key, None)
+        request.session.modified = True
+
+
 def pop_notify_sheet_done_for_terminal_view(request, qr_id: str) -> bool:
     """Return True once if the next full page load should show the terminal sheet."""
     key = notify_sheet_session_key(qr_id)

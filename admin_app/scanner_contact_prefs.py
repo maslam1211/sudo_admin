@@ -793,9 +793,9 @@ def send_scanner_voice_call_attempt_push(db, qr_id, destination_10, caller_10):
     ``owner`` | ``emergency`` for the mobile app to handle.
     """
     try:
-        from firebase_admin import messaging
+        from .fcm_push import send_fcm_to_token
     except Exception as exc:  # pragma: no cover
-        logger.warning('scanner_call_push: messaging unavailable: %s', exc)
+        logger.warning('scanner_call_push: fcm_push unavailable: %s', exc)
         return
     if not qr_id or not isinstance(qr_id, str):
         return
@@ -880,15 +880,13 @@ def send_scanner_voice_call_attempt_push(db, qr_id, destination_10, caller_10):
             'callTarget': call_target,
         }
 
-        notification = messaging.Notification(title=title, body=body)
         for t in tokens:
             try:
-                messaging.send(
-                    messaging.Message(
-                        notification=notification,
-                        token=t,
-                        data={k: str(v) for k, v in fcm_data.items()},
-                    )
+                send_fcm_to_token(
+                    title=title,
+                    body=body,
+                    token=t,
+                    data=fcm_data,
                 )
             except Exception as exc:
                 logger.warning('scanner_call_push FCM failed token=%s...: %s', t[:12], exc)

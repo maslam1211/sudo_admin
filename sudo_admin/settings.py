@@ -164,6 +164,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'admin_app.middleware.InjectFaviconMiddleware',
 ]
 
 ROOT_URLCONF = 'sudo_admin.urls'
@@ -181,6 +182,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'admin_app.context_processors.favicon_urls',
             ],
         },
     },
