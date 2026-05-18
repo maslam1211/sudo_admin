@@ -141,7 +141,7 @@
 <body class="activate-app sudo-mobile-flow">
   <header class="app-header sudo-app-header">
     <a href="/" class="brand-logo" aria-label="SudoTag home">
-      <img src="{% url 'brand_logo_png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+      {% include 'includes/brand_logo_img.html' %}
     </a>
     <h1 class="header-title">ACTIVATE VEHICLE QR CODE</h1>
   </header>

@@ -3232,7 +3232,7 @@
   <!-- Header -->
   <header class="header sudo-app-header">
     <a href="https://sudotag.com/" class="brand-logo" aria-label="SudoTag home">
-      <img src="{% url 'brand_logo_png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+      {% include 'includes/brand_logo_img.html' %}
     </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
   </header>
@@ -3818,8 +3818,12 @@
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
       'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
-    var NOTIFY_SECTION_EXPIRY_DELAY_MS = 15000;
+    /** Grace period after the user taps OK on the success sheet, then session ends once. */
+    var NOTIFY_SECTION_EXPIRY_DELAY_MS = 10000;
+    var NOTIFY_TERMINAL_AUTO_RESCAN_MS = 2800;
     var notifySectionExpiryTimer = null;
+    var notifyTerminalAutoNavTimer = null;
+    var notifySessionTerminalActive = false;
     var NOTIFY_SESSION_EXPIRED_MESSAGE =
       'Your current session has expired. To continue sending notifications, SMS, or Voice Calls, please rescan the QR code and start the session again.';
     var NOTIFY_SESSION_EXPIRED_SHORT =
@@ -4879,6 +4883,8 @@
 
       if (!SUDO_NOTIFY_TERMINAL_GATE) {
         clearNotifySheetDoneLocal();
+        clearNotifyExpiryDeadline();
+        notifySessionTerminalActive = false;
       }
 
       if (customMessageContainer) customMessageContainer.style.display = 'none';
@@ -5104,20 +5110,22 @@
       var notifySessionRescanBtn = document.getElementById('notifySessionRescanBtn');
       if (notifySessionRescanBtn) {
         notifySessionRescanBtn.addEventListener('click', function () {
-          window.location.href = sudoTagHomeUrl;
+          cancelNotifyTerminalAutoRescan();
+          navigateNotifyRescanQr();
         });
       }
 
       if (isNotifyRescanLanding()) {
         clearNotifySheetDoneLocal();
+        clearNotifyExpiryDeadline();
         hideNotifySessionTerminalOverlay();
         resetNotifyFlowForFreshSession();
         stripNotifyRescanQueryFromHistory();
       } else if (SUDO_NOTIFY_TERMINAL_GATE) {
         markNotifySheetDoneLocal();
-        presentNotifySessionExpired();
-      } else if (isNotifySheetDoneLocal()) {
-        presentNotifySessionExpired();
+        presentNotifySessionExpired({ autoRescan: true });
+      } else {
+        restoreNotifySessionExpiryState();
       }
 
       initNotifyVoiceCooldownUi();
@@ -5128,9 +5136,7 @@
       if (isNotifyRescanLanding()) {
         return;
       }
-      if (isNotifySheetDoneLocal()) {
-        presentNotifySessionExpired();
-      }
+      restoreNotifySessionExpiryState();
     });
 
     function triggerNotifyPriorityVoice() {
@@ -5424,14 +5430,12 @@
                   callFlowModal.style.display = 'none';
                 }
                 showSuccessModal('call');
-                scheduleNotifySectionExpiredAfterSuccess();
                 window.setTimeout(function () {
                   window.location.href = telUri;
                 }, NOTIFY_CALL_PREPARE_DIAL_DELAY_MS);
                 return;
               }
               if (result.status === 410) {
-                markNotifySheetDoneLocal();
                 presentNotifySessionExpired();
                 return;
               }
@@ -5523,15 +5527,10 @@
       syncNotifyDockChannels();
     }
 
-    // OK on success modal → leave to SudoTag home (session stays consumed)
+    // OK on success modal → dismiss sheet, then run one session-expiry countdown
     if (continueBtn) {
       continueBtn.addEventListener('click', function () {
-        cancelNotifySectionExpiryTimer();
-        markNotifySheetDoneLocal();
-        if (successModal) {
-          successModal.style.display = 'none';
-        }
-        window.location.href = sudoTagHomeUrl;
+        acknowledgeNotifySuccess();
       });
     }
 
@@ -5685,6 +5684,33 @@
       } catch (e) {}
     }
 
+    function notifyExpiryDeadlineKey() {
+      return 'sudo_notify_expiry_deadline_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function setNotifyExpiryDeadline(deadlineMs) {
+      try {
+        sessionStorage.setItem(notifyExpiryDeadlineKey(), String(deadlineMs));
+      } catch (e) {}
+    }
+
+    function getNotifyExpiryDeadline() {
+      try {
+        var raw = sessionStorage.getItem(notifyExpiryDeadlineKey());
+        if (!raw) return null;
+        var n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function clearNotifyExpiryDeadline() {
+      try {
+        sessionStorage.removeItem(notifyExpiryDeadlineKey());
+      } catch (e) {}
+    }
+
     function isNotifyRescanLanding() {
       try {
         return new URLSearchParams(window.location.search).get('_sudo_rescan') === '1';
@@ -5736,6 +5762,8 @@
         overlay.setAttribute('aria-hidden', 'true');
       }
       document.body.classList.remove('notify-session-terminal-open');
+      notifySessionTerminalActive = false;
+      cancelNotifyTerminalAutoRescan();
     }
 
     function showNotifySessionTerminalOverlay(detailMessage) {
@@ -5770,18 +5798,49 @@
       }
     }
 
-    function presentNotifySessionExpired() {
+    function cancelNotifyTerminalAutoRescan() {
+      if (notifyTerminalAutoNavTimer) {
+        clearTimeout(notifyTerminalAutoNavTimer);
+        notifyTerminalAutoNavTimer = null;
+      }
+    }
+
+    function scheduleNotifyTerminalAutoRescan() {
+      cancelNotifyTerminalAutoRescan();
+      notifyTerminalAutoNavTimer = window.setTimeout(function () {
+        notifyTerminalAutoNavTimer = null;
+        navigateNotifyRescanQr();
+      }, NOTIFY_TERMINAL_AUTO_RESCAN_MS);
+    }
+
+    function presentNotifySessionExpired(options) {
+      var opts = options || {};
+      if (notifySessionTerminalActive) {
+        return;
+      }
+      notifySessionTerminalActive = true;
       cancelNotifySectionExpiryTimer();
+      clearNotifyExpiryDeadline();
       if (successModal) {
         successModal.style.display = 'none';
       }
       markNotifySheetDoneLocal();
-      showNotifySessionTerminalOverlay(NOTIFY_SESSION_EXPIRED_MESSAGE);
+      var terminalMsg =
+        typeof opts.message === 'string' && opts.message.trim()
+          ? opts.message.trim()
+          : NOTIFY_SESSION_EXPIRED_MESSAGE;
+      showNotifySessionTerminalOverlay(terminalMsg);
+      if (opts.autoRescan !== false) {
+        scheduleNotifyTerminalAutoRescan();
+      }
     }
 
     function navigateNotifyRescanQr() {
       cancelNotifySectionExpiryTimer();
+      cancelNotifyTerminalAutoRescan();
+      notifySessionTerminalActive = false;
       clearNotifySheetDoneLocal();
+      clearNotifyExpiryDeadline();
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
       } catch (e) {}
@@ -5796,12 +5855,49 @@
       return true;
     }
 
-    function scheduleNotifySectionExpiredAfterSuccess() {
+    function armNotifySectionExpiryFromDeadline() {
       cancelNotifySectionExpiryTimer();
+      var deadline = getNotifyExpiryDeadline();
+      if (!deadline) {
+        return;
+      }
+      var remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        presentNotifySessionExpired();
+        return;
+      }
       notifySectionExpiryTimer = window.setTimeout(function () {
         notifySectionExpiryTimer = null;
         presentNotifySessionExpired();
-      }, NOTIFY_SECTION_EXPIRY_DELAY_MS);
+      }, remaining);
+    }
+
+    function beginNotifySectionExpiryCountdown() {
+      var deadline = Date.now() + NOTIFY_SECTION_EXPIRY_DELAY_MS;
+      setNotifyExpiryDeadline(deadline);
+      armNotifySectionExpiryFromDeadline();
+    }
+
+    function restoreNotifySessionExpiryState() {
+      if (isNotifySheetDoneLocal()) {
+        presentNotifySessionExpired({ autoRescan: false });
+        return;
+      }
+      var deadline = getNotifyExpiryDeadline();
+      if (!deadline) {
+        return;
+      }
+      if (deadline <= Date.now()) {
+        presentNotifySessionExpired();
+        return;
+      }
+      armNotifySectionExpiryFromDeadline();
+    }
+
+    function acknowledgeNotifySuccess() {
+      cancelNotifySectionExpiryTimer();
+      dismissSuccessModalFully();
+      beginNotifySectionExpiryCountdown();
     }
 
     // Function to show detailed error modal
@@ -6060,11 +6156,10 @@
                 errPayload = await response.json();
               } catch (eJ) {}
             }
-            markNotifySheetDoneLocal();
             var expiredMsg410 =
               (errPayload && errPayload.message && String(errPayload.message)) ||
               NOTIFY_SESSION_EXPIRED_SHORT;
-            showNotifySessionTerminalOverlay(expiredMsg410);
+            presentNotifySessionExpired({ message: expiredMsg410 });
             return null;
           }
 
@@ -6107,8 +6202,8 @@
               (data.notification_type && String(data.notification_type)) ||
               selectedMethod ||
               'push';
+            hideNotifySendingOverlay();
             showSuccessModal(successMethod);
-            scheduleNotifySectionExpiredAfterSuccess();
           } else {
             // Handle server-side errors with detailed messages
             let errorType = data.error_type || 'server';
@@ -6226,7 +6321,6 @@
 
     // Show success modal with method-specific styling (check animation + short copy only)
     function showSuccessModal(method) {
-      hideNotifySendingOverlay();
       let iconClass = '';
       let title = '';
       let subtitle = '';

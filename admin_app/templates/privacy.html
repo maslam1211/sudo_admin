@@ -25,6 +25,9 @@
 
   <!-- Main CSS File -->
   <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+  <style>
+    .header-logo-img { height: 40px; width: auto; max-width: 180px; object-fit: contain; display: block; }
+  </style>
 
   <style>
     /* Background Animation */
@@ -479,9 +482,8 @@
   <header id="header" class="header d-flex align-items-center fixed-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0">
-        <h1 class="sitename">SudoTag</h1>
-        <span>.</span>
+      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0" aria-label="SudoTag home">
+        {% include 'includes/brand_logo_img.html' with extra_class='header-logo-img' height=40 %}
       </a>
 
       <nav id="navmenu" class="navmenu">

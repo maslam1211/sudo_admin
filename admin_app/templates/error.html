@@ -12,7 +12,7 @@
 <body class="sudo-mobile-flow sudo-error-page">
   <header class="app-header sudo-app-header">
     <a href="/" class="brand-logo" aria-label="SudoTag home">
-      <img src="{% url 'brand_logo_png' %}" alt="SudoTag" class="brand-logo-img" width="224" height="114" decoding="async">
+      {% include 'includes/brand_logo_img.html' %}
     </a>
     <h1 class="header-title">NOTICE</h1>
   </header>

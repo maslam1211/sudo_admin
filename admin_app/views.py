@@ -1,8 +1,6 @@
 import base64
 import datetime
 import uuid, os
-import secrets
-import string
 import json
 import math
 import requests
@@ -48,7 +46,8 @@ from .firestore_admin_added_user import (
     admin_added_user_update_payload,
     truthy_admin_added_user_from_json,
 )
-from .fcm_push import send_fcm_to_token
+from .fcm_push import send_push_to_tokens
+from .firebase_user_auth import create_or_update_firebase_user, generate_random_password
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -1254,17 +1253,6 @@ def get_message_list(request):
     } for message in messages.get_messages(request)]
 
 
-def generate_random_password():
-    """
-    Generate a password that matches the mobile app validation pattern:
-    Example: Aslam@1234 (1 uppercase, 4 lowercase, '@', 4 digits)
-    """
-    uppercase_letter = secrets.choice(string.ascii_uppercase)
-    lowercase_segment = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
-    numeric_segment = ''.join(secrets.choice(string.digits) for _ in range(4))
-
-    return f"{uppercase_letter}{lowercase_segment}@{numeric_segment}"
-
 def check_id_enabled(request, qr_id):
     try:
         # Check if QR code exists and is assigned
@@ -1429,10 +1417,10 @@ def activate_id(request, qr_id):
                 if data.get('emailAddress'):
                     from django.core.validators import validate_email
                     from django.core.exceptions import ValidationError
-                try:
-                    validate_email(data['emailAddress'])
-                except ValidationError:
-                    errors['emailAddress'] = 'Enter a valid email address'
+                    try:
+                        validate_email(data['emailAddress'])
+                    except ValidationError:
+                        errors['emailAddress'] = 'Enter a valid email address'
 
                 cn_err, cn_canon = activate_id_normalize_contact(
                     data.get('contactNumber', '')
@@ -1451,20 +1439,23 @@ def activate_id(request, qr_id):
                 
                 try:
                     new_user_temp_password = None
-                    # Check if user exists in Firestore
-                    user_query = db.collection('users').where(filter=FieldFilter('emailAddress', '==', data['emailAddress'])).limit(1).get()
+                    is_new_user = False
+                    auth_user = None
+
+                    user_query = db.collection('users').where(
+                        filter=FieldFilter('emailAddress', '==', data['emailAddress'])
+                    ).limit(1).get()
                     user_exists_in_firestore = len(user_query) > 0
-                    
-                    # Check if user exists in Firebase Auth (try to get user)
+
                     try:
-                        auth_user = auth.get_user_by_email(data['emailAddress'])
+                        auth.get_user_by_email(data['emailAddress'])
                         user_exists_in_auth = True
-                    except:
+                    except auth.UserNotFoundError:
                         user_exists_in_auth = False
-                    
-                    # Handle different cases
+                    except Exception:
+                        user_exists_in_auth = False
+
                     if user_exists_in_auth and user_exists_in_firestore:
-                        # Existing user - proceed with vehicle registration
                         user_doc = user_query[0]
                         user_data = user_doc.to_dict()
                         user_id = user_doc.id
@@ -1483,7 +1474,6 @@ def activate_id(request, qr_id):
                                 != (data.get('contactNumber') or '').replace(' ', '')
                             )
                         )
-                        # Verify phone matches existing user — surface under email so users don't think the mobile field alone is wrong
                         if phone_mismatch:
                             return JsonResponse({
                                 'status': 'error',
@@ -1495,42 +1485,45 @@ def activate_id(request, qr_id):
                                 }
                             }, status=400)
 
-                            
+                        try:
+                            auth_user = auth.get_user_by_email(data['emailAddress'])
+                        except auth.UserNotFoundError:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Account error. Please contact support.',
+                            }, status=400)
+
                     elif user_exists_in_auth and not user_exists_in_firestore:
-                        # Edge case: user in auth but not in firestore - shouldn't happen
                         return JsonResponse({
                             'status': 'error',
                             'message': 'Account exists but data is incomplete. Please contact support.',
                             'errors': {'emailAddress': 'Account issue detected'}
                         }, status=400)
-                        
+
                     elif not user_exists_in_auth and user_exists_in_firestore:
-                        # Edge case: user in firestore but not auth - shouldn't happen
                         return JsonResponse({
                             'status': 'error',
                             'message': 'Account data mismatch. Please contact support.',
                             'errors': {'emailAddress': 'Account issue detected'}
                         }, status=400)
-                        
+
                     else:
-                        # New user - create account
-                        password = generate_random_password()
-                        
+                        password = generate_random_password(12)
                         try:
-                            user = auth.create_user(
+                            auth_user, password, is_new_user = create_or_update_firebase_user(
                                 email=data['emailAddress'],
-                                email_verified=False,
+                                full_name=data['fullName'],
                                 password=password,
-                                display_name=data['fullName'],
-                                disabled=False
                             )
-                        except auth.EmailAlreadyExistsError:
-                            # Handle case where user was created between our check and creation attempt
-                            user = auth.get_user_by_email(data['emailAddress'])
-                            
-                        # Create user data in Firestore
+                        except Exception as exc:
+                            logger.exception('Firebase Auth user creation failed')
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': f'Failed to create account: {exc}',
+                            }, status=500)
+
                         user_data = {
-                            'uid': user.uid,
+                            'id': auth_user.uid,
                             'fullName': data.get('fullName'),
                             'contactNumber': data.get('contactNumber'),
                             'city': data.get('city'),
@@ -1538,24 +1531,30 @@ def activate_id(request, qr_id):
                             'enableIdCheck': True,
                             'createdAt': firestore.SERVER_TIMESTAMP,
                             'profilePicture': 'default_profile.png',
-                            'role': 0,
                             'roleId': 0,
+                            'mustChangePassword': False,
                             'fcmToken': '',
-                            'adminAddedUser': admin_added_user
+                            'adminAddedUser': admin_added_user,
                         }
-                        
-                        user_ref = db.collection('users').document(user.uid)
+
+                        user_ref = db.collection('users').document(auth_user.uid)
                         user_ref.set(user_data)
-                        user_id = user.uid
+                        user_id = auth_user.uid
                         user_ref.update(admin_added_user_update_payload(admin_added_user))
 
-                        # Send welcome email only for new users
                         new_user_temp_password = password
-                        send_welcome_email_for_id(
-                            email=data['emailAddress'],
-                            name=data['fullName'],
-                            password=password
-                        )
+                        try:
+                            send_welcome_email_for_id(
+                                email=data['emailAddress'],
+                                name=data['fullName'],
+                                password=password,
+                            )
+                        except Exception as mail_exc:
+                            logger.warning(
+                                'Welcome email failed for %s: %s',
+                                data['emailAddress'],
+                                mail_exc,
+                            )
                     
                     # Check if this vehicle is already registered to this user
                     vehicle_query = db.collection('vehicles').where(filter=FieldFilter('ownerId', '==', user_id))\
@@ -1569,11 +1568,6 @@ def activate_id(request, qr_id):
                         }, status=400)
                     
                     # Create vehicle document (for both new and existing users).
-                    # We mirror the schema the mobile app writes on its own vehicle docs
-                    # (id / vehicle_number / fcmToken) so that when this customer
-                    # installs the app and signs in, the app can update the FCM
-                    # token on this vehicle document exactly like it does for
-                    # mobile-created vehicles.
                     vehicle_id = str(uuid.uuid4())
                     reg_no = data.get('registrationNumber')
                     vehicle_data = {
@@ -1583,14 +1577,11 @@ def activate_id(request, qr_id):
                         'make': data.get('make'),
                         'model': data.get('model'),
                         'registrationNumber': reg_no,
-                        'id': reg_no,
-                        'vehicle_number': reg_no,
                         'vehicleType': data.get('vehicleType'),
                         'yearOfManufacturing': str(int(str(data['yearOfManufacturing']).strip())),
                         'createdAt': firestore.SERVER_TIMESTAMP,
                         'isQrGenerated': True,
                         'qrCodeId': qr_id,
-                        'fcmToken': '',
                         'adminAddedUser': admin_added_user
                     }
                     
@@ -1635,17 +1626,25 @@ def activate_id(request, qr_id):
                         'status': 'success', 
                         'message': 'Vehicle registration completed successfully!',
                         'redirect_url': reverse('send_notification', args=[qr_id]),
-                        'is_new_user': not user_exists_in_auth,
+                        'is_new_user': is_new_user,
                         'ui_notice': ui_notice,
                     })
                     
                 except Exception as e:
-                    # Clean up Firebase Auth user if creation failed
-                    if 'user' in locals() and user and not user_exists_in_auth:
+                    logger.exception('activate_id registration failed')
+                    if (
+                        'auth_user' in locals()
+                        and auth_user is not None
+                        and locals().get('is_new_user')
+                    ):
                         try:
-                            auth.delete_user(user.uid)
-                        except:
-                            pass
+                            auth.delete_user(auth_user.uid)
+                        except Exception as cleanup_exc:
+                            logger.warning(
+                                'Failed to cleanup auth user %s: %s',
+                                auth_user.uid,
+                                cleanup_exc,
+                            )
                     return JsonResponse({
                         'status': 'error',
                         'message': f'Registration failed: {str(e)}'
@@ -2107,35 +2106,26 @@ def send_notification(request, qr_id):
                             'message': 'User is not registered on app.'
                         })
 
+                    owner_id = str(vehicle_data.get('ownerId') or '')
                     fcm_data = {
                         'vehicleId': str(qr_data.get('vehicleID', '') or ''),
                         'qrId': str(qr_id or ''),
                         'notificationType': 'vehicle_alert',
+                        'type': 'vehicle_alert',
                     }
 
-                    success_count = 0
-                    failed_tokens = []
-                    last_error = None
-                    for t in tokens:
-                        try:
-                            send_fcm_to_token(
-                                title='Vehicle Alert',
-                                body=reason,
-                                token=t,
-                                data=fcm_data,
-                            )
-                            success_count += 1
-                        except Exception as e:
-                            last_error = e
-                            logger.error(f"FCM Error for token {t[:12]}...: {str(e)}")
-                            # Mark unregistered / invalid tokens for cleanup
-                            err_name = type(e).__name__
-                            if err_name in (
-                                'UnregisteredError',
-                                'SenderIdMismatchError',
-                                'InvalidArgumentError',
-                            ):
-                                failed_tokens.append(t)
+                    push_result = send_push_to_tokens(
+                        db,
+                        user_id=owner_id,
+                        tokens=tokens,
+                        title='Vehicle Alert',
+                        body=reason,
+                        data=fcm_data,
+                        store_inbox=True,
+                    )
+                    success_count = push_result.get('success_count', 0)
+                    failed_tokens = push_result.get('failed_tokens') or []
+                    last_error = push_result.get('last_error')
 
                     # Clean up stale tokens so future sends don't keep failing
                     if failed_tokens:
@@ -2162,6 +2152,8 @@ def send_notification(request, qr_id):
                             'status': 'success',
                             'message': 'We have sent your message to the vehicle owner.',
                             'notification_type': 'push',
+                            'push_delivered': True,
+                            'fcm_message_id': push_result.get('message_id'),
                         })
 
                     return JsonResponse({
@@ -2616,6 +2608,7 @@ def _vehicle_resolve_registration(vehicle_dict):
     d = vehicle_dict
     return _safe_str(
         d.get('registrationNumber')
+        or d.get('vehicle_number')
         or d.get('registration')
         or d.get('registrationNo')
         or d.get('regNumber'),

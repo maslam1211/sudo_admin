@@ -28,19 +28,15 @@
             text-align: center;
         }
         .brand-logo {
-            width: 80px; height: 80px; margin: 0 auto 1.25rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 2rem;
+            margin: 0 auto 1.25rem;
+            line-height: 0;
         }
-        .brand-name {
-            font-size: 1.75rem; font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
+
+        .brand-logo .brand-logo-img {
+            height: 52px;
+            width: auto;
+            max-width: min(220px, 85vw);
+            object-fit: contain;
         }
         .menu-lead { color: #64748b; font-size: 0.95rem; margin-bottom: 1.75rem; }
         .btn-register {
@@ -77,8 +73,9 @@
 <body>
     <div class="menu-container">
         <div class="menu-card">
-            <div class="brand-logo"><i class="fas fa-shield-alt"></i></div>
-            <h1 class="brand-name">SudoTag Admin</h1>
+            <div class="brand-logo">
+                {% include 'includes/brand_logo_img.html' %}
+            </div>
             <p class="menu-lead">PIN verified. Register first if you are new, then sign in with the shared password.</p>
             <a href="{% url 'register_admin' %}" class="btn-register">
                 <i class="fas fa-user-plus me-2"></i>Register as admin

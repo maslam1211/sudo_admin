@@ -25,6 +25,15 @@
 
   <!-- Main CSS File -->
   <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+  <style>
+    .header-logo-img {
+      height: 40px;
+      width: auto;
+      max-width: 180px;
+      object-fit: contain;
+      display: block;
+    }
+  </style>
   <link rel="preload" as="image" href="{% static 'landing/img/QR-Codes-for-Work-Hours-Tracking_Main-Illustration-580x428.webp' %}">
 
   <!-- =======================================================
@@ -41,11 +50,8 @@
   <header id="header" class="header d-flex align-items-center fixed-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0">
-        <!-- Uncomment the line below if you also wish to use an image logo -->
-        <!-- <img src="{% static 'landing/img/logo.png' %}" alt=""> -->
-        <h1 class="sitename">SudoTag</h1>
-        <span>.</span>
+      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0" aria-label="SudoTag home">
+        {% include 'includes/brand_logo_img.html' with extra_class='header-logo-img' height=40 %}
       </a>
 
       <nav id="navmenu" class="navmenu">

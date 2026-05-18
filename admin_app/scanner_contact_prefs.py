@@ -793,7 +793,7 @@ def send_scanner_voice_call_attempt_push(db, qr_id, destination_10, caller_10):
     ``owner`` | ``emergency`` for the mobile app to handle.
     """
     try:
-        from .fcm_push import send_fcm_to_token
+        from .fcm_push import send_push_to_tokens
     except Exception as exc:  # pragma: no cover
         logger.warning('scanner_call_push: fcm_push unavailable: %s', exc)
         return
@@ -876,20 +876,25 @@ def send_scanner_voice_call_attempt_push(db, qr_id, destination_10, caller_10):
         fcm_data = {
             'vehicleId': str(vehicle_id),
             'qrId': str(qr_id),
-            'notificationType': 'scanner_call_attempt',
+            'notificationType': 'incoming_call',
+            'type': 'incoming_call',
             'callTarget': call_target,
         }
 
-        for t in tokens:
-            try:
-                send_fcm_to_token(
-                    title=title,
-                    body=body,
-                    token=t,
-                    data=fcm_data,
-                )
-            except Exception as exc:
-                logger.warning('scanner_call_push FCM failed token=%s...: %s', t[:12], exc)
+        push_result = send_push_to_tokens(
+            db,
+            user_id=str(owner_id),
+            tokens=tokens,
+            title=title,
+            body=body,
+            data=fcm_data,
+            store_inbox=True,
+        )
+        if not push_result.get('success'):
+            logger.warning(
+                'scanner_call_push FCM failed: %s',
+                push_result.get('last_error') or push_result.get('error'),
+            )
     except Exception as exc:
         logger.warning('scanner_call_push failed: %s', exc)
 
