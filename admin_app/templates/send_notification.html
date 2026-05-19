@@ -2084,7 +2084,7 @@
       position: fixed;
       inset: 0;
       z-index: 1200;
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       padding: max(28px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
@@ -2098,10 +2098,6 @@
         rgba(15, 15, 15, 0.92);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-    }
-
-    body.notify-app .notify-session-terminal-overlay.is-visible {
-      display: flex;
     }
 
     body.notify-app .notify-session-terminal-card {
@@ -2982,6 +2978,110 @@
       letter-spacing: 0.02em !important;
     }
 
+    body.notify-app #successModal.modal-overlay {
+      transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.notify-app #successModal.modal-overlay.is-phase-exiting {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    body.notify-app .success-modal.is-post-success-flow .success-modal-btn {
+      display: none !important;
+    }
+
+    body.notify-app .success-modal.is-post-success-flow .sudo-flow-icon-wrap--success .success-icon {
+      animation: notifySuccessPop 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes notifySuccessPop {
+      0% {
+        transform: scale(0.82);
+        opacity: 0.4;
+      }
+      70% {
+        transform: scale(1.06);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    body.notify-app .notify-flow-progress {
+      margin: 1.1rem auto 0;
+      max-width: 12rem;
+      padding: 0 0.15rem;
+    }
+
+    body.notify-app .notify-flow-progress[hidden] {
+      display: none !important;
+    }
+
+    body.notify-app .notify-flow-progress-track {
+      display: block;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    body.notify-app .notify-flow-progress-bar {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #c96a38 0%, #e58147 45%, #f0a06a 100%);
+      box-shadow: 0 0 12px rgba(229, 129, 71, 0.35);
+    }
+
+    body.notify-app .notify-flow-progress-bar.is-running {
+      animation: notifyFlowProgressFill linear forwards;
+    }
+
+    @keyframes notifyFlowProgressFill {
+      from {
+        width: 0;
+      }
+      to {
+        width: 100%;
+      }
+    }
+
+    body.notify-app .notify-session-terminal-overlay {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.notify-app .notify-session-terminal-overlay.is-visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    body.notify-app .notify-session-terminal-card {
+      transform: translateY(12px) scale(0.98);
+      opacity: 0;
+      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.notify-app .notify-session-terminal-overlay.is-visible .notify-session-terminal-card {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    body.notify-app .notify-terminal-progress {
+      margin-top: 1.25rem;
+      max-width: 10rem;
+    }
+
     body.notify-app .daily-limit-modal::after {
       display: none !important;
     }
@@ -3668,9 +3768,14 @@
       <p class="notify-session-terminal-eyebrow">Session expired</p>
       <p class="notify-session-terminal-title" id="notifySessionTerminalHeading">Session Has Been Expired</p>
       <p class="notify-session-terminal-text" id="notifySessionTerminalDesc">
-        Your current session has expired. To continue sending notifications, SMS, or Voice Calls, please rescan the QR code and start the session again.
+        Your session has ended. You will be returned to SudoTag shortly.
       </p>
-      <button type="button" class="notify-session-terminal-ok" id="notifySessionRescanBtn">OK</button>
+      <div class="notify-flow-progress notify-terminal-progress" id="notifyTerminalProgress" hidden aria-hidden="true">
+        <span class="notify-flow-progress-track">
+          <span class="notify-flow-progress-bar" id="notifyTerminalProgressBar"></span>
+        </span>
+      </div>
+      <button type="button" class="notify-session-terminal-ok" id="notifySessionRescanBtn">Continue</button>
     </div>
   </div>
 
@@ -3686,12 +3791,7 @@
         <p class="sudo-flow-eyebrow" id="successEyebrow">Complete</p>
         <h3 class="success-title" id="successTitle">Notification sent</h3>
       <p class="success-text" id="successMessage">Your notification was delivered.</p>
-
       </div>
-      <button type="button" class="success-modal-btn sudo-flow-modal-btn--primary" id="continueBtn">
-        <i class="bi bi-check-lg" aria-hidden="true"></i>
-        OK
-      </button>
     </div>
   </div>
 
@@ -3818,16 +3918,18 @@
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
       'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
-    /** Grace period after the user taps OK on the success sheet, then session ends once. */
-    var NOTIFY_SECTION_EXPIRY_DELAY_MS = 10000;
-    var NOTIFY_TERMINAL_AUTO_RESCAN_MS = 2800;
-    var notifySectionExpiryTimer = null;
-    var notifyTerminalAutoNavTimer = null;
+    /** Adaptive holds (no visible countdown numbers). */
+    var NOTIFY_SUCCESS_HOLD_MS = 5200;
+    var NOTIFY_TERMINAL_HOLD_MS = 2600;
+    var NOTIFY_CROSSFADE_MS = 480;
+    var notifySuccessPhaseTimer = null;
+    var notifyTerminalPhaseTimer = null;
     var notifySessionTerminalActive = false;
+    var notifyLastSuccessMethod = 'push';
     var NOTIFY_SESSION_EXPIRED_MESSAGE =
-      'Your current session has expired. To continue sending notifications, SMS, or Voice Calls, please rescan the QR code and start the session again.';
+      'Your session has ended. You will be returned to SudoTag shortly.';
     var NOTIFY_SESSION_EXPIRED_SHORT =
-      'Session expired. Please rescan the QR code to continue.';
+      'Your session has ended. Returning you to SudoTag.';
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
       '{{ vehicle_data.registrationNumber|default:""|escapejs }}';
@@ -3896,7 +3998,6 @@
 
     // Success Modal Elements
     const successModal = document.getElementById('successModal');
-    const continueBtn = document.getElementById('continueBtn');
     const successTitle = document.getElementById('successTitle');
     const successMessage = document.getElementById('successMessage');
     const successIcon = document.getElementById('successIcon');
@@ -4884,6 +4985,8 @@
       if (!SUDO_NOTIFY_TERMINAL_GATE) {
         clearNotifySheetDoneLocal();
         clearNotifyExpiryDeadline();
+        clearNotifyTerminalDeadline();
+        setNotifyPostSuccessActive(false);
         notifySessionTerminalActive = false;
       }
 
@@ -5110,7 +5213,6 @@
       var notifySessionRescanBtn = document.getElementById('notifySessionRescanBtn');
       if (notifySessionRescanBtn) {
         notifySessionRescanBtn.addEventListener('click', function () {
-          cancelNotifyTerminalAutoRescan();
           navigateNotifyRescanQr();
         });
       }
@@ -5118,12 +5220,16 @@
       if (isNotifyRescanLanding()) {
         clearNotifySheetDoneLocal();
         clearNotifyExpiryDeadline();
+        clearNotifyTerminalDeadline();
+        setNotifyPostSuccessActive(false);
+        cancelNotifySuccessPhase();
+        cancelNotifyTerminalPhase();
         hideNotifySessionTerminalOverlay();
         resetNotifyFlowForFreshSession();
         stripNotifyRescanQueryFromHistory();
       } else if (SUDO_NOTIFY_TERMINAL_GATE) {
         markNotifySheetDoneLocal();
-        presentNotifySessionExpired({ autoRescan: true });
+        navigateNotifyOfficialHome();
       } else {
         restoreNotifySessionExpiryState();
       }
@@ -5436,7 +5542,8 @@
                 return;
               }
               if (result.status === 410) {
-                presentNotifySessionExpired();
+                markNotifySheetDoneLocal();
+                navigateNotifyOfficialHome();
                 return;
               }
               if (
@@ -5525,13 +5632,6 @@
       selectedMethod = '';
       lastNotificationData = null;
       syncNotifyDockChannels();
-    }
-
-    // OK on success modal → dismiss sheet, then run one session-expiry countdown
-    if (continueBtn) {
-      continueBtn.addEventListener('click', function () {
-        acknowledgeNotifySuccess();
-      });
     }
 
     // Error modal close button
@@ -5711,6 +5811,33 @@
       } catch (e) {}
     }
 
+    function notifyTerminalDeadlineKey() {
+      return 'sudo_notify_terminal_deadline_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function setNotifyTerminalDeadline(deadlineMs) {
+      try {
+        sessionStorage.setItem(notifyTerminalDeadlineKey(), String(deadlineMs));
+      } catch (e) {}
+    }
+
+    function getNotifyTerminalDeadline() {
+      try {
+        var raw = sessionStorage.getItem(notifyTerminalDeadlineKey());
+        if (!raw) return null;
+        var n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function clearNotifyTerminalDeadline() {
+      try {
+        sessionStorage.removeItem(notifyTerminalDeadlineKey());
+      } catch (e) {}
+    }
+
     function isNotifyRescanLanding() {
       try {
         return new URLSearchParams(window.location.search).get('_sudo_rescan') === '1';
@@ -5763,7 +5890,7 @@
       }
       document.body.classList.remove('notify-session-terminal-open');
       notifySessionTerminalActive = false;
-      cancelNotifyTerminalAutoRescan();
+      cancelNotifyTerminalPhase();
     }
 
     function showNotifySessionTerminalOverlay(detailMessage) {
@@ -5791,26 +5918,151 @@
       document.body.classList.add('notify-session-terminal-open');
     }
 
-    function cancelNotifySectionExpiryTimer() {
-      if (notifySectionExpiryTimer) {
-        clearTimeout(notifySectionExpiryTimer);
-        notifySectionExpiryTimer = null;
+    function notifyPostSuccessMethodKey() {
+      return 'sudo_notify_post_success_method_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function notifyPostSuccessActiveKey() {
+      return 'sudo_notify_post_success_active_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function setNotifyPostSuccessActive(active) {
+      try {
+        if (active) {
+          sessionStorage.setItem(notifyPostSuccessActiveKey(), '1');
+          sessionStorage.setItem(notifyPostSuccessMethodKey(), notifyLastSuccessMethod || 'push');
+        } else {
+          sessionStorage.removeItem(notifyPostSuccessActiveKey());
+          sessionStorage.removeItem(notifyPostSuccessMethodKey());
+        }
+      } catch (e) {}
+    }
+
+    function isNotifyPostSuccessActive() {
+      try {
+        return sessionStorage.getItem(notifyPostSuccessActiveKey()) === '1';
+      } catch (e) {
+        return false;
       }
     }
 
-    function cancelNotifyTerminalAutoRescan() {
-      if (notifyTerminalAutoNavTimer) {
-        clearTimeout(notifyTerminalAutoNavTimer);
-        notifyTerminalAutoNavTimer = null;
+    function readNotifyPostSuccessMethod() {
+      try {
+        return sessionStorage.getItem(notifyPostSuccessMethodKey()) || 'push';
+      } catch (e) {
+        return 'push';
       }
     }
 
-    function scheduleNotifyTerminalAutoRescan() {
-      cancelNotifyTerminalAutoRescan();
-      notifyTerminalAutoNavTimer = window.setTimeout(function () {
-        notifyTerminalAutoNavTimer = null;
-        navigateNotifyRescanQr();
-      }, NOTIFY_TERMINAL_AUTO_RESCAN_MS);
+    function runNotifyProgressBar(barEl, durationMs) {
+      if (!barEl) return;
+      var ms = Math.max(200, Math.floor(Number(durationMs) || 0));
+      barEl.classList.remove('is-running');
+      barEl.style.animationDuration = '';
+      void barEl.offsetWidth;
+      barEl.style.animationDuration = ms + 'ms';
+      barEl.classList.add('is-running');
+    }
+
+    function clearNotifyProgressBar(barEl) {
+      if (!barEl) return;
+      barEl.classList.remove('is-running');
+      barEl.style.animationDuration = '';
+    }
+
+    function hideNotifySuccessProgress() {
+      var wrap = document.getElementById('notifySuccessProgress');
+      var bar = document.getElementById('notifySuccessProgressBar');
+      if (wrap) wrap.hidden = true;
+      clearNotifyProgressBar(bar);
+      if (successModal) {
+        successModal.classList.remove('is-post-success-flow', 'is-phase-exiting');
+      }
+    }
+
+    function showNotifySuccessProgress(durationMs) {
+      var wrap = document.getElementById('notifySuccessProgress');
+      var bar = document.getElementById('notifySuccessProgressBar');
+      if (wrap) wrap.hidden = false;
+      runNotifyProgressBar(bar, durationMs);
+    }
+
+    function hideNotifyTerminalProgress() {
+      var wrap = document.getElementById('notifyTerminalProgress');
+      var bar = document.getElementById('notifyTerminalProgressBar');
+      if (wrap) wrap.hidden = true;
+      clearNotifyProgressBar(bar);
+    }
+
+    function showNotifyTerminalProgress(durationMs) {
+      var wrap = document.getElementById('notifyTerminalProgress');
+      var bar = document.getElementById('notifyTerminalProgressBar');
+      if (wrap) wrap.hidden = false;
+      runNotifyProgressBar(bar, durationMs);
+    }
+
+    function cancelNotifySuccessPhase() {
+      if (notifySuccessPhaseTimer) {
+        clearTimeout(notifySuccessPhaseTimer);
+        notifySuccessPhaseTimer = null;
+      }
+      hideNotifySuccessProgress();
+    }
+
+    function cancelNotifyTerminalPhase() {
+      if (notifyTerminalPhaseTimer) {
+        clearTimeout(notifyTerminalPhaseTimer);
+        notifyTerminalPhaseTimer = null;
+      }
+      hideNotifyTerminalProgress();
+    }
+
+    function completeNotifySuccessAndRedirect() {
+      hideNotifySuccessProgress();
+      clearNotifyExpiryDeadline();
+      setNotifyPostSuccessActive(false);
+      markNotifySheetDoneLocal();
+      function goHome() {
+        navigateNotifyOfficialHome();
+      }
+      if (successModal && successModal.style.display === 'flex') {
+        successModal.classList.add('is-phase-exiting');
+        window.setTimeout(goHome, NOTIFY_CROSSFADE_MS);
+        return;
+      }
+      goHome();
+    }
+
+    function startNotifyPostSuccessFlow(remainingMs) {
+      var totalMs = Math.max(400, Math.floor(Number(remainingMs) || NOTIFY_SUCCESS_HOLD_MS));
+      cancelNotifySuccessPhase();
+      setNotifyPostSuccessActive(true);
+      var deadline = Date.now() + totalMs;
+      setNotifyExpiryDeadline(deadline);
+      if (successModal) {
+        successModal.classList.add('is-post-success-flow');
+        successModal.classList.remove('is-phase-exiting');
+        successModal.style.display = 'flex';
+      }
+
+      notifySuccessPhaseTimer = window.setTimeout(function () {
+        notifySuccessPhaseTimer = null;
+        completeNotifySuccessAndRedirect();
+      }, totalMs);
+    }
+
+    function startNotifyTerminalRedirectPhase(remainingMs) {
+      var totalMs = Math.max(400, Math.floor(Number(remainingMs) || NOTIFY_TERMINAL_HOLD_MS));
+      cancelNotifyTerminalPhase();
+      var deadline = Date.now() + totalMs;
+      setNotifyTerminalDeadline(deadline);
+      showNotifyTerminalProgress(totalMs);
+
+      notifyTerminalPhaseTimer = window.setTimeout(function () {
+        notifyTerminalPhaseTimer = null;
+        clearNotifyTerminalDeadline();
+        navigateNotifyOfficialHome();
+      }, totalMs);
     }
 
     function presentNotifySessionExpired(options) {
@@ -5819,10 +6071,12 @@
         return;
       }
       notifySessionTerminalActive = true;
-      cancelNotifySectionExpiryTimer();
+      cancelNotifySuccessPhase();
+      setNotifyPostSuccessActive(false);
       clearNotifyExpiryDeadline();
       if (successModal) {
         successModal.style.display = 'none';
+        successModal.classList.remove('is-phase-exiting', 'is-post-success-flow');
       }
       markNotifySheetDoneLocal();
       var terminalMsg =
@@ -5830,74 +6084,66 @@
           ? opts.message.trim()
           : NOTIFY_SESSION_EXPIRED_MESSAGE;
       showNotifySessionTerminalOverlay(terminalMsg);
-      if (opts.autoRescan !== false) {
-        scheduleNotifyTerminalAutoRescan();
+      if (opts.autoRedirect !== false) {
+        var termMs = opts.terminalRemainingMs;
+        startNotifyTerminalRedirectPhase(
+          termMs != null ? termMs : NOTIFY_TERMINAL_HOLD_MS
+        );
       }
     }
 
-    function navigateNotifyRescanQr() {
-      cancelNotifySectionExpiryTimer();
-      cancelNotifyTerminalAutoRescan();
+    function navigateNotifyOfficialHome() {
+      cancelNotifySuccessPhase();
+      cancelNotifyTerminalPhase();
       notifySessionTerminalActive = false;
       clearNotifySheetDoneLocal();
       clearNotifyExpiryDeadline();
+      clearNotifyTerminalDeadline();
+      setNotifyPostSuccessActive(false);
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
       } catch (e) {}
-      window.location.replace(getNotifyPageRescanUrl());
+      window.location.replace(sudoTagHomeUrl);
+    }
+
+    function navigateNotifyRescanQr() {
+      navigateNotifyOfficialHome();
     }
 
     function assertNotifySheetAllowsPost() {
       if (isNotifySheetDoneLocal()) {
-        presentNotifySessionExpired();
+        navigateNotifyOfficialHome();
         return false;
       }
       return true;
     }
 
-    function armNotifySectionExpiryFromDeadline() {
-      cancelNotifySectionExpiryTimer();
-      var deadline = getNotifyExpiryDeadline();
-      if (!deadline) {
-        return;
-      }
-      var remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        presentNotifySessionExpired();
-        return;
-      }
-      notifySectionExpiryTimer = window.setTimeout(function () {
-        notifySectionExpiryTimer = null;
-        presentNotifySessionExpired();
-      }, remaining);
-    }
-
-    function beginNotifySectionExpiryCountdown() {
-      var deadline = Date.now() + NOTIFY_SECTION_EXPIRY_DELAY_MS;
-      setNotifyExpiryDeadline(deadline);
-      armNotifySectionExpiryFromDeadline();
-    }
-
     function restoreNotifySessionExpiryState() {
+      if (getNotifyTerminalDeadline()) {
+        navigateNotifyOfficialHome();
+        return;
+      }
+
       if (isNotifySheetDoneLocal()) {
-        presentNotifySessionExpired({ autoRescan: false });
+        navigateNotifyOfficialHome();
+        return;
+      }
+
+      if (!isNotifyPostSuccessActive()) {
         return;
       }
       var deadline = getNotifyExpiryDeadline();
       if (!deadline) {
         return;
       }
-      if (deadline <= Date.now()) {
-        presentNotifySessionExpired();
+      var remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        completeNotifySuccessAndRedirect();
         return;
       }
-      armNotifySectionExpiryFromDeadline();
-    }
-
-    function acknowledgeNotifySuccess() {
-      cancelNotifySectionExpiryTimer();
-      dismissSuccessModalFully();
-      beginNotifySectionExpiryCountdown();
+      notifyLastSuccessMethod = readNotifyPostSuccessMethod();
+      showSuccessModal(notifyLastSuccessMethod, { skipPostFlow: true });
+      startNotifyPostSuccessFlow(remainingMs);
     }
 
     // Function to show detailed error modal
@@ -6159,7 +6405,8 @@
             var expiredMsg410 =
               (errPayload && errPayload.message && String(errPayload.message)) ||
               NOTIFY_SESSION_EXPIRED_SHORT;
-            presentNotifySessionExpired({ message: expiredMsg410 });
+            markNotifySheetDoneLocal();
+            navigateNotifyOfficialHome();
             return null;
           }
 
@@ -6319,35 +6566,32 @@
         });
     }
 
-    // Show success modal with method-specific styling (check animation + short copy only)
-    function showSuccessModal(method) {
-      let iconClass = '';
-      let title = '';
-      let subtitle = '';
-      let eyebrow = 'Complete';
+    // Success sheet → visible 3…2…1 → session expired → rescan/login
+    function showSuccessModal(method, options) {
+      var opts = options || {};
+      var m = method || 'push';
+      notifyLastSuccessMethod = m;
+      var iconClass = m;
+      var title = 'Notification sent successfully';
+      var subtitle = 'Your request was delivered to the vehicle owner.';
+      var eyebrow = 'Complete';
 
-      switch (method) {
-        case 'push':
-          iconClass = 'push';
-          title = 'Notification sent';
-          subtitle = 'Your notification was delivered.';
-          break;
+      switch (m) {
         case 'sms':
           iconClass = 'sms';
-          title = 'SMS sent';
-          subtitle = 'SMS sent successfully.';
+          title = 'SMS sent successfully';
+          subtitle = 'Your SMS was delivered to the vehicle owner.';
           break;
         case 'call':
           iconClass = 'call';
           eyebrow = 'Voice call';
-          title = 'Voice call successful';
-          subtitle =
-            'Your call request was accepted. Your phone will connect shortly.';
+          title = 'Call request sent successfully';
+          subtitle = 'Your call request was accepted. Your phone will connect shortly.';
           break;
+        case 'push':
         default:
           iconClass = 'push';
-          title = 'Notification sent';
-          subtitle = 'Your notification was delivered.';
+          break;
       }
 
       var successEyebrowEl = document.getElementById('successEyebrow');
@@ -6360,6 +6604,9 @@
       successMessage.textContent = subtitle;
 
       successModal.style.display = 'flex';
+      if (!opts.skipPostFlow) {
+        startNotifyPostSuccessFlow(NOTIFY_SUCCESS_HOLD_MS);
+      }
     }
 
     // Get the control to disable during send (owner SMS/push = channel row, not hidden dock buttons).
