@@ -271,6 +271,10 @@ TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 
+# MSG91 OTP (activate-id mobile verification — same keys as mobile app)
+MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '486400AG4Dnr6QVFs695b464eP1')
+MSG91_OTP_TEMPLATE_ID = os.getenv('MSG91_OTP_TEMPLATE_ID', '69d7aa6f30bcfff61b0c68e5')
+
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
 
 # Cloudinary Configuration

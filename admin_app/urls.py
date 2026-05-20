@@ -28,6 +28,21 @@ urlpatterns = [
     path('register-external-user/', views.external_user_registration, name='external_register'),
     path('send-notification/<str:qr_id>/', views.check_id_enabled, name='check_id_enabled'),
     path('activate-id/<str:qr_id>/', views.activate_id, name='activate_id'),
+    path(
+        'activate-id/<str:qr_id>/otp/send/',
+        views.activate_id_otp_send,
+        name='activate_id_otp_send',
+    ),
+    path(
+        'activate-id/<str:qr_id>/otp/resend/',
+        views.activate_id_otp_resend,
+        name='activate_id_otp_resend',
+    ),
+    path(
+        'activate-id/<str:qr_id>/otp/verify/',
+        views.activate_id_otp_verify,
+        name='activate_id_otp_verify',
+    ),
     path('send-notification-final/<str:qr_id>/', views.send_notification, name='send_notification'),
     path('send-feedback/', views.send_feedback, name='send_feedback'),
     path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),

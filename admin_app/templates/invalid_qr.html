@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,8 +5,8 @@
   <title>Invalid QR Code | SudoTag</title>
   {% include 'includes/qr_flow_head.html' %}
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'assets/css/sudo_mobile_flow.css' %}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="{% url 'sudo_mobile_flow_css' %}" rel="stylesheet">
 </head>
 <body class="sudo-mobile-flow sudo-error-page">
   <header class="app-header sudo-app-header">

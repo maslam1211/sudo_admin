@@ -48,6 +48,16 @@ from .firestore_admin_added_user import (
 )
 from .fcm_push import send_push_to_tokens
 from .firebase_user_auth import create_or_update_firebase_user, generate_random_password
+from .msg91_otp import (
+    Msg91OtpError,
+    clear_activate_phone_verified,
+    is_activate_phone_verified,
+    mark_activate_phone_verified,
+    phone_to_msg91_e164,
+    resend_otp,
+    send_otp,
+    verify_otp,
+)
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -1368,6 +1378,130 @@ def send_vehicle_registration_email(email, name, vehicle_data):
         fail_silently=False
     )
 
+def _activate_id_qr_guard(qr_id):
+    """Return (qr_doc, None) or (None, JsonResponse error)."""
+    qr_ref = db.collection('qrcodes').document(qr_id)
+    qr_doc = qr_ref.get()
+    if not qr_doc.exists:
+        return None, JsonResponse({'status': 'error', 'message': 'Invalid QR Code'}, status=404)
+    if qr_doc.to_dict().get('isAssigned', False):
+        return None, JsonResponse({
+            'status': 'error',
+            'message': 'This QR code is already activated.',
+        }, status=400)
+    return qr_doc, None
+
+
+def _activate_id_otp_phone_from_request(request):
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return None, JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request body',
+        }, status=400)
+    phone_raw = data.get('phone') or data.get('contactNumber') or ''
+    err, phone_e164 = phone_to_msg91_e164(phone_raw)
+    if err:
+        return None, JsonResponse({
+            'status': 'error',
+            'message': err,
+            'errors': {'contactNumber': err},
+        }, status=400)
+    return phone_e164, None
+
+
+@ensure_csrf_cookie
+@require_POST
+def activate_id_otp_send(request, qr_id):
+    _, err_resp = _activate_id_qr_guard(qr_id)
+    if err_resp:
+        return err_resp
+    phone_e164, err_resp = _activate_id_otp_phone_from_request(request)
+    if err_resp:
+        return err_resp
+    try:
+        send_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('activate_id OTP send failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException as exc:
+        logger.exception('activate_id OTP send request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+    clear_activate_phone_verified(request, qr_id)
+    return JsonResponse({'status': 'success', 'message': 'OTP sent to your mobile number.'})
+
+
+@ensure_csrf_cookie
+@require_POST
+def activate_id_otp_resend(request, qr_id):
+    _, err_resp = _activate_id_qr_guard(qr_id)
+    if err_resp:
+        return err_resp
+    phone_e164, err_resp = _activate_id_otp_phone_from_request(request)
+    if err_resp:
+        return err_resp
+    try:
+        resend_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('activate_id OTP resend failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException as exc:
+        logger.exception('activate_id OTP resend request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+    clear_activate_phone_verified(request, qr_id)
+    return JsonResponse({'status': 'success', 'message': 'OTP resent to your mobile number.'})
+
+
+@ensure_csrf_cookie
+@require_POST
+def activate_id_otp_verify(request, qr_id):
+    _, err_resp = _activate_id_qr_guard(qr_id)
+    if err_resp:
+        return err_resp
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request body',
+        }, status=400)
+    phone_raw = data.get('phone') or data.get('contactNumber') or ''
+    otp = str(data.get('otp') or '').strip()
+    if not otp:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Enter the verification code.',
+            'errors': {'otp': 'This field is required'},
+        }, status=400)
+    err, phone_e164 = phone_to_msg91_e164(phone_raw)
+    if err:
+        return JsonResponse({
+            'status': 'error',
+            'message': err,
+            'errors': {'contactNumber': err},
+        }, status=400)
+    try:
+        verify_otp(phone_e164, otp)
+    except Msg91OtpError as exc:
+        logger.warning('activate_id OTP verify failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException as exc:
+        logger.exception('activate_id OTP verify request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+    mark_activate_phone_verified(request, qr_id, phone_e164)
+    return JsonResponse({'status': 'success', 'message': 'Mobile number verified.'})
+
+
 @ensure_csrf_cookie
 def activate_id(request, qr_id):
     try:
@@ -1429,6 +1563,10 @@ def activate_id(request, qr_id):
                     errors['contactNumber'] = cn_err
                 else:
                     data['contactNumber'] = cn_canon
+                    if not is_activate_phone_verified(request, qr_id, cn_canon):
+                        errors['contactNumber'] = (
+                            'Please verify your mobile number with the OTP sent to your phone.'
+                        )
 
                 if errors:
                     return JsonResponse({
@@ -1652,7 +1790,8 @@ def activate_id(request, qr_id):
         
         # Render the registration form
         context = {
-            'is_new_registration': True
+            'is_new_registration': True,
+            'qr_id': qr_id,
         }
         
         return render(request, 'activate_id.html', context)

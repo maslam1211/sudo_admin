@@ -89,6 +89,310 @@
     .phone-input-container .phone-input {
       flex: 1;
       min-width: 0;
+      text-transform: none;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Keep phone field dark when browser autofill applies */
+    .phone-input-container .phone-input:-webkit-autofill,
+    .phone-input-container .phone-input:-webkit-autofill:hover,
+    .phone-input-container .phone-input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--text-white);
+      -webkit-box-shadow: 0 0 0 1000px #1c1c1c inset;
+      box-shadow: 0 0 0 1000px #1c1c1c inset;
+      border-color: var(--border-color);
+      transition: background-color 99999s ease-out;
+    }
+
+    .phone-input-container .phone-input.phone-input--verified {
+      border-color: rgba(76, 175, 80, 0.55);
+      background-color: rgba(76, 175, 80, 0.08);
+    }
+
+    .btn-send-otp {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 12px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(229, 129, 71, 0.65);
+      background: rgba(229, 129, 71, 0.12);
+      color: var(--text-white);
+      font-size: 0.92rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .btn-send-otp:hover:not(:disabled) {
+      background: rgba(229, 129, 71, 0.22);
+      border-color: var(--accent-orange);
+      color: var(--text-white);
+    }
+
+    .btn-send-otp:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-send-otp:disabled {
+      opacity: 0.55;
+    }
+
+    .phone-otp-card {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(165deg, rgba(40, 40, 40, 0.95) 0%, rgba(28, 28, 28, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      animation: otpCardIn 0.35s ease-out;
+    }
+
+    @keyframes otpCardIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .otp-card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .otp-card-icon {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(229, 129, 71, 0.18);
+      color: var(--accent-orange);
+      font-size: 1.2rem;
+    }
+
+    .otp-card-title {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-white);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .otp-card-sub {
+      margin: 4px 0 0;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.4;
+      text-transform: none;
+    }
+
+    .otp-boxes-wrap {
+      position: relative;
+      max-width: 280px;
+      margin: 0 auto 14px;
+    }
+
+    .otp-boxes {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 360px) {
+      .otp-boxes-wrap {
+        max-width: 100%;
+      }
+      .otp-boxes {
+        gap: 8px;
+      }
+    }
+
+    .otp-digit {
+      width: 100%;
+      aspect-ratio: 1;
+      max-height: 56px;
+      min-height: 48px;
+      padding: 0;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-transform: none;
+      border-radius: 12px;
+      border: 1.5px solid var(--border-color);
+      background-color: var(--primary-black);
+      color: var(--text-white);
+      caret-color: var(--accent-orange);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .otp-digit:focus {
+      outline: none;
+      border-color: var(--accent-orange);
+      box-shadow: 0 0 0 3px rgba(229, 129, 71, 0.2);
+    }
+
+    .otp-digit.filled {
+      border-color: rgba(229, 129, 71, 0.45);
+    }
+
+    /* Invisible field for iOS/Android SMS autofill (sits over digit boxes) */
+    .otp-autofill-capture {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: none;
+      opacity: 0;
+      color: transparent;
+      caret-color: transparent;
+      background: transparent;
+      z-index: 3;
+      font-size: 16px;
+      letter-spacing: 0.45em;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .otp-boxes-wrap.autofill-waiting .otp-autofill-capture {
+      pointer-events: auto;
+    }
+
+    .otp-boxes-wrap .otp-digit {
+      position: relative;
+      z-index: 2;
+      pointer-events: auto;
+    }
+
+    .btn-verify-otp {
+      width: 100%;
+      min-height: 52px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #eb9258 0%, var(--accent-orange) 100%);
+      color: var(--text-white);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(229, 129, 71, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-verify-otp:hover:not(:disabled) {
+      background: linear-gradient(180deg, #f0a06a 0%, #d46c35 100%);
+      color: var(--text-white);
+      box-shadow: 0 6px 18px rgba(229, 129, 71, 0.45);
+    }
+
+    .btn-verify-otp:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-verify-otp:disabled {
+      opacity: 0.6;
+      box-shadow: none;
+    }
+
+    .otp-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-resend-otp {
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-orange);
+      text-decoration: none;
+    }
+
+    .btn-resend-otp:disabled {
+      color: rgba(255, 255, 255, 0.35);
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+
+    .otp-resend-timer {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .otp-status-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.04);
+      text-transform: none;
+    }
+
+    .otp-status-msg[hidden] {
+      display: none !important;
+    }
+
+    .otp-status-msg.is-error {
+      color: #ffb4a0;
+      background: rgba(255, 69, 0, 0.1);
+      border: 1px solid rgba(255, 69, 0, 0.2);
+    }
+
+    .otp-status-msg.is-success {
+      color: #a8e6b0;
+      background: rgba(76, 175, 80, 0.12);
+      border: 1px solid rgba(76, 175, 80, 0.25);
+    }
+
+    .otp-status-msg i {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .phone-verified-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #a8e6b0;
+      background: rgba(76, 175, 80, 0.12);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      text-transform: none;
+      animation: otpCardIn 0.35s ease-out;
+    }
+
+    .phone-verified-badge i {
+      font-size: 1.25rem;
+      color: #4caf50;
     }
 
     /* Success state: hide form header when confirmation is shown */
@@ -232,12 +536,56 @@
             <input type="text" class="form-control name-input" id="fullName" placeholder="Enter your full name (e.g., John Smith)" required>
           </div>
           
-          <div class="form-group">
-            <label for="contactNumber" class="form-label">Mobile Number (India)</label>
+          <div class="form-group" id="contactNumberGroup">
+            <label for="contactNumber" class="form-label">Mobile number (India)</label>
             <div class="phone-input-container">
               <span class="phone-prefix-static" aria-hidden="true">+91</span>
               <input type="tel" class="form-control phone-input" id="contactNumber" inputmode="numeric" autocomplete="tel-national"
-                maxlength="10" placeholder="10-digit mobile e.g. 9876543210" title="Indian mobile: exactly 10 digits" required>
+                maxlength="10" placeholder="10-digit mobile" title="Indian mobile: exactly 10 digits" required>
+            </div>
+            <div id="phoneVerifyActions" hidden>
+              <button type="button" class="btn btn-send-otp" id="sendOtpBtn">
+                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                <span>Send verification code</span>
+              </button>
+            </div>
+            <div id="phoneOtpPanel" class="phone-otp-card" hidden>
+              <div class="otp-card-head">
+                <div class="otp-card-icon" aria-hidden="true">
+                  <i class="bi bi-chat-left-text-fill"></i>
+                </div>
+                <div>
+                  <p class="otp-card-title">Enter verification code</p>
+                  <p class="otp-card-sub" id="otpSentToLine">We sent a code to your mobile.</p>
+                </div>
+              </div>
+              <div class="otp-boxes-wrap autofill-waiting" id="otpBoxesWrap">
+                <input type="text" class="otp-autofill-capture" id="otpAutofillCapture" name="one-time-code"
+                  inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]*"
+                  aria-label="Verification code from SMS" tabindex="-1">
+                <div class="otp-boxes" id="otpBoxes" role="group" aria-label="4-digit verification code">
+                  <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" data-otp-index="0" aria-label="Digit 1" autocomplete="off">
+                  <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" data-otp-index="1" aria-label="Digit 2">
+                  <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" data-otp-index="2" aria-label="Digit 3">
+                  <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" data-otp-index="3" aria-label="Digit 4">
+                </div>
+              </div>
+              <button type="button" class="btn btn-verify-otp" id="verifyOtpBtn">
+                <i class="bi bi-check-lg" aria-hidden="true"></i>
+                <span>Verify &amp; continue</span>
+              </button>
+              <div class="otp-footer">
+                <button type="button" class="btn-resend-otp" id="resendOtpBtn" disabled>Resend code</button>
+                <span class="otp-resend-timer" id="resendOtpTimer" hidden></span>
+              </div>
+              <div class="otp-status-msg" id="otpStatusMsg" role="status" aria-live="polite" hidden>
+                <i class="bi bi-info-circle" id="otpStatusIcon" aria-hidden="true"></i>
+                <span id="otpStatusText"></span>
+              </div>
+            </div>
+            <div id="phoneVerifiedBadge" class="phone-verified-badge" hidden>
+              <i class="bi bi-patch-check-fill" aria-hidden="true"></i>
+              <span>Mobile number verified</span>
             </div>
           </div>
           
@@ -377,8 +725,33 @@
       const mirrorWelcomeBox = document.getElementById('mirrorWelcomeBox');
       const mirrorSupportLine = document.getElementById('mirrorSupportLine');
       const contactNumber = document.getElementById('contactNumber');
+      const phoneVerifyActions = document.getElementById('phoneVerifyActions');
+      const phoneOtpPanel = document.getElementById('phoneOtpPanel');
+      const phoneVerifiedBadge = document.getElementById('phoneVerifiedBadge');
+      const sendOtpBtn = document.getElementById('sendOtpBtn');
+      const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+      const resendOtpBtn = document.getElementById('resendOtpBtn');
+      const resendOtpTimer = document.getElementById('resendOtpTimer');
+      const otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
+      const otpBoxesWrap = document.getElementById('otpBoxesWrap');
+      const otpAutofillCapture = document.getElementById('otpAutofillCapture');
+      const otpSentToLine = document.getElementById('otpSentToLine');
+      const otpStatusMsg = document.getElementById('otpStatusMsg');
+      const otpStatusText = document.getElementById('otpStatusText');
+      const otpStatusIcon = document.getElementById('otpStatusIcon');
+      const OTP_SEND_URL = '{% url "activate_id_otp_send" qr_id=qr_id %}';
+      const OTP_RESEND_URL = '{% url "activate_id_otp_resend" qr_id=qr_id %}';
+      const OTP_VERIFY_URL = '{% url "activate_id_otp_verify" qr_id=qr_id %}';
       const INDIA_COUNTRY_CODE = '+91';
       const INDIA_PHONE_PATTERN = /^\d{10}$/;
+      const OTP_LENGTH = 4;
+      const OTP_RESEND_SECONDS = 60;
+      let phoneVerified = false;
+      let verifiedPhoneDigits = '';
+      let otpSentForDigits = '';
+      let resendCountdownTimer = null;
+      let webOtpAbort = null;
+      let otpVerifyInFlight = false;
       const yearOfManufacturingEl = document.getElementById('yearOfManufacturing');
       const currentYear = new Date().getFullYear();
       for (let y = currentYear; y >= 1970; y--) {
@@ -663,6 +1036,416 @@
         this.value = capitalizedWords.join(' ');
       });
 
+      function getPhoneDigits() {
+        return contactNumber.value.trim();
+      }
+
+      function maskPhoneDisplay(digits) {
+        if (!digits || digits.length < 4) {
+          return '+91 ••••••••••';
+        }
+        return '+91 ' + digits.slice(0, 2) + '••••' + digits.slice(-2);
+      }
+
+      function getOtpValue() {
+        return otpDigits.map(function(el) { return el.value.replace(/\D/g, ''); }).join('');
+      }
+
+      function clearOtpDigits() {
+        otpDigits.forEach(function(el) {
+          el.value = '';
+          el.classList.remove('filled');
+        });
+        if (otpAutofillCapture) {
+          otpAutofillCapture.value = '';
+        }
+      }
+
+      function extractOtpCode(raw) {
+        const s = String(raw || '');
+        const digits = s.replace(/\D/g, '');
+        if (digits.length >= OTP_LENGTH) {
+          return digits.slice(0, OTP_LENGTH);
+        }
+        const wordMatch = s.match(/\b(\d{4})\b/);
+        return wordMatch ? wordMatch[1] : digits;
+      }
+
+      function fillOtpDigits(code) {
+        const chars = extractOtpCode(code);
+        otpDigits.forEach(function(el, i) {
+          el.value = chars[i] || '';
+          el.classList.toggle('filled', !!chars[i]);
+        });
+        if (otpAutofillCapture) {
+          otpAutofillCapture.value = chars;
+        }
+        return chars;
+      }
+
+      function cancelWebOtpListen() {
+        if (webOtpAbort) {
+          webOtpAbort.abort();
+          webOtpAbort = null;
+        }
+      }
+
+      function supportsWebOtp() {
+        return 'OTPCredential' in window
+          || (navigator.credentials && typeof navigator.credentials.get === 'function');
+      }
+
+      function listenForWebOtp() {
+        cancelWebOtpListen();
+        if (!supportsWebOtp()) {
+          return;
+        }
+        try {
+          webOtpAbort = new AbortController();
+          const timeoutMs = 120000;
+          const timer = setTimeout(cancelWebOtpListen, timeoutMs);
+          navigator.credentials.get({
+            otp: { transport: ['sms'] },
+            signal: webOtpAbort.signal
+          }).then(function(cred) {
+            clearTimeout(timer);
+            if (cred && cred.code) {
+              applyOtpFromSms(cred.code, true);
+            }
+          }).catch(function(err) {
+            clearTimeout(timer);
+            if (err && err.name !== 'AbortError') {
+              console.debug('Web OTP:', err);
+            }
+          });
+        } catch (err) {
+          cancelWebOtpListen();
+        }
+      }
+
+      function focusAutofillCapture() {
+        if (!otpAutofillCapture || phoneOtpPanel.hidden) {
+          return;
+        }
+        if (otpBoxesWrap) {
+          otpBoxesWrap.classList.add('autofill-waiting');
+        }
+        setTimeout(function() {
+          try {
+            otpAutofillCapture.focus({ preventScroll: true });
+          } catch (e) {
+            otpAutofillCapture.focus();
+          }
+        }, 350);
+      }
+
+      function stopAutofillCapture() {
+        if (otpBoxesWrap) {
+          otpBoxesWrap.classList.remove('autofill-waiting');
+        }
+        cancelWebOtpListen();
+      }
+
+      function applyOtpFromSms(raw, autoVerify) {
+        const chars = fillOtpDigits(raw);
+        if (chars.length < OTP_LENGTH) {
+          return;
+        }
+        setOtpStatus('Code received from SMS…', 'info');
+        if (otpBoxesWrap) {
+          otpBoxesWrap.classList.remove('autofill-waiting');
+        }
+        if (autoVerify !== false) {
+          setTimeout(function() {
+            maybeAutoVerifyOtp();
+          }, 150);
+        }
+      }
+
+      function maybeAutoVerifyOtp() {
+        if (phoneVerified || otpVerifyInFlight) {
+          return;
+        }
+        if (getOtpValue().length !== OTP_LENGTH) {
+          return;
+        }
+        submitOtpVerify();
+      }
+
+      function setOtpStatus(message, type) {
+        const types = { error: 'is-error', success: 'is-success', info: '' };
+        const icons = {
+          error: 'bi-exclamation-circle',
+          success: 'bi-check-circle',
+          info: 'bi-info-circle'
+        };
+        if (!message) {
+          otpStatusMsg.hidden = true;
+          otpStatusText.textContent = '';
+          otpStatusMsg.classList.remove('is-error', 'is-success');
+          return;
+        }
+        const kind = type || 'info';
+        otpStatusMsg.hidden = false;
+        otpStatusText.textContent = message;
+        otpStatusMsg.classList.remove('is-error', 'is-success');
+        if (types[kind]) {
+          otpStatusMsg.classList.add(types[kind]);
+        }
+        otpStatusIcon.className = 'bi ' + (icons[kind] || icons.info);
+      }
+
+      function focusOtpDigit(index) {
+        const el = otpDigits[index];
+        if (el) {
+          el.focus();
+          el.select();
+        }
+      }
+
+      function initOtpDigitHandlers() {
+        otpDigits.forEach(function(input, index) {
+          input.addEventListener('input', function() {
+            const digit = this.value.replace(/\D/g, '').slice(-1);
+            this.value = digit;
+            this.classList.toggle('filled', !!digit);
+            setOtpStatus('');
+            if (digit && index < otpDigits.length - 1) {
+              focusOtpDigit(index + 1);
+            }
+            if (getOtpValue().length === OTP_LENGTH) {
+              maybeAutoVerifyOtp();
+            }
+          });
+
+          input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && !this.value && index > 0) {
+              focusOtpDigit(index - 1);
+            }
+            if (e.key === 'ArrowLeft' && index > 0) {
+              e.preventDefault();
+              focusOtpDigit(index - 1);
+            }
+            if (e.key === 'ArrowRight' && index < otpDigits.length - 1) {
+              e.preventDefault();
+              focusOtpDigit(index + 1);
+            }
+          });
+
+          input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
+            fillOtpDigits(pasted);
+            const len = getOtpValue().length;
+            if (len >= OTP_LENGTH) {
+              applyOtpFromSms(pasted, true);
+            } else if (len > 0) {
+              focusOtpDigit(Math.min(len, otpDigits.length - 1));
+            }
+          });
+        });
+
+        if (otpAutofillCapture) {
+          ['input', 'change', 'keyup'].forEach(function(evt) {
+            otpAutofillCapture.addEventListener(evt, function() {
+              if (this.value) {
+                applyOtpFromSms(this.value, true);
+              }
+            });
+          });
+        }
+
+        otpDigits.forEach(function(input) {
+          input.addEventListener('focus', function() {
+            if (otpBoxesWrap) {
+              otpBoxesWrap.classList.remove('autofill-waiting');
+            }
+          });
+        });
+      }
+
+      initOtpDigitHandlers();
+
+      function resetPhoneVerification() {
+        phoneVerified = false;
+        verifiedPhoneDigits = '';
+        otpSentForDigits = '';
+        clearOtpDigits();
+        setOtpStatus('');
+        phoneOtpPanel.hidden = true;
+        phoneVerifiedBadge.hidden = true;
+        contactNumber.removeAttribute('readonly');
+        contactNumber.classList.remove('phone-input--verified');
+        stopResendCountdown();
+        stopAutofillCapture();
+        updatePhoneOtpUi();
+      }
+
+      function stopResendCountdown() {
+        if (resendCountdownTimer) {
+          clearInterval(resendCountdownTimer);
+          resendCountdownTimer = null;
+        }
+        resendOtpTimer.hidden = true;
+        resendOtpTimer.textContent = '';
+        resendOtpBtn.disabled = false;
+      }
+
+      function startResendCountdown() {
+        stopResendCountdown();
+        let remaining = OTP_RESEND_SECONDS;
+        resendOtpBtn.disabled = true;
+        resendOtpTimer.hidden = false;
+        resendOtpTimer.textContent = 'Resend in ' + remaining + 's';
+        resendCountdownTimer = setInterval(function() {
+          remaining -= 1;
+          if (remaining <= 0) {
+            stopResendCountdown();
+            return;
+          }
+          resendOtpTimer.textContent = 'Resend in ' + remaining + 's';
+        }, 1000);
+      }
+
+      function updatePhoneOtpUi() {
+        const digits = getPhoneDigits();
+        const valid = INDIA_PHONE_PATTERN.test(digits);
+        if (phoneVerified && digits === verifiedPhoneDigits) {
+          phoneVerifyActions.hidden = true;
+          phoneOtpPanel.hidden = true;
+          phoneVerifiedBadge.hidden = false;
+          contactNumber.classList.add('phone-input--verified');
+          return;
+        }
+        phoneVerifiedBadge.hidden = true;
+        if (!valid) {
+          phoneVerifyActions.hidden = true;
+          if (!phoneVerified) {
+            phoneOtpPanel.hidden = true;
+          }
+          return;
+        }
+        phoneVerifyActions.hidden = phoneVerified;
+        if (otpSentForDigits === digits && !phoneVerified) {
+          phoneOtpPanel.hidden = false;
+        }
+      }
+
+      function postOtpJson(url, extra) {
+        const payload = Object.assign({ phone: getPhoneDigits() }, extra || {});
+        return fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(payload)
+        }).then(function(response) {
+          return response.json().then(function(data) {
+            if (!response.ok) {
+              throw data;
+            }
+            return data;
+          });
+        });
+      }
+
+      function handleOtpSend(isResend) {
+        const digits = getPhoneDigits();
+        if (!INDIA_PHONE_PATTERN.test(digits)) {
+          showFieldError(contactNumber, 'Enter a valid 10-digit mobile number');
+          return;
+        }
+        const btn = isResend ? resendOtpBtn : sendOtpBtn;
+        const url = isResend ? OTP_RESEND_URL : OTP_SEND_URL;
+        btn.disabled = true;
+        setOtpStatus(isResend ? 'Resending code…' : 'Sending code…', 'info');
+        postOtpJson(url)
+          .then(function(data) {
+            otpSentForDigits = digits;
+            phoneVerified = false;
+            verifiedPhoneDigits = '';
+            clearOtpDigits();
+            phoneOtpPanel.hidden = false;
+            phoneVerifyActions.hidden = true;
+            if (otpSentToLine) {
+              otpSentToLine.textContent = 'Code sent to ' + maskPhoneDisplay(digits);
+            }
+            focusAutofillCapture();
+            listenForWebOtp();
+            setOtpStatus('OTP sent. It may fill in automatically from your SMS.', 'success');
+            startResendCountdown();
+          })
+          .catch(function(err) {
+            const msg = (err && err.message) || 'Could not send OTP. Please try again.';
+            setOtpStatus(msg, 'error');
+            if (err && err.errors && err.errors.contactNumber) {
+              showFieldError(contactNumber, err.errors.contactNumber);
+            }
+          })
+          .finally(function() {
+            btn.disabled = false;
+            updatePhoneOtpUi();
+          });
+      }
+
+      sendOtpBtn.addEventListener('click', function() {
+        handleOtpSend(false);
+      });
+
+      resendOtpBtn.addEventListener('click', function() {
+        if (resendOtpBtn.disabled) {
+          return;
+        }
+        handleOtpSend(true);
+      });
+
+      function submitOtpVerify() {
+        const digits = getPhoneDigits();
+        const otp = getOtpValue();
+        if (!INDIA_PHONE_PATTERN.test(digits)) {
+          showFieldError(contactNumber, 'Enter a valid 10-digit mobile number');
+          return;
+        }
+        if (!otp || otp.length < OTP_LENGTH) {
+          setOtpStatus('Enter the 4-digit code from your SMS.', 'error');
+          focusOtpDigit(0);
+          return;
+        }
+        if (otpVerifyInFlight) {
+          return;
+        }
+        otpVerifyInFlight = true;
+        verifyOtpBtn.disabled = true;
+        setOtpStatus('Verifying…', 'info');
+        postOtpJson(OTP_VERIFY_URL, { otp: otp })
+          .then(function(data) {
+            phoneVerified = true;
+            verifiedPhoneDigits = digits;
+            otpSentForDigits = digits;
+            contactNumber.setAttribute('readonly', 'readonly');
+            contactNumber.classList.add('phone-input--verified');
+            phoneOtpPanel.hidden = true;
+            setOtpStatus('');
+            stopResendCountdown();
+            stopAutofillCapture();
+            updatePhoneOtpUi();
+          })
+          .catch(function(err) {
+            const msg = (err && err.message) || 'Incorrect code. Try again or resend.';
+            setOtpStatus(msg, 'error');
+            clearOtpDigits();
+            focusAutofillCapture();
+          })
+          .finally(function() {
+            otpVerifyInFlight = false;
+            verifyOtpBtn.disabled = false;
+          });
+      }
+
+      verifyOtpBtn.addEventListener('click', submitOtpVerify);
+
       // Phone number formatting - restrict to digits only
       contactNumber.addEventListener('input', function(e) {
         // Clear any existing errors when user starts typing
@@ -677,6 +1460,11 @@
           value = value.substring(0, 10);
         }
         this.value = value;
+        if (phoneVerified && value !== verifiedPhoneDigits) {
+          resetPhoneVerification();
+        } else {
+          updatePhoneOtpUi();
+        }
       });
 
       // Prevent any non-digit input in phone field
@@ -712,6 +1500,7 @@
             if (existingError) {
               existingError.remove();
             }
+            updatePhoneOtpUi();
           }
         }
       });
@@ -779,6 +1568,14 @@
         const phoneValue = phone.value.trim();
         if (phoneValue && !INDIA_PHONE_PATTERN.test(phoneValue)) {
           showFieldError(phone, 'Enter a valid 10-digit mobile number');
+          isValid = false;
+        } else if (phoneValue && (!phoneVerified || phoneValue !== verifiedPhoneDigits)) {
+          showFieldError(phone, 'Please verify your mobile number with the OTP sent to your phone.');
+          if (INDIA_PHONE_PATTERN.test(phoneValue) && !otpSentForDigits) {
+            phoneVerifyActions.hidden = false;
+          } else if (otpSentForDigits === phoneValue) {
+            phoneOtpPanel.hidden = false;
+          }
           isValid = false;
         }
         

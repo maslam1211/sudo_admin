@@ -1212,6 +1212,8 @@ body.sudo-mobile-flow.sudo-error-page .app-main.sudo-app-main {
 
 body.sudo-mobile-flow .sudo-error-card {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background-color: var(--sudo-gray);
   border-radius: var(--sudo-r-xl);
   padding: 28px 22px 24px;
@@ -1219,6 +1221,7 @@ body.sudo-mobile-flow .sudo-error-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 4px solid var(--sudo-red);
   box-shadow: 0 16px 48px var(--sudo-shadow);
+  overflow: hidden;
 }
 
 body.sudo-mobile-flow .sudo-error-icon-wrap {
@@ -1296,18 +1299,25 @@ body.sudo-mobile-flow .sudo-error-hint {
 body.sudo-mobile-flow .sudo-error-actions {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 body.sudo-mobile-flow .sudo-error-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: var(--sudo-touch);
   padding: 0 20px;
   border-radius: var(--sudo-r-md);
+  box-sizing: border-box;
   font-family: var(--sudo-font);
   font-size: 0.95rem;
   font-weight: 600;
@@ -1316,6 +1326,10 @@ body.sudo-mobile-flow .sudo-error-btn {
   border: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+body.sudo-mobile-flow a.sudo-error-btn {
+  display: flex;
 }
 
 body.sudo-mobile-flow .sudo-error-btn:active {
