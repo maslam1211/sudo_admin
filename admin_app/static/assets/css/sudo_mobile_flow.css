@@ -1205,9 +1205,12 @@ body.sudo-mobile-flow.sudo-error-page .app-main.sudo-app-main {
   align-items: center;
   justify-content: center;
   padding: 24px var(--sudo-space) calc(32px + env(safe-area-inset-bottom, 0px));
-  width: 100%;
-  max-width: 440px;
-  margin: 0 auto;
+  width: 100% !important;
+  max-width: 440px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 body.sudo-mobile-flow .sudo-error-card {
@@ -1307,7 +1310,7 @@ body.sudo-mobile-flow .sudo-error-actions {
   margin-top: 4px;
 }
 
-body.sudo-mobile-flow .sudo-error-btn {
+body.sudo-mobile-flow .sudo-error-actions > .sudo-error-btn {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -1317,6 +1320,7 @@ body.sudo-mobile-flow .sudo-error-btn {
   max-width: 100%;
   min-width: 0;
   min-height: var(--sudo-touch);
+  margin: 0;
   padding: 0 20px;
   border-radius: var(--sudo-r-md);
   box-sizing: border-box;
@@ -1327,6 +1331,8 @@ body.sudo-mobile-flow .sudo-error-btn {
   text-decoration: none;
   cursor: pointer;
   border: none;
+  box-shadow: none;
+  white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }

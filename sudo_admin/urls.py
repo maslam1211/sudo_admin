@@ -87,7 +87,9 @@ def sudo_mobile_flow_css_view(request):
     css = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'css' / 'sudo_mobile_flow.css'
     if css.is_file():
         resp = FileResponse(css.open('rb'), content_type='text/css; charset=utf-8')
-        resp['Cache-Control'] = 'public, max-age=86400'
+        mtime = int(css.stat().st_mtime)
+        resp['ETag'] = f'"{mtime}"'
+        resp['Cache-Control'] = 'public, max-age=3600, must-revalidate'
         return resp
     return HttpResponse(status=404)
 

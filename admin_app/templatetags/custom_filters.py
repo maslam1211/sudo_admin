@@ -1,9 +1,29 @@
+from pathlib import Path
+
 from django import template
+from django.conf import settings
 from django.template.defaultfilters import floatformat
+from django.urls import reverse
 import pytz
 from datetime import datetime
 
 register = template.Library()
+
+_SUDO_MOBILE_FLOW_CSS = (
+    Path(settings.BASE_DIR)
+    / 'admin_app'
+    / 'static'
+    / 'assets'
+    / 'css'
+    / 'sudo_mobile_flow.css'
+)
+
+
+@register.simple_tag
+def sudo_mobile_flow_css_url():
+    """Cache-bust mobile flow CSS when the file changes (deploy / server restart)."""
+    version = int(_SUDO_MOBILE_FLOW_CSS.stat().st_mtime) if _SUDO_MOBILE_FLOW_CSS.is_file() else 0
+    return f'{reverse("sudo_mobile_flow_css")}?v={version}'
 
 @register.filter
 def percentage(value, arg):
