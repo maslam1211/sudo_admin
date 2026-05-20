@@ -1216,12 +1216,12 @@ body.sudo-mobile-flow .sudo-error-card {
   min-width: 0;
   background-color: var(--sudo-gray);
   border-radius: var(--sudo-r-xl);
-  padding: 28px 22px 24px;
+  padding: 28px 22px 28px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 4px solid var(--sudo-red);
   box-shadow: 0 16px 48px var(--sudo-shadow);
-  overflow: hidden;
+  overflow: visible;
 }
 
 body.sudo-mobile-flow .sudo-error-icon-wrap {
@@ -1300,14 +1300,16 @@ body.sudo-mobile-flow .sudo-error-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  margin-top: 4px;
 }
 
 body.sudo-mobile-flow .sudo-error-btn {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -1321,11 +1323,12 @@ body.sudo-mobile-flow .sudo-error-btn {
   font-family: var(--sudo-font);
   font-size: 0.95rem;
   font-weight: 600;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   border: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 body.sudo-mobile-flow a.sudo-error-btn {
@@ -1333,20 +1336,19 @@ body.sudo-mobile-flow a.sudo-error-btn {
 }
 
 body.sudo-mobile-flow .sudo-error-btn:active {
-  transform: scale(0.98);
+  opacity: 0.92;
 }
 
-body.sudo-mobile-flow .sudo-error-btn--primary,
-body.sudo-mobile-flow .btn-home {
+body.sudo-mobile-flow .sudo-error-actions .sudo-error-btn--primary,
+body.sudo-mobile-flow .sudo-error-actions .btn-home {
   background-color: var(--sudo-orange);
   color: var(--sudo-white);
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
-body.sudo-mobile-flow .sudo-error-btn--primary:active,
-body.sudo-mobile-flow .btn-home:active {
+body.sudo-mobile-flow .sudo-error-actions .sudo-error-btn--primary:active,
+body.sudo-mobile-flow .sudo-error-actions .btn-home:active {
   background-color: var(--sudo-orange-hover);
-  box-shadow: none;
 }
 
 body.sudo-mobile-flow .sudo-error-btn--ghost {
