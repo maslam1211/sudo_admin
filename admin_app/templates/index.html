@@ -26,10 +26,11 @@
   <!-- Main CSS File -->
   <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
   <style>
-    .header-logo-img {
-      height: 40px;
+    .header .logo .header-logo-img {
+      height: 80px;
+      max-height: none;
       width: auto;
-      max-width: 180px;
+      max-width: 320px;
       object-fit: contain;
       display: block;
     }
@@ -51,7 +52,7 @@
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
       <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0" aria-label="SudoTag home">
-        {% include 'includes/brand_logo_img.html' with extra_class='header-logo-img' height=40 %}
+        <img src="{% static 'images/logo-cmyk.png' %}" alt="SudoTag" class="header-logo-img" width="320" height="80" decoding="async">
       </a>
 
       <nav id="navmenu" class="navmenu">
