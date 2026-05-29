@@ -62,6 +62,16 @@ def brand_logo_view(request):
     return HttpResponse(status=404)
 
 
+def landing_header_logo_view(request):
+    """Landing page header logo (logo-cmyk — survives stale collectstatic on sudotag.com)."""
+    logo = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'logo-cmyk.png'
+    if logo.is_file():
+        resp = FileResponse(logo.open('rb'), content_type='image/png')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
 def notify_flow_center_logo_view(request):
     """Notify-flow modal mark (same resilience as brand_logo_png for QR pages on sudotag.com)."""
     logo = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'sudomainlogo.png'
@@ -110,6 +120,11 @@ urlpatterns = [
     path('favicon-96x96.png', favicon_96_view, name='site_favicon_96'),
     path('apple-touch-icon.png', apple_touch_icon_view, name='site_apple_touch_icon'),
     path('admin/brand-logo.png', brand_logo_view, name='brand_logo_png'),
+    path(
+        'admin/landing-header-logo.png',
+        landing_header_logo_view,
+        name='landing_header_logo_png',
+    ),
     path(
         'admin/sudomain-logo.png',
         notify_flow_center_logo_view,
