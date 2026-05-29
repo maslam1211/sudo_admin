@@ -97,14 +97,37 @@ if not firebase_admin._apps:
 # Now you can use Firebase as usual
 db = firestore.client()
 
+# Windshield sticker: 10 cm × 5 cm @ 300 DPI in car.png.
+_STICKER_WIDTH_MM = 100
+_STICKER_HEIGHT_MM = 50
+_STICKER_PRINT_DPI = 300
+# Gap between QR modules and orange L-brackets (0.1 cm each side).
+_QR_ORANGE_PADDING_MM = 1.0
+
+
+def _sticker_pixel_size():
+    """Exact pixel size for 10 cm × 5 cm @ print DPI."""
+    w = int(round(_STICKER_WIDTH_MM / 25.4 * _STICKER_PRINT_DPI))
+    h = int(round(_STICKER_HEIGHT_MM / 25.4 * _STICKER_PRINT_DPI))
+    return w, h
+
+
+def _load_sticker_template(template_path):
+    """Load car.png scaled to exactly 10 cm × 5 cm."""
+    target_w, target_h = _sticker_pixel_size()
+    img = PILImage.open(template_path).convert('RGB')
+    if img.size != (target_w, target_h):
+        img = img.resize((target_w, target_h), PILImage.Resampling.LANCZOS)
+    return img
+
+
 def _get_fasttag_qr_layout(template_img):
     """
     Detect the orange FastTag bracket area and return QR placement.
     Returns (qr_size, qr_x, qr_y) where qr_size=(w, h).
 
-    The coarse orange bbox is taller/wider than the white cavity (L-brackets leave a gap
-    in the vertical bars at mid-height). We probe inner edges so the QR uses the full
-    inner square, not the smaller min(outer_w, outer_h) * ratio.
+    Position and size come from the orange L-brackets on car.png. QR is as large as possible
+    inside the white cavity with a fixed padding gap so it never touches the orange corners.
     """
     template_rgb = template_img.convert('RGB')
     template_width, template_height = template_rgb.size
@@ -182,7 +205,7 @@ def _get_fasttag_qr_layout(template_img):
         inner_left = bracket_left + max(1, (bracket_right - bracket_left) // 12)
         inner_right = bracket_right - max(1, (bracket_right - bracket_left) // 12)
 
-    # Sit on the left vertical bar (not center x, which can sit in the mid-height gap in the bar).
+    inner_top = inner_bottom = None
     x_probe = min(inner_right - 10, inner_left + 20)
     y = cy
     while y >= bracket_top and not is_orange_xy(x_probe, y):
@@ -194,24 +217,27 @@ def _get_fasttag_qr_layout(template_img):
         y += 1
     if y <= bracket_bottom:
         inner_bottom = y - 1
-
     if inner_top is None or inner_bottom is None or inner_bottom <= inner_top:
         inner_top = bracket_top + max(1, (bracket_bottom - bracket_top) // 10)
         inner_bottom = bracket_bottom - max(1, (bracket_bottom - bracket_top) // 10)
 
-    inner_w = max(1, inner_right - inner_left + 1)
-    inner_h = max(1, inner_bottom - inner_top + 1)
-    inner_min = min(inner_w, inner_h)
+    dpi = float(template_img.info.get('dpi', (_STICKER_PRINT_DPI, _STICKER_PRINT_DPI))[0])
+    if dpi <= 0:
+        dpi = float(_STICKER_PRINT_DPI)
+    padding_px = max(1, int(round(_QR_ORANGE_PADDING_MM / 25.4 * dpi)))
 
-    # Inset on each side so black modules do not touch the orange L-brackets (cleaner print look).
-    inset_px = max(8, min(18, int(round(inner_min * 0.024))))
-    qr_edge_px = max(1, inner_min - 2 * inset_px)
+    # Largest square that fits in the cavity with equal padding on all four sides.
+    pad_left = inner_left + padding_px
+    pad_right = inner_right - padding_px
+    pad_top = inner_top + padding_px
+    pad_bottom = inner_bottom - padding_px
+    avail_w = max(1, pad_right - pad_left + 1)
+    avail_h = max(1, pad_bottom - pad_top + 1)
+    qr_edge_px = max(1, min(avail_w, avail_h))
     qr_size = (qr_edge_px, qr_edge_px)
 
-    icx = (inner_left + inner_right) // 2
-    icy = (inner_top + inner_bottom) // 2
-    qr_x = icx - (qr_size[0] // 2)
-    qr_y = icy - (qr_size[1] // 2)
+    qr_x = pad_left + (avail_w - qr_edge_px) // 2
+    qr_y = pad_top + (avail_h - qr_edge_px) // 2
 
     # Keep QR fully inside image bounds.
     qr_x = max(0, min(qr_x, template_width - qr_size[0]))
@@ -686,7 +712,7 @@ def generate_qr(request):
                     'error': f'Template image not found at: {template_path}'
                 })
             
-            template_img = PILImage.open(template_path).convert('RGB')
+            template_img = _load_sticker_template(template_path)
             qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
             
             for _ in range(count):
@@ -699,7 +725,7 @@ def generate_qr(request):
                         version=3,
                         error_correction=qrcode.constants.ERROR_CORRECT_H,
                         box_size=12,
-                        border=2
+                        border=0,
                     )
                     qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
                     qr.make(fit=True)
@@ -710,9 +736,13 @@ def generate_qr(request):
                     final_img = template_img.copy()
                     final_img.paste(qr_img, (qr_x, qr_y))
                     
-                    # Convert to base64
+                    # Convert to base64 (exact 10 cm × 5 cm)
                     buffer = BytesIO()
-                    final_img.save(buffer, format="PNG")
+                    final_img.save(
+                        buffer,
+                        format="PNG",
+                        dpi=(_STICKER_PRINT_DPI, _STICKER_PRINT_DPI),
+                    )
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     
                     # Prepare Firestore data
@@ -926,84 +956,36 @@ def download_qr_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="qr_codes.pdf"'
 
-    from reportlab.platypus import SimpleDocTemplate, Image, Table, TableStyle, PageBreak
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.utils import ImageReader
     import io
-
-    def fit_image_points(iw, ih, max_w, max_h):
-        """Scale to fit inside max_w x max_h (points) preserving exact aspect ratio."""
-        if iw <= 0 or ih <= 0:
-            return max_w, max_h
-        aw = iw / float(ih)
-        cand_w = max_w
-        cand_h = cand_w / aw
-        if cand_h > max_h:
-            cand_h = max_h
-            cand_w = cand_h * aw
-        return cand_w, cand_h
 
     def mm_to_pt(mm):
         return mm * 72.0 / 25.4
 
     buffer = io.BytesIO()
+    page_w_pt = mm_to_pt(_STICKER_WIDTH_MM)
+    page_h_pt = mm_to_pt(_STICKER_HEIGHT_MM)
 
-    # FASTag-style windshield sticker footprint: 10 cm × 5.5 cm (100 mm × 55 mm); one composite per page.
-    page_w_pt = mm_to_pt(100)
-    page_h_pt = mm_to_pt(55)
-    page_size = (page_w_pt, page_h_pt)
-
-    margin_pt = mm_to_pt(1.5)
-
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=page_size,
-        leftMargin=margin_pt,
-        rightMargin=margin_pt,
-        topMargin=margin_pt,
-        bottomMargin=margin_pt,
-    )
-
-    elements = []
-
-    # SimpleDocTemplate uses platypus.frames.Frame with default 6pt padding on each
-    # side; drawable area is doc.width/height minus 12pt per axis (not the full margin box).
-    _frame_edge_pad_pt = 12.0
-    page_width = doc.width - _frame_edge_pad_pt
-    page_height = doc.height - _frame_edge_pad_pt
-
+    c = canvas.Canvas(buffer, pagesize=(page_w_pt, page_h_pt))
     for i, qr in enumerate(qr_data):
         if i > 0:
-            elements.append(PageBreak())
-
+            c.showPage()
         img_bytes = base64.b64decode(qr['qr_code_base64'])
-        pil_im = PILImage.open(BytesIO(img_bytes))
-        iw, ih = pil_im.size
-        pil_im.close()
-
-        draw_w, draw_h = fit_image_points(iw, ih, page_width, page_height)
-
-        qr_img = Image(BytesIO(img_bytes), width=draw_w, height=draw_h)
-
-        content_table = Table([[qr_img]], colWidths=draw_w)
-
-        content_table.setStyle(
-            TableStyle(
-                [
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                    ("TOPPADDING", (0, 0), (-1, -1), 0),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ]
-            )
+        # Stretch sticker to full 10 cm × 5 cm page — no margins or white borders.
+        c.drawImage(
+            ImageReader(BytesIO(img_bytes)),
+            0,
+            0,
+            width=page_w_pt,
+            height=page_h_pt,
+            preserveAspectRatio=False,
+            mask='auto',
         )
+    c.save()
 
-        elements.append(content_table)
-
-    doc.build(elements)
-    pdf = buffer.getvalue()
+    response.write(buffer.getvalue())
     buffer.close()
-    response.write(pdf)
     return response
 
 def register_user(request):
@@ -3880,7 +3862,7 @@ def regenerate_qr(request, qr_id):
             version=3,
             error_correction=qrcode.constants.ERROR_CORRECT_H,
             box_size=12,
-            border=2,
+            border=0,
         )
         qr.add_data(f"{settings.BASE_DOMAIN}/admin/send-notification/{qr_id}/")
         qr.make(fit=True)
@@ -3892,7 +3874,7 @@ def regenerate_qr(request, qr_id):
             messages.error(request, 'Template image not found')
             return redirect('manage_qrs')
 
-        template_img = PILImage.open(template_path).convert('RGB')
+        template_img = _load_sticker_template(template_path)
         qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
 
         qr_img = _trim_and_resize_qr_for_sticker(qr_img, qr_size)
@@ -3903,8 +3885,11 @@ def regenerate_qr(request, qr_id):
 
         # Save to buffer
         buffer = BytesIO()
-        final_img.save(buffer, format="PNG")
-        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        final_img.save(
+            buffer,
+            format="PNG",
+            dpi=(_STICKER_PRINT_DPI, _STICKER_PRINT_DPI),
+        )
         
         # Prepare response
         response = HttpResponse(content_type='image/png')
