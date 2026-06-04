@@ -275,6 +275,11 @@ TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '486400AG4Dnr6QVFs695b464eP1')
 MSG91_OTP_TEMPLATE_ID = os.getenv('MSG91_OTP_TEMPLATE_ID', '69d7aa6f30bcfff61b0c68e5')
 
+# QR generation gate — OTP is sent only to this number before generate/download is allowed.
+GENERATE_QR_OTP_PHONE = os.getenv('GENERATE_QR_OTP_PHONE', '8075576069')
+# Admin login gate — OTP to this number before email/password login is shown.
+ADMIN_LOGIN_OTP_PHONE = os.getenv('ADMIN_LOGIN_OTP_PHONE', GENERATE_QR_OTP_PHONE)
+
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
 
 # Cloudinary Configuration

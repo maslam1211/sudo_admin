@@ -51,8 +51,17 @@ from .firebase_user_auth import create_or_update_firebase_user, generate_random_
 from .msg91_otp import (
     Msg91OtpError,
     clear_activate_phone_verified,
+    clear_admin_login_otp_verified,
+    clear_generate_qr_otp_verified,
+    admin_login_otp_phone_e164,
+    generate_qr_otp_phone_e164,
     is_activate_phone_verified,
+    is_admin_login_otp_verified,
+    is_generate_qr_otp_verified,
     mark_activate_phone_verified,
+    mark_admin_login_otp_verified,
+    mark_generate_qr_otp_verified,
+    mask_phone_for_display,
     phone_to_msg91_e164,
     resend_otp,
     send_otp,
@@ -355,9 +364,19 @@ def admin_login(request):
     if not request.session.get('auth_pin_verified'):
         return redirect(f"{reverse('verify_auth_pin')}?action=login")
 
+    otp_phone = getattr(settings, 'ADMIN_LOGIN_OTP_PHONE', '')
+    login_ctx = {
+        'otp_verified': is_admin_login_otp_verified(request),
+        'otp_phone_masked': mask_phone_for_display(otp_phone),
+    }
+
     admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
 
     if request.method == 'POST':
+        if not is_admin_login_otp_verified(request):
+            messages.error(request, 'Verify OTP before signing in.')
+            return render(request, 'login.html', login_ctx)
+
         email_raw = (request.POST.get('email') or '').strip()
         email_lower = email_raw.lower()
         password = request.POST.get('password')
@@ -365,7 +384,7 @@ def admin_login(request):
         # Verify password
         if password != admin_password:
             messages.error(request, 'Invalid email or password.')
-            return render(request, 'login.html')
+            return render(request, 'login.html', login_ctx)
 
         # Fetch user data from Firebase (Firestore string match is case-sensitive; try common variants)
         try:
@@ -408,6 +427,7 @@ def admin_login(request):
                 request.session['user_id'] = user.id
                 request.session['email'] = stored_email or email_raw
                 request.session.pop('auth_pin_verified', None)
+                request.session.pop('admin_login_otp_verified', None)
                 request.session.modified = True
                 return redirect('dashboard')
 
@@ -423,7 +443,125 @@ def admin_login(request):
                 'Please check internet/DNS and try again.'
             )
     
-    return render(request, 'login.html')
+    return render(request, 'login.html', login_ctx)
+
+
+def _admin_login_otp_gate_ok(request):
+    """Login OTP is allowed after the entry PIN gate, before admin session exists."""
+    return bool(request.session.get('auth_pin_verified'))
+
+
+@ensure_csrf_cookie
+@require_POST
+def admin_login_otp_send(request):
+    if not _admin_login_otp_gate_ok(request):
+        return JsonResponse({'status': 'error', 'message': 'Complete PIN verification first.'}, status=401)
+
+    phone_e164 = admin_login_otp_phone_e164()
+    if not phone_e164:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Admin login OTP phone is not configured.',
+        }, status=500)
+
+    try:
+        send_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('admin_login OTP send failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('admin_login OTP send request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+
+    clear_admin_login_otp_verified(request)
+    return JsonResponse({
+        'status': 'success',
+        'message': f'OTP sent to {mask_phone_for_display(settings.ADMIN_LOGIN_OTP_PHONE)}.',
+    })
+
+
+@ensure_csrf_cookie
+@require_POST
+def admin_login_otp_resend(request):
+    if not _admin_login_otp_gate_ok(request):
+        return JsonResponse({'status': 'error', 'message': 'Complete PIN verification first.'}, status=401)
+
+    phone_e164 = admin_login_otp_phone_e164()
+    if not phone_e164:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Admin login OTP phone is not configured.',
+        }, status=500)
+
+    try:
+        resend_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('admin_login OTP resend failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('admin_login OTP resend request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+
+    clear_admin_login_otp_verified(request)
+    return JsonResponse({
+        'status': 'success',
+        'message': f'OTP resent to {mask_phone_for_display(settings.ADMIN_LOGIN_OTP_PHONE)}.',
+    })
+
+
+@ensure_csrf_cookie
+@require_POST
+def admin_login_otp_verify(request):
+    if not _admin_login_otp_gate_ok(request):
+        return JsonResponse({'status': 'error', 'message': 'Complete PIN verification first.'}, status=401)
+
+    phone_e164 = admin_login_otp_phone_e164()
+    if not phone_e164:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Admin login OTP phone is not configured.',
+        }, status=500)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request body',
+        }, status=400)
+
+    otp = str(data.get('otp') or '').strip()
+    if not otp:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Enter the verification code.',
+            'errors': {'otp': 'This field is required'},
+        }, status=400)
+
+    try:
+        verify_otp(phone_e164, otp)
+    except Msg91OtpError as exc:
+        logger.warning('admin_login OTP verify failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('admin_login OTP verify request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+
+    mark_admin_login_otp_verified(request)
+    return JsonResponse({
+        'status': 'success',
+        'message': 'OTP verified. You can sign in now.',
+    })
+
 
 def admin_logout(request):
     request.session.flush()
@@ -688,6 +826,127 @@ def get_font(font_size=20):
 from django.utils.timezone import now  # Add this import at the top of your file
 
 
+def _generate_qr_page_context(request, **extra):
+    otp_phone = getattr(settings, 'GENERATE_QR_OTP_PHONE', '')
+    return {
+        'otp_verified': is_generate_qr_otp_verified(request),
+        'otp_phone_masked': mask_phone_for_display(otp_phone),
+        **extra,
+    }
+
+
+@ensure_csrf_cookie
+@require_POST
+def generate_qr_otp_send(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'status': 'error', 'message': 'Admin access required'}, status=401)
+
+    phone_e164 = generate_qr_otp_phone_e164()
+    if not phone_e164:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'QR generation OTP phone is not configured.',
+        }, status=500)
+
+    try:
+        send_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('generate_qr OTP send failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('generate_qr OTP send request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+
+    clear_generate_qr_otp_verified(request)
+    return JsonResponse({
+        'status': 'success',
+        'message': f'OTP sent to {mask_phone_for_display(settings.GENERATE_QR_OTP_PHONE)}.',
+    })
+
+
+@ensure_csrf_cookie
+@require_POST
+def generate_qr_otp_resend(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'status': 'error', 'message': 'Admin access required'}, status=401)
+
+    phone_e164 = generate_qr_otp_phone_e164()
+    if not phone_e164:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'QR generation OTP phone is not configured.',
+        }, status=500)
+
+    try:
+        resend_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('generate_qr OTP resend failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('generate_qr OTP resend request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+
+    clear_generate_qr_otp_verified(request)
+    return JsonResponse({
+        'status': 'success',
+        'message': f'OTP resent to {mask_phone_for_display(settings.GENERATE_QR_OTP_PHONE)}.',
+    })
+
+
+@ensure_csrf_cookie
+@require_POST
+def generate_qr_otp_verify(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'status': 'error', 'message': 'Admin access required'}, status=401)
+
+    phone_e164 = generate_qr_otp_phone_e164()
+    if not phone_e164:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'QR generation OTP phone is not configured.',
+        }, status=500)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request body',
+        }, status=400)
+
+    otp = str(data.get('otp') or '').strip()
+    if not otp:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Enter the verification code.',
+            'errors': {'otp': 'This field is required'},
+        }, status=400)
+
+    try:
+        verify_otp(phone_e164, otp)
+    except Msg91OtpError as exc:
+        logger.warning('generate_qr OTP verify failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('generate_qr OTP verify request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+
+    mark_generate_qr_otp_verified(request)
+    return JsonResponse({
+        'status': 'success',
+        'message': 'OTP verified. You can generate QR codes now.',
+    })
+
+
 def generate_qr(request):
     # Handle potential session interruptions
     try:
@@ -698,6 +957,13 @@ def generate_qr(request):
         return redirect('admin_login')
     
     if request.method == 'POST':
+        if not is_generate_qr_otp_verified(request):
+            ctx = _generate_qr_page_context(
+                request,
+                error='Verify OTP on 8075576069 before generating QR codes.',
+            )
+            return render(request, 'generate_qr.html', ctx)
+
         qr_type = request.POST.get('qr_type', 'user')
         qr_data = []
         base_domain = settings.BASE_DOMAIN
@@ -708,9 +974,10 @@ def generate_qr(request):
             template_path = os.path.join(settings.BASE_DIR, 'admin_app', 'static', 'images', 'car.png')
             
             if not os.path.exists(template_path):
-                return render(request, 'generate_qr.html', {
-                    'error': f'Template image not found at: {template_path}'
-                })
+                return render(request, 'generate_qr.html', _generate_qr_page_context(
+                    request,
+                    error=f'Template image not found at: {template_path}',
+                ))
             
             template_img = _load_sticker_template(template_path)
             qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
@@ -772,9 +1039,10 @@ def generate_qr(request):
             try:
                 batch.commit()
             except Exception as e:
-                return render(request, 'generate_qr.html', {
-                    'error': f'Failed to save QR codes to Firestore: {str(e)}'
-                })
+                return render(request, 'generate_qr.html', _generate_qr_page_context(
+                    request,
+                    error=f'Failed to save QR codes to Firestore: {str(e)}',
+                ))
         
         else:
             # External QR generation
@@ -839,9 +1107,9 @@ def generate_qr(request):
             # This is acceptable - user can regenerate QR codes if needed for PDF
             pass
         
-        return render(request, 'generate_qr.html', {'qr_data': qr_data})
+        return render(request, 'generate_qr.html', _generate_qr_page_context(request, qr_data=qr_data))
 
-    return render(request, 'generate_qr.html')
+    return render(request, 'generate_qr.html', _generate_qr_page_context(request))
 
 # def download_qr_pdf(request):
 #     if not request.session.get('admin') or 'qr_data' not in request.session:
@@ -951,6 +1219,9 @@ def generate_qr(request):
 def download_qr_pdf(request):
     if not request.session.get('admin') or 'qr_data' not in request.session:
         return redirect('admin_login')
+    if not is_generate_qr_otp_verified(request):
+        messages.error(request, 'Verify OTP before downloading QR PDF.')
+        return redirect('generate_qr')
 
     qr_data = request.session.get('qr_data', [])
     response = HttpResponse(content_type='application/pdf')

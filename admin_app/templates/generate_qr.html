@@ -144,6 +144,44 @@
         color: #9ca3af;
         pointer-events: none;
     }
+    .otp-gate-card {
+        max-width: 420px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .otp-gate-card .otp-phone {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1e293b;
+    }
+    .otp-input-row {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin: 1rem 0;
+    }
+    .otp-digit {
+        width: 3rem;
+        height: 3rem;
+        text-align: center;
+        font-size: 1.25rem;
+        font-weight: 600;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+    }
+    .otp-digit:focus {
+        border-color: #0d6efd;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    .otp-status {
+        min-height: 1.25rem;
+        font-size: 0.875rem;
+    }
+    .otp-status.error { color: #dc3545; }
+    .otp-status.success { color: #198754; }
+    .otp-status.info { color: #0d6efd; }
     @media (max-width: 768px) {
         .card-body-custom {
             padding: 1.5rem;
@@ -164,6 +202,39 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 {% endif %}
+
+                {% if not otp_verified %}
+                <div class="otp-gate-card" id="otpGate">
+                    <div class="mb-3">
+                        <i class="fas fa-shield-alt fa-2x text-primary mb-3"></i>
+                        <h5 class="mb-2">Verify OTP to Generate QR Codes</h5>
+                        <p class="text-muted mb-1">An OTP will be sent to</p>
+                        <p class="otp-phone mb-0">{{ otp_phone_masked|default:"80755***69" }}</p>
+                    </div>
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary" id="sendOtpBtn">
+                            <i class="fas fa-paper-plane me-2"></i>Send OTP
+                        </button>
+                        <button type="button" class="btn btn-link btn-sm text-muted" id="resendOtpBtn" disabled>
+                            Resend OTP
+                        </button>
+                    </div>
+                    <label class="form-label">Enter 4-digit OTP</label>
+                    <div class="otp-input-row" id="otpDigits">
+                        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" aria-label="OTP digit 1">
+                        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" aria-label="OTP digit 2">
+                        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" aria-label="OTP digit 3">
+                        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" aria-label="OTP digit 4">
+                    </div>
+                    <div class="otp-status mb-3" id="otpStatus"></div>
+                    <button type="button" class="btn btn-generate w-100" id="verifyOtpBtn" disabled>
+                        <i class="fas fa-check me-2"></i>Confirm OTP &amp; Continue
+                    </button>
+                </div>
+                {% else %}
+                <div class="alert alert-success py-2 mb-4">
+                    <i class="fas fa-check-circle me-2"></i>OTP verified for {{ otp_phone_masked }}. You can generate QR codes.
+                </div>
                 
                 <form method="POST">
                     {% csrf_token %}
@@ -200,6 +271,7 @@
                         </button>
                     </div>
                 </form>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -251,10 +323,167 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const OTP_SEND_URL = '{% url "generate_qr_otp_send" %}';
+    const OTP_RESEND_URL = '{% url "generate_qr_otp_resend" %}';
+    const OTP_VERIFY_URL = '{% url "generate_qr_otp_verify" %}';
+    const OTP_LENGTH = 4;
+    const RESEND_SECONDS = 30;
+
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : '';
+    }
+
+    function postOtpJson(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body || {}),
+            credentials: 'same-origin',
+        }).then(function(resp) {
+            return resp.json().then(function(data) {
+                if (!resp.ok) {
+                    throw new Error((data && data.message) || 'Request failed');
+                }
+                return data;
+            });
+        });
+    }
+
+    const otpGate = document.getElementById('otpGate');
+    if (otpGate) {
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const otpStatus = document.getElementById('otpStatus');
+        const otpInputs = Array.from(document.querySelectorAll('.otp-digit'));
+        let resendTimer = null;
+        let otpSent = false;
+
+        function setOtpStatus(msg, kind) {
+            otpStatus.textContent = msg || '';
+            otpStatus.className = 'otp-status mb-3' + (kind ? ' ' + kind : '');
+        }
+
+        function getOtpValue() {
+            return otpInputs.map(function(input) { return (input.value || '').trim(); }).join('');
+        }
+
+        function clearOtpDigits() {
+            otpInputs.forEach(function(input) { input.value = ''; });
+        }
+
+        function updateVerifyButton() {
+            verifyOtpBtn.disabled = !otpSent || getOtpValue().length < OTP_LENGTH;
+        }
+
+        function startResendCountdown() {
+            let remaining = RESEND_SECONDS;
+            resendOtpBtn.disabled = true;
+            resendOtpBtn.textContent = 'Resend OTP in ' + remaining + 's';
+            clearInterval(resendTimer);
+            resendTimer = setInterval(function() {
+                remaining -= 1;
+                if (remaining <= 0) {
+                    clearInterval(resendTimer);
+                    resendOtpBtn.disabled = false;
+                    resendOtpBtn.textContent = 'Resend OTP';
+                    return;
+                }
+                resendOtpBtn.textContent = 'Resend OTP in ' + remaining + 's';
+            }, 1000);
+        }
+
+        function handleOtpSend(isResend) {
+            const url = isResend ? OTP_RESEND_URL : OTP_SEND_URL;
+            const btn = isResend ? resendOtpBtn : sendOtpBtn;
+            btn.disabled = true;
+            setOtpStatus(isResend ? 'Resending OTP…' : 'Sending OTP…', 'info');
+            postOtpJson(url, {})
+                .then(function(data) {
+                    otpSent = true;
+                    clearOtpDigits();
+                    otpInputs[0].focus();
+                    updateVerifyButton();
+                    setOtpStatus(data.message || 'OTP sent.', 'success');
+                    startResendCountdown();
+                    if (!isResend) {
+                        sendOtpBtn.textContent = 'OTP Sent';
+                    }
+                })
+                .catch(function(err) {
+                    setOtpStatus((err && err.message) || 'Could not send OTP.', 'error');
+                    if (!isResend) {
+                        sendOtpBtn.disabled = false;
+                    }
+                });
+        }
+
+        sendOtpBtn.addEventListener('click', function() { handleOtpSend(false); });
+        resendOtpBtn.addEventListener('click', function() { handleOtpSend(true); });
+
+        otpInputs.forEach(function(input, index) {
+            input.addEventListener('input', function() {
+                input.value = input.value.replace(/\D/g, '').slice(0, 1);
+                if (input.value && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+                updateVerifyButton();
+            });
+            input.addEventListener('keydown', function(event) {
+                if (event.key === 'Backspace' && !input.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+            input.addEventListener('paste', function(event) {
+                event.preventDefault();
+                const pasted = (event.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, OTP_LENGTH);
+                pasted.split('').forEach(function(ch, i) {
+                    if (otpInputs[i]) {
+                        otpInputs[i].value = ch;
+                    }
+                });
+                updateVerifyButton();
+                if (pasted.length >= OTP_LENGTH) {
+                    verifyOtpBtn.focus();
+                }
+            });
+        });
+
+        verifyOtpBtn.addEventListener('click', function() {
+            const otp = getOtpValue();
+            if (otp.length < OTP_LENGTH) {
+                setOtpStatus('Enter the 4-digit code from SMS.', 'error');
+                return;
+            }
+            verifyOtpBtn.disabled = true;
+            setOtpStatus('Verifying…', 'info');
+            postOtpJson(OTP_VERIFY_URL, { otp: otp })
+                .then(function() {
+                    window.location.reload();
+                })
+                .catch(function(err) {
+                    setOtpStatus((err && err.message) || 'Incorrect OTP. Try again.', 'error');
+                    clearOtpDigits();
+                    otpInputs[0].focus();
+                    verifyOtpBtn.disabled = false;
+                });
+        });
+
+        return;
+    }
+
     const userQrRadio = document.getElementById('user_qr');
     const externalQrRadio = document.getElementById('external_qr');
     const userFields = document.getElementById('userFields');
     const externalFields = document.getElementById('externalFields');
+
+    if (!userQrRadio || !userFields) {
+        return;
+    }
 
     function toggleFields() {
         if (userQrRadio.checked) {

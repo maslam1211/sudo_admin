@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 MSG91_OTP_BASE_URL = 'https://control.msg91.com/api/v5/otp'
 ACTIVATE_OTP_SESSION_KEY = 'activate_otp_verified'
+GENERATE_QR_OTP_SESSION_KEY = 'generate_qr_otp_verified'
+ADMIN_LOGIN_OTP_SESSION_KEY = 'admin_login_otp_verified'
 
 
 class Msg91OtpError(Exception):
@@ -140,3 +142,69 @@ def clear_activate_phone_verified(request, qr_id):
 
 def is_activate_phone_verified(request, qr_id, phone_e164):
     return get_activate_otp_verified_map(request).get(str(qr_id)) == phone_e164
+
+
+def generate_qr_otp_phone_e164():
+    digits = _normalize_india_mobile_10(getattr(settings, 'GENERATE_QR_OTP_PHONE', ''))
+    if not digits:
+        return None
+    return f'+91{digits}'
+
+
+def mask_phone_for_display(raw_contact):
+    digits = _normalize_india_mobile_10(raw_contact)
+    if not digits or len(digits) != 10:
+        return ''
+    return f'{digits[:5]}***{digits[-2:]}'
+
+
+def is_generate_qr_otp_verified(request):
+    expected = generate_qr_otp_phone_e164()
+    if not expected:
+        return False
+    return request.session.get(GENERATE_QR_OTP_SESSION_KEY) == expected
+
+
+def mark_generate_qr_otp_verified(request):
+    phone_e164 = generate_qr_otp_phone_e164()
+    if not phone_e164:
+        raise Msg91OtpError('QR generation OTP phone is not configured.')
+    request.session[GENERATE_QR_OTP_SESSION_KEY] = phone_e164
+    request.session.modified = True
+
+
+def clear_generate_qr_otp_verified(request):
+    if GENERATE_QR_OTP_SESSION_KEY in request.session:
+        del request.session[GENERATE_QR_OTP_SESSION_KEY]
+        request.session.modified = True
+
+
+def admin_login_otp_phone_e164():
+    digits = _normalize_india_mobile_10(
+        getattr(settings, 'ADMIN_LOGIN_OTP_PHONE', None)
+        or getattr(settings, 'GENERATE_QR_OTP_PHONE', '')
+    )
+    if not digits:
+        return None
+    return f'+91{digits}'
+
+
+def is_admin_login_otp_verified(request):
+    expected = admin_login_otp_phone_e164()
+    if not expected:
+        return False
+    return request.session.get(ADMIN_LOGIN_OTP_SESSION_KEY) == expected
+
+
+def mark_admin_login_otp_verified(request):
+    phone_e164 = admin_login_otp_phone_e164()
+    if not phone_e164:
+        raise Msg91OtpError('Admin login OTP phone is not configured.')
+    request.session[ADMIN_LOGIN_OTP_SESSION_KEY] = phone_e164
+    request.session.modified = True
+
+
+def clear_admin_login_otp_verified(request):
+    if ADMIN_LOGIN_OTP_SESSION_KEY in request.session:
+        del request.session[ADMIN_LOGIN_OTP_SESSION_KEY]
+        request.session.modified = True
