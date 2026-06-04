@@ -1,58 +1,5 @@
 /* How SudoTag Works — premium landing page */
 
-/* Scroll reveal (replaces AOS — content stays visible if JS fails) */
-.hiw-reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hiw-reveal--left {
-  transform: translateX(-32px);
-}
-
-.hiw-reveal--right {
-  transform: translateX(32px);
-}
-
-.hiw-reveal--scale {
-  transform: scale(0.92);
-}
-
-.hiw-reveal.is-visible {
-  opacity: 1;
-  transform: none;
-}
-
-.hiw-reveal--delay-1 { transition-delay: 0.1s; }
-.hiw-reveal--delay-2 { transition-delay: 0.2s; }
-.hiw-reveal--delay-3 { transition-delay: 0.3s; }
-.hiw-reveal--delay-4 { transition-delay: 0.4s; }
-.hiw-reveal--delay-5 { transition-delay: 0.5s; }
-.hiw-reveal--delay-6 { transition-delay: 0.6s; }
-
-@media (prefers-reduced-motion: reduce) {
-  .hiw-reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-
-  .hiw-scan-viz__phone,
-  .hiw-scan-viz__card {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* No-JS fallback: never hide page content */
-noscript .hiw-reveal {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
 :root {
   --hiw-accent: #E58147;
   --hiw-accent-light: rgba(229, 129, 71, 0.12);
@@ -132,7 +79,7 @@ noscript .hiw-reveal {
   padding: 140px 0 80px;
   background: linear-gradient(160deg, var(--hiw-dark) 0%, var(--hiw-gray-900) 55%, #3d2a1f 100%);
   color: var(--hiw-white);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .hiw-hero::before {
@@ -254,191 +201,73 @@ noscript .hiw-reveal {
   transform: translateY(-2px);
 }
 
-/* Hero QR scan model — always visible; animates in after load */
+/* QR scan illustration */
 .hiw-scan-viz {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 420px;
-  width: 100%;
-  max-width: 480px;
-  margin-left: auto;
-  margin-right: auto;
-  opacity: 1;
-  transform: none;
-  overflow: visible;
-}
-
-.hiw-scan-viz__glow {
-  position: absolute;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(229, 129, 71, 0.22), transparent 68%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 0;
-  pointer-events: none;
-}
-
-.hiw-scan-viz__scene {
-  position: absolute;
-  width: 100%;
-  max-width: 400px;
-  height: auto;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-  opacity: 0.85;
-  pointer-events: none;
-}
-
-.hiw-scan-viz__scene .hiw-scene__car {
-  animation: hiwCarIdle 6s ease-in-out infinite;
-  transform-origin: center bottom;
-}
-
-.hiw-scan-viz__scene .hiw-scene__signal {
-  animation: hiwSignalFlow 2.5s linear infinite;
-}
-
-.hiw-scan-viz__scene .hiw-scene__dot {
-  animation: hiwDotPulse 1.5s ease-in-out infinite;
 }
 
 .hiw-scan-viz__phone {
-  width: 240px;
-  background: linear-gradient(155deg, #3d3d3d 0%, #1a1a1a 50%, #252525 100%);
-  border-radius: 36px;
-  padding: 14px;
-  box-shadow:
-    0 40px 90px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  width: 220px;
+  background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
+  border-radius: 32px;
+  padding: 12px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
-  z-index: 3;
-  animation:
-    hiwPhoneEnter 0.85s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-    hiwPhoneFloat 5s ease-in-out 0.85s infinite;
-}
-
-.hiw-scan-viz.is-loaded .hiw-scan-viz__phone {
-  animation:
-    hiwPhoneEnter 0.85s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-    hiwPhoneFloat 5s ease-in-out 0.85s infinite;
-}
-
-.hiw-scan-viz__notch {
-  width: 80px;
-  height: 22px;
-  background: #0d0d0d;
-  border-radius: 0 0 14px 14px;
-  margin: 0 auto 8px;
+  z-index: 2;
+  animation: hiwPhoneFloat 5s ease-in-out infinite;
 }
 
 .hiw-scan-viz__screen {
-  background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%);
-  border-radius: 24px;
-  padding: 16px 18px 20px;
-  min-height: 340px;
+  background: #0d0d0d;
+  border-radius: 22px;
+  padding: 20px;
+  aspect-ratio: 9/16;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(229, 129, 71, 0.15);
-}
-
-.hiw-scan-viz__status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 14px;
-  align-self: flex-start;
-}
-
-.hiw-scan-viz__status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 8px #4ade80;
-  animation: hiwStatusBlink 2s ease-in-out infinite;
 }
 
 .hiw-scan-viz__qr {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
+  background:
+    linear-gradient(90deg, var(--hiw-accent) 2px, transparent 2px) 0 0 / 14px 14px,
+    linear-gradient(var(--hiw-accent) 2px, transparent 2px) 0 0 / 14px 14px;
+  border: 3px solid var(--hiw-accent);
+  border-radius: 8px;
   position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 0 24px rgba(229, 129, 71, 0.25);
-}
-
-.hiw-scan-viz__qr-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 .hiw-scan-viz__beam {
   position: absolute;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(90deg, transparent, var(--hiw-accent), transparent);
-  box-shadow: 0 0 16px var(--hiw-accent);
+  box-shadow: 0 0 12px var(--hiw-accent);
   animation: hiwScanBeam 2.5s ease-in-out infinite;
-  z-index: 2;
 }
 
 .hiw-scan-viz__label {
-  margin-top: 14px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  margin-top: 16px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
   text-align: center;
-  font-weight: 500;
-}
-
-.hiw-scan-viz__progress {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  margin-top: 14px;
-  overflow: hidden;
-}
-
-.hiw-scan-viz__progress span {
-  display: block;
-  height: 100%;
-  width: 35%;
-  background: linear-gradient(90deg, var(--hiw-accent), #f5a623);
-  border-radius: 4px;
-  animation: hiwProgressSlide 2s ease-in-out infinite;
 }
 
 .hiw-scan-viz__pulse {
   position: absolute;
-  width: 300px;
-  height: 300px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
-  border: 2px solid rgba(229, 129, 71, 0.25);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 0;
+  border: 2px solid rgba(229, 129, 71, 0.2);
   animation: hiwPulseRing 3s ease-out infinite;
-  pointer-events: none;
 }
 
 .hiw-scan-viz__pulse--2 {
@@ -447,10 +276,10 @@ noscript .hiw-reveal {
 
 .hiw-scan-viz__card {
   position: absolute;
-  background: rgba(255, 255, 255, 0.97);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   border-radius: var(--hiw-radius-sm);
-  padding: 12px 16px;
+  padding: 14px 18px;
   box-shadow: var(--hiw-shadow-lg);
   display: flex;
   align-items: center;
@@ -458,22 +287,19 @@ noscript .hiw-reveal {
   font-size: 13px;
   font-weight: 600;
   color: var(--hiw-dark);
-  z-index: 4;
-  white-space: nowrap;
-  animation: hiwCardEnter 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-    hiwCardFloat 4s ease-in-out infinite;
+  animation: hiwCardFloat 4s ease-in-out infinite;
 }
 
 .hiw-scan-viz__card--1 {
-  top: 8%;
-  right: 0;
-  animation-delay: 0.45s, 1.2s;
+  top: 10%;
+  right: -10%;
+  animation-delay: 0s;
 }
 
 .hiw-scan-viz__card--2 {
-  bottom: 12%;
-  left: 0;
-  animation-delay: 0.65s, 1.4s;
+  bottom: 15%;
+  left: -15%;
+  animation-delay: -2s;
 }
 
 .hiw-scan-viz__card i {
@@ -481,58 +307,9 @@ noscript .hiw-reveal {
   font-size: 18px;
 }
 
-@keyframes hiwCarIdle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
-@keyframes hiwSignalFlow {
-  0% { stroke-dashoffset: 40; opacity: 0.4; }
-  50% { opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0.4; }
-}
-
-@keyframes hiwDotPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.35); opacity: 0.7; }
-}
-
-@keyframes hiwStatusBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-
-@keyframes hiwProgressSlide {
-  0% { transform: translateX(-100%); width: 30%; }
-  50% { width: 70%; }
-  100% { transform: translateX(280%); width: 30%; }
-}
-
-@keyframes hiwPhoneEnter {
-  from {
-    opacity: 0;
-    transform: translateY(36px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes hiwCardEnter {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes hiwPhoneFloat {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-10px) scale(1); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 @keyframes hiwScanBeam {
@@ -541,8 +318,8 @@ noscript .hiw-reveal {
 }
 
 @keyframes hiwPulseRing {
-  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
-  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
 
 @keyframes hiwCardFloat {
@@ -1250,17 +1027,7 @@ noscript .hiw-reveal {
   }
 
   .hiw-scan-viz {
-    margin-top: 32px;
-    min-height: 380px;
-    max-width: 100%;
-  }
-
-  .hiw-scan-viz__card--1 {
-    right: 4%;
-  }
-
-  .hiw-scan-viz__card--2 {
-    left: 4%;
+    margin-top: 20px;
   }
 
   .hiw-flow {
@@ -1281,6 +1048,25 @@ noscript .hiw-reveal {
 
   .hiw-solutions__grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Fallback: keep content visible if AOS JS fails on production */
+body.hiw-aos-fallback [data-aos] {
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Respect reduced motion — CSS hero animations still run unless disabled here */
+@media (prefers-reduced-motion: reduce) {
+  .hiw-bg__orb,
+  .hiw-scan-viz__phone,
+  .hiw-scan-viz__beam,
+  .hiw-scan-viz__pulse,
+  .hiw-scan-viz__card {
+    animation: none !important;
   }
 }
 
@@ -1327,11 +1113,11 @@ noscript .hiw-reveal {
     grid-template-columns: 1fr;
   }
 
-  .hiw-scan-viz__phone {
-    width: 210px;
+  .hiw-scan-viz__card--1 {
+    right: 0;
   }
 
-  .hiw-scan-viz__screen {
-    min-height: 300px;
+  .hiw-scan-viz__card--2 {
+    left: 0;
   }
 }

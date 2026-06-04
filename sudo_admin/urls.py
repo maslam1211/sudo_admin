@@ -92,6 +92,30 @@ def notify_sending_wheel_json_view(request):
     return HttpResponse(status=404)
 
 
+def how_it_works_css_view(request):
+    """How It Works page styles — survives stale collectstatic on sudotag.com."""
+    css = Path(settings.BASE_DIR) / 'static' / 'landing' / 'css' / 'how_it_works.css'
+    if css.is_file():
+        resp = FileResponse(css.open('rb'), content_type='text/css; charset=utf-8')
+        mtime = int(css.stat().st_mtime)
+        resp['ETag'] = f'"{mtime}"'
+        resp['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+        return resp
+    return HttpResponse(status=404)
+
+
+def how_it_works_js_view(request):
+    """How It Works page script — survives stale collectstatic on sudotag.com."""
+    js = Path(settings.BASE_DIR) / 'static' / 'landing' / 'js' / 'how_it_works.js'
+    if js.is_file():
+        resp = FileResponse(js.open('rb'), content_type='application/javascript; charset=utf-8')
+        mtime = int(js.stat().st_mtime)
+        resp['ETag'] = f'"{mtime}"'
+        resp['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+        return resp
+    return HttpResponse(status=404)
+
+
 def sudo_mobile_flow_css_view(request):
     """Mobile QR flow theme — survives broken STATIC_URL / nginx / missing collectstatic."""
     css = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'css' / 'sudo_mobile_flow.css'
@@ -139,6 +163,16 @@ urlpatterns = [
         'admin/css/sudo-mobile-flow.css',
         sudo_mobile_flow_css_view,
         name='sudo_mobile_flow_css',
+    ),
+    path(
+        'admin/css/how-it-works.css',
+        how_it_works_css_view,
+        name='how_it_works_css',
+    ),
+    path(
+        'admin/js/how-it-works.js',
+        how_it_works_js_view,
+        name='how_it_works_js',
     ),
     path(
         'admin/data/vehicle-brands-models.json',
