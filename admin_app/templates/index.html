@@ -59,7 +59,7 @@
         <ul>
           <li><a href="#hero" class="active">Home</a></li>
           <li><a href="#about">About</a></li>
-          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="{% url 'how_it_works' %}">How It Works</a></li>
           <li><a href="#contact">Contact</a></li>          
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
@@ -388,44 +388,59 @@
 
     <section id="how-it-works" class="how-it-works section">
       <div class="container section-title" data-aos="fade-up">
-        <h2>How It Works</h2>
-        <p>Learn how our product works</p>
-      </div><!-- End Section Title -->
-    
+        <h2>How SudoTag Works</h2>
+        <p>One QR code. Smart, secure vehicle communication.</p>
+      </div>
+
       <div class="container">
-        <div class="row gy-4">
-    
-          <div class="col-md-6">
-            <div class="work-item" data-aos="fade-up" data-aos-delay="100">
-              <h3>Step 1: Registration</h3>
-              <p>Sign up for the service by providing your details including name and vehicle number.</p>
+        <div class="row align-items-center gy-5">
+          <div class="col-lg-6" data-aos="fade-right">
+            <div class="hiw-preview-card" style="background: linear-gradient(145deg, #151515, #2a2a2a); border-radius: 20px; padding: 36px; color: #fff; border: 1px solid rgba(229,129,71,0.25);">
+              <p style="color: #E58147; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">Scan &bull; Connect &bull; Protect</p>
+              <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 16px;">Smart Vehicle Identification Platform</h3>
+              <p style="color: rgba(255,255,255,0.75); line-height: 1.7; margin-bottom: 24px;">Contact vehicle owners, report parking issues, notify about damage, or reach emergency contacts — all through a single QR code.</p>
+              <ul style="list-style: none; padding: 0; margin: 0 0 28px;">
+                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Order, activate, or scan in seconds</li>
+                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Masked calling &amp; secure messaging</li>
+                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Push notifications &amp; SMS alerts</li>
+                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Vehicle reminders &amp; order tracking</li>
+              </ul>
+              <a href="{% url 'how_it_works' %}" style="display: inline-flex; align-items: center; gap: 8px; background: #E58147; color: #151515; padding: 14px 28px; border-radius: 999px; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+                Explore Full Guide <i class="bi bi-arrow-right"></i>
+              </a>
             </div>
           </div>
-    
-          <div class="col-md-6">
-            <div class="work-item" data-aos="fade-up" data-aos-delay="200">
-              <h3>Step 2: Issue Reporting</h3>
-              <p>Once registered, use the app to report issues scanning the QR code on vehicles.</p>
+          <div class="col-lg-6" data-aos="fade-left" data-aos-delay="100">
+            <div class="row gy-3">
+              <div class="col-6">
+                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                  <i class="bi bi-qr-code-scan" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
+                  <strong style="font-size: 0.9rem; color: #151515;">Scan QR</strong>
+                </div>
+              </div>
+              <div class="col-6">
+                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                  <i class="bi bi-bag-check" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
+                  <strong style="font-size: 0.9rem; color: #151515;">Order QR</strong>
+                </div>
+              </div>
+              <div class="col-6">
+                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                  <i class="bi bi-phone" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
+                  <strong style="font-size: 0.9rem; color: #151515;">Activate via App</strong>
+                </div>
+              </div>
+              <div class="col-6">
+                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                  <i class="bi bi-shield-lock" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
+                  <strong style="font-size: 0.9rem; color: #151515;">Secure Connect</strong>
+                </div>
+              </div>
             </div>
           </div>
-    
-          <div class="col-md-6">
-            <div class="work-item" data-aos="fade-up" data-aos-delay="300">
-              <h3>Step 3: Resolution</h3>
-              <p>After reporting, our team will look into the issue and take necessary actions to resolve it.</p>
-            </div>
-          </div>
-    
-          <div class="col-md-6">
-            <div class="work-item" data-aos="fade-up" data-aos-delay="400">
-              <h3>Step 4: Feedback</h3>
-              <p>You can provide feedback on the service and continue using the app for other issues.</p>
-            </div>
-          </div>
-    
         </div>
       </div>
-    
+
     </section><!-- End How It Works Section -->
 
     <!-- Testimonials Section -->
@@ -859,7 +874,7 @@ if (contactForm) {
             <ul>
               <li><i class="bi bi-chevron-right"></i> <a href="#hero">Home</a></li>
               <li><i class="bi bi-chevron-right"></i> <a href="#about">About SudoTag</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="#how-it-works">How It Works</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'how_it_works' %}">How It Works</a></li>
               <li><i class="bi bi-chevron-right"></i> <a href="#faq">FAQ</a></li>
             </ul>
           </div>

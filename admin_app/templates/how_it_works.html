@@ -1,0 +1,575 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>How SudoTag Works — Smart Vehicle Communication</title>
+  <meta name="description" content="Learn how SudoTag connects vehicle owners and the public through a single QR code — order, activate, scan, and communicate securely.">
+  <meta name="keywords" content="SudoTag, QR code, vehicle communication, parking, emergency contact">
+
+  {% include 'includes/landing_head.html' %}
+
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/css/how_it_works.css' %}" rel="stylesheet">
+
+  <style>
+    .header .logo .header-logo-img {
+      height: 80px;
+      max-height: none;
+      width: auto;
+      max-width: 320px;
+      object-fit: contain;
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="index-page hiw-page">
+
+  <div class="hiw-bg" aria-hidden="true">
+    <div class="hiw-bg__orb hiw-bg__orb--1"></div>
+    <div class="hiw-bg__orb hiw-bg__orb--2"></div>
+    <div class="hiw-bg__grid"></div>
+  </div>
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" class="header-logo-img" width="320" height="80" decoding="async">
+      </a>
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="{% url 'index' %}">Home</a></li>
+          <li><a href="{% url 'index' %}#about">About</a></li>
+          <li><a href="{% url 'how_it_works' %}" class="active">How It Works</a></li>
+          <li><a href="{% url 'index' %}#contact">Contact</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+      <a class="btn-getstarted" href="{% url 'index' %}#about">Get Started</a>
+    </div>
+  </header>
+
+  <nav class="hiw-sidenav d-none d-xl-block" aria-label="Page sections">
+    <h5>Jump to</h5>
+    <a href="#scan-experience">Scan Flow</a>
+    <a href="#get-started">Get Started</a>
+    <a href="#features">Features</a>
+    <a href="#reminders">Reminders</a>
+    <a href="#solutions">Solutions</a>
+  </nav>
+
+  <main class="main">
+
+    <!-- Hero -->
+    <section class="hiw-hero">
+      <div class="container hiw-hero__inner">
+        <div data-aos="fade-right">
+          <div class="hiw-hero__badge">
+            <i class="bi bi-qr-code-scan"></i>
+            Smart Vehicle Platform
+          </div>
+          <h1>How <span>SudoTag</span> Works</h1>
+          <p class="hiw-hero__subtitle">
+            SudoTag helps vehicle owners stay connected through a single QR code. Contact owners, report parking issues, notify about damage, or reach emergency contacts — simple, secure, and instant.
+          </p>
+          <div class="hiw-hero__tagline">
+            <span>Scan</span><span class="dot"></span>
+            <span>Connect</span><span class="dot"></span>
+            <span>Protect</span>
+          </div>
+          <div class="hiw-hero__actions">
+            <a href="#get-started" class="hiw-btn hiw-btn--primary">
+              <i class="bi bi-play-circle"></i> See How to Start
+            </a>
+            <a href="#scan-experience" class="hiw-btn hiw-btn--ghost">
+              <i class="bi bi-phone"></i> Scan Experience
+            </a>
+          </div>
+        </div>
+
+        <div class="hiw-scan-viz" data-aos="fade-left" data-aos-delay="150">
+          <div class="hiw-scan-viz__pulse"></div>
+          <div class="hiw-scan-viz__pulse hiw-scan-viz__pulse--2"></div>
+          <div class="hiw-scan-viz__phone">
+            <div class="hiw-scan-viz__screen">
+              <div class="hiw-scan-viz__qr">
+                <div class="hiw-scan-viz__beam"></div>
+              </div>
+              <p class="hiw-scan-viz__label">Scanning SudoTag QR…</p>
+            </div>
+          </div>
+          <div class="hiw-scan-viz__card hiw-scan-viz__card--1">
+            <i class="bi bi-shield-check"></i>
+            Secure &amp; Verified
+          </div>
+          <div class="hiw-scan-viz__card hiw-scan-viz__card--2">
+            <i class="bi bi-lightning-charge"></i>
+            Instant Connect
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- App banner -->
+    <section class="hiw-section">
+      <div class="container">
+        <div class="hiw-app-banner" data-aos="fade-up">
+          <div class="hiw-app-banner__text">
+            <h3><i class="bi bi-phone me-2" style="color: var(--hiw-accent);"></i>SudoTag App — Android &amp; iOS</h3>
+            <p>Manage your vehicle profile, activate QR codes, track orders, receive notifications, communicate securely, and access all SudoTag services directly from the mobile app.</p>
+          </div>
+          <div class="hiw-app-banner__stores">
+            <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+              <i class="bi bi-google-play" aria-hidden="true"></i>
+              <span>Google Play</span>
+            </a>
+            <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+              <i class="bi bi-apple" aria-hidden="true"></i>
+              <span>App Store</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scan experience -->
+    <section id="scan-experience" class="hiw-section hiw-section--alt">
+      <div class="container">
+        <div class="hiw-section__header" data-aos="fade-up">
+          <span class="hiw-section__label">The Scan Experience</span>
+          <h2>What Happens When Someone Scans Your QR</h2>
+          <p>A smooth, trustworthy flow designed to connect people instantly — without exposing personal phone numbers.</p>
+        </div>
+
+        <div class="hiw-flow">
+          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="100">
+            <div class="hiw-flow__icon"><i class="bi bi-qr-code-scan"></i></div>
+            <h4>Scan QR Code</h4>
+            <p>Anyone scans the SudoTag QR on your vehicle using their smartphone camera.</p>
+          </div>
+          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="200">
+            <div class="hiw-flow__icon"><i class="bi bi-window-stack"></i></div>
+            <h4>Secure Page Opens</h4>
+            <p>A verified SudoTag page loads instantly — fast, mobile-optimized, and trustworthy.</p>
+          </div>
+          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="300">
+            <div class="hiw-flow__icon"><i class="bi bi-hand-index"></i></div>
+            <h4>Choose Action</h4>
+            <p>Contact the owner, report parking, notify damage, or reach emergency contacts.</p>
+          </div>
+          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="400">
+            <div class="hiw-flow__icon"><i class="bi bi-bell"></i></div>
+            <h4>Owner Notified</h4>
+            <p>You receive push notifications, SMS alerts, or in-app messages — privately and securely.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Get started paths -->
+    <section id="get-started" class="hiw-section">
+      <div class="container">
+        <div class="hiw-section__header" data-aos="fade-up">
+          <span class="hiw-section__label">Getting Started</span>
+          <h2>Three Ways to Activate SudoTag</h2>
+          <p>Whether you're ordering a new QR, activating one you already have, or setting up via the web — we've got you covered.</p>
+        </div>
+
+        <div class="hiw-paths" data-aos="fade-up" data-aos-delay="100">
+          <div class="hiw-paths__tabs" role="tablist">
+            <button class="hiw-paths__tab active" role="tab" aria-selected="true" data-tab="order">
+              <i class="bi bi-bag-check"></i> Order a QR
+            </button>
+            <button class="hiw-paths__tab" role="tab" aria-selected="false" data-tab="app">
+              <i class="bi bi-phone"></i> Activate via App
+            </button>
+            <button class="hiw-paths__tab" role="tab" aria-selected="false" data-tab="web">
+              <i class="bi bi-globe2"></i> Activate via Web
+            </button>
+          </div>
+
+          <!-- Option 1: Order -->
+          <div class="hiw-paths__panel active" id="panel-order" role="tabpanel">
+            <div class="hiw-paths__intro">
+              <div class="hiw-paths__option-num">1</div>
+              <div>
+                <h3>Order a SudoTag QR</h3>
+                <p>Don't have a SudoTag QR yet? Order one directly from the app and track delivery to your door.</p>
+              </div>
+            </div>
+            <div class="hiw-steps">
+              <div class="hiw-step">
+                <div class="hiw-step__track">
+                  <div class="hiw-step__num">1</div>
+                  <div class="hiw-step__line"></div>
+                </div>
+                <div class="hiw-step__body">
+                  <h4>Download the SudoTag App</h4>
+                  <p>Get the app from Google Play or the App Store on your Android or iOS device.</p>
+                </div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track">
+                  <div class="hiw-step__num">2</div>
+                  <div class="hiw-step__line"></div>
+                </div>
+                <div class="hiw-step__body">
+                  <h4>Create an Account or Sign In</h4>
+                  <p>Register with your details or log in if you already have a SudoTag account.</p>
+                </div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track">
+                  <div class="hiw-step__num">3</div>
+                  <div class="hiw-step__line"></div>
+                </div>
+                <div class="hiw-step__body">
+                  <h4>Register Your Vehicle</h4>
+                  <p>Complete your vehicle profile with the required details for identification.</p>
+                </div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track">
+                  <div class="hiw-step__num">4</div>
+                  <div class="hiw-step__line"></div>
+                </div>
+                <div class="hiw-step__body">
+                  <h4>Tap Order QR &amp; Pay</h4>
+                  <p>Place your order and complete the secure payment process within the app.</p>
+                </div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track">
+                  <div class="hiw-step__num">5</div>
+                  <div class="hiw-step__line"></div>
+                </div>
+                <div class="hiw-step__body">
+                  <h4>Track Your Order</h4>
+                  <p>Monitor order status anytime from the Orders section in the app.</p>
+                </div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track">
+                  <div class="hiw-step__num">6</div>
+                </div>
+                <div class="hiw-step__body">
+                  <h4>Receive Your SudoTag QR</h4>
+                  <p>Your physical SudoTag QR arrives at your registered address — ready to activate.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="hiw-tracking">
+              <h4><i class="bi bi-truck"></i> Order Tracking</h4>
+              <p>After placing an order, view these details directly from the Orders section in the SudoTag App:</p>
+              <div class="hiw-tracking__grid">
+                <div class="hiw-tracking__item"><i class="bi bi-clipboard-check"></i> Order Status</div>
+                <div class="hiw-tracking__item"><i class="bi bi-credit-card"></i> Payment Status</div>
+                <div class="hiw-tracking__item"><i class="bi bi-gear-wide-connected"></i> Processing Updates</div>
+                <div class="hiw-tracking__item"><i class="bi bi-box-seam"></i> Shipping Information</div>
+                <div class="hiw-tracking__item"><i class="bi bi-house-check"></i> Delivery Status</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 2: App activation -->
+          <div class="hiw-paths__panel" id="panel-app" role="tabpanel">
+            <div class="hiw-paths__intro">
+              <div class="hiw-paths__option-num">2</div>
+              <div>
+                <h3>Activate Through the App</h3>
+                <p>Already purchased a SudoTag QR? Link it to your vehicle profile in minutes.</p>
+              </div>
+            </div>
+            <div class="hiw-steps">
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">1</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Open the SudoTag App &amp; Log In</h4><p>Launch the app and sign in to your account.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">2</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Select Activate QR</h4><p>From your dashboard, tap the Activate QR option.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">3</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Tap Scan QR</h4><p>Open the camera scanner to read your SudoTag QR code.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">4</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Scan Your SudoTag QR Code</h4><p>Point your camera at the QR sticker on your SudoTag product.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">5</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Complete Vehicle &amp; Owner Info</h4><p>Fill in your vehicle details and owner information.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">6</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Add Emergency Contacts</h4><p>Optionally add emergency contact details for urgent situations.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">7</div></div>
+                <div class="hiw-step__body"><h4>Submit &amp; Activate</h4><p>Submit the activation form — your QR is linked to your vehicle profile and activated successfully.</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 3: Web activation -->
+          <div class="hiw-paths__panel" id="panel-web" role="tabpanel">
+            <div class="hiw-paths__intro">
+              <div class="hiw-paths__option-num">3</div>
+              <div>
+                <h3>Activate Through the Web</h3>
+                <p>No app required to get started — activate your QR directly from your smartphone browser.</p>
+              </div>
+            </div>
+            <div class="hiw-steps">
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">1</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Scan the QR Code</h4><p>Use your smartphone camera to scan the SudoTag QR code.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">2</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Open the Activation Page</h4><p>The SudoTag activation page opens automatically in your browser.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">3</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Complete Activation</h4><p>Fill in the required vehicle and owner details on the web form.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">4</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Account Created Automatically</h4><p>A SudoTag account is created for you during the process.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">5</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Check Your Email</h4><p>Login details and a temporary password are sent to your registered email address.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">6</div><div class="hiw-step__line"></div></div>
+                <div class="hiw-step__body"><h4>Download the App &amp; Sign In</h4><p>Get the SudoTag app and sign in with your new credentials.</p></div>
+              </div>
+              <div class="hiw-step">
+                <div class="hiw-step__track"><div class="hiw-step__num">7</div></div>
+                <div class="hiw-step__body"><h4>Update Password &amp; Go Live</h4><p>Change your password after first login — your vehicle profile is now active and ready to manage.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="hiw-section hiw-section--alt">
+      <div class="container">
+        <div class="hiw-section__header" data-aos="fade-up">
+          <span class="hiw-section__label">After Activation</span>
+          <h2>Features Available After Activation</h2>
+          <p>One QR unlocks a complete suite of secure vehicle communication tools.</p>
+        </div>
+
+        <div class="hiw-features">
+          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="100">
+            <div class="hiw-feature__icon"><i class="bi bi-person-lines-fill"></i></div>
+            <h3>Vehicle Owner Contact</h3>
+            <p>Allow people to reach you quickly regarding parking issues, vehicle movement requests, or vehicle-related notifications.</p>
+          </div>
+          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="150">
+            <div class="hiw-feature__icon"><i class="bi bi-heart-pulse"></i></div>
+            <h3>Emergency Contact Access</h3>
+            <p>In emergency situations, family members or emergency contacts can be reached quickly through the information you choose to share.</p>
+          </div>
+          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="200">
+            <div class="hiw-feature__icon"><i class="bi bi-telephone-forward"></i></div>
+            <h3>Masked Calling</h3>
+            <p>Communicate securely without exposing your personal mobile number to strangers.</p>
+          </div>
+          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="250">
+            <div class="hiw-feature__icon"><i class="bi bi-bell-fill"></i></div>
+            <h3>Push Notifications</h3>
+            <p>Receive instant alerts when someone interacts with your SudoTag profile.</p>
+          </div>
+          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="300">
+            <div class="hiw-feature__icon"><i class="bi bi-chat-dots-fill"></i></div>
+            <h3>SMS Alerts</h3>
+            <p>Get important notifications even when internet access is unavailable.</p>
+          </div>
+          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="350">
+            <div class="hiw-feature__icon"><i class="bi bi-chat-left-text-fill"></i></div>
+            <h3>In-App Chat</h3>
+            <p>Communicate directly through the SudoTag platform without sharing personal contact details.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reminders -->
+    <section id="reminders" class="hiw-section">
+      <div class="container">
+        <div class="hiw-reminders">
+          <div class="hiw-reminders__visual" data-aos="fade-right">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">
+              <i class="bi bi-calendar-check me-2" style="color: var(--hiw-accent);"></i>Vehicle Reminders
+            </h3>
+            <p style="color: rgba(255,255,255,0.7); font-size: 0.925rem; margin: 0;">Stay on top of every important date</p>
+            <ul class="hiw-reminders__list">
+              <li><i class="bi bi-shield-check"></i> Insurance Renewal</li>
+              <li><i class="bi bi-cloud-check"></i> Pollution Certificate Renewal</li>
+              <li><i class="bi bi-wrench-adjustable"></i> Service Due Dates</li>
+              <li><i class="bi bi-file-earmark-text"></i> Other Important Vehicle Documents</li>
+            </ul>
+          </div>
+          <div class="hiw-reminders__content" data-aos="fade-left">
+            <span class="hiw-section__label">Smart Reminders</span>
+            <h3>Never Miss a Renewal Again</h3>
+            <p>SudoTag keeps you informed with timely reminders for insurance, pollution certificates, service schedules, and other critical vehicle documents — so you're always road-ready and compliant.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- One QR summary -->
+    <section id="solutions" class="hiw-section hiw-section--alt">
+      <div class="container">
+        <div class="hiw-solutions" data-aos="zoom-in">
+          <div class="hiw-solutions__inner">
+            <h2>One QR. Multiple Solutions.</h2>
+            <p class="hiw-solutions__tagline">Scan &bull; Connect &bull; Protect</p>
+            <div class="hiw-solutions__grid">
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Vehicle Owner Contact</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Emergency Contact Access</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Masked Calling</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Push Notifications</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> SMS Alerts</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> In-App Chat</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Vehicle Reminders</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Order Tracking</div>
+              <div class="hiw-solutions__item"><i class="bi bi-check-circle-fill"></i> Secure Vehicle Profile Management</div>
+            </div>
+            <p class="hiw-solutions__footer">Making vehicle communication smarter, safer, and easier for everyone.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="hiw-cta">
+      <div class="container" data-aos="fade-up">
+        <h2>Ready to Get Started?</h2>
+        <p>Download the SudoTag app, order your QR, or activate the one you have — and join thousands of vehicle owners communicating smarter.</p>
+        <div class="app-store-buttons justify-content-center">
+          <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-google-play" aria-hidden="true"></i>
+            <span>Google Play</span>
+          </a>
+          <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-apple" aria-hidden="true"></i>
+            <span>App Store</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer id="footer" class="footer dark-background">
+    <div class="footer-top">
+      <div class="container">
+        <div class="row gy-4">
+          <div class="col-lg-4 col-md-6 footer-about">
+            <a href="{% url 'index' %}" class="logo d-flex align-items-center">
+              <span class="sitename">SudoTag</span>
+            </a>
+            <div class="footer-contact pt-3">
+              <p>Calicut, Kerala, India</p>
+              <p class="mt-3"><strong>Phone:</strong> <span>+91 7907965255</span></p>
+              <p><strong>Email:</strong> <span>sudotagonline@gmail.com</span></p>
+            </div>
+            <div class="social-links d-flex mt-4">
+              <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>Useful Links</h4>
+            <ul>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'index' %}">Home</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'index' %}#about">About SudoTag</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'how_it_works' %}">How It Works</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'index' %}#faq">FAQ</a></li>
+            </ul>
+          </div>
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>Legal</h4>
+            <ul>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'privacy' %}">Privacy Policy</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'terms' %}">Terms &amp; Conditions</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="copyright">
+      <div class="container text-center">
+        <p>&copy; <strong class="px-1 sitename">SudoTag</strong> All Rights Reserved</p>
+      </div>
+    </div>
+  </footer>
+
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <div id="preloader"></div>
+
+  <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}" defer></script>
+  <script src="{% static 'landing/vendor/aos/aos.js' %}" defer></script>
+  <script src="{% static 'landing/js/main.js' %}" defer></script>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', function () {
+      /* Tab switching */
+      var tabs = document.querySelectorAll('.hiw-paths__tab');
+      var panels = document.querySelectorAll('.hiw-paths__panel');
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var target = tab.getAttribute('data-tab');
+          tabs.forEach(function (t) {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          panels.forEach(function (p) { p.classList.remove('active'); });
+          tab.classList.add('active');
+          tab.setAttribute('aria-selected', 'true');
+          var panel = document.getElementById('panel-' + target);
+          if (panel) panel.classList.add('active');
+        });
+      });
+
+      /* Side nav active state on scroll */
+      var sidenavLinks = document.querySelectorAll('.hiw-sidenav a');
+      var sections = [];
+      sidenavLinks.forEach(function (link) {
+        var id = link.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ id: id, el: el, link: link });
+      });
+      if (sections.length && 'IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              sidenavLinks.forEach(function (l) { l.classList.remove('active'); });
+              var match = sections.find(function (s) { return s.el === entry.target; });
+              if (match) match.link.classList.add('active');
+            }
+          });
+        }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+        sections.forEach(function (s) { observer.observe(s.el); });
+      }
+    });
+  </script>
+</body>
+</html>
