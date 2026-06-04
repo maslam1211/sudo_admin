@@ -17,9 +17,8 @@
 
   <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
   <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/css/how_it_works.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/css/how_it_works.css' %}?v=2" rel="stylesheet">
 
   <style>
     .header .logo .header-logo-img {
@@ -73,7 +72,7 @@
     <!-- Hero -->
     <section class="hiw-hero">
       <div class="container hiw-hero__inner">
-        <div data-aos="fade-right">
+        <div>
           <div class="hiw-hero__badge">
             <i class="bi bi-qr-code-scan"></i>
             Smart Vehicle Platform
@@ -97,17 +96,66 @@
           </div>
         </div>
 
-        <div class="hiw-scan-viz" data-aos="fade-left" data-aos-delay="150">
+        <div class="hiw-scan-viz" id="hiwHeroModel" aria-hidden="false">
+          <div class="hiw-scan-viz__glow"></div>
           <div class="hiw-scan-viz__pulse"></div>
           <div class="hiw-scan-viz__pulse hiw-scan-viz__pulse--2"></div>
+
+          <!-- Vehicle + server connection (background scene) -->
+          <svg class="hiw-scan-viz__scene" viewBox="0 0 420 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vehicle connected via SudoTag">
+            <defs>
+              <linearGradient id="hiwCarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3a3a3a"/>
+                <stop offset="100%" stop-color="#1a1a1a"/>
+              </linearGradient>
+              <linearGradient id="hiwLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#E58147" stop-opacity="0"/>
+                <stop offset="50%" stop-color="#E58147" stop-opacity="1"/>
+                <stop offset="100%" stop-color="#E58147" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="210" cy="280" rx="160" ry="18" fill="rgba(229,129,71,0.12)"/>
+            <path class="hiw-scene__car" d="M72 210h276l-18 42H90l-18-42zm24-28h48l20-36h92l20 36h48l-12 28H108l-12-28z" fill="url(#hiwCarGrad)" stroke="rgba(229,129,71,0.35)" stroke-width="2"/>
+            <rect x="118" y="178" width="52" height="28" rx="4" fill="#0d0d0d" stroke="#E58147" stroke-width="1.5"/>
+            <rect x="122" y="182" width="18" height="18" fill="#E58147" opacity="0.9"/>
+            <rect x="142" y="182" width="6" height="6" fill="#fff"/>
+            <rect x="150" y="182" width="6" height="6" fill="#fff"/>
+            <rect x="142" y="190" width="6" height="6" fill="#fff"/>
+            <rect x="150" y="190" width="6" height="6" fill="#fff"/>
+            <circle cx="120" cy="252" r="22" fill="#111" stroke="#444" stroke-width="3"/>
+            <circle cx="300" cy="252" r="22" fill="#111" stroke="#444" stroke-width="3"/>
+            <path class="hiw-scene__signal" d="M200 120 Q260 80 320 100" fill="none" stroke="url(#hiwLineGrad)" stroke-width="2" stroke-dasharray="6 8"/>
+            <circle class="hiw-scene__dot" cx="320" cy="100" r="6" fill="#E58147"/>
+          </svg>
+
           <div class="hiw-scan-viz__phone">
+            <div class="hiw-scan-viz__notch"></div>
             <div class="hiw-scan-viz__screen">
+              <div class="hiw-scan-viz__status">
+                <span class="hiw-scan-viz__status-dot"></span>
+                SudoTag Live
+              </div>
               <div class="hiw-scan-viz__qr">
+                <svg viewBox="0 0 100 100" class="hiw-scan-viz__qr-svg" aria-hidden="true">
+                  <rect width="100" height="100" fill="#0d0d0d" rx="6"/>
+                  <rect x="8" y="8" width="28" height="28" fill="none" stroke="#E58147" stroke-width="4"/>
+                  <rect x="64" y="8" width="28" height="28" fill="none" stroke="#E58147" stroke-width="4"/>
+                  <rect x="8" y="64" width="28" height="28" fill="none" stroke="#E58147" stroke-width="4"/>
+                  <rect x="16" y="16" width="12" height="12" fill="#E58147"/>
+                  <rect x="72" y="16" width="12" height="12" fill="#E58147"/>
+                  <rect x="16" y="72" width="12" height="12" fill="#E58147"/>
+                  <rect x="44" y="44" width="12" height="12" fill="#E58147"/>
+                  <rect x="60" y="52" width="8" height="8" fill="#E58147" opacity="0.7"/>
+                  <rect x="52" y="68" width="8" height="8" fill="#E58147" opacity="0.7"/>
+                  <rect x="68" y="68" width="16" height="16" fill="#E58147"/>
+                </svg>
                 <div class="hiw-scan-viz__beam"></div>
               </div>
               <p class="hiw-scan-viz__label">Scanning SudoTag QR…</p>
+              <div class="hiw-scan-viz__progress"><span></span></div>
             </div>
           </div>
+
           <div class="hiw-scan-viz__card hiw-scan-viz__card--1">
             <i class="bi bi-shield-check"></i>
             Secure &amp; Verified
@@ -123,7 +171,7 @@
     <!-- App banner -->
     <section class="hiw-section">
       <div class="container">
-        <div class="hiw-app-banner" data-aos="fade-up">
+        <div class="hiw-app-banner hiw-reveal">
           <div class="hiw-app-banner__text">
             <h3><i class="bi bi-phone me-2" style="color: var(--hiw-accent);"></i>SudoTag App — Android &amp; iOS</h3>
             <p>Manage your vehicle profile, activate QR codes, track orders, receive notifications, communicate securely, and access all SudoTag services directly from the mobile app.</p>
@@ -145,29 +193,29 @@
     <!-- Scan experience -->
     <section id="scan-experience" class="hiw-section hiw-section--alt">
       <div class="container">
-        <div class="hiw-section__header" data-aos="fade-up">
+        <div class="hiw-section__header hiw-reveal">
           <span class="hiw-section__label">The Scan Experience</span>
           <h2>What Happens When Someone Scans Your QR</h2>
           <p>A smooth, trustworthy flow designed to connect people instantly — without exposing personal phone numbers.</p>
         </div>
 
         <div class="hiw-flow">
-          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="100">
+          <div class="hiw-flow__step hiw-reveal hiw-reveal--delay-1">
             <div class="hiw-flow__icon"><i class="bi bi-qr-code-scan"></i></div>
             <h4>Scan QR Code</h4>
             <p>Anyone scans the SudoTag QR on your vehicle using their smartphone camera.</p>
           </div>
-          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="200">
+          <div class="hiw-flow__step hiw-reveal hiw-reveal--delay-2">
             <div class="hiw-flow__icon"><i class="bi bi-window-stack"></i></div>
             <h4>Secure Page Opens</h4>
             <p>A verified SudoTag page loads instantly — fast, mobile-optimized, and trustworthy.</p>
           </div>
-          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="300">
+          <div class="hiw-flow__step hiw-reveal hiw-reveal--delay-3">
             <div class="hiw-flow__icon"><i class="bi bi-hand-index"></i></div>
             <h4>Choose Action</h4>
             <p>Contact the owner, report parking, notify damage, or reach emergency contacts.</p>
           </div>
-          <div class="hiw-flow__step" data-aos="fade-up" data-aos-delay="400">
+          <div class="hiw-flow__step hiw-reveal hiw-reveal--delay-4">
             <div class="hiw-flow__icon"><i class="bi bi-bell"></i></div>
             <h4>Owner Notified</h4>
             <p>You receive push notifications, SMS alerts, or in-app messages — privately and securely.</p>
@@ -179,13 +227,13 @@
     <!-- Get started paths -->
     <section id="get-started" class="hiw-section">
       <div class="container">
-        <div class="hiw-section__header" data-aos="fade-up">
+        <div class="hiw-section__header hiw-reveal">
           <span class="hiw-section__label">Getting Started</span>
           <h2>Three Ways to Activate SudoTag</h2>
           <p>Whether you're ordering a new QR, activating one you already have, or setting up via the web — we've got you covered.</p>
         </div>
 
-        <div class="hiw-paths" data-aos="fade-up" data-aos-delay="100">
+        <div class="hiw-paths hiw-reveal hiw-reveal--delay-1">
           <div class="hiw-paths__tabs" role="tablist">
             <button class="hiw-paths__tab active" role="tab" aria-selected="true" data-tab="order">
               <i class="bi bi-bag-check"></i> Order a QR
@@ -370,39 +418,39 @@
     <!-- Features -->
     <section id="features" class="hiw-section hiw-section--alt">
       <div class="container">
-        <div class="hiw-section__header" data-aos="fade-up">
+        <div class="hiw-section__header hiw-reveal">
           <span class="hiw-section__label">After Activation</span>
           <h2>Features Available After Activation</h2>
           <p>One QR unlocks a complete suite of secure vehicle communication tools.</p>
         </div>
 
         <div class="hiw-features">
-          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="100">
+          <div class="hiw-feature hiw-reveal hiw-reveal--delay-1">
             <div class="hiw-feature__icon"><i class="bi bi-person-lines-fill"></i></div>
             <h3>Vehicle Owner Contact</h3>
             <p>Allow people to reach you quickly regarding parking issues, vehicle movement requests, or vehicle-related notifications.</p>
           </div>
-          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="150">
+          <div class="hiw-feature hiw-reveal hiw-reveal--delay-2">
             <div class="hiw-feature__icon"><i class="bi bi-heart-pulse"></i></div>
             <h3>Emergency Contact Access</h3>
             <p>In emergency situations, family members or emergency contacts can be reached quickly through the information you choose to share.</p>
           </div>
-          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="200">
+          <div class="hiw-feature hiw-reveal hiw-reveal--delay-3">
             <div class="hiw-feature__icon"><i class="bi bi-telephone-forward"></i></div>
             <h3>Masked Calling</h3>
             <p>Communicate securely without exposing your personal mobile number to strangers.</p>
           </div>
-          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="250">
+          <div class="hiw-feature hiw-reveal hiw-reveal--delay-4">
             <div class="hiw-feature__icon"><i class="bi bi-bell-fill"></i></div>
             <h3>Push Notifications</h3>
             <p>Receive instant alerts when someone interacts with your SudoTag profile.</p>
           </div>
-          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="300">
+          <div class="hiw-feature hiw-reveal hiw-reveal--delay-5">
             <div class="hiw-feature__icon"><i class="bi bi-chat-dots-fill"></i></div>
             <h3>SMS Alerts</h3>
             <p>Get important notifications even when internet access is unavailable.</p>
           </div>
-          <div class="hiw-feature" data-aos="fade-up" data-aos-delay="350">
+          <div class="hiw-feature hiw-reveal hiw-reveal--delay-6">
             <div class="hiw-feature__icon"><i class="bi bi-chat-left-text-fill"></i></div>
             <h3>In-App Chat</h3>
             <p>Communicate directly through the SudoTag platform without sharing personal contact details.</p>
@@ -415,7 +463,7 @@
     <section id="reminders" class="hiw-section">
       <div class="container">
         <div class="hiw-reminders">
-          <div class="hiw-reminders__visual" data-aos="fade-right">
+          <div class="hiw-reminders__visual hiw-reveal hiw-reveal--right">
             <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">
               <i class="bi bi-calendar-check me-2" style="color: var(--hiw-accent);"></i>Vehicle Reminders
             </h3>
@@ -427,7 +475,7 @@
               <li><i class="bi bi-file-earmark-text"></i> Other Important Vehicle Documents</li>
             </ul>
           </div>
-          <div class="hiw-reminders__content" data-aos="fade-left">
+          <div class="hiw-reminders__content hiw-reveal hiw-reveal--left">
             <span class="hiw-section__label">Smart Reminders</span>
             <h3>Never Miss a Renewal Again</h3>
             <p>SudoTag keeps you informed with timely reminders for insurance, pollution certificates, service schedules, and other critical vehicle documents — so you're always road-ready and compliant.</p>
@@ -439,7 +487,7 @@
     <!-- One QR summary -->
     <section id="solutions" class="hiw-section hiw-section--alt">
       <div class="container">
-        <div class="hiw-solutions" data-aos="zoom-in">
+        <div class="hiw-solutions hiw-reveal hiw-reveal--scale">
           <div class="hiw-solutions__inner">
             <h2>One QR. Multiple Solutions.</h2>
             <p class="hiw-solutions__tagline">Scan &bull; Connect &bull; Protect</p>
@@ -462,7 +510,7 @@
 
     <!-- CTA -->
     <section class="hiw-cta">
-      <div class="container" data-aos="fade-up">
+      <div class="container hiw-reveal">
         <h2>Ready to Get Started?</h2>
         <p>Download the SudoTag app, order your QR, or activate the one you have — and join thousands of vehicle owners communicating smarter.</p>
         <div class="app-store-buttons justify-content-center">
@@ -527,10 +575,42 @@
   <div id="preloader"></div>
 
   <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/aos/aos.js' %}" defer></script>
   <script src="{% static 'landing/js/main.js' %}" defer></script>
   <script defer>
     document.addEventListener('DOMContentLoaded', function () {
+      /* Scroll reveal animations (replaces AOS on this page) */
+      function revealElements(root) {
+        var scope = root || document;
+        var els = scope.querySelectorAll('.hiw-reveal:not(.is-visible)');
+        if (!els.length) return;
+
+        if (!('IntersectionObserver' in window)) {
+          els.forEach(function (el) { el.classList.add('is-visible'); });
+          return;
+        }
+
+        var revealObserver = new IntersectionObserver(function (entries, obs) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+        els.forEach(function (el) { revealObserver.observe(el); });
+      }
+
+      revealElements();
+
+      /* Hero phone + vehicle model: animate in after page is ready */
+      var heroModel = document.getElementById('hiwHeroModel');
+      if (heroModel) {
+        requestAnimationFrame(function () {
+          heroModel.classList.add('is-loaded');
+        });
+      }
+
       /* Tab switching */
       var tabs = document.querySelectorAll('.hiw-paths__tab');
       var panels = document.querySelectorAll('.hiw-paths__panel');
@@ -545,7 +625,13 @@
           tab.classList.add('active');
           tab.setAttribute('aria-selected', 'true');
           var panel = document.getElementById('panel-' + target);
-          if (panel) panel.classList.add('active');
+          if (panel) {
+            panel.classList.add('active');
+            /* Reveal steps inside newly shown tab panel */
+            requestAnimationFrame(function () {
+              revealElements(panel);
+            });
+          }
         });
       });
 
@@ -558,7 +644,7 @@
         if (el) sections.push({ id: id, el: el, link: link });
       });
       if (sections.length && 'IntersectionObserver' in window) {
-        var observer = new IntersectionObserver(function (entries) {
+        var navObserver = new IntersectionObserver(function (entries) {
           entries.forEach(function (entry) {
             if (entry.isIntersecting) {
               sidenavLinks.forEach(function (l) { l.classList.remove('active'); });
@@ -567,8 +653,9 @@
             }
           });
         }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
-        sections.forEach(function (s) { observer.observe(s.el); });
+        sections.forEach(function (s) { navObserver.observe(s.el); });
       }
+
     });
   </script>
 </body>
