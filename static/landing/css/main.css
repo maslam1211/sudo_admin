@@ -1064,6 +1064,130 @@ section,
 }
 
 /*--------------------------------------------------------------
+# Landing Page Advertisement Slider
+--------------------------------------------------------------*/
+.landing-ad {
+  padding: 60px 0;
+}
+
+.landing-ad-slider {
+  position: relative;
+  margin: 0 auto;
+  padding: 0 44px 40px;
+}
+
+.landing-ad-slider .swiper-slide {
+  height: auto;
+}
+
+.landing-ad-item {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #111;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.14);
+}
+
+.landing-ad-link {
+  display: block;
+  overflow: hidden;
+  transition: opacity 0.3s ease;
+}
+
+.landing-ad-link:hover {
+  opacity: 0.95;
+}
+
+.landing-ad-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  background: #0f0f0f;
+}
+
+.landing-ad-caption {
+  margin: 0;
+  padding: 12px 16px 14px;
+  text-align: center;
+  color: color-mix(in srgb, var(--default-color), transparent 20%);
+  font-size: 14px;
+  background: #fff;
+}
+
+.landing-ad-slider .landing-ad-prev,
+.landing-ad-slider .landing-ad-next {
+  color: var(--accent-color);
+  width: 40px;
+  height: 40px;
+  margin-top: -28px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.landing-ad-slider .landing-ad-prev:hover,
+.landing-ad-slider .landing-ad-next:hover {
+  background: var(--accent-color);
+  color: #fff;
+}
+
+.landing-ad-slider .landing-ad-prev::after,
+.landing-ad-slider .landing-ad-next::after {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.landing-ad-slider .landing-ad-pagination {
+  bottom: 0;
+}
+
+.landing-ad-slider .landing-ad-pagination .swiper-pagination-bullet {
+  width: 10px;
+  height: 10px;
+  background: color-mix(in srgb, var(--default-color), transparent 65%);
+  opacity: 1;
+}
+
+.landing-ad-slider .landing-ad-pagination .swiper-pagination-bullet-active {
+  background: var(--accent-color);
+  transform: scale(1.15);
+}
+
+@media (max-width: 768px) {
+  .landing-ad {
+    padding: 40px 0;
+  }
+
+  .landing-ad-slider {
+    padding: 0 32px 36px;
+  }
+
+  .landing-ad-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .landing-ad-slider .landing-ad-prev,
+  .landing-ad-slider .landing-ad-next {
+    width: 32px;
+    height: 32px;
+    margin-top: -24px;
+  }
+
+  .landing-ad-slider .landing-ad-prev::after,
+  .landing-ad-slider .landing-ad-next::after {
+    font-size: 15px;
+  }
+
+  .landing-ad-caption {
+    font-size: 13px;
+    padding: 10px 12px 12px;
+  }
+}
+
+/*--------------------------------------------------------------
 # Call To Action Section
 --------------------------------------------------------------*/
 .call-to-action {

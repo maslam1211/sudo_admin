@@ -302,3 +302,7 @@ DELETION_WEBHOOK_SECRET = "QWERTY123"
 # PBX webhook POST /admin/api/call — require Authorization: Bearer <key> or X-API-Key when non-empty.
 # Rotate by changing this value and updating your PBX + curl if exposed.
 CALL_ROUTING_API_KEY = 'SudoTag4455'
+
+# Ad image uploads (also set nginx client_max_body_size on production)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024

@@ -5686,6 +5686,24 @@ def delete_ad(request):
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
+def get_active_banner_ads_for_landing():
+    """Active banner ads for the public landing page."""
+    try:
+        banner_ads = []
+        for doc in db.collection('ads').stream():
+            data = doc.to_dict() or {}
+            ads = data.get('banner_Ads')
+            if not isinstance(ads, list):
+                continue
+            for ad in ads:
+                if ad.get('is_active', True) and ad.get('image_url'):
+                    banner_ads.append(ad)
+        return banner_ads
+    except Exception as e:
+        logger.warning('Failed to load landing banner ads: %s', e)
+        return []
+
+
 @csrf_exempt
 def get_active_ads(request, ad_type):
     """API endpoint to get active ads for mobile app"""

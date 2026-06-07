@@ -133,6 +133,67 @@
 
     </section><!-- /Hero Section -->
 
+    <!-- Advertisement Slider -->
+    <section id="promo-ad" class="landing-ad section light-background">
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+        <div class="section-title">
+          <h2>Advertisement</h2>
+          <p>Discover the latest offers and updates from SudoTag</p>
+        </div>
+
+        <div class="landing-ad-slider swiper init-swiper">
+          <script type="application/json" class="swiper-config">
+            {
+              "loop": {% if banner_ads|length > 1 %}true{% else %}false{% endif %},
+              "speed": 700,
+              "autoplay": {
+                "delay": 5000,
+                "disableOnInteraction": false
+              },
+              "slidesPerView": 1,
+              "spaceBetween": 0,
+              "pagination": {
+                "el": ".landing-ad-pagination",
+                "type": "bullets",
+                "clickable": true
+              },
+              "navigation": {
+                "nextEl": ".landing-ad-next",
+                "prevEl": ".landing-ad-prev"
+              }
+            }
+          </script>
+
+          <div class="swiper-wrapper">
+            {% for ad in banner_ads %}
+            <div class="swiper-slide">
+              <div class="landing-ad-item">
+                {% if ad.link %}
+                <a href="{{ ad.link }}" class="landing-ad-link" target="_blank" rel="noopener noreferrer" aria-label="{{ ad.message|default:'SudoTag promotion' }}">
+                {% endif %}
+                  {% if ad.image_url %}
+                  <img src="{{ ad.image_url }}" alt="{{ ad.message|default:'SudoTag advertisement' }}" class="landing-ad-image" loading="lazy">
+                  {% else %}
+                  <img src="{% static ad.image_static %}" alt="{{ ad.message|default:'SudoTag advertisement' }}" class="landing-ad-image" loading="lazy">
+                  {% endif %}
+                {% if ad.link %}
+                </a>
+                {% endif %}
+                {% if ad.message %}
+                <p class="landing-ad-caption">{{ ad.message }}</p>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="landing-ad-prev swiper-button-prev"></div>
+          <div class="landing-ad-next swiper-button-next"></div>
+          <div class="landing-ad-pagination swiper-pagination"></div>
+        </div>
+      </div>
+    </section><!-- /Advertisement Slider -->
+
     <!-- About Section -->
     <section id="about" class="about section">
 

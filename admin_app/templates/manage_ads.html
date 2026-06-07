@@ -420,11 +420,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+function validateAdImageFile(fileInput, required) {
+    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+    if (!file && required) {
+        return 'Please choose an image to upload.';
+    }
+    return null;
+}
+
+function parseAdApiResponse(response) {
+    if (response.status === 413) {
+        return Promise.reject(new Error('Upload failed: the file is too large for the server. Please contact support if this continues.'));
+    }
+    if (response.status === 502 || response.status === 504) {
+        return Promise.reject(new Error('The server timed out while uploading. Please try again in a moment.'));
+    }
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        return Promise.reject(new Error('Unexpected server response (HTTP ' + response.status + '). Please try again.'));
+    }
+    return response.json().then(function(data) {
+        if (!response.ok && data && data.error) {
+            return Promise.reject(new Error(data.error));
+        }
+        if (!response.ok) {
+            return Promise.reject(new Error('Request failed (HTTP ' + response.status + ').'));
+        }
+        return data;
+    });
+}
+
 function submitAdForm(form, adType) {
-    const formData = new FormData(form);
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    
+    const imageError = validateAdImageFile(form.querySelector('input[name="image_file"]'), true);
+    if (imageError) {
+        showAlert('danger', imageError);
+        return;
+    }
+
+    const formData = new FormData(form);
+
     // Show loading state
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
     submitBtn.disabled = true;
@@ -436,7 +472,7 @@ function submitAdForm(form, adType) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(parseAdApiResponse)
     .then(data => {
         if (data.success) {
             showAlert('success', data.message);
@@ -456,7 +492,7 @@ function submitAdForm(form, adType) {
         }
     })
     .catch(error => {
-        showAlert('danger', 'Network error: ' + error);
+        showAlert('danger', error.message || String(error));
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });
@@ -473,6 +509,7 @@ function openEditModal(adType, adId, message, linkUrl, isActive, imageUrl) {
         <div class="mb-3">
             <label class="form-label">Choose new image (Leave empty to keep current)</label>
             <input type="file" class="form-control" name="image_file" accept="image/*">
+            <div class="form-text">Supported formats: JPG, PNG, GIF.</div>
             ${imageUrl ? `
             <div class="mt-2">
                 <small class="text-muted">Current Image:</small><br>
@@ -503,10 +540,16 @@ function openEditModal(adType, adId, message, linkUrl, isActive, imageUrl) {
 }
 
 function updateAd(form) {
-    const formData = new FormData(form);
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    
+    const imageError = validateAdImageFile(form.querySelector('input[name="image_file"]'), false);
+    if (imageError) {
+        showAlert('danger', imageError);
+        return;
+    }
+
+    const formData = new FormData(form);
+
     // Show loading state
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
     submitBtn.disabled = true;
@@ -518,7 +561,7 @@ function updateAd(form) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(parseAdApiResponse)
     .then(data => {
         if (data.success) {
             showAlert('success', data.message);
@@ -537,7 +580,7 @@ function updateAd(form) {
         }
     })
     .catch(error => {
-        showAlert('danger', 'Network error: ' + error);
+        showAlert('danger', error.message || String(error));
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });
@@ -560,7 +603,7 @@ function deleteAd(adType, adId) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(parseAdApiResponse)
     .then(data => {
         if (data.success) {
             showAlert('success', data.message);
@@ -572,7 +615,7 @@ function deleteAd(adType, adId) {
         }
     })
     .catch(error => {
-        showAlert('danger', 'Network error: ' + error);
+        showAlert('danger', error.message || String(error));
     });
 }
 
