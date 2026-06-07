@@ -62,12 +62,48 @@ def brand_logo_view(request):
     return HttpResponse(status=404)
 
 
+def _first_existing_file(*candidates):
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
 def landing_header_logo_view(request):
-    """Landing page header logo (logo-cmyk — survives stale collectstatic on sudotag.com)."""
-    logo = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'logo-cmyk.png'
-    if logo.is_file():
+    """Landing header logo — app bundle path survives stale collectstatic on sudotag.com."""
+    logo = _first_existing_file(
+        Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'assets' / 'img' / 'sudotag-logo.png',
+        Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'logo-cmyk.png',
+        Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'sudomainlogo.png',
+    )
+    if logo:
         resp = FileResponse(logo.open('rb'), content_type='image/png')
         resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
+def landing_fleet_promo_ad_view(request):
+    """Default fleet promo banner — survives stale collectstatic on sudotag.com."""
+    image = _first_existing_file(
+        Path(settings.BASE_DIR) / 'static' / 'landing' / 'img' / 'sudotag-fleet-promo-ad.png',
+        Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'sudotag-fleet-promo-ad.png',
+    )
+    if image:
+        resp = FileResponse(image.open('rb'), content_type='image/png')
+        resp['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    return HttpResponse(status=404)
+
+
+def landing_ad_css_view(request):
+    """Advertisement slider styles — survives stale collectstatic on sudotag.com."""
+    css = Path(settings.BASE_DIR) / 'static' / 'landing' / 'css' / 'landing_ad.css'
+    if css.is_file():
+        resp = FileResponse(css.open('rb'), content_type='text/css; charset=utf-8')
+        mtime = int(css.stat().st_mtime)
+        resp['ETag'] = f'"{mtime}"'
+        resp['Cache-Control'] = 'public, max-age=3600, must-revalidate'
         return resp
     return HttpResponse(status=404)
 
@@ -148,6 +184,16 @@ urlpatterns = [
         'admin/landing-header-logo.png',
         landing_header_logo_view,
         name='landing_header_logo_png',
+    ),
+    path(
+        'admin/landing-fleet-promo.png',
+        landing_fleet_promo_ad_view,
+        name='landing_fleet_promo_png',
+    ),
+    path(
+        'admin/css/landing-ad.css',
+        landing_ad_css_view,
+        name='landing_ad_css',
     ),
     path(
         'admin/sudomain-logo.png',
