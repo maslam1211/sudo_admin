@@ -2432,64 +2432,6 @@ section,
   transform: translateY(-4px);
 }
 
-/* ── Preloader ── */
-#preloader {
-  background: #151515;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#preloader:before {
-  display: none;
-}
-
-.preloader-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-.preloader-logo-wrap {
-  animation: stPreloaderPulse 1.8s ease-in-out infinite;
-}
-
-.preloader-logo {
-  height: 48px;
-  width: auto;
-  max-width: 200px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 16px rgba(229, 129, 71, 0.3));
-}
-
-.preloader-bar {
-  width: 120px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--st-radius-pill);
-  overflow: hidden;
-}
-
-.preloader-bar span {
-  display: block;
-  height: 100%;
-  width: 40%;
-  background: linear-gradient(90deg, var(--accent-color), color-mix(in srgb, var(--accent-color), #fff 30%));
-  border-radius: inherit;
-  animation: stPreloaderBar 1.2s ease-in-out infinite;
-}
-
-@keyframes stPreloaderPulse {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.03); }
-}
-
-@keyframes stPreloaderBar {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
-}
-
 /* ── Mobile sticky app bar ── */
 .mobile-app-bar {
   position: fixed;
@@ -2702,8 +2644,7 @@ section,
   .hero-speed-lines::before,
   .hero-speed-lines::after,
   .hero-scroll-line,
-  .preloader-logo-wrap,
-  .preloader-bar span,
+  #preloader:before,
   .hero-scan-device,
   .hero-scan-phone__beam,
   .hero-scan-phone__flash,

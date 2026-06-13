@@ -61,21 +61,13 @@
   });
 
   /**
-   * Preloader: same look/CSS as before — only hides once the HTML is ready instead of waiting for
-   * every image/font (window "load"). Final layout, fonts, and AOS/Swiper still follow "load".
+   * Preloader
    */
   const preloader = document.querySelector('#preloader');
-  function hidePreloader() {
-    if (preloader && preloader.parentNode) {
-      preloader.remove();
-    }
-  }
   if (preloader) {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', hidePreloader);
-    } else {
-      hidePreloader();
-    }
+    window.addEventListener('load', () => {
+      preloader.remove();
+    });
   }
 
   /**
