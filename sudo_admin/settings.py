@@ -240,10 +240,9 @@ STATICFILES_DIRS = [
 # is stale — logo + sudo_* CSS 404 otherwise (broken images + unstyled bottom dock).
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-# WhiteNoise: in production rely on STATIC_ROOT after collectstatic. Finders/autorefresh
-# avoid accidental drift vs nginx /static (and match runserver-less deploys).
-WHITENOISE_USE_FINDERS = DEBUG
-WHITENOISE_AUTOREFRESH = DEBUG
+# WhiteNoise: serve from STATICFILES_DIRS when collectstatic is stale (new landing images/CSS).
+WHITENOISE_USE_FINDERS = os.getenv('WHITENOISE_USE_FINDERS', '1').lower() in ('1', 'true', 'yes')
+WHITENOISE_AUTOREFRESH = DEBUG or WHITENOISE_USE_FINDERS
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

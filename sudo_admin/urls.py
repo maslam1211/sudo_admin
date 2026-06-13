@@ -108,6 +108,37 @@ def landing_ad_css_view(request):
     return HttpResponse(status=404)
 
 
+_LANDING_ROOT = Path(settings.BASE_DIR) / 'static' / 'landing'
+_LANDING_MEDIA_TYPES = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+}
+
+
+def landing_asset_view(request, asset_path):
+    """Landing images/CSS/JS from source tree — survives stale collectstatic on production."""
+    safe = Path(asset_path)
+    if safe.is_absolute() or '..' in safe.parts:
+        return HttpResponse(status=404)
+    full = (_LANDING_ROOT / safe).resolve()
+    root = _LANDING_ROOT.resolve()
+    if not str(full).startswith(str(root)) or not full.is_file():
+        return HttpResponse(status=404)
+    content_type = _LANDING_MEDIA_TYPES.get(full.suffix.lower(), 'application/octet-stream')
+    resp = FileResponse(full.open('rb'), content_type=content_type)
+    mtime = int(full.stat().st_mtime)
+    resp['ETag'] = f'"{mtime}"'
+    resp['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+    return resp
+
+
 def notify_flow_center_logo_view(request):
     """Notify-flow modal mark (same resilience as brand_logo_png for QR pages on sudotag.com)."""
     logo = Path(settings.BASE_DIR) / 'admin_app' / 'static' / 'images' / 'sudomainlogo.png'
@@ -194,6 +225,11 @@ urlpatterns = [
         'admin/css/landing-ad.css',
         landing_ad_css_view,
         name='landing_ad_css',
+    ),
+    path(
+        'admin/landing-asset/<path:asset_path>',
+        landing_asset_view,
+        name='landing_asset',
     ),
     path(
         'admin/sudomain-logo.png',

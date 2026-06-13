@@ -17,6 +17,23 @@ _SUDO_MOBILE_FLOW_CSS = (
     / 'css'
     / 'sudo_mobile_flow.css'
 )
+_LANDING_ROOT = Path(settings.BASE_DIR) / 'static' / 'landing'
+
+
+def _landing_asset_mtime(relative_path):
+    path = _LANDING_ROOT / relative_path
+    return int(path.stat().st_mtime) if path.is_file() else 0
+
+
+@register.simple_tag
+def landing_asset(relative_path):
+    """Landing images/CSS/JS via Django — works when /static/ is stale on production."""
+    relative_path = relative_path.replace('\\', '/').lstrip('/')
+    if relative_path.startswith('landing/'):
+        relative_path = relative_path[len('landing/') :]
+    version = _landing_asset_mtime(relative_path)
+    url = reverse('landing_asset', kwargs={'asset_path': relative_path})
+    return f'{url}?v={version}' if version else url
 
 
 @register.simple_tag

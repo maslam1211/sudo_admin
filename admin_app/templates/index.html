@@ -1,4 +1,4 @@
-{% load static %}
+{% load static custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -25,9 +25,9 @@
 
   <!-- Main CSS File -->
   <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/css/landing-premium.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/landing-premium.css' %}" rel="stylesheet">
   <link href="{% url 'landing_ad_css' %}" rel="stylesheet">
-  <link rel="preload" as="image" href="{% static 'landing/img/sudotag-qr-promo.png' %}">
+  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-qr-promo.png' %}">
 
   <!-- =======================================================
   * Template Name: Gp
@@ -70,7 +70,7 @@
     <section id="hero" class="hero section dark-background">
 
       <div class="hero-background" aria-hidden="true">
-        <img src="{% static 'landing/img/sudotag-qr-promo.png' %}" alt="" width="1024" height="517" decoding="async" class="hero-bg-tag">
+        <img src="{% landing_asset 'img/sudotag-qr-promo.png' %}" alt="" width="1024" height="517" decoding="async" class="hero-bg-tag">
         <div class="hero-overlay"></div>
         <div class="hero-grid-pattern"></div>
         <div class="hero-glow hero-glow--primary"></div>
@@ -124,7 +124,7 @@
                           </div>
                           <div class="hero-scan-phone__viewfinder">
                             <div class="hero-scan-phone__qr-wrap">
-                              <img src="{% static 'landing/img/sudotag-qr-code.png' %}" alt="" class="hero-scan-phone__qr-mirror" width="1024" height="1024" decoding="async">
+                              <img src="{% landing_asset 'img/sudotag-qr-code.png' %}" alt="" class="hero-scan-phone__qr-mirror" width="1024" height="1024" decoding="async">
                             </div>
                             <div class="hero-scan-phone__overlay" aria-hidden="true">
                               <span class="hero-scan-bracket hero-scan-bracket--tl hero-scan-bracket--screen"></span>
@@ -258,7 +258,7 @@
         <div class="row gy-4">
           <div class="col-lg-6 order-1 order-lg-2">
             <div class="about-image-frame" data-aos="fade-left" data-aos-delay="150">
-              <img src="{% static 'landing/img/sudotag-windshield-scan.png' %}" class="img-fluid" alt="Scanning a SudoTag QR sticker on a car windshield with a smartphone">
+              <img src="{% landing_asset 'img/sudotag-windshield-scan.png' %}" class="img-fluid" alt="Scanning a SudoTag QR sticker on a car windshield with a smartphone">
               <span class="about-image-accent" aria-hidden="true"></span>
             </div>
           </div>
@@ -290,7 +290,7 @@
         <div class="row gy-4">
           <div class="features-image col-lg-6" data-aos="fade-up" data-aos-delay="100">
             <div class="features-image-inner">
-              <img src="{% static 'landing/img/sudotag-windshield-tag.png' %}" alt="SudoTag sticker on a car windshield — scan to contact the vehicle owner">
+              <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="SudoTag sticker on a car windshield — scan to contact the vehicle owner">
               <span class="features-image-accent" aria-hidden="true"></span>
             </div>
           </div>
@@ -417,7 +417,7 @@
     <!-- Call To Action Section -->
     <section id="call-to-action" class="call-to-action section dark-background">
 
-      <img src="{% static 'landing/img/Fleets-1-4.jpg' %}" alt="">
+      <img src="{% landing_asset 'img/Fleets-1-4.jpg' %}" alt="">
 
       <div class="container">
         <div class="row justify-content-center" data-aos="zoom-in" data-aos-delay="100">
@@ -451,7 +451,7 @@
         <div class="row gy-4 align-items-center justify-content-between">
 
           <div class="col-lg-5">
-            <img src="{% static 'landing/img/stats-img.jpg' %}" alt="Sudo App Statistics" class="img-fluid">
+            <img src="{% landing_asset 'img/stats-img.jpg' %}" alt="Sudo App Statistics" class="img-fluid">
           </div>
 
           <div class="col-lg-6">
@@ -573,7 +573,7 @@
     <!-- Testimonials Section -->
     <section id="testimonials" class="testimonials section dark-background">
 
-      <img src="{% static 'landing/img/testimonials-bg.jpg' %}" class="testimonials-bg" alt="Background for Testimonials">
+      <img src="{% landing_asset 'img/testimonials-bg.jpg' %}" class="testimonials-bg" alt="Background for Testimonials">
 
       <div class="container" data-aos="fade-up" data-aos-delay="100">
 
@@ -597,7 +597,7 @@
 
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="{% static 'landing/img/testimonials/testimonials-1.jpg' %}" class="testimonial-img" alt="User Testimonial 1">
+                <img src="{% landing_asset 'img/testimonials/testimonials-1.jpg' %}" class="testimonial-img" alt="User Testimonial 1">
                 <h3>Arjun Nair</h3>
                 <h4>Community Volunteer</h4>
                 <div class="stars">
@@ -613,7 +613,7 @@
 
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="{% static 'landing/img/testimonials/testimonials-2.jpg' %}" class="testimonial-img" alt="User Testimonial 2">
+                <img src="{% landing_asset 'img/testimonials/testimonials-2.jpg' %}" class="testimonial-img" alt="User Testimonial 2">
                 <h3>Neha Sharma</h3>
                 <h4>Resident</h4>
                 <div class="stars">
@@ -629,7 +629,7 @@
 
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="{% static 'landing/img/testimonials/testimonials-3.jpg' %}" class="testimonial-img" alt="User Testimonial 3">
+                <img src="{% landing_asset 'img/testimonials/testimonials-3.jpg' %}" class="testimonial-img" alt="User Testimonial 3">
                 <h3>Vikram Rao</h3>
                 <h4>Local Business Owner</h4>
                 <div class="stars">
@@ -645,7 +645,7 @@
 
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="{% static 'landing/img/testimonials/testimonials-4.jpg' %}" class="testimonial-img" alt="User Testimonial 4">
+                <img src="{% landing_asset 'img/testimonials/testimonials-4.jpg' %}" class="testimonial-img" alt="User Testimonial 4">
                 <h3>Anjali Menon</h3>
                 <h4>Tech Enthusiast</h4>
                 <div class="stars">
@@ -661,7 +661,7 @@
 
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="{% static 'landing/img/testimonials/testimonials-5.jpg' %}" class="testimonial-img" alt="User Testimonial 5">
+                <img src="{% landing_asset 'img/testimonials/testimonials-5.jpg' %}" class="testimonial-img" alt="User Testimonial 5">
                 <h3>Ramesh Iyer</h3>
                 <h4>City Official</h4>
                 <div class="stars">
@@ -1050,7 +1050,7 @@ if (whatsappSubscriptionForm) {
   <script src="{% static 'landing/vendor/purecounter/purecounter_vanilla.js' %}" defer></script>
 
   <!-- Main JS File -->
-  <script src="{% static 'landing/js/main.js' %}" defer></script>
+  <script src="{% landing_asset 'js/main.js' %}" defer></script>
 
 </body>
 
