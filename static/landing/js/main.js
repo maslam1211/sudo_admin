@@ -106,10 +106,11 @@
    */
   function aosInit() {
     AOS.init({
-      duration: 600,
-      easing: 'ease-in-out',
+      duration: 700,
+      easing: 'ease-out-cubic',
       once: true,
-      mirror: false
+      mirror: false,
+      offset: 60
     });
   }
   window.addEventListener('load', aosInit);
@@ -217,6 +218,62 @@
   }
   window.addEventListener('load', navmenuScrollspy);
   document.addEventListener('scroll', navmenuScrollspy);
+
+  /**
+   * Scroll progress indicator (landing page)
+   */
+  const scrollProgress = document.querySelector('#scroll-progress');
+  function updateScrollProgress() {
+    if (!scrollProgress) return;
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    scrollProgress.style.width = progress + '%';
+  }
+  if (scrollProgress) {
+    document.addEventListener('scroll', updateScrollProgress, { passive: true });
+    window.addEventListener('load', updateScrollProgress);
+    updateScrollProgress();
+  }
+
+  /**
+   * Mobile sticky app download bar — appears after scrolling past hero
+   */
+  const mobileAppBar = document.querySelector('#mobile-app-bar');
+  const heroSection = document.querySelector('#hero');
+  function toggleMobileAppBar() {
+    if (!mobileAppBar || !heroSection) return;
+    const pastHero = window.scrollY > heroSection.offsetHeight * 0.6;
+    mobileAppBar.classList.toggle('is-visible', pastHero);
+    mobileAppBar.setAttribute('aria-hidden', pastHero ? 'false' : 'true');
+    document.body.classList.toggle('mobile-app-bar-visible', pastHero);
+  }
+  if (mobileAppBar && heroSection) {
+    document.addEventListener('scroll', toggleMobileAppBar, { passive: true });
+    window.addEventListener('load', toggleMobileAppBar);
+    toggleMobileAppBar();
+  }
+
+  /**
+   * Subtle hero parallax on scroll (respects reduced motion)
+   */
+  const heroBgImage = document.querySelector('.hero-bg-tag');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function updateHeroParallax() {
+    if (!heroBgImage || !heroSection || prefersReducedMotion) return;
+    if (window.innerWidth < 992) {
+      heroBgImage.style.transform = '';
+      return;
+    }
+    const rect = heroSection.getBoundingClientRect();
+    if (rect.bottom > 0) {
+      const offset = window.scrollY * 0.12;
+      heroBgImage.style.transform = 'translateY(calc(-50% + ' + offset + 'px))';
+    }
+  }
+  if (heroBgImage && heroSection && !prefersReducedMotion) {
+    document.addEventListener('scroll', updateHeroParallax, { passive: true });
+  }
 
 })();
 

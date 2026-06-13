@@ -14,7 +14,7 @@
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -25,19 +25,9 @@
 
   <!-- Main CSS File -->
   <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/css/landing-premium.css' %}" rel="stylesheet">
   <link href="{% url 'landing_ad_css' %}" rel="stylesheet">
-  <style>
-    .header .logo .header-logo-img {
-      height: 80px;
-      max-height: none;
-      width: auto;
-      max-width: 320px;
-      object-fit: contain;
-      display: block;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.85));
-    }
-  </style>
-  <link rel="preload" as="image" href="{% static 'landing/img/QR-Codes-for-Work-Hours-Tracking_Main-Illustration-580x428.webp' %}">
+  <link rel="preload" as="image" href="{% static 'landing/img/sudotag-qr-promo.png' %}">
 
   <!-- =======================================================
   * Template Name: Gp
@@ -49,6 +39,8 @@
 </head>
 
 <body class="index-page">
+
+  <div id="scroll-progress" class="scroll-progress" aria-hidden="true"></div>
 
   <header id="header" class="header d-flex align-items-center fixed-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
@@ -77,61 +69,127 @@
     <!-- Hero Section -->
     <section id="hero" class="hero section dark-background">
 
-      <img src="{% static 'landing/img/QR-Codes-for-Work-Hours-Tracking_Main-Illustration-580x428.webp' %}" alt="" width="580" height="428" decoding="async" data-aos="fade-in">
-
-      <div class="container">
-
-        <div class="row justify-content-center text-center" data-aos="fade-up" data-aos-delay="100">
-          <div class="col-xl-6 col-lg-8">
-            <h2>Introducing SudoTag<span>.</span></h2>
-            <p>Revolutionizing issue reporting for a safer community. Scan, report, and resolve—get the app below.</p>
-            <div class="app-store-buttons mt-4 pt-2 justify-content-center" data-aos="fade-up" data-aos-delay="150">
-              <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-google-play" aria-hidden="true"></i>
-                <span>Google Play</span>
-              </a>
-              <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-apple" aria-hidden="true"></i>
-                <span>App Store</span>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="row gy-4 mt-5 justify-content-center" data-aos="fade-up" data-aos-delay="200">
-          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="300">
-            <div class="icon-box">
-              <i class="bi bi-qr-code"></i>
-              <h3><a href="#">QR-based Reporting</a></h3>
-            </div>
-          </div>
-          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="400">
-            <div class="icon-box">
-              <i class="bi bi-shield-lock"></i>
-              <h3><a href="#">Secure Registration</a></h3>
-            </div>
-          </div>
-          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="500">
-            <div class="icon-box">
-              <i class="bi bi-people"></i>
-              <h3><a href="#">User Interaction</a></h3>
-            </div>
-          </div>
-          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="600">
-            <div class="icon-box">
-              <i class="bi bi-chat-left-text"></i>
-              <h3><a href="#">Notify Other Users</a></h3>
-            </div>
-          </div>
-          <div class="col-xl-2 col-md-4" data-aos="fade-up" data-aos-delay="700">
-            <div class="icon-box">
-              <i class="bi bi-clock"></i>
-              <h3><a href="#">Real-Time Updates</a></h3>
-            </div>
-          </div>
-        </div>
-
+      <div class="hero-background" aria-hidden="true">
+        <img src="{% static 'landing/img/sudotag-qr-promo.png' %}" alt="" width="1024" height="517" decoding="async" class="hero-bg-tag">
+        <div class="hero-overlay"></div>
+        <div class="hero-grid-pattern"></div>
+        <div class="hero-glow hero-glow--primary"></div>
+        <div class="hero-glow hero-glow--secondary"></div>
+        <div class="hero-speed-lines"></div>
       </div>
+      <div class="hero-accent-line" aria-hidden="true"></div>
+
+      <div class="container hero-container">
+        <div class="row align-items-center hero-main-row g-4 g-lg-5">
+          <div class="col-lg-5 col-xl-5 hero-content-col">
+            <div class="hero-content" data-aos="fade-up" data-aos-delay="100">
+              <h2>Introducing SudoTag<span>.</span></h2>
+              <p>Revolutionizing issue reporting for a safer community. Scan, report, and resolve—get the app below.</p>
+              <div class="hero-download-block" data-aos="fade-up" data-aos-delay="150">
+                <div class="platform-icons" aria-hidden="true">
+                  <span class="platform-icon platform-icon--android"><i class="bi bi-android2"></i></span>
+                  <span class="platform-icon platform-icon--ios"><i class="bi bi-apple"></i></span>
+                </div>
+                <div class="app-store-buttons justify-content-start">
+                  <a class="app-store-btn app-store-btn--android" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-google-play" aria-hidden="true"></i>
+                    <span>Google Play</span>
+                  </a>
+                  <a class="app-store-btn app-store-btn--ios" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-apple" aria-hidden="true"></i>
+                    <span>App Store</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-7 col-xl-7 hero-panel-col" data-aos="fade-left" data-aos-delay="200">
+            <div class="hero-scan-viz">
+              <div class="hero-scan-stage hero-scan-stage--phone">
+                <div class="hero-scan-cone" aria-hidden="true"></div>
+
+                <div class="hero-scan-device">
+                    <div class="hero-scan-phone">
+                      <div class="hero-scan-phone__shell">
+                        <span class="hero-scan-phone__island" aria-hidden="true"></span>
+                        <div class="hero-scan-phone__screen">
+                          <div class="hero-scan-phone__status" aria-hidden="true">
+                            <span class="hero-scan-phone__time">9:41</span>
+                            <span class="hero-scan-phone__status-icons">
+                              <i class="bi bi-reception-4"></i>
+                              <i class="bi bi-wifi"></i>
+                              <i class="bi bi-battery-full"></i>
+                            </span>
+                          </div>
+                          <div class="hero-scan-phone__viewfinder">
+                            <div class="hero-scan-phone__qr-wrap">
+                              <img src="{% static 'landing/img/sudotag-qr-code.png' %}" alt="" class="hero-scan-phone__qr-mirror" width="1024" height="1024" decoding="async">
+                            </div>
+                            <div class="hero-scan-phone__overlay" aria-hidden="true">
+                              <span class="hero-scan-bracket hero-scan-bracket--tl hero-scan-bracket--screen"></span>
+                              <span class="hero-scan-bracket hero-scan-bracket--tr hero-scan-bracket--screen"></span>
+                              <span class="hero-scan-bracket hero-scan-bracket--bl hero-scan-bracket--screen"></span>
+                              <span class="hero-scan-bracket hero-scan-bracket--br hero-scan-bracket--screen"></span>
+                              <span class="hero-scan-phone__beam"></span>
+                              <span class="hero-scan-phone__flash"></span>
+                            </div>
+                            <div class="hero-scan-phone__chip">
+                              <i class="bi bi-check-circle-fill"></i>
+                              <span>Scanning SudoTag QR…</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <svg class="hero-scan-hand" viewBox="0 0 160 80" aria-hidden="true" focusable="false">
+                      <defs>
+                        <linearGradient id="heroHandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stop-color="#4a4a4a"/>
+                          <stop offset="100%" stop-color="#1c1c1c"/>
+                        </linearGradient>
+                      </defs>
+                      <path fill="url(#heroHandGrad)" d="M32 62c-5-10-2-22 8-28 4-3 10-4 15-3 3-7 10-12 18-12 5 0 10 3 12 7 4-2 8-3 13-2 10 3 16 12 14 22l-4 22c-1 6-6 11-12 12l-48 7c-7 1-14-4-15-11l-2-11z"/>
+                    </svg>
+                </div>
+              </div>
+
+              <div class="hero-scan-viz__card hero-scan-viz__card--1" data-aos="zoom-in" data-aos-delay="350">
+                <i class="bi bi-qr-code"></i>
+                <span>QR-based Reporting</span>
+              </div>
+              <div class="hero-scan-viz__card hero-scan-viz__card--2" data-aos="zoom-in" data-aos-delay="400">
+                <i class="bi bi-shield-lock"></i>
+                <span>Secure Registration</span>
+              </div>
+              <div class="hero-scan-viz__card hero-scan-viz__card--3" data-aos="zoom-in" data-aos-delay="450">
+                <i class="bi bi-people"></i>
+                <span>User Interaction</span>
+              </div>
+              <div class="hero-scan-viz__card hero-scan-viz__card--4" data-aos="zoom-in" data-aos-delay="500">
+                <i class="bi bi-chat-left-text"></i>
+                <span>Notify Other Users</span>
+              </div>
+              <div class="hero-scan-viz__card hero-scan-viz__card--5" data-aos="zoom-in" data-aos-delay="550">
+                <i class="bi bi-clock"></i>
+                <span>Real-Time Updates</span>
+              </div>
+
+              <div class="hero-scan-viz__features-mobile">
+                <div class="hero-scan-viz__feat"><i class="bi bi-qr-code"></i><span>QR-based Reporting</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-shield-lock"></i><span>Secure Registration</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-people"></i><span>User Interaction</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-chat-left-text"></i><span>Notify Other Users</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-clock"></i><span>Real-Time Updates</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <a href="#about" class="hero-scroll-hint" aria-label="Scroll to About section">
+        <span class="hero-scroll-line"></span>
+      </a>
 
     </section><!-- /Hero Section -->
 
@@ -193,13 +251,16 @@
     </section><!-- /Advertisement Slider -->
 
     <!-- About Section -->
-    <section id="about" class="about section">
+    <section id="about" class="about section light-background">
 
       <div class="container" data-aos="fade-up" data-aos-delay="100">
 
         <div class="row gy-4">
           <div class="col-lg-6 order-1 order-lg-2">
-            <img src="{% static 'landing/img/qr-code-on-car-1.jpeg' %}" class="img-fluid" alt="Sudo App Overview">
+            <div class="about-image-frame" data-aos="fade-left" data-aos-delay="150">
+              <img src="{% static 'landing/img/sudotag-windshield-scan.png' %}" class="img-fluid" alt="Scanning a SudoTag QR sticker on a car windshield with a smartphone">
+              <span class="about-image-accent" aria-hidden="true"></span>
+            </div>
           </div>
           <div class="col-lg-6 order-2 order-lg-1 content">
             <h3>About SudoTag</h3>
@@ -222,16 +283,21 @@
     </section><!-- /About Section -->
 
     <!-- Features Section -->
-    <section id="features" class="features section">
+    <section id="features" class="features section light-background">
 
       <div class="container">
 
         <div class="row gy-4">
-          <div class="features-image col-lg-6" data-aos="fade-up" data-aos-delay="100"><img src="{% static 'landing/img/unlocking-car-by-qr-code-smartphone.jpg' %}" alt="Features"></div>
+          <div class="features-image col-lg-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="features-image-inner">
+              <img src="{% static 'landing/img/sudotag-windshield-tag.png' %}" alt="SudoTag sticker on a car windshield — scan to contact the vehicle owner">
+              <span class="features-image-accent" aria-hidden="true"></span>
+            </div>
+          </div>
           <div class="col-lg-6">
     
             <div class="features-item d-flex ps-0 ps-lg-3 pt-4 pt-lg-0" data-aos="fade-up" data-aos-delay="200">
-              <i class="bi bi-qrcode flex-shrink-0"></i>
+              <i class="bi bi-qr-code flex-shrink-0"></i>
               <div>
                 <h4>QR-Based Issue Reporting</h4>
                 <p>Using SudoTag, you can instantly report issues by scanning a QR code. It's simple, fast, and effective.</p>
@@ -345,6 +411,8 @@
         </div>
     
       </div>
+
+    </section><!-- /Services Section -->
     
     <!-- Call To Action Section -->
     <section id="call-to-action" class="call-to-action section dark-background">
@@ -354,7 +422,7 @@
       <div class="container">
         <div class="row justify-content-center" data-aos="zoom-in" data-aos-delay="100">
           <div class="col-xl-10">
-            <div class="text-center">
+            <div class="text-center cta-inner">
               <h3>Get Started with SudoTag Today</h3>
               <p>Join our community and help improve public safety with easy, QR-based issue reporting. Secure, quick, and reliable—Sudo makes parking and other issues easier to report and resolve.</p>
               <div class="app-store-buttons justify-content-center mt-3">
@@ -454,17 +522,17 @@
       <div class="container">
         <div class="row align-items-center gy-5">
           <div class="col-lg-6" data-aos="fade-right">
-            <div class="hiw-preview-card" style="background: linear-gradient(145deg, #151515, #2a2a2a); border-radius: 20px; padding: 36px; color: #fff; border: 1px solid rgba(229,129,71,0.25);">
-              <p style="color: #E58147; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">Scan &bull; Connect &bull; Protect</p>
-              <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 16px;">Smart Vehicle Identification Platform</h3>
-              <p style="color: rgba(255,255,255,0.75); line-height: 1.7; margin-bottom: 24px;">Contact vehicle owners, report parking issues, notify about damage, or reach emergency contacts — all through a single QR code.</p>
-              <ul style="list-style: none; padding: 0; margin: 0 0 28px;">
-                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Order, activate, or scan in seconds</li>
-                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Masked calling &amp; secure messaging</li>
-                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Push notifications &amp; SMS alerts</li>
-                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;"><i class="bi bi-check-circle-fill" style="color: #E58147;"></i> Vehicle reminders &amp; order tracking</li>
+            <div class="hiw-preview-card">
+              <p class="hiw-preview-label">Scan &bull; Connect &bull; Protect</p>
+              <h3 class="hiw-preview-title">Smart Vehicle Identification Platform</h3>
+              <p class="hiw-preview-desc">Contact vehicle owners, report parking issues, notify about damage, or reach emergency contacts — all through a single QR code.</p>
+              <ul class="hiw-preview-list">
+                <li><i class="bi bi-check-circle-fill"></i> Order, activate, or scan in seconds</li>
+                <li><i class="bi bi-check-circle-fill"></i> Masked calling &amp; secure messaging</li>
+                <li><i class="bi bi-check-circle-fill"></i> Push notifications &amp; SMS alerts</li>
+                <li><i class="bi bi-check-circle-fill"></i> Vehicle reminders &amp; order tracking</li>
               </ul>
-              <a href="{% url 'how_it_works' %}" style="display: inline-flex; align-items: center; gap: 8px; background: #E58147; color: #151515; padding: 14px 28px; border-radius: 999px; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+              <a href="{% url 'how_it_works' %}" class="hiw-preview-cta">
                 Explore Full Guide <i class="bi bi-arrow-right"></i>
               </a>
             </div>
@@ -472,27 +540,27 @@
           <div class="col-lg-6" data-aos="fade-left" data-aos-delay="100">
             <div class="row gy-3">
               <div class="col-6">
-                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                  <i class="bi bi-qr-code-scan" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
-                  <strong style="font-size: 0.9rem; color: #151515;">Scan QR</strong>
+                <div class="hiw-step-card">
+                  <i class="bi bi-qr-code-scan"></i>
+                  <strong>Scan QR</strong>
                 </div>
               </div>
               <div class="col-6">
-                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                  <i class="bi bi-bag-check" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
-                  <strong style="font-size: 0.9rem; color: #151515;">Order QR</strong>
+                <div class="hiw-step-card">
+                  <i class="bi bi-bag-check"></i>
+                  <strong>Order QR</strong>
                 </div>
               </div>
               <div class="col-6">
-                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                  <i class="bi bi-phone" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
-                  <strong style="font-size: 0.9rem; color: #151515;">Activate via App</strong>
+                <div class="hiw-step-card">
+                  <i class="bi bi-phone"></i>
+                  <strong>Activate via App</strong>
                 </div>
               </div>
               <div class="col-6">
-                <div style="background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
-                  <i class="bi bi-shield-lock" style="font-size: 28px; color: #E58147; display: block; margin-bottom: 10px;"></i>
-                  <strong style="font-size: 0.9rem; color: #151515;">Secure Connect</strong>
+                <div class="hiw-step-card">
+                  <i class="bi bi-shield-lock"></i>
+                  <strong>Secure Connect</strong>
                 </div>
               </div>
             </div>
@@ -615,7 +683,7 @@
 
     </section><!-- /Testimonials Section -->
 
-    <section id="faq" class="faq-section section">
+    <section id="faq" class="faq-section section light-background">
       <div class="container section-title" data-aos="fade-up">
         <h2>FAQ</h2>
         <p>Frequently Asked Questions</p>
@@ -694,7 +762,7 @@
     
 
 <!-- Contact Section -->
-<section id="contact" class="contact section">
+<section id="contact" class="contact section light-background">
 
   <!-- Section Title -->
   <div class="container section-title" data-aos="fade-up">
@@ -726,114 +794,6 @@
   </div>
 
 </section><!-- /Contact Section -->
-
-<style>
-.whatsapp-connect {
-  background: linear-gradient(135deg, #151515 0%, #312f2f 100%);
-  border-radius: 15px;
-  padding: 40px;
-  text-align: center;
-  margin-bottom: 40px;
-  color: #E58147;
-  box-shadow: 0 10px 30px rgba(255, 196, 81, 0.2);
-  border: 2px solid #E58147;
-}
-
-.whatsapp-icon {
-  margin-bottom: 20px;
-}
-
-.whatsapp-connect h3 {
-  font-size: 28px;
-  margin-bottom: 10px;
-  font-weight: 600;
-  color: #E58147;
-}
-
-.whatsapp-connect p {
-  font-size: 18px;
-  margin-bottom: 25px;
-  opacity: 0.9;
-  color: #ffffff;
-}
-
-.whatsapp-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #E58147;
-  color: #151515;
-  padding: 12px 30px;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 18px;
-  transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(255, 196, 81, 0.3);
-  border: 2px solid #E58147;
-}
-
-.whatsapp-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(255, 196, 81, 0.4);
-  background: #151515;
-  color: #E58147;
-}
-
-/* Form styling to match the theme */
-.php-email-form .form-control {
-  background: #ffffff;
-  border: 1px solid #ddd;
-  color: #444444;
-}
-
-.php-email-form .form-control:focus {
-  border-color: #E58147;
-  box-shadow: 0 0 0 2px rgba(255, 196, 81, 0.2);
-}
-
-.php-email-form button[type="submit"] {
-  background: #E58147;
-  color: #151515;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 4px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.php-email-form button[type="submit"]:hover {
-  background: #151515;
-  color: #E58147;
-}
-
-.info-item i {
-  color: #E58147;
-}
-
-.info-item h3 {
-  color: #151515;
-}
-
-.info-item p {
-  color: #444444;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .whatsapp-connect {
-    padding: 30px 20px;
-  }
-  
-  .whatsapp-connect h3 {
-    font-size: 24px;
-  }
-  
-  .whatsapp-connect p {
-    font-size: 16px;
-  }
-}
-</style>
 
 <script>
 // Only add event listener if contactForm exists
@@ -965,132 +925,6 @@ if (contactForm) {
   
 </div>
 
-<style>
-.footer-whatsapp {
-  background: linear-gradient(135deg, #151515 0%, #312f2f 100%);
-  padding: 30px;
-  border-radius: 10px;
-  border: 2px solid #E58147;
-  color: white;
-}
-
-.footer-whatsapp h4 {
-  color: #E58147;
-  font-size: 22px;
-  margin-bottom: 15px;
-  font-weight: 600;
-}
-
-.footer-whatsapp p {
-  color: #ffffff;
-  margin-bottom: 20px;
-  opacity: 0.9;
-}
-
-.direct-whatsapp {
-  margin-bottom: 25px;
-}
-
-.whatsapp-direct-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #25D366;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  width: 100%;
-  justify-content: center;
-}
-
-.whatsapp-direct-btn:hover {
-  background: #128C7E;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
-}
-
-.whatsapp-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.whatsapp-form input[type="text"],
-.whatsapp-form input[type="tel"] {
-  padding: 12px 15px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
-  color: #444444;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.whatsapp-form input[type="text"]:focus,
-.whatsapp-form input[type="tel"]:focus {
-  outline: none;
-  border-color: #E58147;
-  box-shadow: 0 0 0 2px rgba(255, 196, 81, 0.2);
-}
-
-.whatsapp-form input[type="submit"] {
-  background: #E58147;
-  color: #151515;
-  border: none;
-  padding: 12px 15px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-}
-
-.whatsapp-form input[type="submit"]:hover {
-  background: #151515;
-  color: #E58147;
-  transform: translateY(-2px);
-}
-
-.loading, .error-message, .sent-message {
-  text-align: center;
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 4px;
-  display: none;
-}
-
-.loading {
-  background: #E58147;
-  color: #151515;
-}
-
-.error-message {
-  background: #ff6b6b;
-  color: white;
-}
-
-.sent-message {
-  background: #25D366;
-  color: white;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .footer-whatsapp {
-    padding: 20px;
-  }
-  
-  .whatsapp-direct-btn {
-    padding: 10px 15px;
-    font-size: 14px;
-  }
-}
-</style>
-
 <script>
 // Only add event listener if whatsappSubscriptionForm exists
 const whatsappSubscriptionForm = document.getElementById('whatsappSubscriptionForm');
@@ -1176,62 +1010,6 @@ if (whatsappSubscriptionForm) {
   </div>
 </div>
 
-<style>
-.legal-links {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.legal-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: rgba(255,255,255,0.7);
-  text-decoration: none;
-  transition: all 0.3s ease;
-  padding: 8px 15px;
-  border-radius: 25px;
-  font-size: 14px;
-}
-
-.legal-link:hover {
-  color: #E58147;
-  background: rgba(229, 129, 71, 0.1);
-  transform: translateY(-2px);
-}
-
-.divider {
-  width: 1px;
-  height: 20px;
-  background: rgba(255,255,255,0.3);
-}
-
-.design-credit {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: rgba(255,255,255,0.5);
-  font-size: 14px;
-}
-
-.design-credit i {
-  color: #E58147;
-}
-
-@media (max-width: 768px) {
-  .legal-links {
-    flex-direction: column;
-    gap: 10px;
-  }
-  .divider {
-    display: none;
-  }
-}
-</style>
-  
   </footer>
   
 
@@ -1239,7 +1017,28 @@ if (whatsappSubscriptionForm) {
   <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
   <!-- Preloader -->
-  <div id="preloader"></div>
+  <div id="preloader" aria-hidden="true">
+    <div class="preloader-inner">
+      <div class="preloader-logo-wrap">
+        <img src="{% url 'landing_header_logo_png' %}" alt="" class="preloader-logo" width="200" height="50" decoding="async">
+      </div>
+      <div class="preloader-bar"><span></span></div>
+    </div>
+  </div>
+
+  <!-- Mobile sticky app bar -->
+  <div id="mobile-app-bar" class="mobile-app-bar" aria-hidden="true">
+    <div class="mobile-app-bar-inner">
+      <a class="app-store-btn app-store-btn--android app-store-btn--compact" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-google-play" aria-hidden="true"></i>
+        <span>Google Play</span>
+      </a>
+      <a class="app-store-btn app-store-btn--ios app-store-btn--compact" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-apple" aria-hidden="true"></i>
+        <span>App Store</span>
+      </a>
+    </div>
+  </div>
   <!-- Vendor JS Files: defer keeps execution order while allowing parallel download (same behavior after load) -->
   <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}" defer></script>
   <script src="{% static 'landing/vendor/php-email-form/validate.js' %}" defer></script>
