@@ -3462,7 +3462,7 @@
         </span>
         <span class="notify-priority-voice-text">
           <span class="notify-priority-voice-title">Voice call</span>
-          <span class="notify-priority-voice-sub" id="notifyPriorityVoiceSub">Recommended · fastest way to reach them</span>
+          <span class="notify-priority-voice-sub" id="notifyPriorityVoiceSub">{% if has_active_family_assignment %}Currently using this vehicle — reach {{ owner_contact_display_name|default:"Family member" }}{% else %}Recommended · fastest way to reach them{% endif %}</span>
         </span>
       </button>
     </div>
@@ -3568,7 +3568,7 @@
               <i class="bi bi-telephone-fill" aria-hidden="true"></i>
               <span class="notify-channel-box-text">
                 <span class="notify-channel-box-title">Voice call</span>
-                <span class="notify-channel-box-sub" id="notifyPickMethodCallSub">Call via your phone (fastest)</span>
+                <span class="notify-channel-box-sub" id="notifyPickMethodCallSub">{% if has_active_family_assignment %}Call {{ owner_contact_display_name|default:"Family member" }} via SudoTag gateway{% else %}Call via your phone (fastest){% endif %}</span>
               </span>
             </button>
             {% else %}
@@ -3901,6 +3901,10 @@
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
     const callRouteDidRaw = "{{ call_route_did|default:'' }}";
     const vehiclePlateLast4Expected = "{{ vehicle_registration_last4|default:''|escapejs }}";
+    const hasActiveFamilyAssignment =
+      ("{{ has_active_family_assignment|yesno:'yes,no' }}" === "yes");
+    const ownerContactDisplayName =
+      "{{ owner_contact_display_name|default:'vehicle owner'|escapejs }}";
 
     const hasEmergencyContact = ("{{ has_emergency_contact|yesno:'yes,no' }}" === "yes");
     const hasFcmToken = ("{{ has_fcm_token|yesno:'yes,no' }}" === "yes");
@@ -3913,8 +3917,12 @@
     const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
     const NOTIFY_SENDING_WHEEL_JSON = "{% url 'notify_sending_wheel_json' %}";
-    var NOTIFY_PRIORITY_VOICE_SUB_DEFAULT = 'Recommended · fastest way to reach them';
-    var NOTIFY_PICK_CALL_SUB_DEFAULT = 'Call via your phone (fastest)';
+    var NOTIFY_PRIORITY_VOICE_SUB_DEFAULT = hasActiveFamilyAssignment
+      ? ('Currently using this vehicle — reach ' + ownerContactDisplayName)
+      : 'Recommended · fastest way to reach them';
+    var NOTIFY_PICK_CALL_SUB_DEFAULT = hasActiveFamilyAssignment
+      ? ('Call ' + ownerContactDisplayName + ' via SudoTag gateway')
+      : 'Call via your phone (fastest)';
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
       'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;

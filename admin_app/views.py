@@ -34,6 +34,11 @@ from .scanner_notify_session_controls import (
     mark_notify_sheet_done,
     pop_notify_sheet_done_for_terminal_view,
 )
+from .family_assignment import (
+    effective_contact_display_name,
+    effective_contact_number,
+    has_active_family_assignment,
+)
 from .scanner_contact_prefs import (
     merge_user_scanner_subdocuments,
     merge_vehicle_scanner_subdocuments,
@@ -2564,8 +2569,8 @@ def send_notification(request, qr_id):
                                 })
                             target_digits = emergency_digits_server
                         else:
-                            target_digits = normalize_phone_number(
-                                user_data.get('contactNumber', '')
+                            target_digits = effective_contact_number(
+                                vehicle_data, user_data
                             )
                             if not target_digits:
                                 return JsonResponse({
@@ -2619,11 +2624,21 @@ def send_notification(request, qr_id):
                             
                             if status_val == 'success' and not has_error:
                                 logger.info(f"MSG91 SMS sent successfully: {api_data}")
-                                sms_msg = (
-                                    'SMS sent successfully to the Emergency Contact.'
-                                    if contact_target == 'emergency'
-                                    else 'SMS sent successfully to the vehicle owner.'
-                                )
+                                if contact_target == 'emergency':
+                                    sms_msg = (
+                                        'SMS sent successfully to the Emergency Contact.'
+                                    )
+                                elif has_active_family_assignment(vehicle_data):
+                                    _sms_name = effective_contact_display_name(
+                                        vehicle_data, user_data
+                                    )
+                                    sms_msg = (
+                                        f'SMS sent successfully to {_sms_name}.'
+                                    )
+                                else:
+                                    sms_msg = (
+                                        'SMS sent successfully to the vehicle owner.'
+                                    )
                                 mark_notify_sheet_done(request, qr_id)
                                 return JsonResponse({
                                     'status': 'success',
@@ -2660,7 +2675,13 @@ def send_notification(request, qr_id):
         _single_token = user_data.get('fcmToken') or ''
         has_fcm_token = bool(_vehicle_token) or bool(_single_token)
 
-        owner_digits_for_call = normalize_phone_number(owner_phone) or ''
+        family_assignment_active = has_active_family_assignment(vehicle_data)
+        effective_digits_for_call = (
+            effective_contact_number(vehicle_data, user_data) or ''
+        )
+        owner_contact_display_name = effective_contact_display_name(
+            vehicle_data, user_data
+        )
         emergency_raw = user_data.get('defaultEmergencyContact', '')
         emergency_digits_for_call = normalize_phone_number(emergency_raw) or ''
         _merged = scanner_pref_merged_dict(user_data, vehicle_data)
@@ -2676,8 +2697,10 @@ def send_notification(request, qr_id):
         )
         has_emergency_digits = bool(emergency_digits_for_call)
         has_emergency_contact = has_emergency_digits and emerg_path_on
+        # Owner-lane SMS/voice use effective contact (family assignee when active).
+        # App prefs still come from the vehicle owner.
         call_register_ready = (
-            bool(owner_digits_for_call)
+            bool(effective_digits_for_call)
             and voice_on
             and _app_prefs['owner_call_allowed']
         )
@@ -2689,7 +2712,9 @@ def send_notification(request, qr_id):
             and _app_prefs['emergency_call_allowed']
         )
         owner_sms_ready = (
-            bool(owner_digits_for_call) and sms_on and _app_prefs['owner_sms_allowed']
+            bool(effective_digits_for_call)
+            and sms_on
+            and _app_prefs['owner_sms_allowed']
         )
         # Emergency QR path is voice-call only (no SMS to emergency contact).
         emergency_sms_ready = False
@@ -2701,7 +2726,7 @@ def send_notification(request, qr_id):
             or emergency_call_ready
         )
         service_status_lines = []
-        if bool(owner_digits_for_call) and not call_register_ready:
+        if bool(effective_digits_for_call) and not call_register_ready:
             service_status_lines.append(
                 'Voice Call service is currently disabled.'
             )
@@ -2709,7 +2734,7 @@ def send_notification(request, qr_id):
             service_status_lines.append(
                 'Push Notification service is currently turned off.'
             )
-        if bool(owner_digits_for_call) and not owner_sms_ready:
+        if bool(effective_digits_for_call) and not owner_sms_ready:
             service_status_lines.append(
                 'SMS to the vehicle owner is unavailable.'
             )
@@ -2736,7 +2761,7 @@ def send_notification(request, qr_id):
             'has_fcm_token': has_fcm_token,
             'push_ready': push_ready,
             'call_route_did': CALL_ROUTING_EXPECTED_DID,
-            'owner_phone_digits': owner_digits_for_call,
+            'owner_phone_digits': effective_digits_for_call,
             'call_register_ready': call_register_ready,
             'has_emergency_contact': has_emergency_contact,
             'emergency_phone_digits': emergency_digits_for_call,
@@ -2748,6 +2773,8 @@ def send_notification(request, qr_id):
             'scanner_has_any_channel': scanner_has_any_channel,
             'service_status_lines': service_status_lines,
             'scanner_notify_show_terminal_sheet': scanner_notify_show_terminal_sheet,
+            'has_active_family_assignment': family_assignment_active,
+            'owner_contact_display_name': owner_contact_display_name,
         }
         
         return render(request, 'send_notification.html', context)

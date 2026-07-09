@@ -843,13 +843,26 @@ def send_scanner_voice_call_attempt_push(db, qr_id, destination_10, caller_10):
 
         owner_d = normalize_phone_digits(user_data.get('contactNumber', ''))
         emerg_d = normalize_phone_digits(user_data.get('defaultEmergencyContact', ''))
-        if owner_d and dest == owner_d:
+        from .family_assignment import (
+            effective_contact_number,
+            has_active_family_assignment,
+        )
+
+        effective_d = effective_contact_number(vehicle_data, user_data)
+        if effective_d and dest == effective_d:
             call_target = 'owner'
-            title = 'Someone is trying to call you'
-            body = (
-                'Someone scanned your SudoTag QR and is placing a voice call to your '
-                'registered mobile number.'
-            )
+            if has_active_family_assignment(vehicle_data) and dest != owner_d:
+                title = 'Someone is trying to call your vehicle contact'
+                body = (
+                    'Someone scanned your SudoTag QR and is placing a voice call '
+                    'to the person currently using this vehicle.'
+                )
+            else:
+                title = 'Someone is trying to call you'
+                body = (
+                    'Someone scanned your SudoTag QR and is placing a voice call to your '
+                    'registered mobile number.'
+                )
         elif emerg_d and dest == emerg_d:
             call_target = 'emergency'
             title = 'Someone is calling your emergency number'
@@ -948,9 +961,11 @@ def validate_scanner_call_for_qr(db, qr_id, destination_10):
             '(owner quiet hours or outside allowed window).'
         )
 
-    owner_d = normalize_phone_digits(user_data.get('contactNumber', ''))
     emerg_d = normalize_phone_digits(user_data.get('defaultEmergencyContact', ''))
-    if owner_d and dest == owner_d:
+    from .family_assignment import effective_contact_number
+
+    effective_d = effective_contact_number(vehicle_data, user_data)
+    if effective_d and dest == effective_d:
         if not app_prefs['owner_call_allowed']:
             return 'Owner voice calls are disabled in the owner\'s app settings.'
         return None
