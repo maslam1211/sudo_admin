@@ -150,6 +150,43 @@
       box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.85);
     }
 
+    /* Privacy notice under mobile number (Contact Owner) */
+    body.notify-app .privacy-phone-notice {
+      display: flex;
+      gap: 0.55rem;
+      align-items: flex-start;
+      margin: 10px 0 0;
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: rgba(229, 129, 71, 0.1);
+      border: 1px solid rgba(229, 129, 71, 0.28);
+    }
+    body.notify-app .privacy-phone-notice[hidden] {
+      display: none !important;
+    }
+    body.notify-app .privacy-phone-notice__icon {
+      flex-shrink: 0;
+      color: #e58147;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+    body.notify-app .privacy-phone-notice__body {
+      min-width: 0;
+      flex: 1;
+    }
+    body.notify-app .privacy-phone-notice__text {
+      margin: 0;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    body.notify-app .privacy-phone-notice__text--ml {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(229, 129, 71, 0.22);
+      color: rgba(255, 255, 255, 0.64);
+    }
+
     /* Privacy notice — compact card inside main contact dialog */
     body.notify-app .privacy-inline-card {
       display: flex;
@@ -3445,20 +3482,6 @@
         <h2 class="notify-flow-title" id="contactModeTitle">Who are you contacting?</h2>
         <p class="notify-flow-lead">Tap one option. You’ll pick a reason and contact method on the next screen.</p>
 
-        <aside class="privacy-inline-card" aria-label="Privacy notice">
-          <div class="privacy-inline-card__icon" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></div>
-          <div class="privacy-inline-card__body">
-            <p class="privacy-inline-card__title">🔒 Your Privacy is Protected</p>
-            <p class="privacy-inline-card__text">
-              SudoTag never reveals your personal phone number. All communication stays secure on the SudoTag platform—proceed with confidence.
-            </p>
-            <div class="privacy-inline-card__ml" lang="ml">
-              <strong>🛡️ നിങ്ങളുടെ സ്വകാര്യതയാണ് ഞങ്ങളുടെ മുൻഗണന</strong>
-              നിങ്ങളുടെ ഫോൺ നമ്പറോ സ്വകാര്യ വിവരങ്ങളോ മറ്റാർക്കും നേരിട്ട് വെളിപ്പെടുത്തുകയില്ല. ആത്മവിശ്വാസത്തോടെ തുടരൂ — നിങ്ങളുടെ സ്വകാര്യത SudoTag-നൊപ്പം സുരക്ഷിതമാണ്.
-            </div>
-          </div>
-        </aside>
-
         <div class="notify-mode-direct-actions">
           <button type="button" class="notify-mode-direct-btn notify-mode-direct-btn--owner" id="chooseOwnerContactBtn">
             <span class="notify-mode-direct-icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></span>
@@ -3551,25 +3574,6 @@
       {% endif %}
       <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
     </section>
-
-    {% if not has_emergency_contact %}
-    <aside class="privacy-main-dialog" id="privacyMainDialog" role="dialog" aria-labelledby="privacyMainTitle">
-      <div class="privacy-inline-card" style="margin:0; border:0; background:transparent; box-shadow:none; padding:0;">
-        <div class="privacy-inline-card__icon" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></div>
-        <div class="privacy-inline-card__body">
-          <p class="privacy-inline-card__title" id="privacyMainTitle">🔒 Your Privacy is Protected</p>
-          <p class="privacy-inline-card__text">
-            For your safety and privacy, SudoTag never reveals your personal phone number to anyone. All communication is securely handled through the SudoTag platform.
-          </p>
-          <div class="privacy-inline-card__ml" lang="ml">
-            <strong>🛡️ നിങ്ങളുടെ സ്വകാര്യതയാണ് ഞങ്ങളുടെ മുൻഗണന</strong>
-            നിങ്ങളുടെ ഫോൺ നമ്പറോ സ്വകാര്യ വിവരങ്ങളോ മറ്റാർക്കും നേരിട്ട് വെളിപ്പെടുത്തുകയില്ല. ആത്മവിശ്വാസത്തോടെ തുടരൂ — നിങ്ങളുടെ സ്വകാര്യത SudoTag-നൊപ്പം സുരക്ഷിതമാണ്.
-          </div>
-        </div>
-      </div>
-      <button type="button" class="privacy-notice-continue" id="privacyMainContinueBtn">Continue</button>
-    </aside>
-    {% endif %}
 
     <section class="notify-reasons-panel" id="notifyOwnerReasonsSection" aria-labelledby="notifyReasonsHeading">
     <div id="notifyOwnerReasonsInner">
@@ -3750,6 +3754,17 @@
               placeholder="10-digit mobile" autocomplete="tel-national" aria-label="Your 10-digit mobile number">
           </div>
           <p class="notify-field-error" id="callRouteError" role="alert"></p>
+          <aside class="privacy-phone-notice" id="privacyPhoneNotice" aria-label="Privacy notice">
+            <span class="privacy-phone-notice__icon" aria-hidden="true">🔒</span>
+            <div class="privacy-phone-notice__body">
+              <p class="privacy-phone-notice__text" lang="en">
+                Your privacy is our priority. The phone number you enter is stored securely. This number will never be shown to or shared with the vehicle owner or anyone else.
+              </p>
+              <p class="privacy-phone-notice__text privacy-phone-notice__text--ml" lang="ml">
+                നിങ്ങളുടെ സ്വകാര്യതയാണ് ഞങ്ങളുടെ മുൻഗണന. നിങ്ങൾ നൽകുന്ന ഫോൺ നമ്പർ സുരക്ഷിതമായി സംരക്ഷിക്കപ്പെടും. ഈ നമ്പർ വാഹന ഉടമയ്ക്കോ മറ്റാർക്കും ഒരിക്കലും കാണാനോ ലഭിക്കാനോ കഴിയില്ല.
+              </p>
+            </div>
+          </aside>
           {% if call_register_ready or emergency_call_ready %}
           <div class="notify-dock-swipe-slot notify-dock-swipe-slot--owner">
             <div class="notify-swipe-call-wrap" id="notifySwipeCallWrap" hidden>
@@ -4046,13 +4061,20 @@
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
       'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
-    /** Adaptive holds (no visible countdown numbers). */
+    /** Adaptive holds (no visible countdown numbers). Time only advances while the page is visible. */
     var NOTIFY_SUCCESS_HOLD_MS = 5200;
     var NOTIFY_TERMINAL_HOLD_MS = 2600;
     var NOTIFY_CROSSFADE_MS = 480;
+    var NOTIFY_HOLD_TICK_MS = 100;
     var notifySuccessPhaseTimer = null;
     var notifyTerminalPhaseTimer = null;
+    var notifyHoldTickTimer = null;
+    /** @type {null | 'success' | 'terminal'} */
+    var notifyHoldPhase = null;
+    var notifyHoldRemainingMs = 0;
+    var notifyHoldLastTickAt = 0;
     var notifySessionTerminalActive = false;
+    var notifyRedirectInFlight = false;
     var notifyLastSuccessMethod = 'push';
     var NOTIFY_SESSION_EXPIRED_MESSAGE =
       'Your session has ended. You will be returned to SudoTag shortly.';
@@ -4109,8 +4131,7 @@
     const contactModeModal = document.getElementById('contactModeModal');
     const chooseEmergencyContactBtn = document.getElementById('chooseEmergencyContactBtn');
     const chooseOwnerContactBtn = document.getElementById('chooseOwnerContactBtn');
-    const privacyMainDialog = document.getElementById('privacyMainDialog');
-    const privacyMainContinueBtn = document.getElementById('privacyMainContinueBtn');
+    const privacyPhoneNotice = document.getElementById('privacyPhoneNotice');
     const callFlowDialogInner = document.getElementById('callFlowDialogInner');
     var NOTIFY_SWIPE_CALL_LABEL_DEFAULT = 'Slide to call';
     var NOTIFY_SWIPE_CALL_LABEL_EMERGENCY = 'Slide to call emergency';
@@ -4797,10 +4818,10 @@
       }
     }
 
-    if (privacyMainContinueBtn && privacyMainDialog) {
-      privacyMainContinueBtn.addEventListener('click', function () {
-        privacyMainDialog.hidden = true;
-      });
+    function syncPrivacyPhoneNotice() {
+      if (!privacyPhoneNotice) return;
+      // Show under mobile number only after Contact Owner is selected.
+      privacyPhoneNotice.hidden = contactMode !== 'owner';
     }
 
     function openContactModeModal() {
@@ -5100,11 +5121,15 @@
 
       syncEmergencyPlateWrapInCallModal();
       syncNotifyDockChannels();
+      syncPrivacyPhoneNotice();
     }
 
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') {
         resetUiAfterEmergencyDialerReturn();
+        resumeNotifyHoldTicker();
+      } else {
+        pauseNotifyHoldTicker();
       }
     });
     window.addEventListener('pageshow', function () {
@@ -5118,12 +5143,19 @@
     document.addEventListener('DOMContentLoaded', function () {
       resetUiAfterEmergencyDialerReturn();
 
-      if (!SUDO_NOTIFY_TERMINAL_GATE) {
+      // Never wipe an in-progress success/terminal hold on reload — only clear on fresh rescan.
+      if (isNotifyRescanLanding()) {
         clearNotifySheetDoneLocal();
-        clearNotifyExpiryDeadline();
-        clearNotifyTerminalDeadline();
+        clearNotifyHoldState();
         setNotifyPostSuccessActive(false);
         notifySessionTerminalActive = false;
+        notifyRedirectInFlight = false;
+      } else if (!SUDO_NOTIFY_TERMINAL_GATE && !hasActiveNotifyHoldState()) {
+        clearNotifySheetDoneLocal();
+        clearNotifyHoldState();
+        setNotifyPostSuccessActive(false);
+        notifySessionTerminalActive = false;
+        notifyRedirectInFlight = false;
       }
 
       if (customMessageContainer) customMessageContainer.style.display = 'none';
@@ -5169,7 +5201,6 @@
         }
       } else {
         contactMode = 'owner';
-        if (privacyMainDialog) privacyMainDialog.hidden = false;
       }
       syncContactModeUi();
       updateNotifyModalLock();
@@ -5356,8 +5387,7 @@
 
       if (isNotifyRescanLanding()) {
         clearNotifySheetDoneLocal();
-        clearNotifyExpiryDeadline();
-        clearNotifyTerminalDeadline();
+        clearNotifyHoldState();
         setNotifyPostSuccessActive(false);
         cancelNotifySuccessPhase();
         cancelNotifyTerminalPhase();
@@ -5366,7 +5396,10 @@
         stripNotifyRescanQueryFromHistory();
       } else if (SUDO_NOTIFY_TERMINAL_GATE) {
         markNotifySheetDoneLocal();
-        navigateNotifyOfficialHome();
+        presentNotifySessionExpired({
+          message: NOTIFY_SESSION_EXPIRED_MESSAGE,
+          autoRedirect: true
+        });
       } else {
         restoreNotifySessionExpiryState();
       }
@@ -5378,6 +5411,9 @@
       initNotifyVoiceCooldownUi();
       if (isNotifyRescanLanding()) {
         return;
+      }
+      if (document.visibilityState === 'visible') {
+        resumeNotifyHoldTicker();
       }
       restoreNotifySessionExpiryState();
     });
@@ -5680,7 +5716,12 @@
               }
               if (result.status === 410) {
                 markNotifySheetDoneLocal();
-                navigateNotifyOfficialHome();
+                presentNotifySessionExpired({
+                  message:
+                    (result.data && result.data.message) ||
+                    NOTIFY_SESSION_EXPIRED_SHORT,
+                  autoRedirect: true
+                });
                 return;
               }
               if (
@@ -5921,52 +5962,117 @@
       } catch (e) {}
     }
 
+    function notifyHoldPhaseKey() {
+      return 'sudo_notify_hold_phase_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function notifyHoldRemainingKey() {
+      return 'sudo_notify_hold_remaining_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
     function notifyExpiryDeadlineKey() {
       return 'sudo_notify_expiry_deadline_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
-    }
-
-    function setNotifyExpiryDeadline(deadlineMs) {
-      try {
-        sessionStorage.setItem(notifyExpiryDeadlineKey(), String(deadlineMs));
-      } catch (e) {}
-    }
-
-    function getNotifyExpiryDeadline() {
-      try {
-        var raw = sessionStorage.getItem(notifyExpiryDeadlineKey());
-        if (!raw) return null;
-        var n = Number(raw);
-        return Number.isFinite(n) && n > 0 ? n : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function clearNotifyExpiryDeadline() {
-      try {
-        sessionStorage.removeItem(notifyExpiryDeadlineKey());
-      } catch (e) {}
     }
 
     function notifyTerminalDeadlineKey() {
       return 'sudo_notify_terminal_deadline_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
     }
 
-    function setNotifyTerminalDeadline(deadlineMs) {
+    function persistNotifyHoldState() {
       try {
-        sessionStorage.setItem(notifyTerminalDeadlineKey(), String(deadlineMs));
+        if (notifyHoldPhase && notifyHoldRemainingMs > 0) {
+          sessionStorage.setItem(notifyHoldPhaseKey(), notifyHoldPhase);
+          sessionStorage.setItem(notifyHoldRemainingKey(), String(Math.ceil(notifyHoldRemainingMs)));
+          var approxDeadline = Date.now() + notifyHoldRemainingMs;
+          if (notifyHoldPhase === 'success') {
+            sessionStorage.setItem(notifyExpiryDeadlineKey(), String(approxDeadline));
+            sessionStorage.removeItem(notifyTerminalDeadlineKey());
+          } else if (notifyHoldPhase === 'terminal') {
+            sessionStorage.setItem(notifyTerminalDeadlineKey(), String(approxDeadline));
+            sessionStorage.removeItem(notifyExpiryDeadlineKey());
+          }
+        } else {
+          sessionStorage.removeItem(notifyHoldPhaseKey());
+          sessionStorage.removeItem(notifyHoldRemainingKey());
+          sessionStorage.removeItem(notifyExpiryDeadlineKey());
+          sessionStorage.removeItem(notifyTerminalDeadlineKey());
+        }
       } catch (e) {}
     }
 
-    function getNotifyTerminalDeadline() {
+    function clearNotifyHoldState() {
+      notifyHoldPhase = null;
+      notifyHoldRemainingMs = 0;
+      notifyHoldLastTickAt = 0;
+      stopNotifyHoldTicker();
       try {
-        var raw = sessionStorage.getItem(notifyTerminalDeadlineKey());
-        if (!raw) return null;
-        var n = Number(raw);
-        return Number.isFinite(n) && n > 0 ? n : null;
-      } catch (e) {
-        return null;
-      }
+        sessionStorage.removeItem(notifyHoldPhaseKey());
+        sessionStorage.removeItem(notifyHoldRemainingKey());
+        sessionStorage.removeItem(notifyExpiryDeadlineKey());
+        sessionStorage.removeItem(notifyTerminalDeadlineKey());
+      } catch (e) {}
+    }
+
+    function readStoredNotifyHoldPhase() {
+      try {
+        var phase = sessionStorage.getItem(notifyHoldPhaseKey());
+        if (phase === 'success' || phase === 'terminal') return phase;
+      } catch (e) {}
+      return null;
+    }
+
+    function readStoredNotifyHoldRemaining() {
+      try {
+        var raw = sessionStorage.getItem(notifyHoldRemainingKey());
+        if (raw) {
+          var n = Number(raw);
+          if (Number.isFinite(n) && n > 0) return n;
+        }
+        // Legacy absolute deadlines (wall-clock) — treat as remaining only if still in future,
+        // but do not force-complete when the tab was backgrounded past the stamp.
+        var phase = readStoredNotifyHoldPhase();
+        var key =
+          phase === 'terminal' ? notifyTerminalDeadlineKey() : notifyExpiryDeadlineKey();
+        var deadlineRaw = sessionStorage.getItem(key);
+        if (!deadlineRaw && !phase) {
+          var termRaw = sessionStorage.getItem(notifyTerminalDeadlineKey());
+          var succRaw = sessionStorage.getItem(notifyExpiryDeadlineKey());
+          if (termRaw) {
+            deadlineRaw = termRaw;
+          } else if (succRaw) {
+            deadlineRaw = succRaw;
+          }
+        }
+        if (deadlineRaw) {
+          var deadline = Number(deadlineRaw);
+          if (Number.isFinite(deadline) && deadline > Date.now()) {
+            return deadline - Date.now();
+          }
+          // Expired wall-clock while possibly hidden: keep a full short hold instead of instant redirect.
+          if (Number.isFinite(deadline)) {
+            return phase === 'terminal' ? NOTIFY_TERMINAL_HOLD_MS : NOTIFY_SUCCESS_HOLD_MS;
+          }
+        }
+      } catch (e) {}
+      return 0;
+    }
+
+    function hasActiveNotifyHoldState() {
+      if (notifyHoldPhase && notifyHoldRemainingMs > 0) return true;
+      if (isNotifyPostSuccessActive()) return true;
+      var phase = readStoredNotifyHoldPhase();
+      if (phase) return true;
+      try {
+        if (sessionStorage.getItem(notifyExpiryDeadlineKey())) return true;
+        if (sessionStorage.getItem(notifyTerminalDeadlineKey())) return true;
+      } catch (e) {}
+      return false;
+    }
+
+    function clearNotifyExpiryDeadline() {
+      try {
+        sessionStorage.removeItem(notifyExpiryDeadlineKey());
+      } catch (e) {}
     }
 
     function clearNotifyTerminalDeadline() {
@@ -6016,8 +6122,6 @@
       syncContactModeUi();
       if (hasEmergencyContact && contactModeModal) {
         openContactModeModal();
-      } else if (privacyMainDialog) {
-        privacyMainDialog.hidden = false;
       }
     }
 
@@ -6140,25 +6244,130 @@
       runNotifyProgressBar(bar, durationMs);
     }
 
-    function cancelNotifySuccessPhase() {
+    function stopNotifyHoldTicker() {
+      if (notifyHoldTickTimer) {
+        clearInterval(notifyHoldTickTimer);
+        notifyHoldTickTimer = null;
+      }
+      notifyHoldLastTickAt = 0;
       if (notifySuccessPhaseTimer) {
         clearTimeout(notifySuccessPhaseTimer);
         notifySuccessPhaseTimer = null;
       }
-      hideNotifySuccessProgress();
-    }
-
-    function cancelNotifyTerminalPhase() {
       if (notifyTerminalPhaseTimer) {
         clearTimeout(notifyTerminalPhaseTimer);
         notifyTerminalPhaseTimer = null;
       }
+    }
+
+    function pauseNotifyHoldTicker() {
+      if (!notifyHoldPhase) return;
+      notifyHoldLastTickAt = 0;
+      persistNotifyHoldState();
+      // Freeze progress visuals at current remaining duration on next resume.
+      if (notifyHoldPhase === 'success') {
+        hideNotifySuccessProgress();
+        if (successModal) {
+          successModal.classList.add('is-post-success-flow');
+          successModal.style.display = 'flex';
+        }
+      } else if (notifyHoldPhase === 'terminal') {
+        hideNotifyTerminalProgress();
+      }
+    }
+
+    function resumeNotifyHoldTicker() {
+      if (document.visibilityState !== 'visible') return;
+      if (!notifyHoldPhase || notifyHoldRemainingMs <= 0) return;
+      if (notifyHoldTickTimer) return;
+      if (notifyHoldPhase === 'success') {
+        if (successModal) {
+          successModal.classList.add('is-post-success-flow');
+          successModal.classList.remove('is-phase-exiting');
+          successModal.style.display = 'flex';
+        }
+        showNotifySuccessProgress(notifyHoldRemainingMs);
+      } else if (notifyHoldPhase === 'terminal') {
+        showNotifyTerminalProgress(notifyHoldRemainingMs);
+      }
+      notifyHoldLastTickAt = Date.now();
+      notifyHoldTickTimer = window.setInterval(onNotifyHoldTick, NOTIFY_HOLD_TICK_MS);
+    }
+
+    function onNotifyHoldTick() {
+      if (!notifyHoldPhase) {
+        stopNotifyHoldTicker();
+        return;
+      }
+      if (document.visibilityState !== 'visible') {
+        notifyHoldLastTickAt = 0;
+        return;
+      }
+      var now = Date.now();
+      if (!notifyHoldLastTickAt) {
+        notifyHoldLastTickAt = now;
+        return;
+      }
+      var dt = now - notifyHoldLastTickAt;
+      notifyHoldLastTickAt = now;
+      if (dt > 0) {
+        notifyHoldRemainingMs = Math.max(0, notifyHoldRemainingMs - dt);
+        persistNotifyHoldState();
+      }
+      if (notifyHoldRemainingMs > 0) return;
+
+      var finishedPhase = notifyHoldPhase;
+      stopNotifyHoldTicker();
+      notifyHoldPhase = null;
+      notifyHoldRemainingMs = 0;
+      persistNotifyHoldState();
+
+      if (finishedPhase === 'success') {
+        completeNotifySuccessAndRedirect();
+      } else if (finishedPhase === 'terminal') {
+        clearNotifyHoldState();
+        navigateNotifyOfficialHome();
+      }
+    }
+
+    function cancelNotifySuccessPhase() {
+      if (notifyHoldPhase === 'success') {
+        notifyHoldPhase = null;
+        notifyHoldRemainingMs = 0;
+      }
+      stopNotifyHoldTicker();
+      hideNotifySuccessProgress();
+      try {
+        if (sessionStorage.getItem(notifyHoldPhaseKey()) === 'success') {
+          sessionStorage.removeItem(notifyHoldPhaseKey());
+          sessionStorage.removeItem(notifyHoldRemainingKey());
+          sessionStorage.removeItem(notifyExpiryDeadlineKey());
+        }
+      } catch (e) {}
+    }
+
+    function cancelNotifyTerminalPhase() {
+      if (notifyHoldPhase === 'terminal') {
+        notifyHoldPhase = null;
+        notifyHoldRemainingMs = 0;
+      }
+      if (notifyHoldPhase !== 'success') {
+        stopNotifyHoldTicker();
+      }
       hideNotifyTerminalProgress();
+      try {
+        if (sessionStorage.getItem(notifyHoldPhaseKey()) === 'terminal') {
+          sessionStorage.removeItem(notifyHoldPhaseKey());
+          sessionStorage.removeItem(notifyHoldRemainingKey());
+          sessionStorage.removeItem(notifyTerminalDeadlineKey());
+        }
+      } catch (e) {}
     }
 
     function completeNotifySuccessAndRedirect() {
+      if (notifyRedirectInFlight) return;
       hideNotifySuccessProgress();
-      clearNotifyExpiryDeadline();
+      clearNotifyHoldState();
       setNotifyPostSuccessActive(false);
       markNotifySheetDoneLocal();
       function goHome() {
@@ -6175,44 +6384,53 @@
     function startNotifyPostSuccessFlow(remainingMs) {
       var totalMs = Math.max(400, Math.floor(Number(remainingMs) || NOTIFY_SUCCESS_HOLD_MS));
       cancelNotifySuccessPhase();
+      cancelNotifyTerminalPhase();
       setNotifyPostSuccessActive(true);
-      var deadline = Date.now() + totalMs;
-      setNotifyExpiryDeadline(deadline);
+      notifyHoldPhase = 'success';
+      notifyHoldRemainingMs = totalMs;
+      persistNotifyHoldState();
       if (successModal) {
         successModal.classList.add('is-post-success-flow');
         successModal.classList.remove('is-phase-exiting');
         successModal.style.display = 'flex';
       }
-
-      notifySuccessPhaseTimer = window.setTimeout(function () {
-        notifySuccessPhaseTimer = null;
-        completeNotifySuccessAndRedirect();
-      }, totalMs);
+      if (document.visibilityState === 'visible') {
+        showNotifySuccessProgress(totalMs);
+        resumeNotifyHoldTicker();
+      } else {
+        pauseNotifyHoldTicker();
+      }
     }
 
     function startNotifyTerminalRedirectPhase(remainingMs) {
       var totalMs = Math.max(400, Math.floor(Number(remainingMs) || NOTIFY_TERMINAL_HOLD_MS));
       cancelNotifyTerminalPhase();
-      var deadline = Date.now() + totalMs;
-      setNotifyTerminalDeadline(deadline);
-      showNotifyTerminalProgress(totalMs);
-
-      notifyTerminalPhaseTimer = window.setTimeout(function () {
-        notifyTerminalPhaseTimer = null;
-        clearNotifyTerminalDeadline();
-        navigateNotifyOfficialHome();
-      }, totalMs);
+      notifyHoldPhase = 'terminal';
+      notifyHoldRemainingMs = totalMs;
+      persistNotifyHoldState();
+      if (document.visibilityState === 'visible') {
+        showNotifyTerminalProgress(totalMs);
+        resumeNotifyHoldTicker();
+      } else {
+        pauseNotifyHoldTicker();
+      }
     }
 
     function presentNotifySessionExpired(options) {
       var opts = options || {};
       if (notifySessionTerminalActive) {
+        if (opts.autoRedirect !== false && notifyHoldPhase !== 'terminal') {
+          var remActive =
+            opts.terminalRemainingMs != null
+              ? opts.terminalRemainingMs
+              : NOTIFY_TERMINAL_HOLD_MS;
+          startNotifyTerminalRedirectPhase(remActive);
+        }
         return;
       }
       notifySessionTerminalActive = true;
       cancelNotifySuccessPhase();
       setNotifyPostSuccessActive(false);
-      clearNotifyExpiryDeadline();
       if (successModal) {
         successModal.style.display = 'none';
         successModal.classList.remove('is-phase-exiting', 'is-post-success-flow');
@@ -6232,12 +6450,13 @@
     }
 
     function navigateNotifyOfficialHome() {
+      if (notifyRedirectInFlight) return;
+      notifyRedirectInFlight = true;
       cancelNotifySuccessPhase();
       cancelNotifyTerminalPhase();
       notifySessionTerminalActive = false;
       clearNotifySheetDoneLocal();
-      clearNotifyExpiryDeadline();
-      clearNotifyTerminalDeadline();
+      clearNotifyHoldState();
       setNotifyPostSuccessActive(false);
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
@@ -6251,38 +6470,60 @@
 
     function assertNotifySheetAllowsPost() {
       if (isNotifySheetDoneLocal()) {
-        navigateNotifyOfficialHome();
+        presentNotifySessionExpired({
+          message: NOTIFY_SESSION_EXPIRED_SHORT,
+          autoRedirect: true
+        });
         return false;
       }
       return true;
     }
 
     function restoreNotifySessionExpiryState() {
-      if (getNotifyTerminalDeadline()) {
-        navigateNotifyOfficialHome();
+      if (notifyRedirectInFlight) return;
+      if (document.visibilityState !== 'visible') return;
+
+      // Already running a visible hold — just ensure the ticker is alive.
+      if (notifyHoldPhase && notifyHoldRemainingMs > 0) {
+        resumeNotifyHoldTicker();
+        return;
+      }
+
+      var storedPhase = readStoredNotifyHoldPhase();
+      var storedRemaining = readStoredNotifyHoldRemaining();
+
+      if (storedPhase === 'terminal' || (!storedPhase && (function () {
+        try {
+          return !!sessionStorage.getItem(notifyTerminalDeadlineKey());
+        } catch (e) {
+          return false;
+        }
+      })())) {
+        var termRem =
+          storedRemaining > 0 ? storedRemaining : NOTIFY_TERMINAL_HOLD_MS;
+        presentNotifySessionExpired({
+          message: NOTIFY_SESSION_EXPIRED_MESSAGE,
+          autoRedirect: true,
+          terminalRemainingMs: termRem
+        });
+        return;
+      }
+
+      if (storedPhase === 'success' || isNotifyPostSuccessActive()) {
+        var successRem =
+          storedRemaining > 0 ? storedRemaining : NOTIFY_SUCCESS_HOLD_MS;
+        notifyLastSuccessMethod = readNotifyPostSuccessMethod();
+        showSuccessModal(notifyLastSuccessMethod, { skipPostFlow: true });
+        startNotifyPostSuccessFlow(successRem);
         return;
       }
 
       if (isNotifySheetDoneLocal()) {
-        navigateNotifyOfficialHome();
-        return;
+        presentNotifySessionExpired({
+          message: NOTIFY_SESSION_EXPIRED_MESSAGE,
+          autoRedirect: true
+        });
       }
-
-      if (!isNotifyPostSuccessActive()) {
-        return;
-      }
-      var deadline = getNotifyExpiryDeadline();
-      if (!deadline) {
-        return;
-      }
-      var remainingMs = deadline - Date.now();
-      if (remainingMs <= 0) {
-        completeNotifySuccessAndRedirect();
-        return;
-      }
-      notifyLastSuccessMethod = readNotifyPostSuccessMethod();
-      showSuccessModal(notifyLastSuccessMethod, { skipPostFlow: true });
-      startNotifyPostSuccessFlow(remainingMs);
     }
 
     // Function to show detailed error modal
@@ -6545,7 +6786,10 @@
               (errPayload && errPayload.message && String(errPayload.message)) ||
               NOTIFY_SESSION_EXPIRED_SHORT;
             markNotifySheetDoneLocal();
-            navigateNotifyOfficialHome();
+            presentNotifySessionExpired({
+              message: expiredMsg410,
+              autoRedirect: true
+            });
             return null;
           }
 
