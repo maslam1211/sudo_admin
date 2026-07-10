@@ -126,17 +126,15 @@ section,
 /* ── Header ── */
 .header {
   padding: 14px 0;
-  backdrop-filter: blur(0);
-  -webkit-backdrop-filter: blur(0);
   border-bottom: 1px solid transparent;
   transition: background 0.4s var(--st-ease), border-color 0.4s var(--st-ease),
-    backdrop-filter 0.4s var(--st-ease), padding 0.4s var(--st-ease);
+    padding 0.4s var(--st-ease);
 }
 
 .index-page.scrolled .header {
   --background-color: rgba(21, 21, 21, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  /* Avoid backdrop-filter here: it creates a containing block and traps
+     position:fixed mobile nav inside the header bar. */
   border-bottom-color: rgba(229, 129, 71, 0.15);
   padding: 10px 0;
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.25);
@@ -153,10 +151,82 @@ section,
   transition: transform 0.3s var(--st-ease);
 }
 
+@media (max-width: 1199px) {
+  .header .logo .header-logo-img {
+    height: 52px;
+    max-width: 200px;
+  }
+
+  .header .btn-getstarted {
+    margin: 0 40px 0 0;
+    padding: 8px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .header .logo {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .mobile-nav-toggle {
+    position: relative;
+    z-index: 10001;
+    flex-shrink: 0;
+    padding: 6px;
+    margin-right: 0;
+  }
+
+  .mobile-nav-active .navmenu {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: rgba(21, 21, 21, 0.92);
+    z-index: 9998;
+  }
+
+  .mobile-nav-active .navmenu > ul {
+    display: block;
+    position: absolute;
+    top: 72px;
+    left: 16px;
+    right: 16px;
+    bottom: auto;
+    max-height: calc(100vh - 96px);
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-nav-active .mobile-nav-toggle {
+    position: fixed;
+    top: 18px;
+    right: 16px;
+    z-index: 10001;
+    margin-right: 0;
+  }
+}
+
 @media (max-width: 768px) {
   .header .logo .header-logo-img {
-    height: 56px;
-    max-width: 220px;
+    height: 44px;
+    max-width: 160px;
+  }
+
+  .header .btn-getstarted {
+    padding: 6px 12px;
+    font-size: 11px;
+    margin-right: 36px;
+  }
+}
+
+@media (max-width: 400px) {
+  .header .btn-getstarted {
+    padding: 6px 10px;
+    font-size: 10px;
   }
 }
 

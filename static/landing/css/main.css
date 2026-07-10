@@ -440,24 +440,34 @@ h6 {
 
   .mobile-nav-active .mobile-nav-toggle {
     color: #fff;
-    position: absolute;
+    position: fixed;
     font-size: 32px;
     top: 15px;
     right: 15px;
     margin-right: 0;
-    z-index: 9999;
+    z-index: 10001;
   }
 
   .mobile-nav-active .navmenu {
     position: fixed;
     overflow: hidden;
     inset: 0;
-    background: rgba(28, 28, 28, 0.8);
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: rgba(28, 28, 28, 0.92);
     transition: 0.3s;
+    z-index: 9998;
   }
 
   .mobile-nav-active .navmenu>ul {
     display: block;
+    top: 72px;
+    left: 16px;
+    right: 16px;
+    bottom: auto;
+    max-height: calc(100vh - 96px);
+    max-height: calc(100dvh - 96px);
   }
 }
 
