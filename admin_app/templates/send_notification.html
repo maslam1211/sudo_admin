@@ -199,6 +199,16 @@
       max-height: min(42vh, 320px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    body.notify-app .privacy-inline-dialog__ml-closing {
+      margin: 0;
+      padding-bottom: 2px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      line-height: 1.4;
+      color: #e58147;
     }
     body.notify-app .privacy-inline-dialog__icon {
       width: 44px;
@@ -258,13 +268,6 @@
       line-height: 1.45;
       color: rgba(255, 255, 255, 0.66);
     }
-    body.notify-app .privacy-inline-dialog__ml-closing {
-      margin: 0;
-      font-size: 0.74rem;
-      font-weight: 700;
-      line-height: 1.4;
-      color: #e58147;
-    }
     body.notify-app .privacy-main-dialog {
       margin: 12px 0 16px;
       padding: 16px 14px;
@@ -303,49 +306,157 @@
       50% { box-shadow: 0 12px 28px rgba(229, 129, 71, 0.35); transform: scale(1.03); }
     }
 
-    /* Centered watermark above bottom sheet (“Step 1 of 2”), pointer-events passthrough */
+    /* Contact mode: logo above sheet, responsive, no text overlap */
+    body.notify-app #contactModeModal.modal-overlay {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding:
+        max(8px, env(safe-area-inset-top, 0px))
+        0
+        0;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    body.notify-app #contactModeModal[aria-hidden="true"],
+    body.notify-app #contactModeModal[style*="display: none"] {
+      display: none !important;
+    }
     body.notify-app #contactModeModal .notify-flow-modal-center-brand {
-      position: fixed;
-      left: 50%;
-      top: clamp(96px, 20vh, 168px);
-      transform: translateX(-50%);
+      position: relative;
+      left: auto;
+      top: auto;
+      transform: none;
       z-index: 1;
-      width: min(240px, 78vw);
+      flex: 0 0 auto;
+      width: clamp(72px, 22vw, 112px);
+      margin: 0 auto clamp(6px, 1.2vh, 12px);
       pointer-events: none;
-      opacity: 0.97;
+      opacity: 1;
       user-select: none;
     }
-
     body.notify-app #contactModeModal .notify-flow-modal-center-brand::before {
       content: '';
       position: absolute;
-      inset: auto;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: min(260px, 88vw);
-      height: min(260px, 88vw);
-      max-height: clamp(140px, 36vh, 220px);
+      width: 140%;
+      height: 140%;
       border-radius: 50%;
       background: radial-gradient(
         circle at 50% 50%,
-        rgba(229, 129, 71, 0.09) 0%,
-        rgba(229, 129, 71, 0.02) 45%,
-        transparent 72%
+        rgba(229, 129, 71, 0.14) 0%,
+        transparent 68%
       );
       z-index: -1;
     }
-
     body.notify-app #contactModeModal .notify-flow-modal-center-brand .notify-flow-center-brand-img {
       display: block;
-      width: auto;
+      width: 100%;
       height: auto;
-      max-width: min(148px, 42vw);
-      max-height: clamp(96px, 26vw, 148px);
+      max-width: 100%;
+      max-height: none;
       margin: 0 auto;
       aspect-ratio: 1 / 1;
       object-fit: contain;
-      filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
+      filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+    }
+    body.notify-app #contactModeModal .notify-flow-sheet.contact-mode-dialog {
+      position: relative;
+      z-index: 2;
+      flex: 0 1 auto;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto !important;
+      max-height: min(78dvh, calc(100dvh - 120px - env(safe-area-inset-top, 0px)));
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    /* Privacy block: scales with viewport, scrolls inside if needed */
+    body.notify-app #contactModeModal .privacy-inline-dialog {
+      max-height: min(34vh, 260px);
+      margin-bottom: 12px;
+      padding: 12px 11px;
+    }
+    body.notify-app #contactModeModal .privacy-inline-dialog__icon {
+      width: clamp(36px, 10vw, 44px);
+      height: clamp(36px, 10vw, 44px);
+      font-size: clamp(1rem, 3.2vw, 1.2rem);
+      margin-bottom: 8px;
+    }
+    body.notify-app #contactModeModal .privacy-inline-dialog__title {
+      font-size: clamp(0.86rem, 3.4vw, 0.95rem);
+    }
+    body.notify-app #contactModeModal .privacy-inline-dialog__body,
+    body.notify-app #contactModeModal .privacy-inline-dialog__closing,
+    body.notify-app #contactModeModal .privacy-inline-dialog__ml-lead,
+    body.notify-app #contactModeModal .privacy-inline-dialog__ml-body,
+    body.notify-app #contactModeModal .privacy-inline-dialog__ml-closing {
+      font-size: clamp(0.68rem, 2.8vw, 0.74rem);
+    }
+    body.notify-app #contactModeModal .privacy-inline-dialog__ml-title {
+      font-size: clamp(0.78rem, 3.1vw, 0.84rem);
+    }
+    body.notify-app #contactModeModal .notify-flow-title {
+      font-size: clamp(1.1rem, 4.6vw, 1.25rem);
+    }
+    body.notify-app #contactModeModal .notify-flow-lead {
+      margin-bottom: 12px;
+      font-size: clamp(0.78rem, 3.2vw, 0.86rem);
+    }
+    body.notify-app #contactModeModal .notify-mode-direct-btn {
+      min-height: 56px;
+      padding: 12px 12px;
+    }
+
+    @media (max-height: 700px) {
+      body.notify-app #contactModeModal .notify-flow-modal-center-brand {
+        width: clamp(56px, 16vw, 80px);
+        margin-bottom: 4px;
+      }
+      body.notify-app #contactModeModal .notify-flow-sheet.contact-mode-dialog {
+        max-height: min(82dvh, calc(100dvh - 88px - env(safe-area-inset-top, 0px)));
+      }
+      body.notify-app #contactModeModal .privacy-inline-dialog {
+        max-height: min(28vh, 200px);
+        padding: 10px;
+      }
+      body.notify-app #contactModeModal .notify-sheet-handle {
+        margin-bottom: 6px;
+      }
+    }
+
+    @media (max-height: 560px) {
+      body.notify-app #contactModeModal .notify-flow-modal-center-brand {
+        width: 48px;
+        margin-bottom: 2px;
+      }
+      body.notify-app #contactModeModal .privacy-inline-dialog {
+        max-height: min(22vh, 140px);
+      }
+      body.notify-app #contactModeModal .privacy-inline-dialog__icon {
+        display: none;
+      }
+    }
+
+    @media (min-width: 576px) {
+      body.notify-app #contactModeModal.modal-overlay {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-bottom: 16px;
+      }
+      body.notify-app #contactModeModal .notify-flow-sheet.contact-mode-dialog {
+        border-radius: 20px;
+        max-height: min(76dvh, 640px);
+      }
+      body.notify-app #contactModeModal .notify-flow-modal-center-brand {
+        width: 112px;
+      }
     }
 
     body.notify-app .modal-overlay.notify-flow-modal .notify-flow-sheet.emergency-gate-dialog {
