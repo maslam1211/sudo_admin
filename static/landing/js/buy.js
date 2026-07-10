@@ -106,7 +106,7 @@
     var input = form.querySelector('input[name="selectedItem"]');
     return {
       key: (input && input.value) || cfg.productKey || 'sticker',
-      price: Number(cfg.productPrice || (input && input.getAttribute('data-price')) || 1),
+      price: Number(cfg.productPrice || (input && input.getAttribute('data-price')) || 300),
       name: cfg.productName || (input && input.getAttribute('data-name')) || 'SudoTag QR',
     };
   }
@@ -116,7 +116,7 @@
     var qty = Math.max(1, Math.min(20, parseInt(qtyInput.value, 10) || 1));
     qtyInput.value = String(qty);
     var subtotal = product.price * qty;
-    var shipping = Number(cfg.shipping || 0);
+    var shipping = Number(cfg.shipping != null ? cfg.shipping : 49);
     var total = subtotal + shipping;
 
     var setText = function (id, value) {

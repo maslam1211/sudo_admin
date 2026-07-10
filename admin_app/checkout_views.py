@@ -29,7 +29,7 @@ QR_PRODUCTS = {
     'sticker': {
         'key': 'sticker',
         'name': 'SudoTag QR',
-        'price': 1.0,
+        'price': 300.0,
         'description': (
             'Official windshield QR tag — scan to contact the vehicle owner '
             'securely for parking, alerts, and emergencies.'
@@ -37,7 +37,7 @@ QR_PRODUCTS = {
     },
 }
 DEFAULT_PRODUCT_KEY = 'sticker'
-SHIPPING_CHARGE = 0.0
+SHIPPING_CHARGE = 49.0
 
 # Prefer letter-leading names (mirrors mobile ValidationUtils.validateName)
 NAME_LETTER_RE = re.compile(r"^[^\W\d_]([^\W\d_]|[\s'.-]){1,49}$", re.UNICODE)
@@ -296,6 +296,8 @@ def checkout_create_order(request):
         'orderStatus': 1,  # Processing — same as mobile QrOrderCubit
         'address': cleaned['address'],
         'source': 'website',
+        'placedVia': 'Website',
+        'channel': 'web',
         'shippingCharge': cleaned['shipping'],
         'unitPrice': cleaned['unitPrice'],
     }

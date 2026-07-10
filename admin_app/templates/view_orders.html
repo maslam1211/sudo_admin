@@ -221,6 +221,15 @@
                     <!-- Order ID Column - Full ID displayed -->
                     <td>
                         <div class="font-monospace" style="word-break: break-all;">{{ entry.order.id }}</div>
+                        {% if entry.order.source == "website" or entry.order.placedVia == "Website" or entry.order.channel == "web" %}
+                        <span class="badge mt-1" style="background:#e58147;color:#fff;font-size:0.65rem;">
+                            <i class="fas fa-globe me-1"></i>Website Order
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary mt-1" style="font-size:0.65rem;">
+                            <i class="fas fa-mobile-alt me-1"></i>App Order
+                        </span>
+                        {% endif %}
                     </td>
                     
                     <!-- Customer Column -->
@@ -234,9 +243,14 @@
                     
                     <!-- Product Column -->
                     <td>
-                        <div class="fw-bold text-capitalize">{{ entry.order.selectedItem|default:"-" }}</div>
+                        <div class="fw-bold text-capitalize">
+                            {% if entry.order.selectedItem == "sticker" %}SudoTag QR{% else %}{{ entry.order.selectedItem|default:"-" }}{% endif %}
+                        </div>
                         <div class="text-muted small">Qty: {{ entry.order.quantity|default:1 }}</div>
                         <div class="text-success fw-bold">₹{{ entry.order.amount|default:0 }}</div>
+                        {% if entry.order.source == "website" or entry.order.placedVia == "Website" %}
+                        <div class="text-muted small mt-1"><i class="fas fa-globe me-1"></i>Ordered via website</div>
+                        {% endif %}
                     </td>
                     
                     <!-- Vehicle Column -->

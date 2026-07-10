@@ -68,6 +68,7 @@
                         <th>Payment ID</th>
                         <th>Order ID</th>
                         <th>User ID</th>
+                        <th>Source</th>
                         <th>Verified</th>
                         <th>Timestamp</th>
                     </tr>
@@ -83,6 +84,17 @@
                         </td>
                         <td>
                             <span class="font-monospace" style="word-break: break-all;">{{ entry.payment.userId|default:"-" }}</span>
+                        </td>
+                        <td>
+                            {% if entry.payment.source == "website" %}
+                            <span class="badge" style="background:#e58147;color:#fff;">
+                                <i class="fas fa-globe me-1"></i>Website
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-mobile-alt me-1"></i>App
+                            </span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if entry.payment.verified %}
