@@ -90,7 +90,7 @@
       dismissPreloader();
     } else {
       window.addEventListener('load', dismissPreloader);
-      window.setTimeout(dismissPreloader, 4500);
+      window.setTimeout(dismissPreloader, 8000);
     }
   }
 

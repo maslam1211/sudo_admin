@@ -31,7 +31,7 @@
   } else {
     window.addEventListener('load', hidePreloader);
     /* Safety: never leave the wheel stuck if load is delayed */
-    window.setTimeout(hidePreloader, 4500);
+    window.setTimeout(hidePreloader, 8000);
   }
 
   function toggleScrolled() {

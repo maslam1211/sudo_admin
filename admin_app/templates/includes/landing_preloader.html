@@ -1,6 +1,8 @@
-{# Site launch preloader — wheel.json only; always reveals site after load/timeout #}
-<div id="preloader" class="preloader--lottie" aria-busy="true" aria-live="polite" role="status">
-  <div id="preloader-lottie-mount" class="preloader-lottie" aria-hidden="true"></div>
+{# Site launch loader — wheel.json visible for the whole loading period #}
+<div id="preloader" class="preloader--lottie" aria-busy="true" aria-live="polite" role="status"
+     style="position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:#000;margin:0;padding:0;">
+  <div id="preloader-lottie-mount" class="preloader-lottie" aria-hidden="true"
+       style="width:min(160px,42vw);height:min(160px,42vw);"></div>
 </div>
 <script>
 (function () {
@@ -11,11 +13,30 @@
   document.documentElement.classList.add('preloader-pending');
   if (document.body) document.body.classList.add('preloader-active');
 
-  var wheelUrl = "{% url 'notify_sending_wheel_json' %}";
-  var lottieUrl = "{% url 'landing_asset' asset_path='vendor/lottie/lottie.min.js' %}";
-  var dismissed = false;
+  var wheelUrl = window.__SUDO_WHEEL_URL || "{% url 'notify_sending_wheel_json' %}";
+  var lottieUrl = window.__SUDO_LOTTIE_URL || "{% url 'landing_asset' asset_path='vendor/lottie/lottie.min.js' %}";
 
-  function dismissPreloader() {
+  var dismissed = false;
+  var pageLoaded = false;
+  var wheelReady = false;
+  var wheelStarted = false;
+  var startedAt = Date.now();
+
+  /* Show wheel during load; keep it on screen long enough to see */
+  var MIN_SHOW_MS = 1600;
+  var MAX_WAIT_MS = 10000;
+
+  function tryDismiss() {
+    if (dismissed) return;
+    var elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_SHOW_MS) return;
+    /* Prefer waiting until page load + wheel started; after 3s allow dismiss anyway */
+    if (!pageLoaded && elapsed < 3000) return;
+    if (!wheelReady && !wheelStarted && elapsed < 3500) return;
+    dismissNow();
+  }
+
+  function dismissNow() {
     if (dismissed) return;
     dismissed = true;
     if (window.__sudoPreloaderLottie) {
@@ -24,41 +45,69 @@
     }
     document.documentElement.classList.remove('preloader-pending');
     if (document.body) document.body.classList.remove('preloader-active');
-    if (!preloader) return;
     preloader.dataset.dismissing = '1';
     preloader.style.opacity = '0';
     preloader.style.visibility = 'hidden';
+    preloader.style.pointerEvents = 'none';
     window.setTimeout(function () {
       if (preloader && preloader.parentNode) preloader.remove();
-      /* Refresh AOS after content becomes visible so cards don't stay mid-transform */
       try {
-        if (window.AOS && typeof window.AOS.refresh === 'function') {
+        if (window.AOS && typeof window.AOS.refreshHard === 'function') {
+          window.AOS.refreshHard();
+        } else if (window.AOS && typeof window.AOS.refresh === 'function') {
           window.AOS.refresh();
         }
       } catch (e) {}
-    }, 400);
+    }, 450);
   }
 
-  /* Always available for main.js / how_it_works.js */
-  window.sudoDismissPreloader = dismissPreloader;
+  window.sudoDismissPreloader = function () {
+    pageLoaded = true;
+    scheduleTry();
+  };
+
+  function scheduleTry() {
+    tryDismiss();
+    var left = MIN_SHOW_MS - (Date.now() - startedAt);
+    if (!dismissed && left > 0) {
+      window.setTimeout(tryDismiss, left + 30);
+    }
+  }
+
+  function markWheelReady() {
+    wheelReady = true;
+    wheelStarted = true;
+    preloader.classList.add('preloader--ready');
+    scheduleTry();
+  }
 
   function start(api) {
-    if (!mount || !preloader.parentNode || dismissed) return;
+    if (!mount || !preloader.parentNode || dismissed || wheelStarted) return;
+    wheelStarted = true;
     try {
       if (window.__sudoPreloaderLottie) {
         try { window.__sudoPreloaderLottie.destroy(); } catch (e) {}
       }
       mount.innerHTML = '';
-      window.__sudoPreloaderLottie = api.loadAnimation({
+      var anim = api.loadAnimation({
         container: mount,
         renderer: 'svg',
         loop: true,
         autoplay: true,
         path: wheelUrl
       });
-      preloader.classList.add('preloader--ready');
+      window.__sudoPreloaderLottie = anim;
+      if (anim && typeof anim.addEventListener === 'function') {
+        anim.addEventListener('DOMLoaded', markWheelReady);
+        anim.addEventListener('data_ready', markWheelReady);
+        anim.addEventListener('data_failed', markWheelReady);
+      }
+      /* Fallback if events never fire */
+      window.setTimeout(function () {
+        if (!wheelReady) markWheelReady();
+      }, 900);
     } catch (err) {
-      /* Keep black cover until dismiss — never block the site */
+      markWheelReady();
     }
   }
 
@@ -77,41 +126,65 @@
       start(api);
       return;
     }
-    /* Prefer same-origin Lottie (works after server is up, no CDN dependency) */
-    loadScript(lottieUrl, function () {
+    /* Head may still be downloading Lottie — poll briefly, then load ourselves */
+    var tries = 0;
+    var poll = window.setInterval(function () {
+      tries += 1;
       var a = window.lottie || window.bodymovin;
-      if (a) start(a);
-      else {
-        loadScript(
-          'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js',
-          function () {
-            var b = window.lottie || window.bodymovin;
-            if (b) start(b);
-          }
-        );
-      }
-    }, function () {
-      loadScript(
-        'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js',
-        function () {
+      if (a) {
+        window.clearInterval(poll);
+        start(a);
+      } else if (tries >= 40) {
+        window.clearInterval(poll);
+        loadScript(lottieUrl, function () {
           var b = window.lottie || window.bodymovin;
           if (b) start(b);
-        }
-      );
-    });
+          else {
+            loadScript(
+              'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js',
+              function () {
+                var c = window.lottie || window.bodymovin;
+                if (c) start(c);
+                else markWheelReady();
+              },
+              markWheelReady
+            );
+          }
+        }, function () {
+          loadScript(
+            'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js',
+            function () {
+              var c = window.lottie || window.bodymovin;
+              if (c) start(c);
+              else markWheelReady();
+            },
+            markWheelReady
+          );
+        });
+      }
+    }, 50);
   }
 
   bootLottie();
 
-  /* Reveal site as soon as page is ready — never stay stuck on black */
-  if (document.readyState === 'complete') {
-    window.setTimeout(dismissPreloader, 350);
-  } else {
-    window.addEventListener('load', function () {
-      window.setTimeout(dismissPreloader, 250);
-    });
+  function onPageLoad() {
+    pageLoaded = true;
+    scheduleTry();
   }
-  /* Hard safety if load event never fires (slow/broken assets) */
-  window.setTimeout(dismissPreloader, 4500);
+
+  if (document.readyState === 'complete') {
+    /* Fast/cached load — still keep wheel for MIN_SHOW_MS */
+    window.setTimeout(onPageLoad, 0);
+  } else {
+    window.addEventListener('load', onPageLoad);
+  }
+
+  window.setTimeout(function () {
+    pageLoaded = true;
+    wheelReady = true;
+    dismissNow();
+  }, MAX_WAIT_MS);
+
+  window.setTimeout(scheduleTry, MIN_SHOW_MS + 40);
 })();
 </script>

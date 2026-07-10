@@ -1,16 +1,66 @@
-{# Landing site (home, terms, privacy) #}
+{# Landing site (home, terms, privacy, how-it-works) #}
 {% include 'includes/favicon_links.html' %}
-<style>
-  /* Cover page immediately — only wheel.json loader is visible while loading */
+<style id="sudo-preloader-critical">
+  /* Fullscreen cover from first paint — wheel only while loading */
   html.preloader-pending,
   html.preloader-pending body {
     background: #000 !important;
+    overflow: hidden !important;
   }
   html.preloader-pending body > *:not(#preloader):not(script) {
     visibility: hidden !important;
+    pointer-events: none !important;
   }
   #preloader {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483646 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: #000 !important;
     visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+  }
+  #preloader .preloader-lottie {
+    width: min(160px, 42vw) !important;
+    height: min(160px, 42vw) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #preloader .preloader-lottie svg {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
   }
 </style>
-<script>document.documentElement.classList.add('preloader-pending');</script>
+<script>
+  document.documentElement.classList.add('preloader-pending');
+  window.__SUDO_WHEEL_URL = "{% url 'notify_sending_wheel_json' %}";
+  window.__SUDO_LOTTIE_URL = "{% url 'landing_asset' asset_path='vendor/lottie/lottie.min.js' %}";
+  /* Start loading Lottie immediately in <head> so wheel can play as soon as body mounts */
+  (function () {
+    if (window.lottie || window.bodymovin) return;
+    var s = document.createElement('script');
+    s.src = window.__SUDO_LOTTIE_URL;
+    s.async = true;
+    s.onload = function () { window.__SUDO_LOTTIE_READY = true; };
+    s.onerror = function () {
+      var c = document.createElement('script');
+      c.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+      c.async = true;
+      c.onload = function () { window.__SUDO_LOTTIE_READY = true; };
+      document.head.appendChild(c);
+    };
+    document.head.appendChild(s);
+  })();
+</script>
+<link rel="preload" as="fetch" href="{% url 'notify_sending_wheel_json' %}" crossorigin>
+<link rel="preload" as="script" href="{% url 'landing_asset' asset_path='vendor/lottie/lottie.min.js' %}">
