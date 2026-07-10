@@ -2015,6 +2015,10 @@ section,
 }
 
 .hiw-step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   border-radius: var(--st-radius-md);
   padding: 28px 20px;
@@ -2024,6 +2028,16 @@ section,
   transition: transform 0.35s var(--st-ease), box-shadow 0.35s var(--st-ease),
     border-color 0.35s var(--st-ease);
   height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.hiw-step-card:hover,
+a.hiw-step-card:focus {
+  color: inherit;
+  text-decoration: none;
 }
 
 .hiw-step-card:hover {
@@ -2044,11 +2058,25 @@ section,
   margin-right: auto;
   background: var(--st-accent-soft);
   border-radius: var(--st-radius-sm);
+  flex-shrink: 0;
 }
 
 .hiw-step-card strong {
   font-size: 0.9rem;
   color: #151515;
+  display: block;
+}
+
+/* Keep the 2×2 step grid aligned on all breakpoints */
+.how-it-works .hiw-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.how-it-works .hiw-steps-grid > * {
+  min-width: 0;
 }
 
 /* ── Testimonials ── */
@@ -2986,9 +3014,8 @@ section,
     justify-content: center;
   }
 
-  .how-it-works .row > [class*="col-6"] {
-    flex: 0 0 100%;
-    max-width: 100%;
+  .how-it-works .hiw-steps-grid {
+    gap: 12px;
   }
 
   .hiw-step-card {

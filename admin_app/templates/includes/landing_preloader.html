@@ -30,6 +30,12 @@
     preloader.style.visibility = 'hidden';
     window.setTimeout(function () {
       if (preloader && preloader.parentNode) preloader.remove();
+      /* Refresh AOS after content becomes visible so cards don't stay mid-transform */
+      try {
+        if (window.AOS && typeof window.AOS.refresh === 'function') {
+          window.AOS.refresh();
+        }
+      } catch (e) {}
     }, 400);
   }
 
