@@ -187,63 +187,84 @@
       color: rgba(255, 255, 255, 0.64);
     }
 
-    /* Privacy notice — compact card inside main contact dialog */
-    body.notify-app .privacy-inline-card {
-      display: flex;
-      gap: 0.75rem;
-      align-items: flex-start;
-      text-align: left;
+    /* Privacy dialogue inside Contact Owner / Emergency sheet + main screen */
+    body.notify-app .privacy-inline-dialog {
       margin: 0 0 14px;
-      padding: 12px 12px 12px 10px;
-      border-radius: 14px;
+      padding: 14px 12px;
+      border-radius: 16px;
       background: rgba(229, 129, 71, 0.1);
       border: 1px solid rgba(229, 129, 71, 0.28);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      text-align: left;
+      animation: privacy-notice-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+      max-height: min(42vh, 320px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    body.notify-app .privacy-inline-card__icon {
-      width: 36px;
-      height: 36px;
-      flex-shrink: 0;
+    body.notify-app .privacy-inline-dialog__icon {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 10px;
       border-radius: 50%;
       display: grid;
       place-items: center;
       background: rgba(229, 129, 71, 0.18);
+      border: 1px solid rgba(229, 129, 71, 0.35);
       color: #e58147;
-      font-size: 1rem;
+      font-size: 1.2rem;
+      animation: privacy-shield-pulse 2.4s ease-in-out infinite;
     }
-    body.notify-app .privacy-inline-card__body {
-      min-width: 0;
-      flex: 1;
-    }
-    body.notify-app .privacy-inline-card__title {
-      margin: 0 0 4px;
-      font-size: 0.82rem;
+    body.notify-app .privacy-inline-dialog__title {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
       font-weight: 800;
       color: #fff;
       line-height: 1.3;
+      text-align: center;
     }
-    body.notify-app .privacy-inline-card__text {
-      margin: 0;
+    body.notify-app .privacy-inline-dialog__body,
+    body.notify-app .privacy-inline-dialog__closing {
+      margin: 0 0 8px;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    body.notify-app .privacy-inline-dialog__closing {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.88);
+    }
+    body.notify-app .privacy-inline-dialog__divider {
+      height: 1px;
+      margin: 8px 0 10px;
+      border: 0;
+      background: linear-gradient(90deg, transparent, rgba(229, 129, 71, 0.4), transparent);
+    }
+    body.notify-app .privacy-inline-dialog__ml-title {
+      margin: 0 0 6px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.35;
+    }
+    body.notify-app .privacy-inline-dialog__ml-lead {
+      margin: 0 0 6px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.4;
+    }
+    body.notify-app .privacy-inline-dialog__ml-body {
+      margin: 0 0 6px;
       font-size: 0.72rem;
       line-height: 1.45;
-      color: rgba(255, 255, 255, 0.68);
+      color: rgba(255, 255, 255, 0.66);
     }
-    body.notify-app .privacy-inline-card__ml {
-      margin: 8px 0 0;
-      padding-top: 8px;
-      border-top: 1px solid rgba(229, 129, 71, 0.2);
-      font-size: 0.7rem;
-      line-height: 1.45;
-      color: rgba(255, 255, 255, 0.62);
-    }
-    body.notify-app .privacy-inline-card__ml strong {
-      display: block;
-      margin-bottom: 4px;
-      color: #e58147;
+    body.notify-app .privacy-inline-dialog__ml-closing {
+      margin: 0;
       font-size: 0.74rem;
+      font-weight: 700;
+      line-height: 1.4;
+      color: #e58147;
     }
-
-    /* Owner-only: privacy dialog on main screen */
     body.notify-app .privacy-main-dialog {
       margin: 12px 0 16px;
       padding: 16px 14px;
@@ -253,12 +274,11 @@
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
       animation: privacy-notice-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    @keyframes privacy-notice-in {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
     body.notify-app .privacy-main-dialog[hidden] {
       display: none !important;
+    }
+    body.notify-app .privacy-main-dialog .privacy-inline-dialog__icon {
+      margin-bottom: 12px;
     }
     body.notify-app .privacy-notice-continue {
       width: 100%;
@@ -272,6 +292,15 @@
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 10px 24px rgba(229, 129, 71, 0.28);
+    }
+
+    @keyframes privacy-notice-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes privacy-shield-pulse {
+      0%, 100% { box-shadow: 0 8px 20px rgba(229, 129, 71, 0.2); transform: scale(1); }
+      50% { box-shadow: 0 12px 28px rgba(229, 129, 71, 0.35); transform: scale(1.03); }
     }
 
     /* Centered watermark above bottom sheet (“Step 1 of 2”), pointer-events passthrough */
@@ -3482,6 +3511,31 @@
         <h2 class="notify-flow-title" id="contactModeTitle">Who are you contacting?</h2>
         <p class="notify-flow-lead">Tap one option. You’ll pick a reason and contact method on the next screen.</p>
 
+        <aside class="privacy-inline-dialog" aria-label="Privacy notice">
+          <div class="privacy-inline-dialog__icon" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></div>
+          <h3 class="privacy-inline-dialog__title">🔒 Your Privacy is Protected</h3>
+          <p class="privacy-inline-dialog__body">
+            For your safety and privacy, SudoTag never reveals your personal phone number to anyone. All communication is securely handled through the SudoTag platform, ensuring your personal information remains private at all times.
+          </p>
+          <p class="privacy-inline-dialog__closing">
+            Proceed with confidence—your privacy is always protected.
+          </p>
+          <hr class="privacy-inline-dialog__divider" />
+          <div class="privacy-inline-dialog__ml" lang="ml">
+            <p class="privacy-inline-dialog__ml-title">🛡️ നിങ്ങളുടെ സ്വകാര്യതയാണ് ഞങ്ങളുടെ മുൻഗണന</p>
+            <p class="privacy-inline-dialog__ml-lead"><strong>നിങ്ങളുടെ സുരക്ഷയും സ്വകാര്യതയും സംരക്ഷിക്കുമെന്ന് SudoTag ഉറപ്പുനൽകുന്നു.</strong></p>
+            <p class="privacy-inline-dialog__ml-body">
+              ഈ സേവനം ഉപയോഗിക്കുന്നതിനിടെ നിങ്ങളുടെ വ്യക്തിഗത ഫോൺ നമ്പറോ മറ്റ് സ്വകാര്യ വിവരങ്ങളോ ഒരു സാഹചര്യത്തിലും മറ്റാർക്കും നേരിട്ട് വെളിപ്പെടുത്തുകയില്ല.
+            </p>
+            <p class="privacy-inline-dialog__ml-body">
+              ഓരോ ആശയവിനിമയവും സുരക്ഷിതമായ സംവിധാനത്തിലൂടെയാണ് നടക്കുന്നത്, അതിലൂടെ നിങ്ങളുടെ സ്വകാര്യ വിവരങ്ങൾ എപ്പോഴും സുരക്ഷിതമായി നിലനിൽക്കും.
+            </p>
+            <p class="privacy-inline-dialog__ml-closing">
+              🔒 ആത്മവിശ്വാസത്തോടെ തുടരൂ — നിങ്ങളുടെ സ്വകാര്യത SudoTag-നൊപ്പം എല്ലായ്പ്പോഴും സുരക്ഷിതമാണ്.
+            </p>
+          </div>
+        </aside>
+
         <div class="notify-mode-direct-actions">
           <button type="button" class="notify-mode-direct-btn notify-mode-direct-btn--owner" id="chooseOwnerContactBtn">
             <span class="notify-mode-direct-icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></span>
@@ -3574,6 +3628,34 @@
       {% endif %}
       <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
     </section>
+
+    {% if not has_emergency_contact %}
+    <aside class="privacy-main-dialog" id="privacyMainDialog" role="dialog" aria-labelledby="privacyMainTitle">
+      <div class="privacy-inline-dialog__icon" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></div>
+      <h3 class="privacy-inline-dialog__title" id="privacyMainTitle">🔒 Your Privacy is Protected</h3>
+      <p class="privacy-inline-dialog__body">
+        For your safety and privacy, SudoTag never reveals your personal phone number to anyone. All communication is securely handled through the SudoTag platform, ensuring your personal information remains private at all times.
+      </p>
+      <p class="privacy-inline-dialog__closing">
+        Proceed with confidence—your privacy is always protected.
+      </p>
+      <hr class="privacy-inline-dialog__divider" />
+      <div class="privacy-inline-dialog__ml" lang="ml">
+        <p class="privacy-inline-dialog__ml-title">🛡️ നിങ്ങളുടെ സ്വകാര്യതയാണ് ഞങ്ങളുടെ മുൻഗണന</p>
+        <p class="privacy-inline-dialog__ml-lead"><strong>നിങ്ങളുടെ സുരക്ഷയും സ്വകാര്യതയും സംരക്ഷിക്കുമെന്ന് SudoTag ഉറപ്പുനൽകുന്നു.</strong></p>
+        <p class="privacy-inline-dialog__ml-body">
+          ഈ സേവനം ഉപയോഗിക്കുന്നതിനിടെ നിങ്ങളുടെ വ്യക്തിഗത ഫോൺ നമ്പറോ മറ്റ് സ്വകാര്യ വിവരങ്ങളോ ഒരു സാഹചര്യത്തിലും മറ്റാർക്കും നേരിട്ട് വെളിപ്പെടുത്തുകയില്ല.
+        </p>
+        <p class="privacy-inline-dialog__ml-body">
+          ഓരോ ആശയവിനിമയവും സുരക്ഷിതമായ സംവിധാനത്തിലൂടെയാണ് നടക്കുന്നത്, അതിലൂടെ നിങ്ങളുടെ സ്വകാര്യ വിവരങ്ങൾ എപ്പോഴും സുരക്ഷിതമായി നിലനിൽക്കും.
+        </p>
+        <p class="privacy-inline-dialog__ml-closing">
+          🔒 ആത്മവിശ്വാസത്തോടെ തുടരൂ — നിങ്ങളുടെ സ്വകാര്യത SudoTag-നൊപ്പം എല്ലായ്പ്പോഴും സുരക്ഷിതമാണ്.
+        </p>
+      </div>
+      <button type="button" class="privacy-notice-continue" id="privacyMainContinueBtn">Continue</button>
+    </aside>
+    {% endif %}
 
     <section class="notify-reasons-panel" id="notifyOwnerReasonsSection" aria-labelledby="notifyReasonsHeading">
     <div id="notifyOwnerReasonsInner">
@@ -4132,6 +4214,8 @@
     const chooseEmergencyContactBtn = document.getElementById('chooseEmergencyContactBtn');
     const chooseOwnerContactBtn = document.getElementById('chooseOwnerContactBtn');
     const privacyPhoneNotice = document.getElementById('privacyPhoneNotice');
+    const privacyMainDialog = document.getElementById('privacyMainDialog');
+    const privacyMainContinueBtn = document.getElementById('privacyMainContinueBtn');
     const callFlowDialogInner = document.getElementById('callFlowDialogInner');
     var NOTIFY_SWIPE_CALL_LABEL_DEFAULT = 'Slide to call';
     var NOTIFY_SWIPE_CALL_LABEL_EMERGENCY = 'Slide to call emergency';
@@ -4820,8 +4904,13 @@
 
     function syncPrivacyPhoneNotice() {
       if (!privacyPhoneNotice) return;
-      // Show under mobile number only after Contact Owner is selected.
       privacyPhoneNotice.hidden = contactMode !== 'owner';
+    }
+
+    if (privacyMainContinueBtn && privacyMainDialog) {
+      privacyMainContinueBtn.addEventListener('click', function () {
+        privacyMainDialog.hidden = true;
+      });
     }
 
     function openContactModeModal() {
@@ -5201,6 +5290,7 @@
         }
       } else {
         contactMode = 'owner';
+        if (privacyMainDialog) privacyMainDialog.hidden = false;
       }
       syncContactModeUi();
       updateNotifyModalLock();
@@ -6122,6 +6212,8 @@
       syncContactModeUi();
       if (hasEmergencyContact && contactModeModal) {
         openContactModeModal();
+      } else if (privacyMainDialog) {
+        privacyMainDialog.hidden = false;
       }
     }
 
