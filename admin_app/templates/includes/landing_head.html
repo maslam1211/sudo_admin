@@ -1,2 +1,16 @@
 {# Landing site (home, terms, privacy) #}
 {% include 'includes/favicon_links.html' %}
+<style>
+  /* Cover page immediately — only wheel.json loader is visible while loading */
+  html.preloader-pending,
+  html.preloader-pending body {
+    background: #000 !important;
+  }
+  html.preloader-pending body > *:not(#preloader):not(script) {
+    visibility: hidden !important;
+  }
+  #preloader {
+    visibility: visible !important;
+  }
+</style>
+<script>document.documentElement.classList.add('preloader-pending');</script>

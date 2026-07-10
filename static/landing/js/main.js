@@ -61,13 +61,37 @@
   });
 
   /**
-   * Preloader
+   * Preloader (Lottie wheel.json) — prefer shared dismiss from landing_preloader
    */
+  function dismissPreloader() {
+    if (typeof window.sudoDismissPreloader === 'function') {
+      window.sudoDismissPreloader();
+      return;
+    }
+    const preloader = document.querySelector('#preloader');
+    if (!preloader || preloader.dataset.dismissing === '1') return;
+    preloader.dataset.dismissing = '1';
+    if (window.__sudoPreloaderLottie) {
+      try { window.__sudoPreloaderLottie.destroy(); } catch (e) {}
+      window.__sudoPreloaderLottie = null;
+    }
+    preloader.style.opacity = '0';
+    preloader.style.visibility = 'hidden';
+    document.body.classList.remove('preloader-active');
+    document.documentElement.classList.remove('preloader-pending');
+    window.setTimeout(function () {
+      if (preloader.parentNode) preloader.remove();
+    }, 450);
+  }
+
   const preloader = document.querySelector('#preloader');
   if (preloader) {
-    window.addEventListener('load', () => {
-      preloader.remove();
-    });
+    if (document.readyState === 'complete') {
+      dismissPreloader();
+    } else {
+      window.addEventListener('load', dismissPreloader);
+      window.setTimeout(dismissPreloader, 4500);
+    }
   }
 
   /**

@@ -135,11 +135,16 @@ def register_call_destination(request):
     except Exception as exc:
         logger.warning('call_route register owner push alert failed: %s', exc)
     try:
-        voice_register_record_success(request, qr_id, key)
+        started_cd = voice_register_record_success(request, qr_id, key)
         mark_notify_sheet_done(request, qr_id)
     except Exception as exc:
         logger.warning('call_route session throttle / sheet mark failed: %s', exc)
-    return JsonResponse({'status': 'ok'})
+        started_cd = None
+    payload = {'status': 'ok'}
+    if started_cd:
+        payload['cooldown_seconds_remaining'] = int(started_cd)
+        payload['voice_call_waiting'] = True
+    return JsonResponse(payload)
 
 
 @csrf_exempt

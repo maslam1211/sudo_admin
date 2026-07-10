@@ -6,16 +6,32 @@
   'use strict';
 
   function hidePreloader() {
-    var preloader = document.querySelector('#preloader');
-    if (preloader && preloader.parentNode) {
-      preloader.remove();
+    if (typeof window.sudoDismissPreloader === 'function') {
+      window.sudoDismissPreloader();
+      return;
     }
+    var preloader = document.querySelector('#preloader');
+    if (!preloader || preloader.dataset.dismissing === '1') return;
+    preloader.dataset.dismissing = '1';
+    if (window.__sudoPreloaderLottie) {
+      try { window.__sudoPreloaderLottie.destroy(); } catch (e) {}
+      window.__sudoPreloaderLottie = null;
+    }
+    preloader.style.opacity = '0';
+    preloader.style.visibility = 'hidden';
+    document.body.classList.remove('preloader-active');
+    document.documentElement.classList.remove('preloader-pending');
+    window.setTimeout(function () {
+      if (preloader.parentNode) preloader.remove();
+    }, 450);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', hidePreloader);
-  } else {
+  if (document.readyState === 'complete') {
     hidePreloader();
+  } else {
+    window.addEventListener('load', hidePreloader);
+    /* Safety: never leave the wheel stuck if load is delayed */
+    window.setTimeout(hidePreloader, 4500);
   }
 
   function toggleScrolled() {

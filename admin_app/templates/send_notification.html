@@ -5891,6 +5891,9 @@
             })
             .then(function (result) {
               if (result.ok && result.data && result.data.status === 'ok') {
+                if (result.data.cooldown_seconds_remaining != null) {
+                  applyVoiceCooldownFromServer(result.data.cooldown_seconds_remaining);
+                }
                 hideNotifySendingOverlay();
                 var dockEl = document.getElementById('notifyActionDock');
                 if (dockEl) {

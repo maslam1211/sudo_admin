@@ -1,0 +1,111 @@
+{# Site launch preloader — wheel.json only; always reveals site after load/timeout #}
+<div id="preloader" class="preloader--lottie" aria-busy="true" aria-live="polite" role="status">
+  <div id="preloader-lottie-mount" class="preloader-lottie" aria-hidden="true"></div>
+</div>
+<script>
+(function () {
+  var mount = document.getElementById('preloader-lottie-mount');
+  var preloader = document.getElementById('preloader');
+  if (!preloader) return;
+
+  document.documentElement.classList.add('preloader-pending');
+  if (document.body) document.body.classList.add('preloader-active');
+
+  var wheelUrl = "{% url 'notify_sending_wheel_json' %}";
+  var lottieUrl = "{% url 'landing_asset' asset_path='vendor/lottie/lottie.min.js' %}";
+  var dismissed = false;
+
+  function dismissPreloader() {
+    if (dismissed) return;
+    dismissed = true;
+    if (window.__sudoPreloaderLottie) {
+      try { window.__sudoPreloaderLottie.destroy(); } catch (e) {}
+      window.__sudoPreloaderLottie = null;
+    }
+    document.documentElement.classList.remove('preloader-pending');
+    if (document.body) document.body.classList.remove('preloader-active');
+    if (!preloader) return;
+    preloader.dataset.dismissing = '1';
+    preloader.style.opacity = '0';
+    preloader.style.visibility = 'hidden';
+    window.setTimeout(function () {
+      if (preloader && preloader.parentNode) preloader.remove();
+    }, 400);
+  }
+
+  /* Always available for main.js / how_it_works.js */
+  window.sudoDismissPreloader = dismissPreloader;
+
+  function start(api) {
+    if (!mount || !preloader.parentNode || dismissed) return;
+    try {
+      if (window.__sudoPreloaderLottie) {
+        try { window.__sudoPreloaderLottie.destroy(); } catch (e) {}
+      }
+      mount.innerHTML = '';
+      window.__sudoPreloaderLottie = api.loadAnimation({
+        container: mount,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: wheelUrl
+      });
+      preloader.classList.add('preloader--ready');
+    } catch (err) {
+      /* Keep black cover until dismiss — never block the site */
+    }
+  }
+
+  function loadScript(src, onOk, onFail) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = function () { onOk && onOk(); };
+    s.onerror = function () { onFail && onFail(); };
+    document.head.appendChild(s);
+  }
+
+  function bootLottie() {
+    var api = window.lottie || window.bodymovin;
+    if (api) {
+      start(api);
+      return;
+    }
+    /* Prefer same-origin Lottie (works after server is up, no CDN dependency) */
+    loadScript(lottieUrl, function () {
+      var a = window.lottie || window.bodymovin;
+      if (a) start(a);
+      else {
+        loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js',
+          function () {
+            var b = window.lottie || window.bodymovin;
+            if (b) start(b);
+          }
+        );
+      }
+    }, function () {
+      loadScript(
+        'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js',
+        function () {
+          var b = window.lottie || window.bodymovin;
+          if (b) start(b);
+        }
+      );
+    });
+  }
+
+  bootLottie();
+
+  /* Reveal site as soon as page is ready — never stay stuck on black */
+  if (document.readyState === 'complete') {
+    window.setTimeout(dismissPreloader, 350);
+  } else {
+    window.addEventListener('load', function () {
+      window.setTimeout(dismissPreloader, 250);
+    });
+  }
+  /* Hard safety if load event never fires (slow/broken assets) */
+  window.setTimeout(dismissPreloader, 4500);
+})();
+</script>

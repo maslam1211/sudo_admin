@@ -26,6 +26,7 @@ body.index-page {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: "DM Sans", var(--default-font);
+  overflow-x: clip;
 }
 
 body.index-page h1,
@@ -2222,7 +2223,8 @@ section,
 
 .faq-answer.open {
   padding: 16px 24px 24px;
-  max-height: 400px;
+  max-height: min(80vh, 1200px);
+  overflow-y: auto;
 }
 
 /* ── Contact / WhatsApp ── */
@@ -2553,6 +2555,14 @@ section,
   body.index-page.mobile-app-bar-visible .scroll-top {
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
+
+  body.index-page.mobile-app-bar-visible #footer {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.index-page.mobile-app-bar-visible .main {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ── Contact section ── */
@@ -2714,7 +2724,7 @@ section,
   .hero-speed-lines::before,
   .hero-speed-lines::after,
   .hero-scroll-line,
-  #preloader:before,
+  #preloader .preloader-lottie,
   .hero-scan-device,
   .hero-scan-phone__beam,
   .hero-scan-phone__flash,
@@ -2897,5 +2907,158 @@ section,
     min-width: 160px;
     padding: 12px 20px;
     font-size: 13px;
+  }
+}
+
+/* ── Site-wide responsive polish ── */
+@media (max-width: 991px) {
+  .hero {
+    min-height: auto;
+    padding: 120px 0 64px;
+    align-items: flex-start;
+  }
+
+  .hero-scroll-hint {
+    display: none;
+  }
+
+  .hero-content-col .hero-content {
+    text-align: center;
+  }
+
+  .hero-content-col .hero p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-download-block,
+  .hero-cta-row,
+  .app-store-buttons {
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mobile-nav-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero {
+    padding: 104px 0 48px;
+  }
+
+  .hero .hero-background .hero-bg-tag {
+    opacity: 0.35;
+    width: min(420px, 92vw);
+  }
+
+  .hero-cta-row {
+    width: 100%;
+  }
+
+  .hero-cta-row .btn-getstarted {
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .hero-download-block .app-store-buttons {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .hero-download-block .app-store-btn,
+  .call-to-action .app-store-btn,
+  .footer .app-store-btn {
+    min-width: 0;
+    width: 100%;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+  }
+
+  .how-it-works .row > [class*="col-6"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .hiw-step-card {
+    padding: 22px 16px;
+  }
+
+  .faq-question {
+    padding: 18px 16px;
+    font-size: 0.95rem;
+    gap: 12px;
+  }
+
+  .faq-answer.open {
+    padding: 14px 16px 20px;
+  }
+
+  .landing-ad-slider {
+    padding: 0 16px 32px;
+  }
+
+  .testimonials .swiper-slide {
+    width: 100%;
+  }
+
+  .header .btn-getstarted {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .header .logo .header-logo-img {
+    height: 40px;
+    max-width: 132px;
+  }
+
+  .header .btn-getstarted {
+    padding: 8px 12px;
+    font-size: 11px;
+    margin-right: 40px;
+    min-height: 40px;
+  }
+
+  .hero h2 {
+    font-size: clamp(1.65rem, 8vw, 2.1rem);
+  }
+
+  .hero-scan-viz__feat {
+    font-size: 11px;
+  }
+
+  .app-store-btn {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .section-title {
+    padding-bottom: 36px;
+  }
+}
+
+@media (max-width: 360px) {
+  .header .logo .header-logo-img {
+    height: 36px;
+    max-width: 112px;
+  }
+
+  .header .btn-getstarted {
+    padding: 7px 10px;
+    font-size: 10px;
   }
 }

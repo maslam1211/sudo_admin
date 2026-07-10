@@ -47,18 +47,16 @@ def pop_notify_sheet_done_for_terminal_view(request, qr_id: str) -> bool:
 
 # -----------------------------------------------------------------------------
 # Voice: per (qr_id, caller) —
-#   • First segment: 2 successful bridge regs, then 2 min cooldown.
-#   • After that cooldown: only 1 success per window; further abuse → 5 min cooldown.
+#   • Up to 3 successful bridge regs, then a progressive wait:
+#       1st block → 30s, 2nd → 60s, 3rd+ → 120s
+#   • After each wait expires, another 3 calls are allowed.
 #   • No voice activity for 24 h → full reset (smooth behaviour for returning users).
 # -----------------------------------------------------------------------------
 
-SESSION_VOICE_KEY = "notify_voice_throttle_pairs_v2"
+SESSION_VOICE_KEY = "notify_voice_throttle_pairs_v3"
 
-MAX_VOICE_SUCCESSES_INITIAL = 2
-VOICE_COOLDOWN_INITIAL_SEC = 120  # 2 minutes
-
-MAX_VOICE_SUCCESSES_STRICT = 1
-VOICE_COOLDOWN_STRICT_SEC = 300  # 5 minutes
+MAX_VOICE_SUCCESSES_PER_WINDOW = 3
+VOICE_COOLDOWN_STEPS_SEC = (30, 60, 120)
 
 VOICE_THROTTLE_IDLE_RESET_SEC = 24 * 3600
 
@@ -83,13 +81,13 @@ def _default_voice_ent(now: float) -> dict:
     return {
         "success_count": 0,
         "cooldown_until": 0.0,
-        "strict_mode": False,
+        "cooldown_step": 0,  # index into VOICE_COOLDOWN_STEPS_SEC
         "last_activity_ts": now,
     }
 
 
 def _freshen_voice_entry(ent: dict, now: float) -> None:
-    """Expire idle state (24h), then expire cooldown windows and graduate into strict mode."""
+    """Expire idle state (24h), then clear finished cooldown windows."""
     last = float(ent.get("last_activity_ts") or 0)
     if last > 0 and (now - last) >= VOICE_THROTTLE_IDLE_RESET_SEC:
         ent.clear()
@@ -100,41 +98,57 @@ def _freshen_voice_entry(ent: dict, now: float) -> None:
     if cool and now >= cool:
         ent["cooldown_until"] = 0.0
         ent["success_count"] = 0
-        # Finished first 2-call burst + 2 min wait → subsequent limits are 1 call per 5 min cooldown.
-        if not ent.get("strict_mode"):
-            ent["strict_mode"] = True
 
 
 def _touch_voice_ent(ent: dict, now: float) -> None:
     ent["last_activity_ts"] = now
 
 
-def _max_voice_successes_before_block(ent: dict) -> int:
-    return MAX_VOICE_SUCCESSES_STRICT if ent.get("strict_mode") else MAX_VOICE_SUCCESSES_INITIAL
+def _cooldown_sec_for_step(step: int) -> int:
+    steps = VOICE_COOLDOWN_STEPS_SEC
+    if not steps:
+        return 30
+    idx = max(0, min(int(step or 0), len(steps) - 1))
+    return int(steps[idx])
 
 
-def _cooldown_sec_for_next_block(ent: dict) -> int:
+def _format_cooldown_wait_message(seconds: int) -> str:
+    s = max(1, int(seconds))
+    if s < 60:
+        return (
+            "You’ve reached the voice call limit for now. "
+            f"Please wait {s} second(s) before placing another voice call "
+            "(SMS and push stay available)."
+        )
+    mins = max(1, int(math.ceil(s / 60)))
     return (
-        VOICE_COOLDOWN_STRICT_SEC if ent.get("strict_mode") else VOICE_COOLDOWN_INITIAL_SEC
+        "You’ve reached the voice call limit for now. "
+        f"Please wait about {mins} minute(s) before placing another voice call "
+        "(SMS and push stay available)."
     )
 
 
 def _voice_cooldown_json(seconds: float) -> JsonResponse:
     s = max(1, int(math.ceil(seconds)))
-    mins = max(1, int(math.ceil(s / 60)))
     return JsonResponse(
         {
             "status": "error",
             "error_type": "voice_call_cooldown",
-            "message": (
-                "You’ve reached the voice call limit for now. "
-                f"Please wait about {mins} minute(s) before placing another voice call "
-                "(SMS and push stay available)."
-            ),
+            "message": _format_cooldown_wait_message(s),
             "cooldown_seconds_remaining": s,
         },
         status=429,
     )
+
+
+def _start_voice_cooldown(ent: dict, now: float) -> int:
+    """Apply next progressive wait (30 → 60 → 120) and advance the step."""
+    step = int(ent.get("cooldown_step") or 0)
+    cd_sec = _cooldown_sec_for_step(step)
+    ent["cooldown_until"] = now + cd_sec
+    ent["success_count"] = 0
+    ent["cooldown_step"] = min(step + 1, len(VOICE_COOLDOWN_STEPS_SEC) - 1)
+    return cd_sec
 
 
 def voice_register_maybe_block(request, qr_id: str, caller_norm10: str) -> JsonResponse | None:
@@ -161,11 +175,9 @@ def voice_register_maybe_block(request, qr_id: str, caller_norm10: str) -> JsonR
         request.session.modified = True
         return _voice_cooldown_json(cool - now)
 
-    cap = _max_voice_successes_before_block(ent)
     cnt = int(ent.get("success_count") or 0)
-    if cnt >= cap:
-        cd_sec = _cooldown_sec_for_next_block(ent)
-        ent["cooldown_until"] = now + cd_sec
+    if cnt >= MAX_VOICE_SUCCESSES_PER_WINDOW:
+        cd_sec = _start_voice_cooldown(ent, now)
         pairs[pk] = ent
         request.session.modified = True
         return _voice_cooldown_json(cd_sec)
@@ -175,11 +187,16 @@ def voice_register_maybe_block(request, qr_id: str, caller_norm10: str) -> JsonR
     return None
 
 
-def voice_register_record_success(request, qr_id: str, caller_norm10: str) -> None:
-    """Increment successful voice registers after the bridge accepted the request."""
+def voice_register_record_success(request, qr_id: str, caller_norm10: str) -> int | None:
+    """
+    Increment successful voice registers after the bridge accepted the request.
+
+    Returns cooldown seconds when this success filled the 3-call window and a
+    progressive wait (30 / 60 / 120) was started; otherwise None.
+    """
     qr_id = str(qr_id or "").strip()
     if len(caller_norm10) != 10:
-        return
+        return None
     now = time.time()
     pairs = _voice_pairs_bucket(request)
     pk = _voice_pair_key(qr_id, caller_norm10)
@@ -188,6 +205,21 @@ def voice_register_record_success(request, qr_id: str, caller_norm10: str) -> No
         ent = _default_voice_ent(now)
     _freshen_voice_entry(ent, now)
     _touch_voice_ent(ent, now)
+
+    cool = float(ent.get("cooldown_until") or 0)
+    if cool > now:
+        # Should not happen if maybe_block ran first; keep cooldown intact.
+        pairs[pk] = ent
+        request.session.modified = True
+        return max(1, int(math.ceil(cool - now)))
+
     ent["success_count"] = int(ent.get("success_count") or 0) + 1
+    started_cd: int | None = None
+    # If this success fills the window, start waiting immediately so the UI
+    # shows 30 / 60 / 120 before the next dial attempt.
+    if ent["success_count"] >= MAX_VOICE_SUCCESSES_PER_WINDOW:
+        started_cd = _start_voice_cooldown(ent, now)
+
     pairs[pk] = ent
     request.session.modified = True
+    return started_cd

@@ -23,8 +23,8 @@
   <link href="{% static 'landing/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
   <link href="{% static 'landing/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
 
-  <!-- Main CSS File -->
-  <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+  <!-- Main CSS File (landing-asset survives stale collectstatic on production) -->
+  <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
   <link href="{% landing_asset 'css/landing-premium.css' %}" rel="stylesheet">
   <link href="{% url 'landing_ad_css' %}" rel="stylesheet">
   <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-qr-promo.png' %}">
@@ -38,7 +38,9 @@
   ======================================================== -->
 </head>
 
-<body class="index-page">
+<body class="index-page preloader-active">
+
+  {% include 'includes/landing_preloader.html' %}
 
   <div id="scroll-progress" class="scroll-progress" aria-hidden="true"></div>
 
@@ -591,7 +593,18 @@
               "autoplay": {
                 "delay": 5000
               },
-              "slidesPerView": "auto",
+              "slidesPerView": 1,
+              "spaceBetween": 20,
+              "breakpoints": {
+                "768": {
+                  "slidesPerView": 1,
+                  "spaceBetween": 24
+                },
+                "1200": {
+                  "slidesPerView": "auto",
+                  "spaceBetween": 30
+                }
+              },
               "pagination": {
                 "el": ".swiper-pagination",
                 "type": "bullets",
@@ -1021,9 +1034,6 @@ if (whatsappSubscriptionForm) {
 
   <!-- Scroll Top -->
   <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-
-  <!-- Preloader -->
-  <div id="preloader"></div>
 
   <!-- Mobile sticky app bar -->
   <div id="mobile-app-bar" class="mobile-app-bar" aria-hidden="true">

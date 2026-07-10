@@ -1,4 +1,4 @@
-{% load static %}
+{% load static custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -18,7 +18,7 @@
   <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
   <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/css/main.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
   <link href="{% url 'how_it_works_css' %}" rel="stylesheet">
 
   <style>
@@ -54,7 +54,9 @@
   </style>
 </head>
 
-<body class="index-page hiw-page">
+<body class="index-page hiw-page preloader-active">
+
+  {% include 'includes/landing_preloader.html' %}
 
   <div class="hiw-bg" aria-hidden="true">
     <div class="hiw-bg__orb hiw-bg__orb--1"></div>
@@ -549,7 +551,6 @@
   </footer>
 
   <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-  <div id="preloader"></div>
 
   <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}" defer></script>
   <script src="{% static 'landing/vendor/aos/aos.js' %}" defer></script>
