@@ -89,6 +89,10 @@ CSRF_TRUSTED_ORIGINS = [
 # Shared password for admin panel login/register (override in production via env)
 ADMIN_PANEL_PASSWORD = os.getenv('ADMIN_PANEL_PASSWORD', 'Sudo@123')
 
+# Razorpay — same live key as mobile app / Cloud Functions (override via env in production)
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_live_Rg6xvNzdCRcQe5')
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'nJ1E1oDIunkKkCLT5hLCMnm3')
+
 # PIN shown before login/register and for delete-data flow (override in production via env)
 ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '4455')
 

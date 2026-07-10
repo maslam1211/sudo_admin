@@ -205,7 +205,8 @@
               <div class="hiw-paths__option-num">1</div>
               <div>
                 <h3>Order a SudoTag QR</h3>
-                <p>Don't have a SudoTag QR yet? Order one directly from the app and track delivery to your door.</p>
+                <p>Don't have a SudoTag QR yet? Order one from the website or the app and track delivery to your door.</p>
+                <p class="mt-2 mb-0"><a href="{% url 'buy_now' %}" class="hiw-preview-cta">Buy Now on Website <i class="bi bi-arrow-right"></i></a></p>
               </div>
             </div>
             <div class="hiw-steps">
@@ -465,7 +466,10 @@
     <section class="hiw-cta">
       <div class="container" data-aos="fade-up">
         <h2>Ready to Get Started?</h2>
-        <p>Download the SudoTag app, order your QR, or activate the one you have — and join thousands of vehicle owners communicating smarter.</p>
+        <p>Order your SudoTag QR online, or download the app to activate and manage your vehicle tags.</p>
+        <div class="mb-3">
+          <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
+        </div>
         <div class="app-store-buttons justify-content-center">
           <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
             <i class="bi bi-google-play" aria-hidden="true"></i>

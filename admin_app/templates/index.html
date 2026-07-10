@@ -59,7 +59,7 @@
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
 
-      <a class="btn-getstarted" href="#about">Get Started</a>
+      <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
 
     </div>
   </header>
@@ -89,6 +89,9 @@
                 <div class="platform-icons" aria-hidden="true">
                   <span class="platform-icon platform-icon--android"><i class="bi bi-android2"></i></span>
                   <span class="platform-icon platform-icon--ios"><i class="bi bi-apple"></i></span>
+                </div>
+                <div class="hero-cta-row mb-3">
+                  <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
                 </div>
                 <div class="app-store-buttons justify-content-start">
                   <a class="app-store-btn app-store-btn--android" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
@@ -425,6 +428,9 @@
             <div class="text-center cta-inner">
               <h3>Get Started with SudoTag Today</h3>
               <p>Join our community and help improve public safety with easy, QR-based issue reporting. Secure, quick, and reliable—Sudo makes parking and other issues easier to report and resolve.</p>
+              <div class="mt-3 mb-3">
+                <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
+              </div>
               <div class="app-store-buttons justify-content-center mt-3">
                 <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
                   <i class="bi bi-google-play" aria-hidden="true"></i>
@@ -546,10 +552,10 @@
                 </div>
               </div>
               <div class="col-6">
-                <div class="hiw-step-card">
+                <a href="{% url 'buy_now' %}" class="hiw-step-card text-decoration-none">
                   <i class="bi bi-bag-check"></i>
-                  <strong>Order QR</strong>
-                </div>
+                  <strong>Buy Now</strong>
+                </a>
               </div>
               <div class="col-6">
                 <div class="hiw-step-card">

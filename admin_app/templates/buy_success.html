@@ -1,0 +1,214 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Payment Successful — SudoTag</title>
+  {% include 'includes/landing_head.html' %}
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Raleway:wght@700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/buy.css' %}" rel="stylesheet">
+</head>
+<body class="buy-page result-page">
+  <header class="buy-header">
+    <div class="buy-shell buy-header-inner">
+      <a href="{% url 'index' %}" class="buy-logo" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="148" height="37" decoding="async">
+      </a>
+      <span class="result-chip result-chip--success"><i class="bi bi-shield-check"></i> Paid</span>
+    </div>
+  </header>
+
+  <main class="buy-main">
+    <div class="buy-shell result-shell">
+      <div class="result-hero">
+        <div class="success-icon" aria-hidden="true">
+          <i class="bi bi-check-lg"></i>
+        </div>
+        <h1>Payment successful</h1>
+        <p class="success-lead">
+          Your SudoTag order is confirmed and paid. We’ll process it shortly and ship it to your delivery address.
+        </p>
+        {% if amount %}
+        <p class="result-amount-paid">₹{{ amount }}</p>
+        {% endif %}
+      </div>
+
+      <div class="result-grid">
+        <section class="result-card" aria-labelledby="receipt-heading">
+          <div class="result-card__head">
+            <h2 id="receipt-heading">Payment receipt</h2>
+            <button type="button" class="copy-btn" id="copy-receipt" hidden>Copy IDs</button>
+          </div>
+
+          <div class="detail-tile">
+            <span class="detail-tile__icon detail-tile__icon--orange"><i class="bi bi-receipt"></i></span>
+            <div>
+              <p class="detail-tile__label">Order reference</p>
+              <p class="detail-tile__value" id="val-order">{{ order_id|default:"—" }}</p>
+            </div>
+          </div>
+          <div class="detail-tile">
+            <span class="detail-tile__icon detail-tile__icon--green"><i class="bi bi-credit-card"></i></span>
+            <div>
+              <p class="detail-tile__label">Payment ID</p>
+              <p class="detail-tile__value" id="val-payment">{{ payment_id|default:"—" }}</p>
+            </div>
+          </div>
+          {% if razorpay_order_id %}
+          <div class="detail-tile">
+            <span class="detail-tile__icon detail-tile__icon--orange"><i class="bi bi-hash"></i></span>
+            <div>
+              <p class="detail-tile__label">Razorpay order ID</p>
+              <p class="detail-tile__value" id="val-rp-order">{{ razorpay_order_id }}</p>
+            </div>
+          </div>
+          {% endif %}
+          <div class="detail-tile">
+            <span class="detail-tile__icon detail-tile__icon--orange"><i class="bi bi-currency-rupee"></i></span>
+            <div>
+              <p class="detail-tile__label">Amount paid</p>
+              <p class="detail-tile__value detail-tile__value--lg" id="val-amount">{% if amount %}₹{{ amount }}{% else %}—{% endif %}</p>
+            </div>
+          </div>
+          <div class="detail-tile">
+            <span class="detail-tile__icon detail-tile__icon--green"><i class="bi bi-check2-circle"></i></span>
+            <div>
+              <p class="detail-tile__label">Payment status</p>
+              <p class="detail-tile__value">Paid &amp; verified</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="result-card" aria-labelledby="order-heading">
+          <div class="result-card__head">
+            <h2 id="order-heading">Order details</h2>
+          </div>
+          <div class="order-product-row">
+            <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="" width="64" height="40" loading="lazy" decoding="async">
+            <div>
+              <strong id="val-product">{{ product_name|default:"SudoTag QR" }}</strong>
+              <span id="val-qty">Qty {{ quantity|default:"1" }}</span>
+            </div>
+          </div>
+          <div class="result-divider"></div>
+          <div class="detail-tile detail-tile--compact">
+            <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-person"></i></span>
+            <div>
+              <p class="detail-tile__label">Customer</p>
+              <p class="detail-tile__value" id="val-name">{{ customer_name|default:"—" }}</p>
+            </div>
+          </div>
+          <div class="detail-tile detail-tile--compact">
+            <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-phone"></i></span>
+            <div>
+              <p class="detail-tile__label">Mobile</p>
+              <p class="detail-tile__value" id="val-mobile">{{ customer_mobile|default:"—" }}</p>
+            </div>
+          </div>
+          <div class="detail-tile detail-tile--compact" id="email-row"{% if not customer_email %} hidden{% endif %}>
+            <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-envelope"></i></span>
+            <div>
+              <p class="detail-tile__label">Email</p>
+              <p class="detail-tile__value" id="val-email">{{ customer_email|default:"" }}</p>
+            </div>
+          </div>
+          <div class="detail-tile detail-tile--compact">
+            <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-geo-alt"></i></span>
+            <div>
+              <p class="detail-tile__label">Delivery address</p>
+              <p class="detail-tile__value detail-tile__value--wrap" id="val-address">{{ delivery_address|default:"—" }}</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="result-card result-card--wide" aria-labelledby="next-heading">
+        <h2 id="next-heading">What happens next</h2>
+        <ol class="next-steps">
+          <li>
+            <strong>Order confirmed</strong>
+            <span>Your payment is verified and the order is in our admin panel.</span>
+          </li>
+          <li>
+            <strong>Processing &amp; packing</strong>
+            <span>We’ll prepare your SudoTag QR for dispatch.</span>
+          </li>
+          <li>
+            <strong>Shipped to you</strong>
+            <span>Track updates on WhatsApp/SMS if you shared a mobile number, or contact support anytime.</span>
+          </li>
+        </ol>
+      </section>
+
+      <div class="result-actions">
+        <a href="{% url 'index' %}" class="buy-pay-btn">Back to home</a>
+        <a href="{% url 'buy_now' %}" class="result-outline-btn">Order another</a>
+      </div>
+
+      <p class="result-support">
+        Need help? <a href="mailto:sudotagonline@gmail.com">sudotagonline@gmail.com</a>
+        · <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      try {
+        var raw = sessionStorage.getItem('sudo_checkout_receipt');
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        var set = function (id, value, hideEmpty) {
+          var el = document.getElementById(id);
+          if (!el || value == null || value === '') {
+            if (hideEmpty && el) {
+              var row = el.closest('.detail-tile');
+              if (row) row.hidden = true;
+            }
+            return;
+          }
+          el.textContent = value;
+        };
+        set('val-order', data.orderId);
+        set('val-payment', data.paymentId);
+        set('val-rp-order', data.razorpayOrderId);
+        if (data.amount != null && data.amount !== '') {
+          set('val-amount', '₹' + data.amount);
+          var hero = document.querySelector('.result-amount-paid');
+          if (hero) hero.textContent = '₹' + data.amount;
+        }
+        set('val-product', data.productName);
+        if (data.quantity) set('val-qty', 'Qty ' + data.quantity);
+        set('val-name', data.fullName);
+        set('val-mobile', data.mobile);
+        if (data.email) {
+          set('val-email', data.email);
+          var emailRow = document.getElementById('email-row');
+          if (emailRow) emailRow.hidden = false;
+        }
+        if (data.addressText) set('val-address', data.addressText);
+
+        var copyBtn = document.getElementById('copy-receipt');
+        if (copyBtn && (data.orderId || data.paymentId)) {
+          copyBtn.hidden = false;
+          copyBtn.addEventListener('click', function () {
+            var text = [
+              'Order: ' + (data.orderId || ''),
+              'Payment: ' + (data.paymentId || ''),
+              data.razorpayOrderId ? 'Razorpay Order: ' + data.razorpayOrderId : ''
+            ].filter(Boolean).join('\n');
+            navigator.clipboard.writeText(text).then(function () {
+              copyBtn.textContent = 'Copied';
+              setTimeout(function () { copyBtn.textContent = 'Copy IDs'; }, 1500);
+            });
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

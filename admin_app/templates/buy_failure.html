@@ -1,0 +1,97 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Payment Failed — SudoTag</title>
+  {% include 'includes/landing_head.html' %}
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Raleway:wght@700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/buy.css' %}" rel="stylesheet">
+</head>
+<body class="buy-page result-page">
+  <header class="buy-header">
+    <div class="buy-shell buy-header-inner">
+      <a href="{% url 'index' %}" class="buy-logo" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="148" height="37" decoding="async">
+      </a>
+      <span class="result-chip result-chip--danger"><i class="bi bi-x-circle"></i> Failed</span>
+    </div>
+  </header>
+
+  <main class="buy-main">
+    <div class="buy-shell result-shell result-shell--narrow">
+      <div class="result-hero">
+        <div class="failure-icon" aria-hidden="true">
+          <i class="bi bi-x-lg"></i>
+        </div>
+        <h1>Payment not completed</h1>
+        <p class="failure-lead">{{ reason }}</p>
+        {% if error_code %}
+        <p class="result-ref-badge">Reference: {{ error_code }}</p>
+        {% endif %}
+      </div>
+
+      <section class="result-card" aria-labelledby="tips-heading">
+        <div class="result-card__head">
+          <h2 id="tips-heading"><i class="bi bi-lightbulb"></i> Quick checks</h2>
+        </div>
+        <ul class="tip-list">
+          <li><i class="bi bi-wifi"></i> Stable internet connection</li>
+          <li><i class="bi bi-credit-card"></i> Card / UPI details and bank limits</li>
+          <li><i class="bi bi-wallet2"></i> Sufficient balance or credit limit</li>
+          <li><i class="bi bi-headset"></i> If money was debited, contact support with your payment ID</li>
+        </ul>
+      </section>
+
+      {% if order_id or payment_id or amount %}
+      <section class="result-card" aria-labelledby="attempt-heading">
+        <div class="result-card__head">
+          <h2 id="attempt-heading">Attempt details</h2>
+        </div>
+        {% if order_id %}
+        <div class="detail-tile detail-tile--compact">
+          <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-receipt"></i></span>
+          <div>
+            <p class="detail-tile__label">Order reference</p>
+            <p class="detail-tile__value">{{ order_id }}</p>
+          </div>
+        </div>
+        {% endif %}
+        {% if payment_id %}
+        <div class="detail-tile detail-tile--compact">
+          <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-credit-card"></i></span>
+          <div>
+            <p class="detail-tile__label">Payment ID</p>
+            <p class="detail-tile__value">{{ payment_id }}</p>
+          </div>
+        </div>
+        {% endif %}
+        {% if amount %}
+        <div class="detail-tile detail-tile--compact">
+          <span class="detail-tile__icon detail-tile__icon--muted"><i class="bi bi-currency-rupee"></i></span>
+          <div>
+            <p class="detail-tile__label">Attempted amount</p>
+            <p class="detail-tile__value">₹{{ amount }}</p>
+          </div>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <div class="result-actions">
+        <a href="{% url 'buy_now' %}" class="buy-pay-btn">Try again</a>
+        <a href="{% url 'index' %}" class="result-outline-btn">Back to home</a>
+      </div>
+
+      <p class="result-support">
+        Support: <a href="mailto:sudotagonline@gmail.com">sudotagonline@gmail.com</a>
+        · <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">WhatsApp +91 79079 65255</a>
+      </p>
+    </div>
+  </main>
+</body>
+</html>

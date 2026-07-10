@@ -1,0 +1,277 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Buy SudoTag QR — Official Store</title>
+  <meta name="description" content="Order the official SudoTag windshield QR tag. Secure Razorpay checkout with doorstep delivery.">
+  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
+
+  {% include 'includes/landing_head.html' %}
+
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/buy.css' %}" rel="stylesheet">
+</head>
+<body class="buy-page">
+  <header class="buy-header">
+    <div class="buy-shell buy-header-inner">
+      <a href="{% url 'index' %}" class="buy-logo" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="148" height="37" decoding="async">
+      </a>
+      <a href="{% url 'index' %}" class="buy-back-link"><i class="bi bi-arrow-left"></i> Home</a>
+    </div>
+  </header>
+
+  <main class="buy-main">
+    <div class="buy-shell">
+      {# —— Product stage —— #}
+      <section class="product-stage" aria-labelledby="product-title">
+        <div class="product-gallery">
+          <button type="button" class="product-media" id="product-zoom-trigger"
+                  aria-label="View SudoTag QR image — click to zoom"
+                  data-full-src="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
+            <img
+              src="{% landing_asset 'img/sudotag-windshield-tag.png' %}"
+              alt="SudoTag QR windshield tag"
+              width="800"
+              height="500"
+              decoding="async"
+              fetchpriority="high"
+              class="product-media__img"
+              id="product-main-img">
+            <span class="product-media__hint"><i class="bi bi-zoom-in"></i> Tap to zoom</span>
+          </button>
+        </div>
+
+        <div class="product-info">
+          <p class="product-eyebrow">Official SudoTag store</p>
+          <h1 id="product-title">{{ product.name }}</h1>
+          <p class="product-desc">{{ product.description }}</p>
+
+          <div class="product-price-block">
+            <div class="product-price">
+              <span class="product-price__amount">₹{{ product.price|floatformat:0 }}</span>
+              {% if shipping_charge %}
+              <span class="product-price__note">+ ₹{{ shipping_charge|floatformat:0 }} shipping</span>
+              {% else %}
+              <span class="product-price__note">Free shipping</span>
+              {% endif %}
+            </div>
+            <ul class="product-badges" aria-label="Product highlights">
+              <li><i class="bi bi-shield-check"></i> Weather-ready sticker</li>
+              <li><i class="bi bi-truck"></i> Doorstep delivery</li>
+              <li><i class="bi bi-lock"></i> Razorpay secure pay</li>
+            </ul>
+          </div>
+
+          <div class="product-actions">
+            <div class="qty-row qty-row--inline">
+              <span class="qty-label" id="qty-label">Quantity</span>
+              <div class="qty-controls" role="group" aria-labelledby="qty-label">
+                <button type="button" class="qty-btn" data-qty="-1" aria-label="Decrease quantity">−</button>
+                <input type="number" id="quantity" name="quantity" form="checkout-form" value="1" min="1" max="20" required>
+                <button type="button" class="qty-btn" data-qty="1" aria-label="Increase quantity">+</button>
+              </div>
+            </div>
+            <a href="#checkout" class="buy-pay-btn buy-pay-btn--hero" id="buy-now-jump">
+              <span>Buy Now</span>
+              <i class="bi bi-arrow-down"></i>
+            </a>
+          </div>
+
+          <p class="product-total-hint">
+            Payable now: <strong id="hero-total">₹{{ unit_total|floatformat:2 }}</strong>
+          </p>
+        </div>
+      </section>
+
+      {# —— Checkout —— #}
+      <form id="checkout-form" class="checkout-stage" method="post" action="#" autocomplete="on" novalidate>
+        <input type="hidden" name="selectedItem" value="{{ product.key }}"
+               data-price="{{ product.price }}" data-name="{{ product.name }}" autocomplete="off">
+
+        <div class="checkout-grid">
+          <div class="checkout-fields">
+            <div class="buy-section" id="checkout">
+              <h2>Delivery details</h2>
+              <p class="section-lead">We’ll ship your SudoTag QR to this address.</p>
+
+              <div class="field-grid">
+                <div class="field">
+                  <label for="fullName">Full Name <span class="req">*</span></label>
+                  <input id="fullName" name="name" type="text" autocomplete="shipping name" required
+                         maxlength="50" placeholder="Enter your full name" enterkeyhint="next">
+                  <p class="field-error" data-for="fullName" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="mobile">Mobile Number <span class="req">*</span></label>
+                  <input id="mobile" name="tel" type="tel" inputmode="tel" autocomplete="shipping tel"
+                         required maxlength="15" placeholder="10-digit mobile number" enterkeyhint="next">
+                  <p class="field-error" data-for="mobile" hidden></p>
+                </div>
+                <div class="field field--full">
+                  <label for="email">Email Address <span class="optional">(optional)</span></label>
+                  <input id="email" name="email" type="email" autocomplete="shipping email"
+                         placeholder="you@example.com" enterkeyhint="next">
+                  <p class="field-error" data-for="email" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="houseNumber">House / Flat Number <span class="req">*</span></label>
+                  <input id="houseNumber" name="address-line1" type="text" required
+                         placeholder="e.g., 123, Flat 4A" autocomplete="shipping address-line1"
+                         enterkeyhint="next">
+                  <p class="field-error" data-for="houseNumber" hidden></p>
+                </div>
+                <div class="field field--full">
+                  <label for="street">Complete Delivery Address <span class="req">*</span></label>
+                  <textarea id="street" name="address-line2" rows="2" required
+                            placeholder="Street, area, or village"
+                            autocomplete="shipping address-line2" enterkeyhint="next"></textarea>
+                  <p class="field-error" data-for="street" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="city">District / City <span class="req">*</span></label>
+                  <input id="city" name="city" type="text" required placeholder="District or city"
+                         autocomplete="shipping address-level2" enterkeyhint="next">
+                  <p class="field-error" data-for="city" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="state">State <span class="req">*</span></label>
+                  <input id="state" name="state" type="text" required placeholder="State"
+                         autocomplete="shipping address-level1" enterkeyhint="next">
+                  <p class="field-error" data-for="state" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="pincode">PIN Code <span class="req">*</span></label>
+                  <input id="pincode" name="postal-code" type="text" inputmode="numeric"
+                         required maxlength="6" placeholder="6-digit PIN code"
+                         autocomplete="shipping postal-code" enterkeyhint="next">
+                  <p class="field-error" data-for="pincode" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="landmark">Landmark <span class="optional">(optional)</span></label>
+                  <input id="landmark" name="landmark" type="text" placeholder="Nearby landmark"
+                         autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="postOffice">Post Office <span class="optional">(optional)</span></label>
+                  <input id="postOffice" name="postOffice" type="text" placeholder="Nearest post office"
+                         autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="country">Country</label>
+                  <input id="country" name="country" type="text" value="India"
+                         autocomplete="shipping country-name">
+                </div>
+                <div class="field">
+                  <label for="vehicleNumber">Vehicle Number <span class="optional">(optional)</span></label>
+                  <input id="vehicleNumber" name="vehicleNumber" type="text"
+                         placeholder="e.g., KL01AB1234" autocomplete="off" spellcheck="false">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="buy-summary" aria-labelledby="summary-heading">
+            <div class="summary-card">
+              <h2 id="summary-heading">Order summary</h2>
+              <div class="summary-product-line">
+                <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="" width="56" height="56" loading="lazy" decoding="async">
+                <div>
+                  <strong id="summary-product">{{ product.name }}</strong>
+                  <span id="summary-unit">₹{{ product.price|floatformat:0 }}</span>
+                </div>
+              </div>
+              <div class="summary-row">
+                <span>Quantity</span>
+                <span id="summary-qty">1</span>
+              </div>
+              <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="summary-subtotal">₹{{ product.price|floatformat:2 }}</span>
+              </div>
+              <div class="summary-row">
+                <span>Shipping</span>
+                <span id="summary-shipping">₹{{ shipping_charge|floatformat:2 }}</span>
+              </div>
+              <div class="summary-total">
+                <span>Total</span>
+                <span id="summary-total">₹0.00</span>
+              </div>
+              <button type="submit" class="buy-pay-btn" id="pay-btn">
+                <span class="buy-pay-btn__label">Buy Now</span>
+                <span class="buy-pay-btn__spinner" hidden aria-hidden="true"></span>
+              </button>
+              <p class="buy-status" id="checkout-status" role="status" aria-live="polite"></p>
+              <p class="summary-secure"><i class="bi bi-shield-lock-fill"></i> Secured by Razorpay</p>
+            </div>
+          </aside>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  {# Mobile sticky Buy Now #}
+  <div class="buy-sticky" id="buy-sticky" hidden>
+    <div class="buy-sticky__price">
+      <span>Total</span>
+      <strong id="sticky-total">₹0.00</strong>
+    </div>
+    <button type="submit" form="checkout-form" class="buy-pay-btn buy-pay-btn--compact" id="sticky-pay-btn">
+      Buy Now
+    </button>
+  </div>
+
+  {# Zoomable lightbox #}
+  <div class="zoom-lightbox" id="zoom-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Product image viewer">
+    <div class="zoom-lightbox__backdrop" data-zoom-close></div>
+    <button type="button" class="zoom-lightbox__close" data-zoom-close aria-label="Close viewer">
+      <i class="bi bi-x-lg"></i>
+    </button>
+    <div class="zoom-lightbox__toolbar">
+      <button type="button" id="zoom-out" aria-label="Zoom out"><i class="bi bi-zoom-out"></i></button>
+      <button type="button" id="zoom-reset" aria-label="Reset zoom">100%</button>
+      <button type="button" id="zoom-in" aria-label="Zoom in"><i class="bi bi-zoom-in"></i></button>
+    </div>
+    <div class="zoom-lightbox__stage" id="zoom-stage">
+      <img src="" alt="SudoTag QR — enlarged view" id="zoom-img" draggable="false">
+    </div>
+    <p class="zoom-lightbox__hint">Scroll or pinch to zoom · drag to pan · Esc to close</p>
+  </div>
+
+  {# Fullscreen Lottie wheel loader (same wheel.json as notify flow) #}
+  <div id="checkout-loader" class="checkout-loader" hidden aria-hidden="true" aria-busy="false" role="status">
+    <div class="checkout-loader__inner">
+      <div id="checkout-lottie-mount" class="checkout-loader__lottie" aria-hidden="true"></div>
+      <p class="checkout-loader__text" id="checkout-loader-text">Processing…</p>
+    </div>
+  </div>
+
+  <script>
+    window.SUDO_CHECKOUT = {
+      createOrderUrl: "{{ create_order_url|escapejs }}",
+      verifyPaymentUrl: "{{ verify_payment_url|escapejs }}",
+      successUrl: "{{ success_url|escapejs }}",
+      failureUrl: "{{ failure_url|escapejs }}",
+      cancelledUrl: "{{ cancelled_url|escapejs }}",
+      pendingUrl: "{{ pending_url|escapejs }}",
+      wheelJsonUrl: "{% url 'notify_sending_wheel_json' %}",
+      razorpayKey: "{{ razorpay_key_id|escapejs }}",
+      shipping: {{ shipping_charge }},
+      productKey: "{{ product.key|escapejs }}",
+      productName: "{{ product.name|escapejs }}",
+      productPrice: {{ product.price }},
+      logoUrl: "https://sudotag.com/logo.png",
+      themeColor: "#E58147",
+      backdropColor: "#1C1C1C"
+    };
+  </script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+  <script src="{% landing_asset 'js/buy.js' %}" defer></script>
+</body>
+</html>

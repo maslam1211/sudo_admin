@@ -1,0 +1,67 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Verifying Payment — SudoTag</title>
+  {% include 'includes/landing_head.html' %}
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Raleway:wght@700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/buy.css' %}" rel="stylesheet">
+</head>
+<body class="buy-page result-page checkout-loader-open">
+  <header class="buy-header">
+    <div class="buy-shell buy-header-inner">
+      <a href="{% url 'index' %}" class="buy-logo" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="148" height="37" decoding="async">
+      </a>
+      <span class="result-chip result-chip--info"><i class="bi bi-hourglass-split"></i> Verifying</span>
+    </div>
+  </header>
+
+  <main class="buy-main">
+    <div class="buy-shell result-shell result-shell--narrow">
+      <div class="result-hero">
+        <div id="pending-lottie-mount" class="checkout-loader__lottie" style="margin: 0 auto 1.2rem;" aria-hidden="true"></div>
+        <h1>Verifying your payment</h1>
+        <p class="failure-lead">
+          Please wait while we confirm your Razorpay payment. Don’t close this page.
+        </p>
+      </div>
+
+      <section class="result-card">
+        <ul class="pending-steps" aria-label="Verification progress">
+          <li class="is-done"><i class="bi bi-check-circle-fill"></i> Payment submitted</li>
+          <li class="is-active"><i class="bi bi-arrow-repeat"></i> Verifying with Razorpay</li>
+          <li><i class="bi bi-circle"></i> Confirming your order</li>
+        </ul>
+        {% if payment_id %}
+        <p class="result-card__meta">Payment ID: <strong>{{ payment_id }}</strong></p>
+        {% endif %}
+      </section>
+
+      <p class="result-support">
+        Taking too long? <a href="{% url 'buy_failure' %}?reason={{ 'Verification timed out. If money was debited, contact support.'|urlencode }}">Get help</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    (function () {
+      var mount = document.getElementById('pending-lottie-mount');
+      if (!mount || !(window.lottie || window.bodymovin)) return;
+      (window.lottie || window.bodymovin).loadAnimation({
+        container: mount,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: "{% url 'notify_sending_wheel_json' %}"
+      });
+    })();
+  </script>
+</body>
+</html>

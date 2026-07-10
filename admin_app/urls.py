@@ -2,6 +2,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 from . import views
+from . import checkout_views
 
 urlpatterns = [
     # /admin/ with no extra path — otherwise 404; login view sends to PIN gate if needed
@@ -78,6 +79,9 @@ urlpatterns = [
     path('update-ad/', views.update_ad, name='update_ad'),
     path('delete-ad/', views.delete_ad, name='delete_ad'),
     path('api/active-ads/<str:ad_type>/', views.get_active_ads, name='get_active_ads'),
+    # Website Buy Now / Razorpay checkout (mirrors mobile createOrder + verifyPayment)
+    path('api/checkout/create-order/', checkout_views.checkout_create_order, name='checkout_create_order'),
+    path('api/checkout/verify-payment/', checkout_views.checkout_verify_payment, name='checkout_verify_payment'),
     # Feedback URLs
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),

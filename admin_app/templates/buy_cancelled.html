@@ -1,0 +1,56 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Payment Cancelled — SudoTag</title>
+  {% include 'includes/landing_head.html' %}
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Raleway:wght@700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/buy.css' %}" rel="stylesheet">
+</head>
+<body class="buy-page result-page">
+  <header class="buy-header">
+    <div class="buy-shell buy-header-inner">
+      <a href="{% url 'index' %}" class="buy-logo" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="148" height="37" decoding="async">
+      </a>
+      <span class="result-chip result-chip--warn"><i class="bi bi-pause-circle"></i> Cancelled</span>
+    </div>
+  </header>
+
+  <main class="buy-main">
+    <div class="buy-shell result-shell result-shell--narrow">
+      <div class="result-hero">
+        <div class="cancel-icon" aria-hidden="true">
+          <i class="bi bi-slash-circle"></i>
+        </div>
+        <h1>Payment cancelled</h1>
+        <p class="failure-lead">
+          {{ reason|default:"You closed the payment window before completing the payment. No money was charged." }}
+        </p>
+      </div>
+
+      <section class="result-card">
+        <div class="result-card__head">
+          <h2>Your cart is still ready</h2>
+        </div>
+        <p class="result-card__text">
+          You can return to checkout and complete payment whenever you’re ready. Your delivery details can be filled again with browser autofill.
+        </p>
+        {% if amount %}
+        <p class="result-card__meta">Order total: <strong>₹{{ amount }}</strong></p>
+        {% endif %}
+      </section>
+
+      <div class="result-actions">
+        <a href="{% url 'buy_now' %}" class="buy-pay-btn">Resume checkout</a>
+        <a href="{% url 'index' %}" class="result-outline-btn">Back to home</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
