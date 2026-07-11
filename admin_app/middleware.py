@@ -3,12 +3,13 @@ Custom middleware to exempt API endpoints from CSRF checking
 """
 from django.utils.deprecation import MiddlewareMixin
 
-# Orange suologo on #000 — injected when a template omits favicon_links.html
+# Classic orange suologo on #000 — injected when a template omits favicon_links.html
+_FAVICON_V = '20260711'
 _FAVICON_HEAD_SNIPPET = (
-    '<link rel="icon" href="/favicon.ico" sizes="any">\n'
-    '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">\n'
-    '<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">\n'
-    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">\n'
+    f'<link rel="icon" href="/favicon.ico?v={_FAVICON_V}" sizes="any">\n'
+    f'<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v={_FAVICON_V}">\n'
+    f'<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v={_FAVICON_V}">\n'
+    f'<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v={_FAVICON_V}">\n'
     '<meta name="theme-color" content="#000000">\n'
 )
 

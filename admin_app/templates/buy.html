@@ -8,7 +8,8 @@
   <meta name="description" content="Order the official SudoTag windshield QR tag. Secure Razorpay checkout with doorstep delivery.">
   <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
 
-  {% include 'includes/landing_head.html' %}
+  {# Favicons only — do not include landing_head (its preloader never dismisses here) #}
+  {% include 'includes/favicon_links.html' %}
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>

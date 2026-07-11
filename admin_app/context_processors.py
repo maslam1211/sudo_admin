@@ -2,12 +2,15 @@
 
 from django.urls import reverse
 
+# Bump when favicon assets change so browsers drop the cached icon.
+_FAVICON_V = '20260711'
+
 
 def favicon_urls(request):
     """Root-level favicon URLs — work for landing, admin panel, and QR flow."""
 
     def absolute(view_name):
-        path = reverse(view_name)
+        path = reverse(view_name) + f'?v={_FAVICON_V}'
         if request:
             return request.build_absolute_uri(path)
         from django.conf import settings
