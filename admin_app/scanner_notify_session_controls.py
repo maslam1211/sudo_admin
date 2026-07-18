@@ -1,4 +1,4 @@
-"""Scanner notify page — voice-call abuse throttle and one-shot sheet completion."""
+"""Scanner notify page — messaging attempt limits and voice-call throttle."""
 
 from __future__ import annotations
 
@@ -8,14 +8,23 @@ import time
 from django.http import JsonResponse
 
 # -----------------------------------------------------------------------------
-# Notify sheet: after successful SMS/push/call-register, sheet is consumed once.
+# Notify sheet / messaging attempts (SMS + push share one counter per QR):
+#   1st & 2nd success → stay on Contact Owner
+#   3rd success → mark sheet done (client redirects to landing)
+# Voice call-register does not consume the sheet (user may cancel the dialer).
 # -----------------------------------------------------------------------------
 
 SHEET_DONE_KEY = "sudo_notify_sheet_done_{qr_id}"
+MESSAGING_ATTEMPTS_KEY = "sudo_notify_msg_attempts_{qr_id}"
+MAX_MESSAGING_ATTEMPTS_BEFORE_HOME = 3
 
 
 def notify_sheet_session_key(qr_id: str) -> str:
     return SHEET_DONE_KEY.format(qr_id=str(qr_id or "").strip())
+
+
+def notify_messaging_attempts_key(qr_id: str) -> str:
+    return MESSAGING_ATTEMPTS_KEY.format(qr_id=str(qr_id or "").strip())
 
 
 def mark_notify_sheet_done(request, qr_id: str) -> None:
@@ -35,6 +44,19 @@ def clear_notify_sheet_done(request, qr_id: str) -> None:
         request.session.modified = True
 
 
+def clear_notify_messaging_attempts(request, qr_id: str) -> None:
+    key = notify_messaging_attempts_key(qr_id)
+    if key in request.session:
+        request.session.pop(key, None)
+        request.session.modified = True
+
+
+def clear_notify_session_for_rescan(request, qr_id: str) -> None:
+    """Full reset when the scanner reloads with ?_sudo_rescan=1."""
+    clear_notify_sheet_done(request, qr_id)
+    clear_notify_messaging_attempts(request, qr_id)
+
+
 def pop_notify_sheet_done_for_terminal_view(request, qr_id: str) -> bool:
     """Return True once if the next full page load should show the terminal sheet."""
     key = notify_sheet_session_key(qr_id)
@@ -45,18 +67,41 @@ def pop_notify_sheet_done_for_terminal_view(request, qr_id: str) -> bool:
     return False
 
 
+def record_notify_messaging_success(request, qr_id: str) -> dict:
+    """
+    Count a successful SMS/push for this QR session.
+
+    Returns:
+      attempt (1-based), redirect_home (True on 3rd+ success).
+    On the 3rd success the notify sheet is marked done so a reload shows
+    the terminal/landing path.
+    """
+    qr_id = str(qr_id or "").strip()
+    key = notify_messaging_attempts_key(qr_id)
+    attempt = int(request.session.get(key) or 0) + 1
+    request.session[key] = attempt
+    request.session.modified = True
+    redirect_home = attempt >= MAX_MESSAGING_ATTEMPTS_BEFORE_HOME
+    if redirect_home:
+        mark_notify_sheet_done(request, qr_id)
+    return {
+        "attempt": attempt,
+        "redirect_home": redirect_home,
+        "max_before_home": MAX_MESSAGING_ATTEMPTS_BEFORE_HOME,
+    }
+
+
 # -----------------------------------------------------------------------------
 # Voice: per (qr_id, caller) —
-#   • Up to 3 successful bridge regs, then a progressive wait:
-#       1st block → 30s, 2nd → 60s, 3rd+ → 120s
-#   • After each wait expires, another 3 calls are allowed.
-#   • No voice activity for 24 h → full reset (smooth behaviour for returning users).
+#   • 1st & 2nd successful bridge regs → free (no wait)
+#   • After 3rd → 30s, 4th → 30s, 5th → 60s, 6th+ → 120s (capped)
+#   • No voice activity for 24 h → full reset
 # -----------------------------------------------------------------------------
 
-SESSION_VOICE_KEY = "notify_voice_throttle_pairs_v3"
+SESSION_VOICE_KEY = "notify_voice_throttle_pairs_v4"
 
-MAX_VOICE_SUCCESSES_PER_WINDOW = 3
-VOICE_COOLDOWN_STEPS_SEC = (30, 60, 120)
+FREE_VOICE_ATTEMPTS = 2
+VOICE_COOLDOWN_STEPS_SEC = (30, 30, 60, 120)
 
 VOICE_THROTTLE_IDLE_RESET_SEC = 24 * 3600
 
@@ -96,8 +141,8 @@ def _freshen_voice_entry(ent: dict, now: float) -> None:
 
     cool = float(ent.get("cooldown_until") or 0)
     if cool and now >= cool:
+        # Keep success_count / cooldown_step so waits stay progressive.
         ent["cooldown_until"] = 0.0
-        ent["success_count"] = 0
 
 
 def _touch_voice_ent(ent: dict, now: float) -> None:
@@ -142,11 +187,10 @@ def _voice_cooldown_json(seconds: float) -> JsonResponse:
 
 
 def _start_voice_cooldown(ent: dict, now: float) -> int:
-    """Apply next progressive wait (30 → 60 → 120) and advance the step."""
+    """Apply next progressive wait (30 → 30 → 60 → 120) and advance the step."""
     step = int(ent.get("cooldown_step") or 0)
     cd_sec = _cooldown_sec_for_step(step)
     ent["cooldown_until"] = now + cd_sec
-    ent["success_count"] = 0
     ent["cooldown_step"] = min(step + 1, len(VOICE_COOLDOWN_STEPS_SEC) - 1)
     return cd_sec
 
@@ -175,13 +219,6 @@ def voice_register_maybe_block(request, qr_id: str, caller_norm10: str) -> JsonR
         request.session.modified = True
         return _voice_cooldown_json(cool - now)
 
-    cnt = int(ent.get("success_count") or 0)
-    if cnt >= MAX_VOICE_SUCCESSES_PER_WINDOW:
-        cd_sec = _start_voice_cooldown(ent, now)
-        pairs[pk] = ent
-        request.session.modified = True
-        return _voice_cooldown_json(cd_sec)
-
     pairs[pk] = ent
     request.session.modified = True
     return None
@@ -191,8 +228,8 @@ def voice_register_record_success(request, qr_id: str, caller_norm10: str) -> in
     """
     Increment successful voice registers after the bridge accepted the request.
 
-    Returns cooldown seconds when this success filled the 3-call window and a
-    progressive wait (30 / 60 / 120) was started; otherwise None.
+    Returns cooldown seconds when this success starts a wait before the next
+    dial (after the 3rd+ call); otherwise None.
     """
     qr_id = str(qr_id or "").strip()
     if len(caller_norm10) != 10:
@@ -215,9 +252,8 @@ def voice_register_record_success(request, qr_id: str, caller_norm10: str) -> in
 
     ent["success_count"] = int(ent.get("success_count") or 0) + 1
     started_cd: int | None = None
-    # If this success fills the window, start waiting immediately so the UI
-    # shows 30 / 60 / 120 before the next dial attempt.
-    if ent["success_count"] >= MAX_VOICE_SUCCESSES_PER_WINDOW:
+    # 1st & 2nd calls are free; from the 3rd onward start progressive waits.
+    if ent["success_count"] > FREE_VOICE_ATTEMPTS:
         started_cd = _start_voice_cooldown(ent, now)
 
     pairs[pk] = ent

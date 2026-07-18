@@ -29,10 +29,10 @@ from dotenv import load_dotenv
 from call_routing.constants import CALL_ROUTING_EXPECTED_DID
 
 from .scanner_notify_session_controls import (
-    clear_notify_sheet_done,
+    clear_notify_session_for_rescan,
     is_notify_sheet_done,
-    mark_notify_sheet_done,
     pop_notify_sheet_done_for_terminal_view,
+    record_notify_messaging_success,
 )
 from .family_assignment import (
     effective_contact_display_name,
@@ -2544,13 +2544,15 @@ def send_notification(request, qr_id):
                             logger.warning(f"FCM vehicle-doc cleanup failed: {cleanup_err}")
 
                     if success_count > 0:
-                        mark_notify_sheet_done(request, qr_id)
+                        msg_meta = record_notify_messaging_success(request, qr_id)
                         return JsonResponse({
                             'status': 'success',
                             'message': 'We have sent your message to the vehicle owner.',
                             'notification_type': 'push',
                             'push_delivered': True,
                             'fcm_message_id': push_result.get('message_id'),
+                            'messaging_attempt': msg_meta['attempt'],
+                            'redirect_home': msg_meta['redirect_home'],
                         })
 
                     return JsonResponse({
@@ -2639,11 +2641,13 @@ def send_notification(request, qr_id):
                                     sms_msg = (
                                         'SMS sent successfully to the vehicle owner.'
                                     )
-                                mark_notify_sheet_done(request, qr_id)
+                                msg_meta = record_notify_messaging_success(request, qr_id)
                                 return JsonResponse({
                                     'status': 'success',
                                     'message': sms_msg,
                                     'notification_type': 'sms',
+                                    'messaging_attempt': msg_meta['attempt'],
+                                    'redirect_home': msg_meta['redirect_home'],
                                 })
                             else:
                                 logger.error(f"MSG91 Error: {api_data}")
@@ -2749,7 +2753,7 @@ def send_notification(request, qr_id):
         scanner_notify_show_terminal_sheet = False
         if request.method == 'GET':
             if request.GET.get('_sudo_rescan') == '1':
-                clear_notify_sheet_done(request, qr_id)
+                clear_notify_session_for_rescan(request, qr_id)
             else:
                 scanner_notify_show_terminal_sheet = pop_notify_sheet_done_for_terminal_view(
                     request, qr_id

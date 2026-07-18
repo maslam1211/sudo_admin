@@ -94,7 +94,6 @@ def register_call_destination(request):
         )
         from admin_app.scanner_notify_session_controls import (
             is_notify_sheet_done,
-            mark_notify_sheet_done,
             voice_register_maybe_block,
             voice_register_record_success,
         )
@@ -135,10 +134,12 @@ def register_call_destination(request):
     except Exception as exc:
         logger.warning('call_route register owner push alert failed: %s', exc)
     try:
+        # Record voice throttle only. Do not consume the notify sheet here —
+        # the user may cancel the system dialer and should remain on Contact Owner
+        # (SMS/push/call again) instead of being forced to the landing/terminal flow.
         started_cd = voice_register_record_success(request, qr_id, key)
-        mark_notify_sheet_done(request, qr_id)
     except Exception as exc:
-        logger.warning('call_route session throttle / sheet mark failed: %s', exc)
+        logger.warning('call_route session throttle failed: %s', exc)
         started_cd = None
     payload = {'status': 'ok'}
     if started_cd:

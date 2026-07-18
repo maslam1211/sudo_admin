@@ -4256,8 +4256,11 @@
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Adaptive holds (no visible countdown numbers). Time only advances while the page is visible. */
     var NOTIFY_SUCCESS_HOLD_MS = 5200;
+    /** Brief success toast on Contact Owner for SMS/push attempts 1–2 (no landing redirect). */
+    var NOTIFY_SUCCESS_STAY_DISMISS_MS = 2800;
     var NOTIFY_TERMINAL_HOLD_MS = 2600;
     var NOTIFY_CROSSFADE_MS = 480;
+    var notifySuccessStayDismissTimer = null;
     var NOTIFY_HOLD_TICK_MS = 100;
     var notifySuccessPhaseTimer = null;
     var notifyTerminalPhaseTimer = null;
@@ -4280,25 +4283,57 @@
     /** 'owner' | 'emergency' | null until the scanner chooses when emergency exists */
     let contactMode = hasEmergencyContact ? null : 'owner';
 
-    /** After emergency → tel:, user may cancel the dialer and return; clear red emergency shell. */
+    /**
+     * After any voice → tel: handoff, the user may cancel the system dialer and return.
+     * Do not treat that as finishing the notify flow / redirecting to the landing page.
+     */
     var EMERGENCY_TEL_RETURN_KEY = 'sudo_clear_emergency_after_tel';
+    var CALL_DIALER_RETURN_KEY = 'sudo_clear_after_voice_tel';
 
     function resetUiAfterEmergencyDialerReturn() {
+      resetUiAfterCallDialerReturn();
+    }
+
+    function resetUiAfterCallDialerReturn() {
       var shouldReset = false;
       try {
-        shouldReset = sessionStorage.getItem(EMERGENCY_TEL_RETURN_KEY) === '1';
+        shouldReset =
+          sessionStorage.getItem(CALL_DIALER_RETURN_KEY) === '1' ||
+          sessionStorage.getItem(EMERGENCY_TEL_RETURN_KEY) === '1';
         if (shouldReset) {
+          sessionStorage.removeItem(CALL_DIALER_RETURN_KEY);
           sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
         }
       } catch (e) {
         return;
       }
-      if (!shouldReset || !hasEmergencyContact) return;
-      if (isNotifySheetDoneLocal()) return;
-      contactMode = 'owner';
-      closeContactModeModal();
+      if (!shouldReset) return;
+
+      // Cancelling / backing out of the dialer must not finish the success→home hold.
+      cancelNotifySuccessPhase();
+      clearNotifyHoldState();
+      setNotifyPostSuccessActive(false);
+      clearNotifySheetDoneLocal();
+      if (successModal) {
+        successModal.style.display = 'none';
+        successModal.classList.remove('is-phase-exiting', 'is-post-success-flow');
+      }
+      hideNotifySuccessProgress();
       dismissCallFlowModal();
-      syncContactModeUi();
+      setNotifyDockSending(false);
+      setNotifySwipeCallSending(false);
+      if (typeof resetNotifySwipeCall === 'function') {
+        resetNotifySwipeCall(true);
+      }
+
+      // Emergency dialer cancel: leave the red emergency shell and return to Contact Owner.
+      if (hasEmergencyContact && contactMode === 'emergency') {
+        contactMode = 'owner';
+        closeContactModeModal();
+        syncContactModeUi();
+        return;
+      }
+      syncNotifyDockChannels();
     }
 
     // DOM Elements
@@ -4782,10 +4817,10 @@
         dockChannels.push = false;
 
         if (prioVoiceBtn) {
-          prioVoiceBtn.classList.toggle(
-            'notify-voice-cool-blocked',
-            !!(voiceCd > 0 && dockChannels.call)
-          );
+          var emergCoolBlocked = !!(voiceCd > 0 && dockChannels.call);
+          prioVoiceBtn.classList.toggle('notify-voice-cool-blocked', emergCoolBlocked);
+          prioVoiceBtn.disabled = emergCoolBlocked;
+          prioVoiceBtn.setAttribute('aria-disabled', emergCoolBlocked ? 'true' : 'false');
         }
 
         if (smsBtnLabel) smsBtnLabel.textContent = 'Send SMS';
@@ -4885,10 +4920,10 @@
       dockChannels.push = !!pushReady;
 
       if (prioVoiceBtn) {
-        prioVoiceBtn.classList.toggle(
-          'notify-voice-cool-blocked',
-          !!(voiceCd > 0 && dockChannels.call)
-        );
+        var ownerCoolBlocked = !!(voiceCd > 0 && dockChannels.call);
+        prioVoiceBtn.classList.toggle('notify-voice-cool-blocked', ownerCoolBlocked);
+        prioVoiceBtn.disabled = ownerCoolBlocked;
+        prioVoiceBtn.setAttribute('aria-disabled', ownerCoolBlocked ? 'true' : 'false');
       }
 
       var pickCx = document.getElementById('pickMethodCall');
@@ -5903,16 +5938,24 @@
                 if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
                 if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
                 var telUri = d.length === 10 ? 'tel:+91' + d : 'tel:+' + d;
-                if (contactMode === 'emergency') {
-                  try {
+                try {
+                  sessionStorage.setItem(CALL_DIALER_RETURN_KEY, '1');
+                  if (contactMode === 'emergency') {
                     sessionStorage.setItem(EMERGENCY_TEL_RETURN_KEY, '1');
-                  } catch (e) {}
-                }
+                  }
+                } catch (e) {}
                 if (callFlowModal) {
                   setCallFlowDialogEmergencyVisual(false);
                   callFlowModal.style.display = 'none';
                 }
-                showSuccessModal('call');
+                // Open the system dialer only. Do not start the success→landing hold —
+                // cancelling/backing out of the dialer must leave Contact Owner active.
+                setNotifyDockSending(false);
+                setNotifySwipeCallSending(false);
+                if (typeof resetNotifySwipeCall === 'function') {
+                  resetNotifySwipeCall(true);
+                }
+                syncNotifyDockChannels();
                 window.setTimeout(function () {
                   window.location.href = telUri;
                 }, NOTIFY_CALL_PREPARE_DIAL_DELAY_MS);
@@ -6658,6 +6701,7 @@
     function navigateNotifyOfficialHome() {
       if (notifyRedirectInFlight) return;
       notifyRedirectInFlight = true;
+      clearNotifySuccessStayDismissTimer();
       cancelNotifySuccessPhase();
       cancelNotifyTerminalPhase();
       notifySessionTerminalActive = false;
@@ -6666,12 +6710,25 @@
       setNotifyPostSuccessActive(false);
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
+        sessionStorage.removeItem(CALL_DIALER_RETURN_KEY);
       } catch (e) {}
       window.location.replace(sudoTagHomeUrl);
     }
 
     function navigateNotifyRescanQr() {
-      navigateNotifyOfficialHome();
+      if (notifyRedirectInFlight) return;
+      notifyRedirectInFlight = true;
+      cancelNotifySuccessPhase();
+      cancelNotifyTerminalPhase();
+      notifySessionTerminalActive = false;
+      clearNotifySheetDoneLocal();
+      clearNotifyHoldState();
+      setNotifyPostSuccessActive(false);
+      try {
+        sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
+        sessionStorage.removeItem(CALL_DIALER_RETURN_KEY);
+      } catch (e) {}
+      window.location.replace(getNotifyPageRescanUrl());
     }
 
     function assertNotifySheetAllowsPost() {
@@ -7039,7 +7096,23 @@
               selectedMethod ||
               'push';
             hideNotifySendingOverlay();
-            showSuccessModal(successMethod);
+            var redirectHome =
+              data.redirect_home === true ||
+              data.redirect_home === 1 ||
+              data.redirect_home === '1' ||
+              Number(data.messaging_attempt) >= 3;
+            if (redirectHome) {
+              // 3rd SMS/push success → celebrate, then land on the official home page.
+              showSuccessModal(successMethod);
+            } else {
+              // 1st & 2nd attempts stay on Contact Owner so the scanner can try again.
+              showSuccessModal(successMethod, {
+                skipPostFlow: true,
+                autoDismissMs: NOTIFY_SUCCESS_STAY_DISMISS_MS,
+                stayOnContactOwner: true,
+                messagingAttempt: Number(data.messaging_attempt) || 0
+              });
+            }
           } else {
             // Handle server-side errors with detailed messages
             let errorType = data.error_type || 'server';
@@ -7155,7 +7228,23 @@
         });
     }
 
-    // Success sheet → visible 3…2…1 → session expired → rescan/login
+    function clearNotifySuccessStayDismissTimer() {
+      if (notifySuccessStayDismissTimer) {
+        window.clearTimeout(notifySuccessStayDismissTimer);
+        notifySuccessStayDismissTimer = null;
+      }
+    }
+
+    function dismissSuccessStayModal() {
+      clearNotifySuccessStayDismissTimer();
+      if (!successModal) return;
+      successModal.style.display = 'none';
+      successModal.classList.remove('is-phase-exiting', 'is-post-success-flow');
+      hideNotifySuccessProgress();
+      setNotifyPostSuccessActive(false);
+    }
+
+    // Success sheet → either stay on Contact Owner (SMS/push 1–2) or home redirect (3rd+)
     function showSuccessModal(method, options) {
       var opts = options || {};
       var m = method || 'push';
@@ -7164,12 +7253,15 @@
       var title = 'Notification sent successfully';
       var subtitle = 'Your request was delivered to the vehicle owner.';
       var eyebrow = 'Complete';
+      var stayOnPage = !!opts.stayOnContactOwner;
 
       switch (m) {
         case 'sms':
           iconClass = 'sms';
           title = 'SMS sent successfully';
-          subtitle = 'Your SMS was delivered to the vehicle owner.';
+          subtitle = stayOnPage
+            ? 'Your SMS was delivered. You can send again from this screen if needed.'
+            : 'Your SMS was delivered to the vehicle owner.';
           break;
         case 'call':
           iconClass = 'call';
@@ -7180,6 +7272,10 @@
         case 'push':
         default:
           iconClass = 'push';
+          if (stayOnPage) {
+            subtitle =
+              'Your notification was delivered. You can send again from this screen if needed.';
+          }
           break;
       }
 
@@ -7192,9 +7288,19 @@
       successTitle.textContent = title;
       successMessage.textContent = subtitle;
 
+      clearNotifySuccessStayDismissTimer();
       successModal.style.display = 'flex';
+      successModal.classList.remove('is-phase-exiting', 'is-post-success-flow');
       if (!opts.skipPostFlow) {
         startNotifyPostSuccessFlow(NOTIFY_SUCCESS_HOLD_MS);
+        return;
+      }
+      var dismissMs = Math.max(0, Math.floor(Number(opts.autoDismissMs) || 0));
+      if (dismissMs > 0) {
+        notifySuccessStayDismissTimer = window.setTimeout(function () {
+          notifySuccessStayDismissTimer = null;
+          dismissSuccessStayModal();
+        }, dismissMs);
       }
     }
 
