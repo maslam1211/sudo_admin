@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Referral Table - Admin Panel{% endblock %}
+{% block page_title %}Referral Table{% endblock %}
+
+{% block content %}
+<style>
+    .ref-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .ref-header {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+    .table-custom { font-size: 0.875rem; margin-bottom: 0; }
+    .table-custom thead th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        padding: 0.75rem;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+    }
+    .table-custom tbody td { padding: 0.75rem; vertical-align: middle; }
+    .mono { font-family: 'Courier New', monospace; font-size: 0.8rem; }
+    .badge-status-pending { background: #fef3c7; color: #92400e; }
+    .badge-status-successful { background: #d1fae5; color: #065f46; }
+    .badge-status-rewarded { background: #fde68a; color: #78350f; }
+    .badge-reward-none { background: #f1f5f9; color: #475569; }
+    .badge-reward-pending { background: #dbeafe; color: #1e40af; }
+    .badge-reward-granted { background: #fde68a; color: #78350f; }
+    .sort-link { color: inherit; text-decoration: none; }
+    .sort-link:hover { color: #0d6efd; }
+</style>
+
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <a href="{% url 'manage_referrals' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Overview
+    </a>
+    <a href="{% url 'export_referrals_csv' %}{% if query_string %}?{{ query_string }}{% endif %}"
+       class="btn btn-success btn-sm">
+        <i class="fas fa-file-csv me-1"></i> Export Filtered CSV
+    </a>
+</div>
+
+{% if truncated %}
+<div class="alert alert-warning py-2">
+    Result set capped at {{ fetch_limit }} rows. Use date/status filters to narrow.
+</div>
+{% endif %}
+
+<div class="ref-card">
+    <div class="ref-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Search &amp; Filter</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{% url 'referrals_table' %}" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-control" name="search" value="{{ filters.search }}"
+                       placeholder="Name, code, or mobile">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    {% for s in status_choices %}
+                    <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Reward status</label>
+                <select class="form-select" name="reward_status">
+                    <option value="">All</option>
+                    {% for s in reward_status_choices %}
+                    <option value="{{ s }}" {% if filters.reward_status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input type="date" class="form-control" name="start_date" value="{{ filters.start_date_str }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input type="date" class="form-control" name="end_date" value="{{ filters.end_date_str }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Page size</label>
+                <select class="form-select" name="page_size">
+                    {% for size in page_sizes %}
+                    <option value="{{ size }}" {% if filters.page_size == size %}selected{% endif %}>{{ size }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <input type="hidden" name="sort" value="{{ filters.sort }}">
+            <input type="hidden" name="order" value="{{ filters.order }}">
+            <div class="col-md-10 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i> Apply
+                </button>
+                <a href="{% url 'referrals_table' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="ref-card">
+    <div class="ref-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Referrals ({{ total_filtered }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-custom">
+            <thead>
+                <tr>
+                    {% with qs=sort_query_string %}
+                    <th>
+                        <a class="sort-link" href="?{% if qs %}{{ qs }}&amp;{% endif %}sort=referrerName&amp;order={% if filters.sort == 'referrerName' and filters.order == 'asc' %}desc{% else %}asc{% endif %}">
+                            Referrer Name
+                        </a>
+                    </th>
+                    <th>Referrer Mobile</th>
+                    <th>
+                        <a class="sort-link" href="?{% if qs %}{{ qs }}&amp;{% endif %}sort=referralCode&amp;order={% if filters.sort == 'referralCode' and filters.order == 'asc' %}desc{% else %}asc{% endif %}">
+                            Code
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" href="?{% if qs %}{{ qs }}&amp;{% endif %}sort=referredUserName&amp;order={% if filters.sort == 'referredUserName' and filters.order == 'asc' %}desc{% else %}asc{% endif %}">
+                            Referred User
+                        </a>
+                    </th>
+                    <th>Referred Mobile</th>
+                    <th>
+                        <a class="sort-link" href="?{% if qs %}{{ qs }}&amp;{% endif %}sort=registeredAt&amp;order={% if filters.sort == 'registeredAt' and filters.order == 'desc' %}asc{% else %}desc{% endif %}">
+                            Registration
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" href="?{% if qs %}{{ qs }}&amp;{% endif %}sort=status&amp;order={% if filters.sort == 'status' and filters.order == 'asc' %}desc{% else %}asc{% endif %}">
+                            Status
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" href="?{% if qs %}{{ qs }}&amp;{% endif %}sort=rewardStatus&amp;order={% if filters.sort == 'rewardStatus' and filters.order == 'asc' %}desc{% else %}asc{% endif %}">
+                            Reward
+                        </a>
+                    </th>
+                    <th></th>
+                    {% endwith %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in page_obj %}
+                <tr>
+                    <td>
+                        <div class="fw-semibold">{{ r.referrerName|default:"—" }}</div>
+                        <div class="small text-muted mono">{{ r.referrerUserId|truncatechars:12 }}</div>
+                    </td>
+                    <td>{{ r.referrerContact|default:"—" }}</td>
+                    <td class="mono">{{ r.referralCode|default:"—" }}</td>
+                    <td>
+                        <div class="fw-semibold">{{ r.referredUserName|default:"—" }}</div>
+                        <div class="small text-muted mono">{{ r.referredUserId|truncatechars:12 }}</div>
+                    </td>
+                    <td>{{ r.referredContact|default:"—" }}</td>
+                    <td class="small">
+                        {% if r.registeredAtIst %}{{ r.registeredAtIst|date:"d M Y H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td><span class="badge rounded-pill badge-status-{{ r.status }}">{{ r.status }}</span></td>
+                    <td><span class="badge rounded-pill badge-reward-{{ r.rewardStatus }}">{{ r.rewardStatus }}</span></td>
+                    <td class="text-nowrap">
+                        <a href="{% url 'referral_detail' r.id %}" class="btn btn-sm btn-outline-primary" title="View">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% if r.referrerUserId %}
+                        <a href="{% url 'referrer_history' r.referrerUserId %}" class="btn btn-sm btn-outline-secondary" title="Referrer history">
+                            <i class="fas fa-history"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No referrals match these filters</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
+        <div class="small text-muted">
+            Page {{ page_obj.number }} of {{ paginator.num_pages }}
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Prev</a>
+                </li>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

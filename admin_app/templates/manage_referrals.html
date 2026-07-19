@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block title %}Referrals - Admin Panel{% endblock %}
+{% block page_title %}Referral Overview{% endblock %}
+
+{% block content %}
+<style>
+    .ref-panel {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .ref-panel-header {
+        background: #f8fafc;
+        padding: 1rem 1.25rem;
+        border-bottom: 2px solid #e5e7eb;
+        border-radius: 0.75rem 0.75rem 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .ref-panel-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    .ref-panel-body { padding: 1.25rem; }
+    .table-custom { font-size: 0.875rem; margin-bottom: 0; }
+    .table-custom thead th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        padding: 0.75rem;
+        border-bottom: 2px solid #e5e7eb;
+        white-space: nowrap;
+    }
+    .table-custom tbody td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    .badge-status-pending { background: #fef3c7; color: #92400e; }
+    .badge-status-successful { background: #d1fae5; color: #065f46; }
+    .badge-status-rewarded { background: #fde68a; color: #78350f; }
+    .badge-reward-none { background: #f1f5f9; color: #475569; }
+    .badge-reward-pending { background: #dbeafe; color: #1e40af; }
+    .badge-reward-granted { background: #fde68a; color: #78350f; }
+    .chart-wrap { position: relative; height: 260px; }
+    .mono { font-family: 'Courier New', monospace; font-size: 0.8rem; }
+    .conv-note { font-size: 0.8rem; color: #64748b; }
+</style>
+
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <p class="text-muted mb-0 conv-note">{{ conversion_note }}</p>
+    <div class="d-flex gap-2">
+        <a href="{% url 'referrals_table' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-table me-1"></i> Full Table
+        </a>
+        <a href="{% url 'export_referrals_csv' %}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-csv me-1"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+{% if truncated %}
+<div class="alert alert-warning py-2">
+    Showing analytics from the latest {{ fetch_limit }} referrals. Narrow date filters on the table for larger sets.
+</div>
+{% endif %}
+
+<!-- KPI cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Total Referrals</div>
+                        <div class="h3 mb-0 fw-bold">{{ kpis.total|intcomma }}</div>
+                    </div>
+                    <div class="stat-icon primary"><i class="fas fa-share-alt"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Successful</div>
+                        <div class="h3 mb-0 fw-bold">{{ kpis.successful|intcomma }}</div>
+                        <div class="small text-muted mt-1">+ {{ kpis.rewarded }} rewarded</div>
+                    </div>
+                    <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Pending</div>
+                        <div class="h3 mb-0 fw-bold">{{ kpis.pending|intcomma }}</div>
+                    </div>
+                    <div class="stat-icon warning"><i class="fas fa-hourglass-half"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Conversion Rate</div>
+                        <div class="h3 mb-0 fw-bold">{{ kpis.conversion_rate }}%</div>
+                        <div class="small text-muted mt-1">{{ kpis.converted }} converted</div>
+                    </div>
+                    <div class="stat-icon info"><i class="fas fa-percentage"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-2">
+    <div class="col-lg-8">
+        <div class="ref-panel">
+            <div class="ref-panel-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Referral Volume</h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" data-chart-range="daily">Daily</button>
+                    <button type="button" class="btn btn-outline-secondary" data-chart-range="weekly">Weekly</button>
+                    <button type="button" class="btn btn-outline-secondary" data-chart-range="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="ref-panel-body">
+                <div class="chart-wrap"><canvas id="volumeChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="ref-panel">
+            <div class="ref-panel-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Status Mix</h5>
+            </div>
+            <div class="ref-panel-body">
+                <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Top referrers -->
+    <div class="col-lg-6">
+        <div class="ref-panel">
+            <div class="ref-panel-header">
+                <h5><i class="fas fa-trophy me-2"></i>Top Referrers</h5>
+            </div>
+            <div class="ref-panel-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Successful</th>
+                                <th>Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in top_referrers %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <div class="fw-semibold">{{ u.fullName|default:"—" }}</div>
+                                    <div class="small text-muted">{{ u.contactNumber|default:"" }}</div>
+                                </td>
+                                <td class="mono">{{ u.referralCode|default:"—" }}</td>
+                                <td>{{ u.stats.successfulReferrals }}</td>
+                                <td>{{ u.stats.totalReferrals }}</td>
+                                <td>
+                                    <a href="{% url 'referrer_history' u.userId %}" class="btn btn-sm btn-outline-primary" title="History">
+                                        <i class="fas fa-history"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No referrers yet</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent referrals -->
+    <div class="col-lg-6">
+        <div class="ref-panel">
+            <div class="ref-panel-header">
+                <h5><i class="fas fa-clock me-2"></i>Recently Referred</h5>
+                <a href="{% url 'referrals_table' %}" class="btn btn-sm btn-outline-secondary">View all</a>
+            </div>
+            <div class="ref-panel-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom">
+                        <thead>
+                            <tr>
+                                <th>Referred</th>
+                                <th>Referrer</th>
+                                <th>Status</th>
+                                <th>Registered</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in recent_referrals %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ r.referredUserName|default:"—" }}</div>
+                                    <div class="small text-muted">{{ r.referredContact|default:"" }}</div>
+                                </td>
+                                <td>
+                                    <div>{{ r.referrerName|default:"—" }}</div>
+                                    <div class="mono small text-muted">{{ r.referralCode }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill badge-status-{{ r.status }}">{{ r.status }}</span>
+                                </td>
+                                <td class="small">
+                                    {% if r.registeredAtIst %}{{ r.registeredAtIst|date:"d M Y H:i" }}{% else %}—{% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'referral_detail' r.id %}" class="btn btn-sm btn-outline-primary" title="Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">No referrals yet</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const series = {{ series_json|safe }};
+    const volumeCtx = document.getElementById('volumeChart');
+    const statusCtx = document.getElementById('statusChart');
+    if (!volumeCtx || !statusCtx || typeof Chart === 'undefined') return;
+
+    const volumeChart = new Chart(volumeCtx, {
+        type: 'line',
+        data: {
+            labels: series.daily_labels,
+            datasets: [{
+                label: 'New referrals',
+                data: series.daily_values,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+                x: { ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 10 } }
+            }
+        }
+    });
+
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: series.status_labels,
+            datasets: [{
+                data: series.status_values,
+                backgroundColor: ['#f59e0b', '#10b981', '#d97706'],
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    const ranges = {
+        daily: { labels: series.daily_labels, values: series.daily_values },
+        weekly: { labels: series.weekly_labels, values: series.weekly_values },
+        monthly: { labels: series.monthly_labels, values: series.monthly_values },
+    };
+
+    document.querySelectorAll('[data-chart-range]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('[data-chart-range]').forEach(function (b) {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            const range = ranges[btn.getAttribute('data-chart-range')] || ranges.daily;
+            volumeChart.data.labels = range.labels;
+            volumeChart.data.datasets[0].data = range.values;
+            volumeChart.update();
+        });
+    });
+})();
+</script>
+{% endblock %}

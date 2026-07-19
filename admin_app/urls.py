@@ -3,6 +3,7 @@ from django.views.generic import RedirectView
 
 from . import views
 from . import checkout_views
+from . import referral_views
 
 urlpatterns = [
     # /admin/ with no extra path — otherwise 404; login view sends to PIN gate if needed
@@ -27,6 +28,12 @@ urlpatterns = [
     path('register-user/', views.register_user, name='register_user'),
     path('manage-users/', views.manage_users, name='manage_users'),
     path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
+    # Referral management (read / analytics / export — writes via Cloud Functions)
+    path('referrals/', referral_views.manage_referrals, name='manage_referrals'),
+    path('referrals/table/', referral_views.referrals_table, name='referrals_table'),
+    path('referrals/export/', referral_views.export_referrals_csv, name='export_referrals_csv'),
+    path('referrals/<str:referral_id>/', referral_views.referral_detail, name='referral_detail'),
+    path('referrers/<str:user_id>/', referral_views.referrer_history, name='referrer_history'),
     path('view-orders/', views.view_orders, name='view_orders'),
     path('view-payments/', views.view_payments, name='view_payments'),
     path('update_order_status/', views.update_order_status, name='update_order_status'),

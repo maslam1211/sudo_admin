@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Referral Detail - Admin Panel{% endblock %}
+{% block page_title %}Referral Detail{% endblock %}
+
+{% block content %}
+<style>
+    .ref-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .ref-header {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+    .meta-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .meta-value { color: #1e293b; margin-bottom: 1rem; word-break: break-word; }
+    .mono { font-family: 'Courier New', monospace; font-size: 0.85rem; }
+    .badge-status-pending { background: #fef3c7; color: #92400e; }
+    .badge-status-successful { background: #d1fae5; color: #065f46; }
+    .badge-status-rewarded { background: #fde68a; color: #78350f; }
+    .badge-reward-none { background: #f1f5f9; color: #475569; }
+    .badge-reward-pending { background: #dbeafe; color: #1e40af; }
+    .badge-reward-granted { background: #fde68a; color: #78350f; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <a href="{% url 'referrals_table' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Back to table
+    </a>
+    {% if referral.referrerUserId %}
+    <a href="{% url 'referrer_history' referral.referrerUserId %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-history me-1"></i> Referrer history
+    </a>
+    {% endif %}
+</div>
+
+<div class="ref-card">
+    <div class="ref-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i>Referral Edge</h5>
+        <div class="d-flex gap-2">
+            <span class="badge rounded-pill badge-status-{{ referral.status }}">{{ referral.status }}</span>
+            <span class="badge rounded-pill badge-reward-{{ referral.rewardStatus }}">reward: {{ referral.rewardStatus }}</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="meta-label">Document ID (referred user)</div>
+                <div class="meta-value mono">{{ referral.id }}</div>
+
+                <div class="meta-label">Referral Code</div>
+                <div class="meta-value mono">{{ referral.referralCode|default:"—" }}</div>
+
+                <div class="meta-label">Share Link</div>
+                <div class="meta-value">
+                    {% if referral.referralLink %}
+                    <a href="{{ referral.referralLink }}" target="_blank" rel="noopener">{{ referral.referralLink }}</a>
+                    {% else %}—{% endif %}
+                </div>
+
+                <div class="meta-label">Registered At (IST)</div>
+                <div class="meta-value">
+                    {% if referral.registeredAtIst %}{{ referral.registeredAtIst|date:"d M Y H:i:s" }}{% else %}—{% endif %}
+                </div>
+
+                <div class="meta-label">Reward Amount</div>
+                <div class="meta-value">{{ referral.rewardAmount }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="meta-label">Created At</div>
+                <div class="meta-value">
+                    {% if referral.createdAt %}{{ referral.createdAt|to_ist|date:"d M Y H:i:s" }}{% else %}—{% endif %}
+                </div>
+                <div class="meta-label">Updated At</div>
+                <div class="meta-value">
+                    {% if referral.updatedAt %}{{ referral.updatedAt|to_ist|date:"d M Y H:i:s" }}{% else %}—{% endif %}
+                </div>
+                <p class="small text-muted mt-3 mb-0">
+                    Status transitions and reward grants are owned by Cloud Functions.
+                    This admin view does not write to <code>referrals</code> or <code>referralStats</code>.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="ref-card h-100">
+            <div class="ref-header">
+                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Referrer</h5>
+            </div>
+            <div class="card-body">
+                <div class="meta-label">Name</div>
+                <div class="meta-value">{{ referral.referrerName|default:referrer.fullName|default:"—" }}</div>
+                <div class="meta-label">Mobile</div>
+                <div class="meta-value">{{ referral.referrerContact|default:referrer.contactNumber|default:"—" }}</div>
+                <div class="meta-label">User ID</div>
+                <div class="meta-value mono">{{ referral.referrerUserId|default:"—" }}</div>
+                {% if referrer %}
+                <div class="meta-label">Live referralStats</div>
+                <div class="meta-value small">
+                    total {{ referrer.referralStats.totalReferrals }} ·
+                    successful {{ referrer.referralStats.successfulReferrals }} ·
+                    pending {{ referrer.referralStats.pendingReferrals }} ·
+                    rewards {{ referrer.referralStats.rewardsEarned }}
+                </div>
+                <a href="{% url 'referrer_history' referral.referrerUserId %}" class="btn btn-sm btn-outline-primary">
+                    View full history
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="ref-card h-100">
+            <div class="ref-header">
+                <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Referred User</h5>
+            </div>
+            <div class="card-body">
+                <div class="meta-label">Name</div>
+                <div class="meta-value">{{ referral.referredUserName|default:referred.fullName|default:"—" }}</div>
+                <div class="meta-label">Mobile</div>
+                <div class="meta-value">{{ referral.referredContact|default:referred.contactNumber|default:"—" }}</div>
+                <div class="meta-label">User ID</div>
+                <div class="meta-value mono">{{ referral.referredUserId|default:"—" }}</div>
+                {% if referred %}
+                <div class="meta-label">referredByCode</div>
+                <div class="meta-value mono">{{ referred.referredByCode|default:"—" }}</div>
+                <div class="meta-label">Own referral code</div>
+                <div class="meta-value mono">{{ referred.referralCode|default:"—" }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

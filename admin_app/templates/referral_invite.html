@@ -1,0 +1,157 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SudoTag Invite{% if code %} — {{ code }}{% endif %}</title>
+  <meta name="description" content="You've been invited to SudoTag. Open the app to claim this referral code.">
+  {% include 'includes/landing_head.html' %}
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
+  <style>
+    :root {
+      --invite-ink: #0f172a;
+      --invite-muted: #64748b;
+      --invite-accent: #f97316;
+      --invite-surface: rgba(255, 255, 255, 0.92);
+    }
+    body.invite-page {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Poppins, sans-serif;
+      color: var(--invite-ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(249, 115, 22, 0.18), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 10%, rgba(14, 165, 233, 0.12), transparent 50%),
+        linear-gradient(180deg, #fff7ed 0%, #f8fafc 45%, #ffffff 100%);
+    }
+    .invite-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem 3rem;
+      text-align: center;
+    }
+    .invite-brand {
+      height: 72px;
+      width: auto;
+      margin-bottom: 1.75rem;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
+    }
+    .invite-panel {
+      width: min(440px, 100%);
+      background: var(--invite-surface);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 1rem;
+      padding: 2rem 1.5rem;
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+    }
+    .invite-panel h1 {
+      font-size: clamp(1.5rem, 4vw, 1.85rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .invite-panel p {
+      color: var(--invite-muted);
+      margin: 0 0 1.25rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .invite-code {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--invite-accent);
+      background: rgba(249, 115, 22, 0.1);
+      border-radius: 0.5rem;
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .invite-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      background: var(--invite-accent);
+      color: #fff !important;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 0.65rem;
+      padding: 0.85rem 1.25rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 8px 20px rgba(249, 115, 22, 0.28);
+    }
+    .invite-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(249, 115, 22, 0.35);
+      color: #fff !important;
+    }
+    .invite-cta-secondary {
+      margin-top: 0.75rem;
+      background: #0f172a;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+    }
+    .invite-cta-secondary:hover {
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+    }
+    .invite-note {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--invite-muted);
+    }
+    .invite-home {
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+    }
+    .invite-home a { color: var(--invite-ink); font-weight: 500; }
+  </style>
+</head>
+<body class="invite-page">
+  <main class="invite-shell">
+    <a href="{% url 'index' %}" aria-label="SudoTag home">
+      <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" class="invite-brand" width="240" height="72" decoding="async">
+    </a>
+    <div class="invite-panel">
+      {% if is_valid %}
+      <h1>You're invited</h1>
+      <p>
+        {% if referrer_name %}{{ referrer_name }} invited you to SudoTag.{% else %}A friend invited you to SudoTag.{% endif %}
+        Open the app and sign up with this code to join.
+      </p>
+      <div class="invite-code">{{ code }}</div>
+      {% else %}
+      <h1>Invite link</h1>
+      <p>
+        {% if code %}
+        We couldn't verify code <strong>{{ code }}</strong>. It may be inactive or mistyped.
+        {% else %}
+        This invite link is missing a referral code.
+        {% endif %}
+        You can still download SudoTag and explore the app.
+      </p>
+      {% endif %}
+      <a class="invite-cta" href="{{ play_store_url }}" rel="noopener">
+        Get SudoTag on Google Play
+      </a>
+      <a class="invite-cta invite-cta-secondary" href="{{ app_store_url }}" rel="noopener">
+        Download on the App Store
+      </a>
+      <p class="invite-note">
+        Referral credit is applied inside the SudoTag app after you create an account —
+        enter code <strong>{{ code }}</strong> when asked, or keep this link handy.
+      </p>
+    </div>
+    <p class="invite-home"><a href="{% url 'index' %}">Back to sudotag.com</a></p>
+  </main>
+</body>
+</html>

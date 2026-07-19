@@ -6,6 +6,9 @@ DEFAULT_LANDING_BANNER_AD = {
     'message': 'Activate your SudoTag and get 1 year free fleet access',
 }
 
+PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB'
+APP_STORE_URL = 'https://apps.apple.com/in/app/sudotag/id6761091033'
+
 
 def _landing_banner_ads(request):
     default = {
@@ -33,3 +36,31 @@ def privacy(request):
 
 def how_it_works(request):
     return render(request, 'how_it_works.html')
+
+
+def referral_invite(request, code):
+    """
+    Public deep-link landing for https://sudotag.com/r/{CODE}.
+
+    Does not apply the referral — that happens in the mobile app via
+    applyReferralCode. This page only resolves the code for display and
+    points the visitor to the App / Play Store.
+    """
+    from admin_app.referral_service import lookup_referral_code, normalize_referral_code
+
+    normalized = normalize_referral_code(code)
+    code_info = None
+    try:
+        code_info = lookup_referral_code(normalized) if normalized else None
+    except Exception:
+        code_info = None
+
+    is_valid = bool(code_info and code_info.get('isActive') is not False)
+    return render(request, 'referral_invite.html', {
+        'code': normalized,
+        'code_info': code_info,
+        'is_valid': is_valid,
+        'play_store_url': PLAY_STORE_URL,
+        'app_store_url': APP_STORE_URL,
+        'referrer_name': (code_info or {}).get('userName') or '',
+    })

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block title %}Referrer History - Admin Panel{% endblock %}
+{% block page_title %}Referrer History{% endblock %}
+
+{% block content %}
+<style>
+    .ref-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    .ref-header {
+        background: #f8fafc;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+    .table-custom { font-size: 0.875rem; margin-bottom: 0; }
+    .table-custom thead th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        padding: 0.75rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .table-custom tbody td { padding: 0.75rem; vertical-align: middle; }
+    .mono { font-family: 'Courier New', monospace; font-size: 0.8rem; }
+    .badge-status-pending { background: #fef3c7; color: #92400e; }
+    .badge-status-successful { background: #d1fae5; color: #065f46; }
+    .badge-status-rewarded { background: #fde68a; color: #78350f; }
+    .badge-reward-none { background: #f1f5f9; color: #475569; }
+    .badge-reward-pending { background: #dbeafe; color: #1e40af; }
+    .badge-reward-granted { background: #fde68a; color: #78350f; }
+    .meta-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .meta-value { color: #1e293b; margin-bottom: 0.75rem; word-break: break-word; }
+</style>
+
+<div class="mb-3">
+    <a href="{% url 'manage_referrals' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Overview
+    </a>
+</div>
+
+<div class="ref-card">
+    <div class="ref-header">
+        <h5 class="mb-0"><i class="fas fa-user me-2"></i>{{ profile.fullName|default:"Referrer" }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="meta-label">User ID</div>
+                <div class="meta-value mono">{{ profile.id }}</div>
+                <div class="meta-label">Mobile</div>
+                <div class="meta-value">{{ profile.contactNumber|default:"—" }}</div>
+                <div class="meta-label">Email</div>
+                <div class="meta-value">{{ profile.emailAddress|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="meta-label">Referral Code</div>
+                <div class="meta-value mono">{{ profile.referralCode|default:"—" }}</div>
+                <div class="meta-label">Share Link</div>
+                <div class="meta-value">
+                    {% if profile.referralLink %}
+                    <a href="{{ profile.referralLink }}" target="_blank" rel="noopener">{{ profile.referralLink }}</a>
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="meta-label">Live referralStats (from users doc)</div>
+                <div class="meta-value">
+                    <div>Total: <strong>{{ profile.referralStats.totalReferrals }}</strong></div>
+                    <div>Successful: <strong>{{ profile.referralStats.successfulReferrals }}</strong></div>
+                    <div>Pending: <strong>{{ profile.referralStats.pendingReferrals }}</strong></div>
+                    <div>Rewards earned: <strong>{{ profile.referralStats.rewardsEarned }}</strong></div>
+                </div>
+                <div class="small text-muted">
+                    Edge KPIs from loaded referrals: {{ kpis.total }} total ·
+                    {{ kpis.pending }} pending · {{ kpis.converted }} converted ({{ kpis.conversion_rate }}%)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="ref-card">
+    <div class="ref-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Referrals ({{ edge_count }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-custom">
+            <thead>
+                <tr>
+                    <th>Referred User</th>
+                    <th>Mobile</th>
+                    <th>Code</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th>Reward</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in page_obj %}
+                <tr>
+                    <td>
+                        <div class="fw-semibold">{{ r.referredUserName|default:"—" }}</div>
+                        <div class="small text-muted mono">{{ r.referredUserId|truncatechars:16 }}</div>
+                    </td>
+                    <td>{{ r.referredContact|default:"—" }}</td>
+                    <td class="mono">{{ r.referralCode|default:"—" }}</td>
+                    <td class="small">
+                        {% if r.registeredAtIst %}{{ r.registeredAtIst|date:"d M Y H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td><span class="badge rounded-pill badge-status-{{ r.status }}">{{ r.status }}</span></td>
+                    <td><span class="badge rounded-pill badge-reward-{{ r.rewardStatus }}">{{ r.rewardStatus }}</span></td>
+                    <td>
+                        <a href="{% url 'referral_detail' r.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No referrals for this user</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if paginator.num_pages > 1 %}
+    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
+        <div class="small text-muted">Page {{ page_obj.number }} of {{ paginator.num_pages }}</div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a></li>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
