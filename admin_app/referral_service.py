@@ -76,6 +76,27 @@ def referral_link_for(code: str) -> str:
     return REFERRAL_LINK_TEMPLATE.format(code=normalize_referral_code(code))
 
 
+def qr_png_data_uri(payload: str, *, box_size: int = 8, border: int = 2) -> str:
+    """PNG data-URI for a scannable QR (used on public invite / How It Works)."""
+    import base64
+    import io
+
+    import qrcode
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=box_size,
+        border=border,
+    )
+    qr.add_data(payload)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='#111111', back_color='#FFFFFF')
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+
+
 def _to_datetime(value: Any) -> Optional[datetime]:
     """Normalize Firestore Timestamp / datetime / string → aware datetime (UTC)."""
     if value is None:

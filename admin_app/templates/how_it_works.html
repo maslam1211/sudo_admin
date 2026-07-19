@@ -125,9 +125,19 @@
           <div class="hiw-scan-viz__pulse hiw-scan-viz__pulse--2"></div>
           <div class="hiw-scan-viz__phone">
             <div class="hiw-scan-viz__screen">
-              <div class="hiw-scan-viz__qr">
-                <div class="hiw-scan-viz__beam"></div>
+              {% if scan_demo_qr_uri %}
+              <div class="hiw-scan-viz__qr-wrap">
+                <img
+                  class="hiw-scan-viz__code"
+                  src="{{ scan_demo_qr_uri }}"
+                  alt="SudoTag QR code"
+                  width="120"
+                  height="120"
+                  decoding="async"
+                >
+                <div class="hiw-scan-viz__beam" aria-hidden="true"></div>
               </div>
+              {% endif %}
               <p class="hiw-scan-viz__label">Scanning SudoTag QR…</p>
             </div>
           </div>

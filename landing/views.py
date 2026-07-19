@@ -22,6 +22,14 @@ def _landing_banner_ads(request):
         return [default]
 
 
+def _qr_data_uri(payload: str) -> str:
+    from admin_app.referral_service import qr_png_data_uri
+    try:
+        return qr_png_data_uri(payload)
+    except Exception:
+        return ''
+
+
 def index(request):
     return render(request, 'index.html', {
         'banner_ads': _landing_banner_ads(request),
@@ -35,7 +43,12 @@ def privacy(request):
     return render(request, 'privacy.html')
 
 def how_it_works(request):
-    return render(request, 'how_it_works.html')
+    # Demo QR for the mobile scan mock — opens the public site when scanned.
+    demo_url = request.build_absolute_uri('/')
+    return render(request, 'how_it_works.html', {
+        'scan_demo_qr_uri': _qr_data_uri(demo_url),
+        'scan_demo_qr_url': demo_url,
+    })
 
 
 def referral_invite(request, code):

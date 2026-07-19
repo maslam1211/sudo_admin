@@ -5,153 +5,461 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SudoTag Invite{% if code %} — {{ code }}{% endif %}</title>
-  <meta name="description" content="You've been invited to SudoTag. Open the app to claim this referral code.">
-  {% include 'includes/landing_head.html' %}
+  <meta name="description" content="You've been invited to SudoTag. Download the app and enter your referral code when you sign up.">
+  <meta property="og:title" content="You're invited to SudoTag{% if code %} — {{ code }}{% endif %}">
+  <meta property="og:description" content="{% if referrer_name %}{{ referrer_name }} invited you to SudoTag.{% else %}Join SudoTag with this invite.{% endif %}">
+  {% include 'includes/favicon_links.html' %}
+  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
   <style>
     :root {
-      --invite-ink: #0f172a;
-      --invite-muted: #64748b;
-      --invite-accent: #f97316;
-      --invite-surface: rgba(255, 255, 255, 0.92);
+      --bg: #0a0a0a;
+      --ink: #fff;
+      --muted: rgba(255,255,255,0.64);
+      --faint: rgba(255,255,255,0.42);
+      --accent: #E58147;
+      --accent-l: #F5A472;
+      --accent-d: #D16A2F;
+      --card: #1c1c1c;
+      --card-2: #262626;
+      --line: rgba(255,255,255,0.1);
+      --display: "Poppins", system-ui, sans-serif;
+      --body: "DM Sans", system-ui, sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
     }
-    body.invite-page {
-      min-height: 100vh;
-      margin: 0;
-      font-family: Poppins, sans-serif;
-      color: var(--invite-ink);
-      background:
-        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(249, 115, 22, 0.18), transparent 55%),
-        radial-gradient(ellipse 60% 40% at 90% 10%, rgba(14, 165, 233, 0.12), transparent 50%),
-        linear-gradient(180deg, #fff7ed 0%, #f8fafc 45%, #ffffff 100%);
+    * { box-sizing: border-box; margin: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: var(--body);
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
     }
-    .invite-shell {
+
+    .page {
       min-height: 100vh;
+      min-height: 100dvh;
+      position: relative;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Atmospheric product backdrop — full bleed, not a cropped card */
+    .bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .bg img {
+      position: absolute;
+      width: 78%;
+      max-width: 920px;
+      height: auto;
+      right: -8%;
+      top: 50%;
+      transform: translateY(-48%);
+      opacity: 0.22;
+      filter: saturate(1.05) contrast(1.05);
+      animation: drift 20s var(--ease) infinite alternate;
+    }
+    .bg__veil {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 55% 50% at 78% 48%, rgba(229,129,71,0.22), transparent 60%),
+        linear-gradient(90deg, #0a0a0a 0%, #0a0a0a 42%, rgba(10,10,10,0.55) 70%, rgba(10,10,10,0.82) 100%),
+        linear-gradient(180deg, #0a0a0a 0%, transparent 20%, transparent 75%, #0a0a0a 100%);
+    }
+    .bg__orb {
+      position: absolute;
+      width: min(520px, 70vw);
+      height: min(520px, 70vw);
+      border-radius: 50%;
+      left: -12%;
+      top: 10%;
+      background: radial-gradient(circle, rgba(229,129,71,0.28), transparent 68%);
+      animation: pulse 7s ease-in-out infinite;
+    }
+
+    .top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.15rem 1.35rem 0;
+      width: min(1080px, 100%);
+      margin: 0 auto;
+      animation: rise 0.6s var(--ease) both;
+    }
+    .top img {
+      height: 46px;
+      width: auto;
+      display: block;
+    }
+    .top a.nav {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .top a.nav:hover { color: #fff; }
+
+    .main {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem 1.25rem 3rem;
-      text-align: center;
+      padding: 1.5rem 1.25rem 2rem;
     }
-    .invite-brand {
-      height: 72px;
-      width: auto;
-      margin-bottom: 1.75rem;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
-    }
-    .invite-panel {
+
+    /* Single focused column — code is the hero */
+    .sheet {
       width: min(440px, 100%);
-      background: var(--invite-surface);
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      border-radius: 1rem;
-      padding: 2rem 1.5rem;
-      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+      text-align: center;
+      animation: rise 0.75s var(--ease) 0.06s both;
     }
-    .invite-panel h1 {
-      font-size: clamp(1.5rem, 4vw, 1.85rem);
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
       font-weight: 700;
-      margin: 0 0 0.5rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.35rem;
+      border: 1px solid rgba(229,129,71,0.4);
+      background: rgba(229,129,71,0.12);
+      color: var(--accent-l);
+    }
+    .badge--warn {
+      border-color: rgba(252,211,77,0.35);
+      background: rgba(252,211,77,0.1);
+      color: #fcd34d;
+    }
+
+    .brand {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: clamp(2.75rem, 10vw, 3.6rem);
+      letter-spacing: -0.045em;
+      line-height: 0.9;
+      margin-bottom: 0.75rem;
+    }
+    .brand span { color: var(--accent); }
+
+    .headline {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(1.35rem, 4.5vw, 1.65rem);
       letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.65rem;
     }
-    .invite-panel p {
-      color: var(--invite-muted);
-      margin: 0 0 1.25rem;
-      font-size: 0.95rem;
+    .lead {
+      color: var(--muted);
+      font-size: 1rem;
       line-height: 1.5;
+      margin: 0 auto 1.75rem;
+      max-width: 22rem;
     }
-    .invite-code {
-      display: inline-block;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 1.15rem;
+    .lead strong { color: #fff; font-weight: 600; }
+
+    /* Invite card — mirrors mobile Refer & Earn */
+    .card {
+      position: relative;
+      padding: 1.6rem 1.25rem 1.35rem;
+      border-radius: 1.5rem;
+      background: linear-gradient(160deg, #2e2e2e, #242424 50%, #1a1a1a);
+      border: 1px solid rgba(229,129,71,0.4);
+      box-shadow:
+        0 24px 60px rgba(0,0,0,0.5),
+        0 0 80px rgba(229,129,71,0.1);
+      overflow: hidden;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(245,164,114,0.12), transparent 40%);
+      pointer-events: none;
+    }
+    .card > * { position: relative; z-index: 1; }
+
+    .card__label {
+      font-size: 0.7rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--invite-accent);
-      background: rgba(249, 115, 22, 0.1);
-      border-radius: 0.5rem;
-      padding: 0.65rem 1rem;
-      margin-bottom: 1.5rem;
+      letter-spacing: 0.2em;
+      color: var(--faint);
+      margin-bottom: 0.65rem;
     }
-    .invite-cta {
+    .card__code {
+      display: block;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      font-family: var(--display);
+      font-size: clamp(1.65rem, 7vw, 2.15rem);
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      padding: 0.25rem 0;
+      cursor: pointer;
+      transition: color 0.2s ease, transform 0.15s ease;
+    }
+    .card__code:hover { color: var(--accent-l); }
+    .card__code:active { transform: scale(0.985); }
+    .card__hint {
+      font-size: 0.8rem;
+      color: var(--faint);
+      margin: 0.35rem 0 1.35rem;
+      min-height: 1.2em;
+    }
+    .card__hint.is-on { color: #6ee7b7; }
+
+    .stores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+    .store {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      background: var(--invite-accent);
-      color: #fff !important;
-      font-weight: 600;
+      gap: 0.45rem;
+      padding: 0.95rem 0.75rem;
+      border-radius: 0.95rem;
       text-decoration: none;
-      border-radius: 0.65rem;
-      padding: 0.85rem 1.25rem;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      box-shadow: 0 8px 20px rgba(249, 115, 22, 0.28);
+      font-weight: 700;
+      font-size: 0.88rem;
+      transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s ease;
     }
-    .invite-cta:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 24px rgba(249, 115, 22, 0.35);
+    .store i { font-size: 1.15rem; }
+    .store--play {
+      background: linear-gradient(135deg, var(--accent-l), var(--accent) 50%, var(--accent-d));
+      color: #151515 !important;
+      box-shadow: 0 10px 28px rgba(229,129,71,0.4);
+    }
+    .store--play:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 34px rgba(229,129,71,0.5);
+    }
+    .store--ios {
+      background: rgba(255,255,255,0.06);
       color: #fff !important;
+      border: 1px solid rgba(255,255,255,0.16);
     }
-    .invite-cta-secondary {
-      margin-top: 0.75rem;
-      background: #0f172a;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+    .store--ios:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.1);
     }
-    .invite-cta-secondary:hover {
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 1.35rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--line);
     }
-    .invite-note {
-      margin-top: 1.25rem;
-      font-size: 0.8rem;
-      color: var(--invite-muted);
+    .step {
+      text-align: center;
     }
-    .invite-home {
-      margin-top: 1.5rem;
-      font-size: 0.875rem;
+    .step__n {
+      width: 1.55rem;
+      height: 1.55rem;
+      margin: 0 auto 0.4rem;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #151515;
+      background: var(--accent);
     }
-    .invite-home a { color: var(--invite-ink); font-weight: 500; }
+    .step__t {
+      font-size: 0.72rem;
+      line-height: 1.3;
+      color: var(--muted);
+    }
+
+    .foot {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 0 1rem 1.4rem;
+      font-size: 0.78rem;
+      color: var(--faint);
+      animation: rise 0.9s var(--ease) 0.15s both;
+    }
+    .foot a {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .foot a:hover { color: var(--accent); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 1.4rem;
+      z-index: 40;
+      transform: translateX(-50%) translateY(140%);
+      background: #141414;
+      border: 1px solid rgba(229,129,71,0.45);
+      color: #fff;
+      border-radius: 999px;
+      padding: 0.7rem 1.2rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: transform 0.35s var(--ease), opacity 0.35s var(--ease);
+      pointer-events: none;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    .toast.is-on {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (min-width: 900px) {
+      .top img { height: 54px; }
+      .bg img {
+        opacity: 0.34;
+        right: -4%;
+        width: 62%;
+      }
+      .sheet { width: min(460px, 100%); margin-right: auto; margin-left: 6vw; text-align: left; }
+      .badge { margin-left: 0; }
+      .lead { margin-left: 0; }
+      .card__label, .card__hint { text-align: center; }
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.06); }
+    }
+    @keyframes drift {
+      from { transform: translateY(-48%) translateX(0); }
+      to { transform: translateY(-50%) translateX(-2%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bg img, .bg__orb, .sheet, .top, .foot { animation: none !important; }
+    }
   </style>
 </head>
-<body class="invite-page">
-  <main class="invite-shell">
-    <a href="{% url 'index' %}" aria-label="SudoTag home">
-      <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" class="invite-brand" width="240" height="72" decoding="async">
-    </a>
-    <div class="invite-panel">
-      {% if is_valid %}
-      <h1>You're invited</h1>
-      <p>
-        {% if referrer_name %}{{ referrer_name }} invited you to SudoTag.{% else %}A friend invited you to SudoTag.{% endif %}
-        Open the app and sign up with this code to join.
-      </p>
-      <div class="invite-code">{{ code }}</div>
-      {% else %}
-      <h1>Invite link</h1>
-      <p>
-        {% if code %}
-        We couldn't verify code <strong>{{ code }}</strong>. It may be inactive or mistyped.
-        {% else %}
-        This invite link is missing a referral code.
-        {% endif %}
-        You can still download SudoTag and explore the app.
-      </p>
-      {% endif %}
-      <a class="invite-cta" href="{{ play_store_url }}" rel="noopener">
-        Get SudoTag on Google Play
-      </a>
-      <a class="invite-cta invite-cta-secondary" href="{{ app_store_url }}" rel="noopener">
-        Download on the App Store
-      </a>
-      <p class="invite-note">
-        Referral credit is applied inside the SudoTag app after you create an account —
-        enter code <strong>{{ code }}</strong> when asked, or keep this link handy.
-      </p>
+<body>
+  <div class="page">
+    <div class="bg" aria-hidden="true">
+      <img
+        src="{% landing_asset 'img/sudotag-windshield-tag.png' %}"
+        alt=""
+        width="900"
+        height="600"
+        decoding="async"
+        fetchpriority="high"
+      >
+      <div class="bg__veil"></div>
+      <div class="bg__orb"></div>
     </div>
-    <p class="invite-home"><a href="{% url 'index' %}">Back to sudotag.com</a></p>
-  </main>
+
+    <header class="top">
+      <a href="{% url 'index' %}" aria-label="SudoTag home">
+        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="200" height="54" decoding="async">
+      </a>
+      <a class="nav" href="{% url 'how_it_works' %}">How it works</a>
+    </header>
+
+    <main class="main">
+      <div class="sheet">
+        {% if is_valid %}
+        <div class="badge"><i class="bi bi-shield-check"></i> Valid invite</div>
+        {% else %}
+        <div class="badge badge--warn"><i class="bi bi-exclamation-triangle"></i> Code unverified</div>
+        {% endif %}
+
+        <h1 class="brand">SudoTag<span>.</span></h1>
+
+        {% if is_valid %}
+        <p class="headline">{% if referrer_name %}{{ referrer_name }} invited you{% else %}You're invited{% endif %}</p>
+        <p class="lead">Download the app and enter your code when you sign up. Referral credit applies inside SudoTag — not on this page.</p>
+        {% else %}
+        <p class="headline">Get the app</p>
+        <p class="lead">
+          {% if code %}We couldn’t verify <strong>{{ code }}</strong>. You can still download SudoTag and explore.{% else %}Download SudoTag to get started.{% endif %}
+        </p>
+        {% endif %}
+
+        <div class="card">
+          {% if code %}
+          <div class="card__label">YOUR CODE</div>
+          <button type="button" class="card__code" id="codeBtn" title="Tap to copy">{{ code }}</button>
+          <p class="card__hint" id="hint">Tap code to copy</p>
+          {% endif %}
+
+          <div class="stores">
+            <a class="store store--play" href="{{ play_store_url }}" target="_blank" rel="noopener noreferrer">
+              <i class="bi bi-google-play" aria-hidden="true"></i> Google Play
+            </a>
+            <a class="store store--ios" href="{{ app_store_url }}" target="_blank" rel="noopener noreferrer">
+              <i class="bi bi-apple" aria-hidden="true"></i> App Store
+            </a>
+          </div>
+
+          <div class="steps" aria-label="How it works">
+            <div class="step"><div class="step__n">1</div><div class="step__t">Install app</div></div>
+            <div class="step"><div class="step__n">2</div><div class="step__t">Create account</div></div>
+            <div class="step"><div class="step__n">3</div><div class="step__t">Enter code</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <a href="{% url 'index' %}">sudotag.com</a> · Secure vehicle communication
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Code copied</div>
+
+  <script>
+    (function () {
+      var btn = document.getElementById('codeBtn');
+      var hint = document.getElementById('hint');
+      var toast = document.getElementById('toast');
+      if (!btn) return;
+      function done() {
+        if (hint) { hint.textContent = 'Copied'; hint.classList.add('is-on'); }
+        if (toast) { toast.classList.add('is-on'); }
+        setTimeout(function () {
+          if (hint) { hint.textContent = 'Tap code to copy'; hint.classList.remove('is-on'); }
+          if (toast) toast.classList.remove('is-on');
+        }, 1600);
+      }
+      btn.addEventListener('click', function () {
+        var t = (btn.textContent || '').trim();
+        if (!t) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).then(done).catch(function () { prompt('Copy code', t); });
+        } else {
+          prompt('Copy code', t);
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
