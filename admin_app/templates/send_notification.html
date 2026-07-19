@@ -4004,7 +4004,7 @@
       </div>
     </div>
 
-    <!-- Custom reason text (for “Other reason” — not the SMS composer) -->
+    <!-- Custom reason text (for “Other reason” — not the channel composer) -->
     <div class="custom-message-container" id="customMessageContainer">
       <div class="custom-message-notice" role="note" aria-label="Please read before typing a custom message">
         <i class="bi bi-shield-exclamation notice-icon" aria-hidden="true"></i>
@@ -4020,24 +4020,24 @@
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
     </div>
 
-    <!-- SMS composer: shown only after tapping SMS -->
+    <!-- Message composer: shown after tapping SMS or Push (single field) -->
     <div class="sms-composer-panel" id="smsComposerPanel" hidden>
       <div class="sms-composer-header">
         <div class="sms-composer-title">
-          <i class="bi bi-chat-text-fill" aria-hidden="true"></i>
-          <span>Compose SMS</span>
+          <i class="bi bi-chat-text-fill" id="smsComposerTitleIcon" aria-hidden="true"></i>
+          <span id="smsComposerTitleText">Compose message</span>
         </div>
-        <button type="button" class="sms-composer-cancel" id="smsComposerCancelBtn" aria-label="Cancel SMS">
+        <button type="button" class="sms-composer-cancel" id="smsComposerCancelBtn" aria-label="Cancel compose">
           Cancel
         </button>
       </div>
       <textarea class="custom-message sms-composer-input" id="smsComposerInput"
-        placeholder="Type your SMS to the owner..." maxlength="200"></textarea>
+        placeholder="Type your message to the owner..." maxlength="200"></textarea>
       <div class="char-count"><span id="smsComposerCharCount">0</span>/200 characters</div>
       <div class="sms-composer-status" id="smsComposerStatus" hidden role="status" aria-live="polite"></div>
       <button type="button" class="custom-sms-send-btn" id="customSmsSendBtn" disabled aria-disabled="true">
         <i class="bi bi-send-fill" aria-hidden="true"></i>
-        <span class="custom-sms-send-btn__label">Send SMS</span>
+        <span class="custom-sms-send-btn__label">Send</span>
       </button>
       <p class="custom-sms-send-hint" id="customSmsSendHint">Type a message to enable Send. Other contact options stay paused until you send or cancel.</p>
     </div>
@@ -4586,12 +4586,16 @@
     const smsComposerCharCount = document.getElementById('smsComposerCharCount');
     const smsComposerCancelBtn = document.getElementById('smsComposerCancelBtn');
     const smsComposerStatus = document.getElementById('smsComposerStatus');
+    const smsComposerTitleText = document.getElementById('smsComposerTitleText');
+    const smsComposerTitleIcon = document.getElementById('smsComposerTitleIcon');
     const customSmsSendBtn = document.getElementById('customSmsSendBtn');
     const customSmsSendHint = document.getElementById('customSmsSendHint');
-    /** True while the SMS composer panel is open (other contact actions paused). */
+    /** True while the message composer is open (other contact actions paused). */
     var smsComposeLockActive = false;
     var smsComposerOpen = false;
-    /** True while an SMS send started from #customSmsSendBtn is in flight. */
+    /** @type {null | 'sms' | 'push'} Channel the open composer will send on. */
+    var composerChannel = null;
+    /** True while a send started from #customSmsSendBtn is in flight. */
     var customSmsSendInFlight = false;
     /** Latched for the current request so success handlers can clear the composer safely. */
     var lastSendFromCustomSmsComposer = false;
@@ -5007,6 +5011,38 @@
       return !!(smsComposerInput && smsComposerInput.value.trim().length > 0);
     }
 
+    function composerChannelLabel(channel) {
+      return channel === 'push' ? 'push' : 'SMS';
+    }
+
+    function composerSendLabel(channel, sending) {
+      if (sending) return 'Sending…';
+      return channel === 'push' ? 'Send push' : 'Send SMS';
+    }
+
+    function applyComposerChannelUi(channel) {
+      var isPush = channel === 'push';
+      if (smsComposerTitleText) {
+        smsComposerTitleText.textContent = isPush ? 'Compose push' : 'Compose SMS';
+      }
+      if (smsComposerTitleIcon) {
+        smsComposerTitleIcon.className = isPush
+          ? 'bi bi-bell-fill'
+          : 'bi bi-chat-text-fill';
+      }
+      if (smsComposerInput) {
+        smsComposerInput.placeholder = isPush
+          ? 'Type your push notification to the owner...'
+          : 'Type your SMS to the owner...';
+      }
+      if (smsComposerCancelBtn) {
+        smsComposerCancelBtn.setAttribute(
+          'aria-label',
+          isPush ? 'Cancel push' : 'Cancel SMS'
+        );
+      }
+    }
+
     function clearSmsComposerSentCloseTimer() {
       if (smsComposerSentCloseTimer) {
         window.clearTimeout(smsComposerSentCloseTimer);
@@ -5045,17 +5081,19 @@
 
     function syncCustomSmsSendButton() {
       if (!customSmsSendBtn) return;
+      var channel = composerChannel || 'sms';
+      var channelReady = channel === 'push' ? !!pushReady : !!ownerSmsReady;
       var canSend =
         !!smsComposerOpen &&
         isCustomSmsMessageValid() &&
-        ownerSmsReady &&
+        channelReady &&
         !customSmsSendInFlight;
       customSmsSendBtn.disabled = !canSend;
       customSmsSendBtn.setAttribute('aria-disabled', canSend ? 'false' : 'true');
       customSmsSendBtn.classList.toggle('is-sending', !!customSmsSendInFlight);
       var label = customSmsSendBtn.querySelector('.custom-sms-send-btn__label');
       if (label) {
-        label.textContent = customSmsSendInFlight ? 'Sending…' : 'Send SMS';
+        label.textContent = composerSendLabel(channel, !!customSmsSendInFlight);
       }
       if (smsComposerCancelBtn) {
         smsComposerCancelBtn.disabled = !!customSmsSendInFlight;
@@ -5064,8 +5102,10 @@
         smsComposerInput.readOnly = !!customSmsSendInFlight;
       }
       if (customSmsSendHint) {
+        var kind = composerChannelLabel(channel);
         if (customSmsSendInFlight) {
-          customSmsSendHint.textContent = 'Please wait — staying on SMS while your message sends.';
+          customSmsSendHint.textContent =
+            'Please wait — staying on ' + kind + ' while your message sends.';
         } else if (isCustomSmsMessageValid()) {
           customSmsSendHint.textContent =
             'Ready to send. Cancel closes the composer without leaving this page.';
@@ -5114,7 +5154,7 @@
 
     function syncCustomReasonFieldVisibility() {
       if (!customMessageContainer) return;
-      // Single-field rule: never show Other-reason textarea while SMS composer is open.
+      // Single-field rule: never show Other-reason textarea while composer is open.
       if (selectedReason === 'custom' && !smsComposerOpen) {
         customMessageContainer.style.display = 'block';
       } else {
@@ -5122,17 +5162,24 @@
       }
     }
 
-    function openSmsComposer() {
-      if (!ownerSmsReady) {
+    function openSmsComposer(channel) {
+      channel = channel === 'push' ? 'push' : 'sms';
+      if (channel === 'sms' && !ownerSmsReady) {
         showToast('SMS is unavailable for this vehicle', 'error');
+        return;
+      }
+      if (channel === 'push' && !pushReady) {
+        showToast('Push notification is unavailable for this vehicle', 'error');
         return;
       }
       if (!requireSelectedReasonForMessaging()) return;
 
       clearSmsComposerSentCloseTimer();
       smsComposerOpen = true;
-      selectedOwnerChannel = 'sms';
-      selectedMethod = 'sms';
+      composerChannel = channel;
+      selectedOwnerChannel = channel;
+      selectedMethod = channel;
+      applyComposerChannelUi(channel);
 
       // Prefill from selected reason / custom reason text when opening.
       var prefill = '';
@@ -5148,7 +5195,7 @@
         smsComposerCharCount.textContent = String(smsComposerInput.value.length);
       }
 
-      // Hide the Other-reason field so only the SMS composer input is visible.
+      // Hide the Other-reason field so only the composer input is visible.
       syncCustomReasonFieldVisibility();
 
       if (smsComposerPanel) {
@@ -5177,7 +5224,9 @@
       opts = opts || {};
       clearSmsComposerSentCloseTimer();
       var draft = smsComposerInput ? smsComposerInput.value : '';
+      var closedChannel = composerChannel;
       smsComposerOpen = false;
+      composerChannel = null;
       customSmsSendInFlight = false;
 
       // On cancel, keep the draft in the Other-reason field (if that reason is selected).
@@ -5197,7 +5246,12 @@
       syncCustomReasonFieldVisibility();
       syncCustomSmsSendButton();
       if (opts.clearMethod !== false) {
-        if (selectedOwnerChannel === 'sms') {
+        if (
+          selectedOwnerChannel === 'sms' ||
+          selectedOwnerChannel === 'push' ||
+          closedChannel === 'sms' ||
+          closedChannel === 'push'
+        ) {
           clearOwnerMethodSelection();
         }
       }
@@ -5217,7 +5271,8 @@
     }
 
     function handleInlineSmsSendSuccess(data) {
-      // Clear immediately and keep the SMS section visible with an inline Sent state.
+      var channel = composerChannel || selectedMethod || 'sms';
+      // Clear immediately and keep the composer visible with an inline Sent state.
       if (smsComposerInput) smsComposerInput.value = '';
       if (smsComposerCharCount) smsComposerCharCount.textContent = '0';
       // Keep Other-reason draft in sync so it doesn't reappear after composer closes.
@@ -5242,7 +5297,7 @@
         closeSmsComposer({ clearMethod: true, preserveDraft: false });
         if (redirectHome) {
           // Defer home flow until after Sent is shown in-place (no modal swap mid-send).
-          showSuccessModal('sms');
+          showSuccessModal(channel);
         }
       }, redirectHome ? 1100 : 1400);
     }
@@ -5251,7 +5306,7 @@
       opts = opts || {};
       closeSmsComposer({ clearMethod: true });
       if (opts.toastSuccess) {
-        showToast('SMS sent successfully.', 'success');
+        showToast('Message sent successfully.', 'success');
       }
     }
 
@@ -5265,12 +5320,17 @@
         syncCustomSmsSendButton();
         return;
       }
-      if (!ownerSmsReady) {
+      var channel = composerChannel === 'push' ? 'push' : 'sms';
+      if (channel === 'sms' && !ownerSmsReady) {
         showToast('SMS is unavailable for this vehicle', 'error');
         return;
       }
-      selectedOwnerChannel = 'sms';
-      selectedMethod = 'sms';
+      if (channel === 'push' && !pushReady) {
+        showToast('Push notification is unavailable for this vehicle', 'error');
+        return;
+      }
+      selectedOwnerChannel = channel;
+      selectedMethod = channel;
       customSmsSendInFlight = true;
       lastSendFromCustomSmsComposer = true;
       setSmsComposerStatus('sending', 'Sending…');
@@ -5484,13 +5544,13 @@
           phaseHint.textContent =
             'Voice call resumes in ' +
             voiceCdMmSs +
-            '. SMS opens a composer; push still sends from its row.';
+            '. SMS and push both open a composer.';
         } else if (!hasReason) {
           phaseHint.textContent =
-            'Choose what’s happening — then tap SMS to compose, push to notify, or Voice to call.';
+            'Choose what’s happening — then tap SMS or push to compose, or Voice to call.';
         } else {
           phaseHint.textContent =
-            'Tap SMS to compose a message, push to notify instantly, or Voice to enter your number and slide to call.';
+            'Tap SMS or push to compose a message, or Voice to enter your number and slide to call.';
         }
       }
 
@@ -5846,7 +5906,7 @@
         stepLine.textContent =
           hasEmergencyContact && contactMode === 'emergency'
             ? 'After verification above, enter your mobile number, then slide right to call emergency contact.'
-            : 'Tap SMS to compose a message · Push sends from its row · Voice opens your number when you choose it.';
+            : 'Tap SMS or push to compose a message · Voice opens your number when you choose it.';
       }
 
       syncEmergencyPlateWrapInCallModal();
@@ -5934,7 +5994,7 @@
           closeSmsComposer({ clearMethod: true, preserveDraft: true });
         });
       }
-      // Keep composer hidden until SMS is chosen.
+      // Keep composer hidden until SMS or push is chosen.
       closeSmsComposer({ clearMethod: true });
       syncCustomSmsSendButton();
 
@@ -6090,20 +6150,17 @@
         el.addEventListener('click', function () {
           if (contactMode !== 'owner') return;
           if (smsComposeLockActive) {
-            showToast('Finish or clear your SMS message first', 'error');
+            showToast('Finish or clear your message first', 'error');
             return;
           }
           if (channel === 'sms') {
             if (!ensureContactTargetSelected()) return;
-            openSmsComposer();
+            openSmsComposer('sms');
             return;
           }
           if (channel === 'push') {
             if (!ensureContactTargetSelected()) return;
-            if (!requireSelectedReasonForMessaging()) return;
-            selectedOwnerChannel = 'push';
-            selectedMethod = 'push';
-            sendNotificationDirectly();
+            openSmsComposer('push');
             return;
           }
           selectedOwnerChannel = 'call';
@@ -6125,7 +6182,7 @@
       if (notifyPriorityVoiceBtn) {
         notifyPriorityVoiceBtn.addEventListener('click', function () {
           if (smsComposeLockActive) {
-            showToast('Finish or clear your SMS message first', 'error');
+            showToast('Finish or clear your message first', 'error');
             return;
           }
           triggerNotifyPriorityVoice();
@@ -6235,7 +6292,7 @@
         if (charCount) charCount.textContent = '0';
         syncCustomReasonFieldVisibility();
       }
-      // Switching reason closes an open SMS composer and restores other contact options.
+      // Switching reason closes an open composer and restores other contact options.
       if (smsComposerOpen) {
         closeSmsComposer({ clearMethod: true, preserveDraft: false });
       } else {
@@ -7471,7 +7528,7 @@
       var inlineSmsComposer =
         !!customSmsSendInFlight || !!lastSendFromCustomSmsComposer;
 
-      // SMS composer: keep the SMS section on-screen — no fullscreen overlay / UI swap.
+      // SMS/push composer: keep the section on-screen — no fullscreen overlay / UI swap.
       if (inlineSmsComposer) {
         if (dock) {
           if (on) {
@@ -7646,7 +7703,8 @@
               'push';
             hideNotifySendingOverlay();
             var fromCustomSmsComposer =
-              !!lastSendFromCustomSmsComposer && successMethod === 'sms';
+              !!lastSendFromCustomSmsComposer &&
+              (successMethod === 'sms' || successMethod === 'push');
             if (fromCustomSmsComposer) {
               handleInlineSmsSendSuccess(data);
               return;
@@ -7677,7 +7735,13 @@
             // Check if it's a daily limit error
             if (errorType === 'daily_limit_reached') {
               if (lastSendFromCustomSmsComposer && smsComposerOpen) {
-                setSmsComposerStatus('error', detailedMessage || 'Daily SMS limit reached.');
+                setSmsComposerStatus(
+                  'error',
+                  detailedMessage ||
+                    (composerChannel === 'push'
+                      ? 'Daily push limit reached.'
+                      : 'Daily SMS limit reached.')
+                );
               }
               showDailyLimitModal(detailedMessage, selectedMethod, data.current_count, data.limit);
               return;
@@ -7748,7 +7812,13 @@
 
             if (lastSendFromCustomSmsComposer && smsComposerOpen) {
               setSmsComposerStatus('error', detailedMessage || 'Could not send. Try again.');
-              showToast(detailedMessage || 'Could not send SMS. Try again.', 'error');
+              showToast(
+                detailedMessage ||
+                  (composerChannel === 'push'
+                    ? 'Could not send push. Try again.'
+                    : 'Could not send SMS. Try again.'),
+                'error'
+              );
               return;
             }
 
@@ -7778,7 +7848,13 @@
 
           if (lastSendFromCustomSmsComposer && smsComposerOpen) {
             setSmsComposerStatus('error', detailedMessage || 'Could not send. Try again.');
-            showToast(detailedMessage || 'Could not send SMS. Try again.', 'error');
+            showToast(
+              detailedMessage ||
+                (composerChannel === 'push'
+                  ? 'Could not send push. Try again.'
+                  : 'Could not send SMS. Try again.'),
+              'error'
+            );
             return;
           }
 
