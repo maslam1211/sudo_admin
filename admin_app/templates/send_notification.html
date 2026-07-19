@@ -1626,6 +1626,133 @@
       margin-top: 5px;
     }
 
+    .custom-sms-send-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      margin-top: 12px;
+      padding: 0.9rem 1rem;
+      border: 0;
+      border-radius: 12px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      background: linear-gradient(135deg, #f5a472, #e58147 50%, #d16a2f);
+      color: #151515;
+      box-shadow: 0 8px 22px rgba(229, 129, 71, 0.35);
+      transition: opacity 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    .custom-sms-send-btn:not(:disabled):active {
+      transform: scale(0.99);
+    }
+
+    .custom-sms-send-btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .custom-sms-send-btn.is-sending {
+      opacity: 0.85;
+      cursor: wait;
+      pointer-events: none;
+    }
+
+    .custom-sms-send-btn.is-sending .custom-sms-send-btn__label::before {
+      content: '';
+      display: inline-block;
+      width: 0.85rem;
+      height: 0.85rem;
+      margin-right: 0.45rem;
+      border: 2px solid rgba(21, 21, 21, 0.25);
+      border-top-color: #151515;
+      border-radius: 50%;
+      vertical-align: -0.1rem;
+      animation: customSmsSendSpin 0.7s linear infinite;
+    }
+
+    @keyframes customSmsSendSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .custom-sms-send-hint {
+      margin: 8px 0 0;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.45);
+      text-align: center;
+    }
+
+    .sms-composer-panel {
+      display: none;
+      margin: 0 0 16px;
+      padding: 14px 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(229, 129, 71, 0.4);
+      background: rgba(229, 129, 71, 0.08);
+      animation: fadeIn 0.35s ease-out;
+    }
+
+    .sms-composer-panel.is-open {
+      display: block;
+    }
+
+    .sms-composer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 10px;
+    }
+
+    .sms-composer-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-white);
+    }
+
+    .sms-composer-title i {
+      color: var(--accent-orange);
+    }
+
+    .sms-composer-cancel {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.85);
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .sms-composer-cancel:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    body.notify-app .notify-channel-box.sms-compose-locked,
+    body.notify-app .notify-priority-voice-btn.sms-compose-locked {
+      opacity: 0.42;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+
+    body.notify-app.sms-compose-active .notify-swipe-call-wrap {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
     /* Custom message disclaimer */
     .custom-message-notice {
       display: flex;
@@ -3821,7 +3948,7 @@
       </div>
     </div>
 
-    <!-- Custom Message Container -->
+    <!-- Custom reason text (for “Other reason” — not the SMS composer) -->
     <div class="custom-message-container" id="customMessageContainer">
       <div class="custom-message-notice" role="note" aria-label="Please read before typing a custom message">
         <i class="bi bi-shield-exclamation notice-icon" aria-hidden="true"></i>
@@ -3835,6 +3962,34 @@
       <textarea class="custom-message" id="customMessage" placeholder="Type a vehicle-related message for the owner..."
         maxlength="200"></textarea>
       <div class="char-count"><span id="charCount">0</span>/200 characters</div>
+    </div>
+
+    <!-- SMS composer: shown only after tapping SMS -->
+    <div class="sms-composer-panel" id="smsComposerPanel" hidden>
+      <div class="sms-composer-header">
+        <div class="sms-composer-title">
+          <i class="bi bi-chat-text-fill" aria-hidden="true"></i>
+          <span>Compose SMS</span>
+        </div>
+        <button type="button" class="sms-composer-cancel" id="smsComposerCancelBtn" aria-label="Cancel SMS">
+          Cancel
+        </button>
+      </div>
+      <div class="custom-message-notice" role="note">
+        <i class="bi bi-shield-exclamation notice-icon" aria-hidden="true"></i>
+        <div class="notice-body">
+          <span class="notice-title">Please use responsibly</span>
+          Keep this SMS vehicle-related. Do not send personal, promotional, or abusive content.
+        </div>
+      </div>
+      <textarea class="custom-message sms-composer-input" id="smsComposerInput"
+        placeholder="Type your SMS to the owner..." maxlength="200"></textarea>
+      <div class="char-count"><span id="smsComposerCharCount">0</span>/200 characters</div>
+      <button type="button" class="custom-sms-send-btn" id="customSmsSendBtn" disabled aria-disabled="true">
+        <i class="bi bi-send-fill" aria-hidden="true"></i>
+        <span class="custom-sms-send-btn__label">Send SMS</span>
+      </button>
+      <p class="custom-sms-send-hint" id="customSmsSendHint">Type a message to enable Send. Other contact options stay paused until you send or cancel.</p>
     </div>
     </div>
     </section>
@@ -4376,6 +4531,19 @@
     const customMessageContainer = document.getElementById('customMessageContainer');
     const customMessage = document.getElementById('customMessage');
     const charCount = document.getElementById('charCount');
+    const smsComposerPanel = document.getElementById('smsComposerPanel');
+    const smsComposerInput = document.getElementById('smsComposerInput');
+    const smsComposerCharCount = document.getElementById('smsComposerCharCount');
+    const smsComposerCancelBtn = document.getElementById('smsComposerCancelBtn');
+    const customSmsSendBtn = document.getElementById('customSmsSendBtn');
+    const customSmsSendHint = document.getElementById('customSmsSendHint');
+    /** True while the SMS composer panel is open (other contact actions paused). */
+    var smsComposeLockActive = false;
+    var smsComposerOpen = false;
+    /** True while an SMS send started from #customSmsSendBtn is in flight. */
+    var customSmsSendInFlight = false;
+    /** Latched for the current request so success handlers can clear the composer safely. */
+    var lastSendFromCustomSmsComposer = false;
 
     // Success Modal Elements
     const successModal = document.getElementById('successModal');
@@ -4783,6 +4951,181 @@
       return true;
     }
 
+    function isCustomSmsMessageValid() {
+      return !!(smsComposerInput && smsComposerInput.value.trim().length > 0);
+    }
+
+    function syncCustomSmsSendButton() {
+      if (!customSmsSendBtn) return;
+      var canSend =
+        !!smsComposerOpen &&
+        isCustomSmsMessageValid() &&
+        ownerSmsReady &&
+        !customSmsSendInFlight;
+      customSmsSendBtn.disabled = !canSend;
+      customSmsSendBtn.setAttribute('aria-disabled', canSend ? 'false' : 'true');
+      customSmsSendBtn.classList.toggle('is-sending', !!customSmsSendInFlight);
+      var label = customSmsSendBtn.querySelector('.custom-sms-send-btn__label');
+      if (label) {
+        label.textContent = customSmsSendInFlight ? 'Sending…' : 'Send SMS';
+      }
+      if (customSmsSendHint) {
+        if (customSmsSendInFlight) {
+          customSmsSendHint.textContent = 'Sending your SMS…';
+        } else if (isCustomSmsMessageValid()) {
+          customSmsSendHint.textContent =
+            'Ready to send. Cancel closes the composer without leaving this page.';
+        } else {
+          customSmsSendHint.textContent =
+            'Type a message to enable Send. Other contact options stay paused until you send or cancel.';
+        }
+      }
+    }
+
+    function setContactActionsLockedForSmsCompose(locked) {
+      smsComposeLockActive = !!locked;
+      document.body.classList.toggle('sms-compose-active', smsComposeLockActive);
+
+      var lockIds = [
+        'pickMethodSms',
+        'pickMethodPush',
+        'pickMethodCall',
+        'notifyPriorityVoiceBtn'
+      ];
+      lockIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (locked) {
+          if (!el.dataset.smsComposeWasDisabled) {
+            el.dataset.smsComposeWasDisabled = el.disabled ? '1' : '0';
+          }
+          el.dataset.smsComposeLocked = '1';
+          el.disabled = true;
+          el.classList.add('sms-compose-locked');
+        } else if (el.dataset.smsComposeLocked === '1') {
+          el.dataset.smsComposeLocked = '';
+          el.classList.remove('sms-compose-locked');
+          var wasDisabled = el.dataset.smsComposeWasDisabled === '1';
+          el.dataset.smsComposeWasDisabled = '';
+          if (wasDisabled || el.classList.contains('notify-voice-cool-blocked')) {
+            el.disabled = true;
+          } else {
+            el.disabled = false;
+          }
+        }
+      });
+
+      syncCustomSmsSendButton();
+    }
+
+    function openSmsComposer() {
+      if (!ownerSmsReady) {
+        showToast('SMS is unavailable for this vehicle', 'error');
+        return;
+      }
+      if (!requireSelectedReasonForMessaging()) return;
+
+      smsComposerOpen = true;
+      selectedOwnerChannel = 'sms';
+      selectedMethod = 'sms';
+
+      // Prefill from selected reason / custom reason text when opening.
+      var prefill = '';
+      if (selectedReason === 'custom' && customMessage) {
+        prefill = customMessage.value.trim();
+      } else if (selectedReason && selectedReason !== 'custom') {
+        prefill = String(selectedReason);
+      }
+      if (smsComposerInput) {
+        smsComposerInput.value = prefill.slice(0, 200);
+      }
+      if (smsComposerCharCount && smsComposerInput) {
+        smsComposerCharCount.textContent = String(smsComposerInput.value.length);
+      }
+
+      if (smsComposerPanel) {
+        smsComposerPanel.hidden = false;
+        smsComposerPanel.classList.add('is-open');
+      }
+      setContactActionsLockedForSmsCompose(true);
+      syncCustomSmsSendButton();
+
+      requestAnimationFrame(function () {
+        if (smsComposerInput) {
+          smsComposerInput.focus();
+          try {
+            var len = smsComposerInput.value.length;
+            smsComposerInput.setSelectionRange(len, len);
+          } catch (e) {}
+        }
+        if (smsComposerPanel) {
+          smsComposerPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        if (typeof window.updateNotifyDockPadding === 'function') {
+          window.updateNotifyDockPadding();
+        }
+      });
+    }
+
+    function closeSmsComposer(opts) {
+      opts = opts || {};
+      smsComposerOpen = false;
+      customSmsSendInFlight = false;
+      if (smsComposerInput) smsComposerInput.value = '';
+      if (smsComposerCharCount) smsComposerCharCount.textContent = '0';
+      if (smsComposerPanel) {
+        smsComposerPanel.classList.remove('is-open');
+        smsComposerPanel.hidden = true;
+      }
+      setContactActionsLockedForSmsCompose(false);
+      syncCustomSmsSendButton();
+      if (opts.clearMethod !== false) {
+        if (selectedOwnerChannel === 'sms') {
+          clearOwnerMethodSelection();
+        }
+      }
+      if (typeof window.updateNotifyDockPadding === 'function') {
+        window.updateNotifyDockPadding();
+      }
+    }
+
+    function onSmsComposerInput() {
+      if (smsComposerCharCount && smsComposerInput) {
+        smsComposerCharCount.textContent = String(smsComposerInput.value.length);
+      }
+      syncCustomSmsSendButton();
+    }
+
+    function resetCustomSmsComposer(opts) {
+      opts = opts || {};
+      closeSmsComposer({ clearMethod: true });
+      if (opts.toastSuccess) {
+        showToast('SMS sent successfully.', 'success');
+      }
+    }
+
+    function sendCustomSmsFromComposer() {
+      if (customSmsSendInFlight) return;
+      if (!smsComposerOpen) return;
+      if (!assertNotifySheetAllowsPost()) return;
+      if (!ensureContactTargetSelected()) return;
+      if (!isCustomSmsMessageValid()) {
+        showToast('Please type your message', 'error');
+        syncCustomSmsSendButton();
+        return;
+      }
+      if (!ownerSmsReady) {
+        showToast('SMS is unavailable for this vehicle', 'error');
+        return;
+      }
+      selectedOwnerChannel = 'sms';
+      selectedMethod = 'sms';
+      customSmsSendInFlight = true;
+      lastSendFromCustomSmsComposer = true;
+      syncCustomSmsSendButton();
+      sendNotificationDirectly();
+    }
+
     function formatNotifyVoiceCooldownMmSs(sec) {
       sec = Math.max(0, Math.floor(Number(sec) || 0));
       var m = Math.floor(sec / 60);
@@ -4989,13 +5332,13 @@
           phaseHint.textContent =
             'Voice call resumes in ' +
             voiceCdMmSs +
-            '. SMS and push still send when you tap their rows.';
+            '. SMS opens a composer; push still sends from its row.';
         } else if (!hasReason) {
           phaseHint.textContent =
-            'Choose what’s happening — then tap SMS or push to send instantly, or Voice to call.';
+            'Choose what’s happening — then tap SMS to compose, push to notify, or Voice to call.';
         } else {
           phaseHint.textContent =
-            'SMS and push send as soon as you tap their row. Voice: open that row, enter your number, then slide to call.';
+            'Tap SMS to compose a message, push to notify instantly, or Voice to enter your number and slide to call.';
         }
       }
 
@@ -5351,7 +5694,7 @@
         stepLine.textContent =
           hasEmergencyContact && contactMode === 'emergency'
             ? 'After verification above, enter your mobile number, then slide right to call emergency contact.'
-            : 'Tap SMS or push on the rows below to send right away · Voice opens your number when you choose it.';
+            : 'Tap SMS to compose a message · Push sends from its row · Voice opens your number when you choose it.';
       }
 
       syncEmergencyPlateWrapInCallModal();
@@ -5425,6 +5768,23 @@
           charCount.textContent = this.value.length;
         });
       }
+      if (smsComposerInput) {
+        smsComposerInput.addEventListener('input', onSmsComposerInput);
+      }
+      if (customSmsSendBtn) {
+        customSmsSendBtn.addEventListener('click', function () {
+          sendCustomSmsFromComposer();
+        });
+      }
+      if (smsComposerCancelBtn) {
+        smsComposerCancelBtn.addEventListener('click', function () {
+          if (customSmsSendInFlight) return;
+          closeSmsComposer({ clearMethod: true });
+        });
+      }
+      // Keep composer hidden until SMS is chosen.
+      closeSmsComposer({ clearMethod: true });
+      syncCustomSmsSendButton();
 
       if (hasEmergencyContact && contactModeModal) {
         if (!contactMode) {
@@ -5564,6 +5924,7 @@
           if (customMessageContainer) customMessageContainer.style.display = 'none';
           if (customMessage) customMessage.value = '';
           if (charCount) charCount.textContent = '0';
+          closeSmsComposer({ clearMethod: true });
           var rt = document.getElementById('notifySelectedReasonText');
           if (rt) rt.textContent = '—';
           closeNotifyDock();
@@ -5576,12 +5937,13 @@
         if (!el || el.disabled) return;
         el.addEventListener('click', function () {
           if (contactMode !== 'owner') return;
+          if (smsComposeLockActive) {
+            showToast('Finish or clear your SMS message first', 'error');
+            return;
+          }
           if (channel === 'sms') {
             if (!ensureContactTargetSelected()) return;
-            if (!requireSelectedReasonForMessaging()) return;
-            selectedOwnerChannel = 'sms';
-            selectedMethod = 'sms';
-            sendNotificationDirectly();
+            openSmsComposer();
             return;
           }
           if (channel === 'push') {
@@ -5610,6 +5972,10 @@
       var notifyPriorityVoiceBtn = document.getElementById('notifyPriorityVoiceBtn');
       if (notifyPriorityVoiceBtn) {
         notifyPriorityVoiceBtn.addEventListener('click', function () {
+          if (smsComposeLockActive) {
+            showToast('Finish or clear your SMS message first', 'error');
+            return;
+          }
           triggerNotifyPriorityVoice();
         });
       }
@@ -5714,6 +6080,14 @@
         if (customMessage) customMessage.focus();
       } else {
         if (customMessageContainer) customMessageContainer.style.display = 'none';
+        if (customMessage) customMessage.value = '';
+        if (charCount) charCount.textContent = '0';
+      }
+      // Switching reason closes an open SMS composer and restores other contact options.
+      if (smsComposerOpen) {
+        closeSmsComposer({ clearMethod: true });
+      } else {
+        syncCustomSmsSendButton();
       }
 
       var reasonText = document.getElementById('notifySelectedReasonText');
@@ -6054,6 +6428,7 @@
       if (customMessage) customMessage.value = '';
       if (customMessageContainer) customMessageContainer.style.display = 'none';
       if (charCount) charCount.textContent = '0';
+      closeSmsComposer({ clearMethod: true });
       selectedMethod = '';
       lastNotificationData = null;
       syncNotifyDockChannels();
@@ -6359,6 +6734,7 @@
       if (customMessage) customMessage.value = '';
       if (customMessageContainer) customMessageContainer.style.display = 'none';
       if (charCount) charCount.textContent = '0';
+      closeSmsComposer({ clearMethod: true });
       document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
         item.classList.remove('selected');
       });
@@ -6824,7 +7200,9 @@
     function sendNotificationDirectly() {
       // Prepare the message to send
       let messageToSend = selectedReason;
-      if (selectedReason === 'custom') {
+      if (lastSendFromCustomSmsComposer || smsComposerOpen) {
+        messageToSend = (smsComposerInput && smsComposerInput.value.trim()) || '';
+      } else if (selectedReason === 'custom') {
         messageToSend = customMessage.value.trim();
       }
 
@@ -7096,6 +7474,11 @@
               selectedMethod ||
               'push';
             hideNotifySendingOverlay();
+            var fromCustomSmsComposer =
+              !!lastSendFromCustomSmsComposer && successMethod === 'sms';
+            if (fromCustomSmsComposer) {
+              resetCustomSmsComposer({ toastSuccess: true });
+            }
             var redirectHome =
               data.redirect_home === true ||
               data.redirect_home === 1 ||
@@ -7221,10 +7604,21 @@
         })
         .finally(() => {
           setNotifyDockSending(false);
+          var wasCustomSms = lastSendFromCustomSmsComposer;
+          customSmsSendInFlight = false;
+          lastSendFromCustomSmsComposer = false;
           var btnDone = getActiveButton();
-          if (btnDone) {
-            btnDone.disabled = false;
+          if (btnDone && btnDone !== customSmsSendBtn) {
+            if (!btnDone.classList.contains('sms-compose-locked')) {
+              btnDone.disabled = false;
+            }
           }
+          // Failure: keep composer open with typed text; stay locked until send/cancel.
+          // Success already hid the composer via resetCustomSmsComposer.
+          if (wasCustomSms && smsComposerOpen) {
+            setContactActionsLockedForSmsCompose(true);
+          }
+          syncCustomSmsSendButton();
         });
     }
 
@@ -7306,6 +7700,9 @@
 
     // Get the control to disable during send (owner SMS/push = channel row, not hidden dock buttons).
     function getActiveButton() {
+      if (customSmsSendInFlight && customSmsSendBtn) {
+        return customSmsSendBtn;
+      }
       if (contactMode === 'owner') {
         if (selectedMethod === 'sms') {
           var pickS = document.getElementById('pickMethodSms');
