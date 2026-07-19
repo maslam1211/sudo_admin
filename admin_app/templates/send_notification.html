@@ -1697,11 +1697,67 @@
       border-radius: 14px;
       border: 1px solid rgba(229, 129, 71, 0.4);
       background: rgba(229, 129, 71, 0.08);
-      animation: fadeIn 0.35s ease-out;
     }
 
     .sms-composer-panel.is-open {
       display: block;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .sms-composer-panel.is-open.is-busy,
+    .sms-composer-panel.is-open.is-sent {
+      animation: none;
+    }
+
+    .sms-composer-status {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      margin: 10px 0 4px;
+      padding: 0.65rem 0.85rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .sms-composer-status.is-visible {
+      display: flex;
+    }
+
+    .sms-composer-status.is-sending {
+      background: rgba(229, 129, 71, 0.16);
+      border: 1px solid rgba(229, 129, 71, 0.4);
+      color: #f5a472;
+    }
+
+    .sms-composer-status.is-sending::before {
+      content: '';
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid rgba(245, 164, 114, 0.25);
+      border-top-color: #f5a472;
+      border-radius: 50%;
+      animation: customSmsSendSpin 0.7s linear infinite;
+    }
+
+    .sms-composer-status.is-sent {
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+
+    .sms-composer-status.is-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .sms-composer-panel.is-busy .sms-composer-input,
+    .sms-composer-panel.is-busy .sms-composer-cancel {
+      pointer-events: none;
+      opacity: 0.55;
     }
 
     .sms-composer-header {
@@ -3985,6 +4041,7 @@
       <textarea class="custom-message sms-composer-input" id="smsComposerInput"
         placeholder="Type your SMS to the owner..." maxlength="200"></textarea>
       <div class="char-count"><span id="smsComposerCharCount">0</span>/200 characters</div>
+      <div class="sms-composer-status" id="smsComposerStatus" hidden role="status" aria-live="polite"></div>
       <button type="button" class="custom-sms-send-btn" id="customSmsSendBtn" disabled aria-disabled="true">
         <i class="bi bi-send-fill" aria-hidden="true"></i>
         <span class="custom-sms-send-btn__label">Send SMS</span>
@@ -4535,6 +4592,7 @@
     const smsComposerInput = document.getElementById('smsComposerInput');
     const smsComposerCharCount = document.getElementById('smsComposerCharCount');
     const smsComposerCancelBtn = document.getElementById('smsComposerCancelBtn');
+    const smsComposerStatus = document.getElementById('smsComposerStatus');
     const customSmsSendBtn = document.getElementById('customSmsSendBtn');
     const customSmsSendHint = document.getElementById('customSmsSendHint');
     /** True while the SMS composer panel is open (other contact actions paused). */
@@ -4544,6 +4602,7 @@
     var customSmsSendInFlight = false;
     /** Latched for the current request so success handlers can clear the composer safely. */
     var lastSendFromCustomSmsComposer = false;
+    var smsComposerSentCloseTimer = null;
 
     // Success Modal Elements
     const successModal = document.getElementById('successModal');
@@ -4955,6 +5014,42 @@
       return !!(smsComposerInput && smsComposerInput.value.trim().length > 0);
     }
 
+    function clearSmsComposerSentCloseTimer() {
+      if (smsComposerSentCloseTimer) {
+        window.clearTimeout(smsComposerSentCloseTimer);
+        smsComposerSentCloseTimer = null;
+      }
+    }
+
+    function setSmsComposerStatus(state, message) {
+      if (!smsComposerStatus || !smsComposerPanel) return;
+      smsComposerPanel.classList.remove('is-busy', 'is-sent');
+      smsComposerStatus.classList.remove('is-visible', 'is-sending', 'is-sent', 'is-error');
+
+      if (!state || state === 'idle') {
+        smsComposerStatus.hidden = true;
+        smsComposerStatus.textContent = '';
+        return;
+      }
+
+      smsComposerStatus.hidden = false;
+      smsComposerStatus.classList.add('is-visible');
+      if (state === 'sending') {
+        smsComposerPanel.classList.add('is-busy');
+        smsComposerStatus.classList.add('is-sending');
+        smsComposerStatus.textContent = message || 'Sending…';
+      } else if (state === 'sent') {
+        smsComposerPanel.classList.add('is-sent');
+        smsComposerStatus.classList.add('is-sent');
+        smsComposerStatus.innerHTML =
+          '<i class="bi bi-check-circle-fill" aria-hidden="true"></i> ' +
+          (message || 'Sent');
+      } else if (state === 'error') {
+        smsComposerStatus.classList.add('is-error');
+        smsComposerStatus.textContent = message || 'Could not send. Try again.';
+      }
+    }
+
     function syncCustomSmsSendButton() {
       if (!customSmsSendBtn) return;
       var canSend =
@@ -4969,9 +5064,15 @@
       if (label) {
         label.textContent = customSmsSendInFlight ? 'Sending…' : 'Send SMS';
       }
+      if (smsComposerCancelBtn) {
+        smsComposerCancelBtn.disabled = !!customSmsSendInFlight;
+      }
+      if (smsComposerInput) {
+        smsComposerInput.readOnly = !!customSmsSendInFlight;
+      }
       if (customSmsSendHint) {
         if (customSmsSendInFlight) {
-          customSmsSendHint.textContent = 'Sending your SMS…';
+          customSmsSendHint.textContent = 'Please wait — staying on SMS while your message sends.';
         } else if (isCustomSmsMessageValid()) {
           customSmsSendHint.textContent =
             'Ready to send. Cancel closes the composer without leaving this page.';
@@ -5025,6 +5126,7 @@
       }
       if (!requireSelectedReasonForMessaging()) return;
 
+      clearSmsComposerSentCloseTimer();
       smsComposerOpen = true;
       selectedOwnerChannel = 'sms';
       selectedMethod = 'sms';
@@ -5047,19 +5149,17 @@
         smsComposerPanel.hidden = false;
         smsComposerPanel.classList.add('is-open');
       }
+      setSmsComposerStatus('idle');
       setContactActionsLockedForSmsCompose(true);
       syncCustomSmsSendButton();
 
       requestAnimationFrame(function () {
         if (smsComposerInput) {
-          smsComposerInput.focus();
+          smsComposerInput.focus({ preventScroll: true });
           try {
             var len = smsComposerInput.value.length;
             smsComposerInput.setSelectionRange(len, len);
           } catch (e) {}
-        }
-        if (smsComposerPanel) {
-          smsComposerPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         if (typeof window.updateNotifyDockPadding === 'function') {
           window.updateNotifyDockPadding();
@@ -5069,14 +5169,16 @@
 
     function closeSmsComposer(opts) {
       opts = opts || {};
+      clearSmsComposerSentCloseTimer();
       smsComposerOpen = false;
       customSmsSendInFlight = false;
       if (smsComposerInput) smsComposerInput.value = '';
       if (smsComposerCharCount) smsComposerCharCount.textContent = '0';
       if (smsComposerPanel) {
-        smsComposerPanel.classList.remove('is-open');
+        smsComposerPanel.classList.remove('is-open', 'is-busy', 'is-sent');
         smsComposerPanel.hidden = true;
       }
+      setSmsComposerStatus('idle');
       setContactActionsLockedForSmsCompose(false);
       syncCustomSmsSendButton();
       if (opts.clearMethod !== false) {
@@ -5093,7 +5195,36 @@
       if (smsComposerCharCount && smsComposerInput) {
         smsComposerCharCount.textContent = String(smsComposerInput.value.length);
       }
+      if (!customSmsSendInFlight) {
+        setSmsComposerStatus('idle');
+      }
       syncCustomSmsSendButton();
+    }
+
+    function handleInlineSmsSendSuccess(data) {
+      // Clear immediately and keep the SMS section visible with an inline Sent state.
+      if (smsComposerInput) smsComposerInput.value = '';
+      if (smsComposerCharCount) smsComposerCharCount.textContent = '0';
+      customSmsSendInFlight = false;
+      setSmsComposerStatus('sent', 'Sent');
+      syncCustomSmsSendButton();
+
+      var redirectHome =
+        data &&
+        (data.redirect_home === true ||
+          data.redirect_home === 1 ||
+          data.redirect_home === '1' ||
+          Number(data.messaging_attempt) >= 3);
+
+      clearSmsComposerSentCloseTimer();
+      smsComposerSentCloseTimer = window.setTimeout(function () {
+        smsComposerSentCloseTimer = null;
+        closeSmsComposer({ clearMethod: true });
+        if (redirectHome) {
+          // Defer home flow until after Sent is shown in-place (no modal swap mid-send).
+          showSuccessModal('sms');
+        }
+      }, redirectHome ? 1100 : 1400);
     }
 
     function resetCustomSmsComposer(opts) {
@@ -5122,6 +5253,7 @@
       selectedMethod = 'sms';
       customSmsSendInFlight = true;
       lastSendFromCustomSmsComposer = true;
+      setSmsComposerStatus('sending', 'Sending…');
       syncCustomSmsSendButton();
       sendNotificationDirectly();
     }
@@ -7316,6 +7448,25 @@
     /** Fullscreen dim overlay + centered wheel during outgoing notify/call-register requests; dock classes gate duplicate taps. */
     function setNotifyDockSending(on) {
       var dock = document.getElementById('notifyActionDock');
+      var inlineSmsComposer =
+        !!customSmsSendInFlight || !!lastSendFromCustomSmsComposer;
+
+      // SMS composer: keep the SMS section on-screen — no fullscreen overlay / UI swap.
+      if (inlineSmsComposer) {
+        if (dock) {
+          if (on) {
+            dock.classList.add('notify-dock-sending');
+            dock.classList.remove('notify-dock-sending-instant-msg');
+          } else {
+            dock.classList.remove('notify-dock-sending', 'notify-dock-sending-instant-msg');
+          }
+        }
+        if (!on) {
+          hideNotifySendingOverlay();
+        }
+        return;
+      }
+
       var ownerMsg =
         contactMode === 'owner' &&
         (selectedMethod === 'sms' || selectedMethod === 'push');
@@ -7477,7 +7628,8 @@
             var fromCustomSmsComposer =
               !!lastSendFromCustomSmsComposer && successMethod === 'sms';
             if (fromCustomSmsComposer) {
-              resetCustomSmsComposer({ toastSuccess: true });
+              handleInlineSmsSendSuccess(data);
+              return;
             }
             var redirectHome =
               data.redirect_home === true ||
@@ -7504,6 +7656,9 @@
 
             // Check if it's a daily limit error
             if (errorType === 'daily_limit_reached') {
+              if (lastSendFromCustomSmsComposer && smsComposerOpen) {
+                setSmsComposerStatus('error', detailedMessage || 'Daily SMS limit reached.');
+              }
               showDailyLimitModal(detailedMessage, selectedMethod, data.current_count, data.limit);
               return;
             }
@@ -7571,6 +7726,12 @@
                 suggestion = 'Please try a different notification method or try again later.';
             }
 
+            if (lastSendFromCustomSmsComposer && smsComposerOpen) {
+              setSmsComposerStatus('error', detailedMessage || 'Could not send. Try again.');
+              showToast(detailedMessage || 'Could not send SMS. Try again.', 'error');
+              return;
+            }
+
             showErrorModal(
               'Failed to send notification',
               detailedMessage,
@@ -7595,6 +7756,12 @@
             suggestion = 'Server is temporarily unavailable. Please try again in a few minutes.';
           }
 
+          if (lastSendFromCustomSmsComposer && smsComposerOpen) {
+            setSmsComposerStatus('error', detailedMessage || 'Could not send. Try again.');
+            showToast(detailedMessage || 'Could not send SMS. Try again.', 'error');
+            return;
+          }
+
           showErrorModal(
             'Failed to send notification',
             detailedMessage,
@@ -7614,7 +7781,7 @@
             }
           }
           // Failure: keep composer open with typed text; stay locked until send/cancel.
-          // Success already hid the composer via resetCustomSmsComposer.
+          // Success keeps composer open with Sent, then closes via timer.
           if (wasCustomSms && smsComposerOpen) {
             setContactActionsLockedForSmsCompose(true);
           }
