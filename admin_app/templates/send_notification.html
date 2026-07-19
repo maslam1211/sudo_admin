@@ -4031,13 +4031,6 @@
           Cancel
         </button>
       </div>
-      <div class="custom-message-notice" role="note">
-        <i class="bi bi-shield-exclamation notice-icon" aria-hidden="true"></i>
-        <div class="notice-body">
-          <span class="notice-title">Please use responsibly</span>
-          Keep this SMS vehicle-related. Do not send personal, promotional, or abusive content.
-        </div>
-      </div>
       <textarea class="custom-message sms-composer-input" id="smsComposerInput"
         placeholder="Type your SMS to the owner..." maxlength="200"></textarea>
       <div class="char-count"><span id="smsComposerCharCount">0</span>/200 characters</div>
@@ -5119,6 +5112,16 @@
       syncCustomSmsSendButton();
     }
 
+    function syncCustomReasonFieldVisibility() {
+      if (!customMessageContainer) return;
+      // Single-field rule: never show Other-reason textarea while SMS composer is open.
+      if (selectedReason === 'custom' && !smsComposerOpen) {
+        customMessageContainer.style.display = 'block';
+      } else {
+        customMessageContainer.style.display = 'none';
+      }
+    }
+
     function openSmsComposer() {
       if (!ownerSmsReady) {
         showToast('SMS is unavailable for this vehicle', 'error');
@@ -5145,6 +5148,9 @@
         smsComposerCharCount.textContent = String(smsComposerInput.value.length);
       }
 
+      // Hide the Other-reason field so only the SMS composer input is visible.
+      syncCustomReasonFieldVisibility();
+
       if (smsComposerPanel) {
         smsComposerPanel.hidden = false;
         smsComposerPanel.classList.add('is-open');
@@ -5170,8 +5176,16 @@
     function closeSmsComposer(opts) {
       opts = opts || {};
       clearSmsComposerSentCloseTimer();
+      var draft = smsComposerInput ? smsComposerInput.value : '';
       smsComposerOpen = false;
       customSmsSendInFlight = false;
+
+      // On cancel, keep the draft in the Other-reason field (if that reason is selected).
+      if (opts.preserveDraft && selectedReason === 'custom' && customMessage) {
+        customMessage.value = draft.slice(0, 200);
+        if (charCount) charCount.textContent = String(customMessage.value.length);
+      }
+
       if (smsComposerInput) smsComposerInput.value = '';
       if (smsComposerCharCount) smsComposerCharCount.textContent = '0';
       if (smsComposerPanel) {
@@ -5180,6 +5194,7 @@
       }
       setSmsComposerStatus('idle');
       setContactActionsLockedForSmsCompose(false);
+      syncCustomReasonFieldVisibility();
       syncCustomSmsSendButton();
       if (opts.clearMethod !== false) {
         if (selectedOwnerChannel === 'sms') {
@@ -5205,6 +5220,11 @@
       // Clear immediately and keep the SMS section visible with an inline Sent state.
       if (smsComposerInput) smsComposerInput.value = '';
       if (smsComposerCharCount) smsComposerCharCount.textContent = '0';
+      // Keep Other-reason draft in sync so it doesn't reappear after composer closes.
+      if (selectedReason === 'custom' && customMessage) {
+        customMessage.value = '';
+        if (charCount) charCount.textContent = '0';
+      }
       customSmsSendInFlight = false;
       setSmsComposerStatus('sent', 'Sent');
       syncCustomSmsSendButton();
@@ -5219,7 +5239,7 @@
       clearSmsComposerSentCloseTimer();
       smsComposerSentCloseTimer = window.setTimeout(function () {
         smsComposerSentCloseTimer = null;
-        closeSmsComposer({ clearMethod: true });
+        closeSmsComposer({ clearMethod: true, preserveDraft: false });
         if (redirectHome) {
           // Defer home flow until after Sent is shown in-place (no modal swap mid-send).
           showSuccessModal('sms');
@@ -5911,7 +5931,7 @@
       if (smsComposerCancelBtn) {
         smsComposerCancelBtn.addEventListener('click', function () {
           if (customSmsSendInFlight) return;
-          closeSmsComposer({ clearMethod: true });
+          closeSmsComposer({ clearMethod: true, preserveDraft: true });
         });
       }
       // Keep composer hidden until SMS is chosen.
@@ -6208,16 +6228,16 @@
       selectedReason = reason;
 
       if (reason === 'custom') {
-        if (customMessageContainer) customMessageContainer.style.display = 'block';
-        if (customMessage) customMessage.focus();
+        syncCustomReasonFieldVisibility();
+        if (!smsComposerOpen && customMessage) customMessage.focus();
       } else {
-        if (customMessageContainer) customMessageContainer.style.display = 'none';
         if (customMessage) customMessage.value = '';
         if (charCount) charCount.textContent = '0';
+        syncCustomReasonFieldVisibility();
       }
       // Switching reason closes an open SMS composer and restores other contact options.
       if (smsComposerOpen) {
-        closeSmsComposer({ clearMethod: true });
+        closeSmsComposer({ clearMethod: true, preserveDraft: false });
       } else {
         syncCustomSmsSendButton();
       }
