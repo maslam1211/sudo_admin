@@ -43,6 +43,7 @@ from .owner_live_status import (
     live_status_service_lines,
     parse_owner_live_status,
 )
+from .vehicle_lost_mode import parse_vehicle_lost_mode
 from .family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
@@ -1481,6 +1482,90 @@ def manage_users(request):
         'messages': get_message_list(request)
     })
 
+
+def manage_live_status(request):
+    """Admin monitor: online counts + liveStatus distribution (sampled)."""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
+
+    ADMIN_EMAIL = 'sudotagonline@gmail.com'
+    sample_limit = 500
+    distribution = {
+        'available': 0,
+        'busy': 0,
+        'sleeping': 0,
+        'driving': 0,
+        'out_of_station': 0,
+        'do_not_disturb': 0,
+        'custom': 0,
+    }
+    online = 0
+    offline = 0
+    rows = []
+
+    try:
+        users_ref = db.collection('users')
+        try:
+            docs = list(
+                users_ref.order_by(
+                    'lastSeen', direction=firestore.Query.DESCENDING
+                ).limit(sample_limit).stream()
+            )
+        except Exception:
+            docs = list(users_ref.limit(sample_limit).stream())
+
+        for doc in docs:
+            user_data = doc.to_dict() or {}
+            if user_data.get('emailAddress') == ADMIN_EMAIL:
+                continue
+            live = parse_owner_live_status(user_data)
+            st = live['status']
+            if st in distribution:
+                distribution[st] += 1
+            else:
+                distribution['available'] += 1
+            if live['is_online']:
+                online += 1
+            else:
+                offline += 1
+            rows.append(
+                {
+                    'user_id': doc.id,
+                    'name': user_data.get('fullName')
+                    or user_data.get('name')
+                    or '—',
+                    'email': user_data.get('emailAddress') or '—',
+                    'label': live['label'],
+                    'emoji': live['emoji'],
+                    'color': live['color'],
+                    'status': st,
+                    'is_online': live['is_online'],
+                    'updated_at': live.get('updated_at') or '—',
+                    'last_seen': live.get('last_seen') or '—',
+                }
+            )
+    except Exception as e:
+        logger.error(f'manage_live_status: {e}')
+        messages.error(request, f'Error loading live status data: {e}')
+
+    return render(
+        request,
+        'manage_live_status.html',
+        {
+            'rows': rows,
+            'distribution': distribution,
+            'totals': {
+                'sampled': len(rows),
+                'online': online,
+                'offline': offline,
+            },
+            'sample_limit': sample_limit,
+            'messages': get_message_list(request),
+        },
+    )
+
+
 def handle_bulk_delete(request, users_ref):
     selected_user_ids = request.POST.getlist('selected_users')
     
@@ -2752,7 +2837,9 @@ def send_notification(request, qr_id):
         has_emergency_digits = bool(emergency_digits_for_call)
         has_emergency_contact = has_emergency_digits and emerg_path_on
         owner_live = parse_owner_live_status(user_data)
+        vehicle_lost_mode = parse_vehicle_lost_mode(vehicle_data)
         # Capability ignores Live Status (prefs + hardware). Ready = capable AND live allows.
+        # Lost Mode only changes recovery copy / CTA emphasis — not channel gates.
         call_register_capable = (
             bool(effective_digits_for_call)
             and voice_on
@@ -2855,6 +2942,7 @@ def send_notification(request, qr_id):
             'owner_contact_display_name': owner_contact_display_name,
             'owner_live_status': owner_live,
             'owner_live_status_json': live_status_json_payload(owner_live),
+            'vehicle_lost_mode': vehicle_lost_mode,
         }
         
         return render(request, 'send_notification.html', context)
@@ -2862,7 +2950,48 @@ def send_notification(request, qr_id):
     except Exception as e:
         logger.error(f"General error in send_notification: {str(e)}")
         return render(request, 'error.html', {'error': str(e)})
-    
+
+
+@ensure_csrf_cookie
+def send_notification_live_status(request, qr_id):
+    """Lightweight Live Status poll for the Contact Owner page (Admin SDK)."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_doc = qr_ref.get()
+        if not qr_doc.exists or not (qr_doc.to_dict() or {}).get('isAssigned', False):
+            return JsonResponse({'status': 'error', 'message': 'QR not assigned'}, status=404)
+        qr_data = qr_doc.to_dict() or {}
+        vehicle_id = qr_data.get('vehicleID')
+        if not vehicle_id:
+            return JsonResponse({'status': 'error', 'message': 'Vehicle not linked'}, status=404)
+        vehicle_ref = db.collection('vehicles').document(vehicle_id)
+        vehicle_doc = vehicle_ref.get()
+        if not vehicle_doc.exists:
+            return JsonResponse({'status': 'error', 'message': 'Vehicle not found'}, status=404)
+        vehicle_data = merge_vehicle_scanner_subdocuments(
+            db, vehicle_ref, vehicle_doc.to_dict() or {}
+        )
+        owner_id = vehicle_data.get('ownerId')
+        if not owner_id:
+            return JsonResponse({'status': 'error', 'message': 'Owner not found'}, status=404)
+        user_ref = db.collection('users').document(owner_id)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            return JsonResponse({'status': 'error', 'message': 'Owner not found'}, status=404)
+        user_data = merge_user_scanner_subdocuments(
+            db, user_ref, user_doc.to_dict() or {}
+        )
+        live = parse_owner_live_status(user_data)
+        payload = live_status_json_payload(live)
+        payload['status'] = 'ok'
+        return JsonResponse(payload)
+    except Exception as e:
+        logger.error(f'send_notification_live_status: {e}')
+        return JsonResponse({'status': 'error', 'message': 'Lookup failed'}, status=500)
+
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -3132,12 +3261,17 @@ def _notify_vehicle_context(vehicle_dict):
     yom = None
     if isinstance(vehicle_dict, dict):
         yom = vehicle_dict.get('yearOfManufacturing')
+    lost = parse_vehicle_lost_mode(
+        vehicle_dict if isinstance(vehicle_dict, dict) else {}
+    )
     return {
         'make': make,
         'model': model,
         'registrationNumber': reg,
         'yearOfManufacturing': yom,
         'display_name': line,
+        'isLostMode': lost['is_lost_mode'],
+        'lostModeEnabledAt': lost['lost_mode_enabled_at'],
     }
 
 

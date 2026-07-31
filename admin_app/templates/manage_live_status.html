@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Status Monitor - Admin Panel{% endblock %}
+{% block page_title %}Live Status Monitor{% endblock %}
+
+{% block content %}
+<style>
+  .ls-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .ls-stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .ls-stat-card .ls-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .ls-stat-card .ls-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-top: 0.25rem;
+  }
+  .ls-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .ls-badge.green { background: #dcfce7; color: #166534; }
+  .ls-badge.red { background: #fee2e2; color: #991b1b; }
+  .ls-badge.orange { background: #ffedd5; color: #9a3412; }
+  .ls-badge.blue { background: #e0f2fe; color: #075985; }
+  .ls-badge.grey { background: #f1f5f9; color: #475569; }
+  .ls-badge.purple { background: #ede9fe; color: #5b21b6; }
+  .ls-online { color: #16a34a; font-weight: 600; font-size: 0.8rem; }
+  .ls-offline { color: #94a3b8; font-size: 0.8rem; }
+  .ls-hint { font-size: 0.85rem; color: #64748b; margin-bottom: 1rem; }
+</style>
+
+<p class="ls-hint">
+  Account-level Live Status from the mobile app (<code>users.liveStatus</code>).
+  Sample limited to the {{ sample_limit }} most recently active users for performance.
+</p>
+
+<div class="ls-stat-grid">
+  <div class="ls-stat-card">
+    <div class="ls-label">Sampled users</div>
+    <div class="ls-value">{{ totals.sampled }}</div>
+  </div>
+  <div class="ls-stat-card">
+    <div class="ls-label">Online now</div>
+    <div class="ls-value">{{ totals.online }}</div>
+  </div>
+  <div class="ls-stat-card">
+    <div class="ls-label">Offline</div>
+    <div class="ls-value">{{ totals.offline }}</div>
+  </div>
+  {% for st, count in distribution.items %}
+  <div class="ls-stat-card">
+    <div class="ls-label">{{ st|cut:"_"|title }}</div>
+    <div class="ls-value">{{ count }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Live status</th>
+            <th>Presence</th>
+            <th>Status updated</th>
+            <th>Last seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <strong>{{ row.name }}</strong>
+              <div class="text-muted small" style="font-family: monospace;">{{ row.user_id }}</div>
+            </td>
+            <td>{{ row.email }}</td>
+            <td>
+              <span class="ls-badge {{ row.color }}">
+                <span aria-hidden="true">{{ row.emoji }}</span>
+                {{ row.label }}
+              </span>
+            </td>
+            <td>
+              {% if row.is_online %}
+              <span class="ls-online">Online</span>
+              {% else %}
+              <span class="ls-offline">Offline</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ row.updated_at|default:"—" }}</td>
+            <td class="small text-muted">{{ row.last_seen|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No users found in this sample.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

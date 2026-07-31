@@ -208,6 +208,111 @@
       color: rgba(255, 255, 255, 0.72);
     }
 
+    /* Lost Mode — missing-vehicle recovery (matches Flutter LostModeBadge #FF3B30) */
+    body.notify-app {
+      --notify-lost-red: #ff3b30;
+    }
+
+    body.notify-app .notify-lost-mode-banner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin: 0 0 1rem;
+      padding: 0.95rem 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 59, 48, 0.55);
+      background: linear-gradient(
+        135deg,
+        rgba(255, 59, 48, 0.2) 0%,
+        rgba(28, 28, 30, 0.92) 70%
+      );
+      box-shadow: 0 8px 22px rgba(255, 59, 48, 0.12);
+    }
+
+    body.notify-app .notify-lost-mode-banner-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    body.notify-app .notify-lost-mode-banner-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 59, 48, 0.2);
+      color: var(--notify-lost-red);
+      font-size: 1.15rem;
+    }
+
+    body.notify-app .notify-lost-mode-banner-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      line-height: 1.3;
+      color: var(--notify-lost-red);
+    }
+
+    body.notify-app .notify-lost-mode-banner-body {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    body.notify-app .notify-lost-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.55rem;
+      padding: 0.28rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--notify-lost-red);
+      background: rgba(255, 59, 48, 0.18);
+      border: 1px solid rgba(255, 59, 48, 0.55);
+    }
+
+    body.notify-app .notify-lost-mode-badge i {
+      font-size: 0.78rem;
+    }
+
+    body.notify-app .vehicle-info.notify-vehicle-card.notify-vehicle-card--lost {
+      border-color: rgba(255, 59, 48, 0.55);
+      border-left: 4px solid var(--notify-lost-red);
+      box-shadow: 0 10px 28px rgba(255, 59, 48, 0.18);
+      background: linear-gradient(
+        160deg,
+        rgba(255, 59, 48, 0.14) 0%,
+        var(--sudo-gray) 55%
+      );
+    }
+
+    body.notify-app .reason-item.reason-item--lost-tip {
+      border-color: rgba(255, 59, 48, 0.45);
+      background: rgba(255, 59, 48, 0.12);
+    }
+
+    body.notify-app .reason-item.reason-item--lost-tip.selected {
+      border-color: rgba(255, 59, 48, 0.75);
+      background: rgba(255, 59, 48, 0.2);
+      box-shadow: 0 0 0 1px rgba(255, 59, 48, 0.35);
+    }
+
+    body.notify-app .reason-item.reason-item--lost-tip > i.bi {
+      color: var(--notify-lost-red) !important;
+    }
+
+    body.notify-app.lost-mode-active .notify-dock-mode {
+      color: #fecaca;
+    }
+
     body.notify-app.sudo-mobile-flow header.header .header-title {
       display: inline-block;
       margin: 10px 0 0;
@@ -3918,7 +4023,7 @@
   </style>
 </head>
 
-<body class="notify-app sudo-mobile-flow" data-notify-terminal="{% if scanner_notify_show_terminal_sheet %}1{% else %}0{% endif %}">
+<body class="notify-app sudo-mobile-flow{% if vehicle_lost_mode.is_lost_mode %} lost-mode-active{% endif %}" data-notify-terminal="{% if scanner_notify_show_terminal_sheet %}1{% else %}0{% endif %}"{% if vehicle_lost_mode.is_lost_mode %} data-lost-mode="1"{% endif %}>
   {% csrf_token %}
   <!-- Header -->
   <header class="header sudo-app-header">
@@ -3978,8 +4083,8 @@
           <button type="button" class="notify-mode-direct-btn notify-mode-direct-btn--owner" id="chooseOwnerContactBtn">
             <span class="notify-mode-direct-icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></span>
             <span class="notify-mode-direct-text">
-              <span class="notify-mode-direct-title">Contact owner</span>
-              <span class="notify-mode-direct-desc">Call, SMS, or push after you choose a reason</span>
+              <span class="notify-mode-direct-title">{% if vehicle_lost_mode.is_lost_mode %}Tip owner{% else %}Contact owner{% endif %}</span>
+              <span class="notify-mode-direct-desc">{% if vehicle_lost_mode.is_lost_mode %}I spotted this vehicle — call, SMS, or push after you choose a reason{% else %}Call, SMS, or push after you choose a reason{% endif %}</span>
             </span>
             <span class="notify-mode-direct-chevron" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
           </button>
@@ -4058,8 +4163,17 @@
     {% endif %}
 
     <div id="ownerNotifySection">
+    {% if vehicle_lost_mode.is_lost_mode %}
+    <aside class="notify-lost-mode-banner" id="notifyLostModeBanner" role="alert" aria-live="polite">
+      <div class="notify-lost-mode-banner-row">
+        <span class="notify-lost-mode-banner-icon" aria-hidden="true"><i class="bi bi-exclamation-octagon-fill"></i></span>
+        <p class="notify-lost-mode-banner-title">{{ vehicle_lost_mode.banner_title }}</p>
+      </div>
+      <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
+    </aside>
+    {% endif %}
     {% if scanner_has_any_channel %}
-    <section class="vehicle-info notify-vehicle-card" aria-label="Vehicle details">
+    <section class="vehicle-info notify-vehicle-card{% if vehicle_lost_mode.is_lost_mode %} notify-vehicle-card--lost{% endif %}" aria-label="Vehicle details">
       <h2 class="notify-vehicle-name">{% if vehicle_data.display_name %}{{ vehicle_data.display_name }}{% else %}{{ vehicle_data.make }} {{ vehicle_data.model }}{% endif %}</h2>
       {% if vehicle_data.yearOfManufacturing %}
       <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
@@ -4083,6 +4197,12 @@
         </div>
         <p class="notify-live-message" id="notifyLiveMessage">{{ owner_live_status.message }}</p>
       </div>
+      {% endif %}
+      {% if vehicle_lost_mode.is_lost_mode %}
+      <span class="notify-lost-mode-badge" id="notifyLostModeBadge">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        {{ vehicle_lost_mode.badge_label }}
+      </span>
       {% endif %}
     </section>
 
@@ -4131,11 +4251,17 @@
     </div>
     {% endif %}
     <div class="question-section">
-      <p class="question-title" id="notifyReasonsHeading">What’s happening with this vehicle?</p>
-      <p class="notify-question-lead">Choose one reason.</p>
+      <p class="question-title" id="notifyReasonsHeading">{% if vehicle_lost_mode.is_lost_mode %}{{ vehicle_lost_mode.reasons_heading }}{% else %}What’s happening with this vehicle?{% endif %}</p>
+      <p class="notify-question-lead">{% if vehicle_lost_mode.is_lost_mode %}{{ vehicle_lost_mode.reasons_lead }}{% else %}Choose one reason.{% endif %}</p>
     </div>
 
     <div class="reasons-list">
+      {% if vehicle_lost_mode.is_lost_mode %}
+      <div class="reason-item reason-item--lost-tip selected" id="lostModeTipReasonItem" onclick="selectReason(this, '{{ vehicle_lost_mode.tip_reason|escapejs }}')">
+        <i class="bi bi-geo-alt-fill" style="color: var(--notify-lost-red);"></i>
+        <span class="reason-text">{{ vehicle_lost_mode.tip_reason }}</span>
+      </div>
+      {% endif %}
       <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on')">
         <i class="bi bi-lightbulb-fill" style="color: var(--accent-orange);"></i>
         <span class="reason-text">The lights of this car is on</span>
@@ -4239,20 +4365,20 @@
       <div class="notify-dock-panel">
         <div class="notify-sheet-handle notify-dock-drag-hint-owner" aria-hidden="true"></div>
         <p class="notify-dock-phase" id="notifyDockPhaseHint"></p>
-        <p class="notify-dock-mode" id="notifyDockModeLabel">Contact vehicle owner</p>
+        <p class="notify-dock-mode" id="notifyDockModeLabel">{% if vehicle_lost_mode.is_lost_mode %}{{ vehicle_lost_mode.tip_cta_title }}{% else %}Contact vehicle owner{% endif %}</p>
         <div class="notify-dock-summary" id="notifyDockSummary" hidden>
           <span class="notify-dock-summary-kicker">Selected reason</span>
-          <p class="notify-dock-summary-text" id="notifySelectedReasonText">—</p>
+          <p class="notify-dock-summary-text" id="notifySelectedReasonText">{% if vehicle_lost_mode.is_lost_mode %}{{ vehicle_lost_mode.tip_reason }}{% else %}—{% endif %}</p>
         </div>
 
         <div id="notifyOwnerChannelPick" class="notify-owner-channel-cards" role="group" aria-labelledby="notifyOwnerChannelPickLabel">
-          <p class="notify-owner-channel-pick-label" id="notifyOwnerChannelPickLabel">How do you want to reach them?</p>
+          <p class="notify-owner-channel-pick-label" id="notifyOwnerChannelPickLabel">{% if vehicle_lost_mode.is_lost_mode %}{{ vehicle_lost_mode.tip_cta_sub }}{% else %}How do you want to reach them?{% endif %}</p>
           <div class="notify-channel-cards-list">
-            {% if call_register_ready %}
-            <button type="button" class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" id="pickMethodCall" data-channel="call">
+            {% if call_register_capable %}
+            <button type="button" class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" id="pickMethodCall" data-channel="call"{% if not call_register_ready %} disabled aria-disabled="true"{% endif %}>
               <i class="bi bi-telephone-fill" aria-hidden="true"></i>
               <span class="notify-channel-box-text">
-                <span class="notify-channel-box-title">Voice call</span>
+                <span class="notify-channel-box-title">Voice call{% if not call_register_ready %} <span class="notify-channel-unavailable" id="pickMethodCallPaused">(paused)</span>{% endif %}</span>
                 <span class="notify-channel-box-sub" id="notifyPickMethodCallSub">{% if has_active_family_assignment %}Call {{ owner_contact_display_name|default:"Family member" }} via SudoTag gateway{% else %}Call via your phone (fastest){% endif %}</span>
               </span>
             </button>
@@ -4264,11 +4390,11 @@
               </span>
             </button>
             {% endif %}
-            {% if owner_sms_ready %}
-            <button type="button" class="notify-channel-box notify-channel-box--sms notify-channel-pick-btn" id="pickMethodSms" data-channel="sms">
+            {% if owner_sms_capable %}
+            <button type="button" class="notify-channel-box notify-channel-box--sms notify-channel-pick-btn" id="pickMethodSms" data-channel="sms"{% if not owner_sms_ready %} disabled aria-disabled="true"{% endif %}>
               <i class="bi bi-chat-text-fill" aria-hidden="true"></i>
               <span class="notify-channel-box-text">
-                <span class="notify-channel-box-title">SMS</span>
+                <span class="notify-channel-box-title">SMS{% if not owner_sms_ready %} <span class="notify-channel-unavailable" id="pickMethodSmsPaused">(paused)</span>{% endif %}</span>
                 <span class="notify-channel-box-sub">Text message to the owner</span>
               </span>
             </button>
@@ -4280,11 +4406,11 @@
               </span>
             </button>
             {% endif %}
-            {% if push_ready %}
-            <button type="button" class="notify-channel-box notify-channel-box--push notify-channel-pick-btn" id="pickMethodPush" data-channel="push">
+            {% if push_capable %}
+            <button type="button" class="notify-channel-box notify-channel-box--push notify-channel-pick-btn" id="pickMethodPush" data-channel="push"{% if not push_ready %} disabled aria-disabled="true"{% endif %}>
               <i class="bi bi-bell-fill" aria-hidden="true"></i>
               <span class="notify-channel-box-text">
-                <span class="notify-channel-box-title">Push notification</span>
+                <span class="notify-channel-box-title">Push notification{% if not push_ready %} <span class="notify-channel-unavailable" id="pickMethodPushPaused">(paused)</span>{% endif %}</span>
                 <span class="notify-channel-box-sub">Alert in the owner&apos;s app</span>
               </span>
             </button>
@@ -4387,10 +4513,17 @@
     {% else %}
     <div class="scanner-all-services-off" role="status">
       <i class="bi bi-slash-circle scanner-all-services-off-icon" aria-hidden="true"></i>
+      {% if vehicle_lost_mode.is_lost_mode %}
+      <p class="scanner-all-services-off-title">This vehicle is reported missing, but all communication services are currently disabled.</p>
+      <p class="scanner-all-services-off-text">
+        Please try again later if the owner turns a contact method back on — your tip can help with recovery.
+      </p>
+      {% else %}
       <p class="scanner-all-services-off-title">All communication services are currently disabled for this user.</p>
       <p class="scanner-all-services-off-text">
         There is nothing you can send from this page right now. You can try again later if the owner turns a contact method back on.
       </p>
+      {% endif %}
     </div>
     {% endif %}
     </div>
@@ -4604,6 +4737,8 @@
   <!-- Vendor JS Files -->
   <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
+  {{ owner_live_status_json|json_script:"ownerLiveStatusBoot" }}
+
   <script>
     // Owner's phone number from backend
     const ownerPhone = '{{ owner_phone|default:"" }}';
@@ -4622,14 +4757,138 @@
 
     const hasEmergencyContact = ("{{ has_emergency_contact|yesno:'yes,no' }}" === "yes");
     const hasFcmToken = ("{{ has_fcm_token|yesno:'yes,no' }}" === "yes");
-    const pushReady = ("{{ push_ready|yesno:'yes,no' }}" === "yes");
+    const vehicleLostMode = ("{{ vehicle_lost_mode.is_lost_mode|yesno:'yes,no' }}" === "yes");
+    const lostModeTipReason = "{{ vehicle_lost_mode.tip_reason|default:'I spotted this vehicle'|escapejs }}";
+    const lostModeTipCtaTitle = "{{ vehicle_lost_mode.tip_cta_title|default:'Tip owner — I spotted this vehicle'|escapejs }}";
+    const lostModeTipCtaSub = "{{ vehicle_lost_mode.tip_cta_sub|default:'Send a tip to help recover this vehicle'|escapejs }}";
+    var pushReady = ("{{ push_ready|yesno:'yes,no' }}" === "yes");
     var emergencyContactConfirmed = false;
     var vehiclePlateLast4VerifiedValue = '';
     var pendingEmergencyCallback = null;
-    const ownerCallReady = ("{{ call_register_ready|yesno:'yes,no' }}" === "yes");
-    const emergencyCallReady = ("{{ emergency_call_ready|yesno:'yes,no' }}" === "yes");
-    const ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
+    const ownerCallCapable = ("{{ call_register_capable|yesno:'yes,no' }}" === "yes");
+    const emergencyCallCapable = ("{{ emergency_call_capable|yesno:'yes,no' }}" === "yes");
+    const ownerSmsCapable = ("{{ owner_sms_capable|yesno:'yes,no' }}" === "yes");
+    const pushCapable = ("{{ push_capable|yesno:'yes,no' }}" === "yes");
+    var ownerCallReady = ("{{ call_register_ready|yesno:'yes,no' }}" === "yes");
+    var emergencyCallReady = ("{{ emergency_call_ready|yesno:'yes,no' }}" === "yes");
+    var ownerSmsReady = ("{{ owner_sms_ready|yesno:'yes,no' }}" === "yes");
     const emergencyDestinationDigits = "{{ emergency_phone_digits|default:'' }}";
+    const NOTIFY_LIVE_STATUS_URL = "{% url 'send_notification_live_status' qr_id %}";
+    const NOTIFY_LIVE_STATUS_POLL_MS = 15000;
+    var notifyLiveStatusPollTimer = null;
+    var notifyLiveStatusLastKey = '';
+
+    function setChannelPickReady(btnId, pausedId, ready) {
+      var btn = document.getElementById(btnId);
+      if (!btn) return;
+      if (ready) {
+        btn.disabled = false;
+        btn.setAttribute('aria-disabled', 'false');
+        btn.classList.remove('sms-compose-locked');
+      } else if (!smsComposeLockActive) {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+      }
+      var title = btn.querySelector('.notify-channel-box-title');
+      if (!title) return;
+      var paused = document.getElementById(pausedId);
+      if (ready) {
+        if (paused) paused.remove();
+      } else if (!paused) {
+        var span = document.createElement('span');
+        span.className = 'notify-channel-unavailable';
+        span.id = pausedId;
+        span.textContent = '(paused)';
+        title.appendChild(document.createTextNode(' '));
+        title.appendChild(span);
+      }
+    }
+
+    function applyOwnerLiveStatusPayload(data) {
+      if (!data || data.status === 'error') return;
+      var key =
+        String(data.liveStatus || '') +
+        '|' +
+        String(data.customText || '') +
+        '|' +
+        String(!!data.isOnline) +
+        '|' +
+        String(!!data.allowsMessaging) +
+        '|' +
+        String(!!data.allowsOwnerCall);
+      if (key === notifyLiveStatusLastKey) return;
+      notifyLiveStatusLastKey = key;
+
+      ownerSmsReady = !!(ownerSmsCapable && data.allowsMessaging);
+      pushReady = !!(pushCapable && data.allowsMessaging);
+      ownerCallReady = !!(ownerCallCapable && data.allowsOwnerCall);
+      emergencyCallReady = !!(emergencyCallCapable && data.allowsEmergency !== false);
+
+      var badge = document.getElementById('notifyLiveBadge');
+      var emoji = document.getElementById('notifyLiveEmoji');
+      var label = document.getElementById('notifyLiveLabel');
+      var msg = document.getElementById('notifyLiveMessage');
+      var presence = document.getElementById('notifyLivePresence');
+      var wrap = document.getElementById('notifyLiveStatus');
+      if (wrap) wrap.setAttribute('data-status', data.liveStatus || 'available');
+      if (badge && data.color) badge.setAttribute('data-color', data.color);
+      if (emoji && data.emoji) emoji.textContent = data.emoji;
+      if (label && data.label) label.textContent = data.label;
+      if (msg && data.message) msg.textContent = data.message;
+      if (presence) {
+        presence.textContent = data.isOnline ? 'Online' : 'Offline';
+        presence.classList.toggle('is-online', !!data.isOnline);
+      }
+
+      setChannelPickReady('pickMethodSms', 'pickMethodSmsPaused', ownerSmsReady);
+      setChannelPickReady('pickMethodPush', 'pickMethodPushPaused', pushReady);
+      setChannelPickReady('pickMethodCall', 'pickMethodCallPaused', ownerCallReady);
+      if (typeof syncNotifyDockChannels === 'function') {
+        syncNotifyDockChannels();
+      }
+      if (typeof syncCustomSmsSendButton === 'function') {
+        syncCustomSmsSendButton();
+      }
+    }
+
+    function stopNotifyLiveStatusPoll() {
+      if (notifyLiveStatusPollTimer) {
+        window.clearInterval(notifyLiveStatusPollTimer);
+        notifyLiveStatusPollTimer = null;
+      }
+    }
+
+    function pollNotifyLiveStatusOnce() {
+      if (notifySessionTerminalActive || notifyRedirectInFlight) {
+        stopNotifyLiveStatusPoll();
+        return;
+      }
+      if (document.visibilityState !== 'visible') return;
+      fetch(NOTIFY_LIVE_STATUS_URL, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+        credentials: 'same-origin'
+      })
+        .then(function (r) {
+          return r.json().catch(function () {
+            return null;
+          });
+        })
+        .then(function (data) {
+          if (data && data.status === 'ok') {
+            applyOwnerLiveStatusPayload(data);
+          }
+        })
+        .catch(function () {});
+    }
+
+    function startNotifyLiveStatusPoll() {
+      stopNotifyLiveStatusPoll();
+      notifyLiveStatusPollTimer = window.setInterval(
+        pollNotifyLiveStatusOnce,
+        NOTIFY_LIVE_STATUS_POLL_MS
+      );
+    }
     const NOTIFY_SENDING_WHEEL_JSON = "{% url 'notify_sending_wheel_json' %}";
     var NOTIFY_PRIORITY_VOICE_SUB_DEFAULT = hasActiveFamilyAssignment
       ? ('Currently using this vehicle — reach ' + ownerContactDisplayName)
@@ -4846,7 +5105,7 @@
     const limitAltSecondary = document.getElementById('limitAltSecondary');
 
     // Selected reason and method
-    let selectedReason = '';
+    let selectedReason = vehicleLostMode ? lostModeTipReason : '';
     let selectedMethod = '';
     /** @type {null | 'sms' | 'push' | 'call'} */
     let selectedOwnerChannel = null;
@@ -6096,9 +6355,20 @@
 
       var dockModeLabel = document.getElementById('notifyDockModeLabel');
       if (dockModeLabel) {
-        dockModeLabel.textContent = contactMode === 'emergency'
-          ? 'Emergency contact'
-          : 'Contact vehicle owner';
+        if (contactMode === 'emergency') {
+          dockModeLabel.textContent = 'Emergency contact';
+        } else if (vehicleLostMode) {
+          dockModeLabel.textContent = lostModeTipCtaTitle;
+        } else {
+          dockModeLabel.textContent = 'Contact vehicle owner';
+        }
+      }
+
+      var channelPickLabel = document.getElementById('notifyOwnerChannelPickLabel');
+      if (channelPickLabel && contactMode !== 'emergency') {
+        channelPickLabel.textContent = vehicleLostMode
+          ? lostModeTipCtaSub
+          : 'How do you want to reach them?';
       }
 
       if (callFlowTitleText) {
@@ -6109,10 +6379,16 @@
 
       var stepLine = document.getElementById('notifyMainStepLine');
       if (stepLine) {
-        stepLine.textContent =
-          hasEmergencyContact && contactMode === 'emergency'
-            ? 'After verification above, enter your mobile number, then slide right to call emergency contact.'
-            : 'Tap SMS or push to compose a message · Voice opens your number when you choose it.';
+        if (hasEmergencyContact && contactMode === 'emergency') {
+          stepLine.textContent =
+            'After verification above, enter your mobile number, then slide right to call emergency contact.';
+        } else if (vehicleLostMode) {
+          stepLine.textContent =
+            'This vehicle is reported missing — tip the owner via SMS or push · Voice opens when you choose it.';
+        } else {
+          stepLine.textContent =
+            'Tap SMS or push to compose a message · Voice opens your number when you choose it.';
+        }
       }
 
       syncEmergencyPlateWrapInCallModal();
@@ -6126,6 +6402,10 @@
         resumeNotifyHoldTicker();
         if (notifySessionArmed && !notifySessionTerminalActive) {
           resetNotifyIdleGrace();
+        }
+        if (!notifySessionTerminalActive && !notifyRedirectInFlight) {
+          pollNotifyLiveStatusOnce();
+          if (!notifyLiveStatusPollTimer) startNotifyLiveStatusPoll();
         }
       } else {
         pauseNotifyHoldTicker();
@@ -6233,6 +6513,21 @@
       }
       syncContactModeUi();
       updateNotifyModalLock();
+
+      // Soft-preselect Lost Mode tip reason (no auto-open dock — modals may still be up).
+      if (vehicleLostMode && !SUDO_NOTIFY_TERMINAL_GATE) {
+        var tipItem = document.getElementById('lostModeTipReasonItem');
+        if (tipItem) {
+          document.querySelectorAll('.reasons-list > .reason-item').forEach(function (item) {
+            item.classList.remove('selected');
+          });
+          tipItem.classList.add('selected');
+          selectedReason = lostModeTipReason;
+          var reasonTextBoot = document.getElementById('notifySelectedReasonText');
+          if (reasonTextBoot) reasonTextBoot.textContent = lostModeTipReason;
+        }
+      }
+
       if (
         contactMode &&
         contactMode === 'emergency' &&
@@ -6367,9 +6662,13 @@
 
       function bindOwnerMethodPick(btnId, channel) {
         var el = document.getElementById(btnId);
-        if (!el || el.disabled) return;
+        if (!el) return;
         el.addEventListener('click', function () {
           if (contactMode !== 'owner') return;
+          if (el.disabled) {
+            showToast('This contact option is paused for the owner\'s current status.', 'info');
+            return;
+          }
           if (smsComposeLockActive) {
             showToast('Finish or clear your message first', 'error');
             return;
@@ -6446,6 +6745,28 @@
       }
 
       initNotifyVoiceCooldownUi();
+
+      try {
+        var bootEl = document.getElementById('ownerLiveStatusBoot');
+        if (bootEl && bootEl.textContent) {
+          var initialLive = JSON.parse(bootEl.textContent);
+          if (initialLive) {
+            notifyLiveStatusLastKey =
+              String(initialLive.liveStatus || '') +
+              '|' +
+              String(initialLive.customText || '') +
+              '|' +
+              String(!!initialLive.isOnline) +
+              '|' +
+              String(!!initialLive.allowsMessaging) +
+              '|' +
+              String(!!initialLive.allowsOwnerCall);
+          }
+        }
+      } catch (e) {}
+      if (!SUDO_NOTIFY_TERMINAL_GATE && !notifySessionTerminalActive) {
+        startNotifyLiveStatusPoll();
+      }
     });
 
     window.addEventListener('pageshow', function () {
@@ -7855,6 +8176,7 @@
       clearNotifySheetDoneLocal();
       clearNotifyHoldState();
       setNotifyPostSuccessActive(false);
+      stopNotifyLiveStatusPoll();
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
         sessionStorage.removeItem(CALL_DIALER_RETURN_KEY);
@@ -7872,6 +8194,7 @@
       clearNotifySheetDoneLocal();
       clearNotifyHoldState();
       setNotifyPostSuccessActive(false);
+      stopNotifyLiveStatusPoll();
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
         sessionStorage.removeItem(CALL_DIALER_RETURN_KEY);

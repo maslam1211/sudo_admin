@@ -480,6 +480,13 @@
             </div>
 
             <div class="sidebar-menu-item">
+                <a href="{% url 'manage_live_status' %}" class="sidebar-menu-link {% if request.path == '/manage-live-status/' or request.path == '/admin/manage-live-status/' %}active{% endif %}">
+                    <i class="fas fa-signal"></i>
+                    <span>Live Status</span>
+                </a>
+            </div>
+
+            <div class="sidebar-menu-item">
                 <a href="{% url 'manage_daily_usage' %}" class="sidebar-menu-link {% if request.path == '/manage-daily-usage/' or request.path == '/admin/manage-daily-usage/' %}active{% endif %}">
                     <i class="fas fa-chart-line"></i>
                     <span>Daily Usage</span>

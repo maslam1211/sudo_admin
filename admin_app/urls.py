@@ -27,6 +27,7 @@ urlpatterns = [
     path('download-qr-pdf/', views.download_qr_pdf, name='download_qr_pdf'),
     path('register-user/', views.register_user, name='register_user'),
     path('manage-users/', views.manage_users, name='manage_users'),
+    path('manage-live-status/', views.manage_live_status, name='manage_live_status'),
     path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
     # Referral management (read / analytics / export — writes via Cloud Functions)
     path('referrals/', referral_views.manage_referrals, name='manage_referrals'),
@@ -58,6 +59,11 @@ urlpatterns = [
         name='activate_id_otp_verify',
     ),
     path('send-notification-final/<str:qr_id>/', views.send_notification, name='send_notification'),
+    path(
+        'send-notification-final/<str:qr_id>/live-status/',
+        views.send_notification_live_status,
+        name='send_notification_live_status',
+    ),
     path('send-feedback/', views.send_feedback, name='send_feedback'),
     path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),
     path('manage-qrs/', views.manage_qrs, name='manage_qrs'),
