@@ -2997,7 +2997,7 @@ def send_notification(request, qr_id):
             if is_notify_session_active(request, qr_id):
                 notify_session_expires_at = get_notify_session_until(request, qr_id)
 
-            # Lost Mode: client captures approx location + optional photos, then POSTs.
+            # Lost Mode: every scan tips the owner (short cooldown only).
             if (
                 vehicle_lost_mode.get('is_lost_mode')
                 and not scanner_notify_show_terminal_sheet
@@ -3007,7 +3007,10 @@ def send_notification(request, qr_id):
                         'attempted': False,
                         'sent': False,
                         'skipped_reason': 'already_sent',
-                        'notice': vehicle_lost_mode.get('auto_push_sent_notice') or '',
+                        'notice': (
+                            'Owner was just notified from a recent scan of this tag. '
+                            'A new tip will send automatically on the next scan.'
+                        ),
                         'pending_client_sighting': False,
                     }
                 elif push_capable:

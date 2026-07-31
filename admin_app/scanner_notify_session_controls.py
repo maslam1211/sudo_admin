@@ -19,12 +19,15 @@ from django.http import JsonResponse
 SHEET_DONE_KEY = "sudo_notify_sheet_done_{qr_id}"
 MESSAGING_ATTEMPTS_KEY = "sudo_notify_msg_attempts_{qr_id}"
 SESSION_UNTIL_KEY = "sudo_notify_session_until_{qr_id}"
-LOST_AUTO_PUSH_KEY = "sudo_lost_auto_push_{qr_id}"
+LOST_AUTO_PUSH_KEY = "sudo_lost_auto_push_until_{qr_id}"
 
 # Hard ceiling for the server-side visit (QR continuity after a successful contact).
 NOTIFY_SESSION_TTL_SEC = 180
 # Client inactivity → landing redirect (seconds without interaction on Contact Owner).
 NOTIFY_IDLE_TIMEOUT_SEC = 60
+# Lost Mode: allow another auto tip per QR after this cooldown (every scan notifies;
+# short window only blocks accidental double page-load spam).
+LOST_MODE_AUTO_PUSH_COOLDOWN_SEC = 45
 
 
 def notify_sheet_session_key(qr_id: str) -> str:
@@ -72,19 +75,39 @@ def clear_notify_session_until(request, qr_id: str) -> None:
 
 
 def clear_lost_mode_auto_push(request, qr_id: str) -> None:
-    """Allow another automatic Lost Mode sighting push after a fresh rescan."""
+    """Clear Lost Mode auto-tip cooldown (e.g. after an explicit rescan)."""
     key = lost_mode_auto_push_key(qr_id)
     if key in request.session:
         request.session.pop(key, None)
         request.session.modified = True
 
 
+def get_lost_mode_auto_push_until(request, qr_id: str) -> float | None:
+    raw = request.session.get(lost_mode_auto_push_key(qr_id))
+    if raw is True:
+        # Legacy session flag from older "once per visit" behavior.
+        return time.time() - 1
+    try:
+        until = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if until <= 0:
+        return None
+    return until
+
+
 def has_lost_mode_auto_push_sent(request, qr_id: str) -> bool:
-    return bool(request.session.get(lost_mode_auto_push_key(qr_id)))
+    """True only while the short per-QR cooldown is still active."""
+    until = get_lost_mode_auto_push_until(request, qr_id)
+    if until is None:
+        return False
+    return time.time() < until
 
 
 def mark_lost_mode_auto_push_sent(request, qr_id: str) -> None:
-    request.session[lost_mode_auto_push_key(qr_id)] = True
+    """Start a short cooldown after a successful Lost Mode auto tip."""
+    until = time.time() + LOST_MODE_AUTO_PUSH_COOLDOWN_SEC
+    request.session[lost_mode_auto_push_key(qr_id)] = until
     request.session.modified = True
 
 

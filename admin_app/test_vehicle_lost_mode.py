@@ -236,6 +236,26 @@ class LostModeAutoPushTests(SimpleTestCase):
         self.assertEqual(second['skipped_reason'], 'already_sent')
         self.assertEqual(send_fn.call_count, 1)
 
+    def test_cooldown_expires_allows_next_scan(self):
+        from admin_app.scanner_notify_session_controls import (
+            LOST_MODE_AUTO_PUSH_COOLDOWN_SEC,
+            lost_mode_auto_push_key,
+        )
+
+        request = self._session_request()
+        # Pretend cooldown already elapsed.
+        request.session[lost_mode_auto_push_key('qr1')] = (
+            __import__('time').time() - 1
+        )
+        self.assertFalse(has_lost_mode_auto_push_sent(request, 'qr1'))
+        mark_lost_mode_auto_push_sent(request, 'qr1')
+        self.assertTrue(has_lost_mode_auto_push_sent(request, 'qr1'))
+        # Force expiry
+        request.session[lost_mode_auto_push_key('qr1')] = (
+            __import__('time').time() - LOST_MODE_AUTO_PUSH_COOLDOWN_SEC
+        )
+        self.assertFalse(has_lost_mode_auto_push_sent(request, 'qr1'))
+
     def test_rescan_clears_dedupe(self):
         request = self._session_request()
         mark_lost_mode_auto_push_sent(request, 'qr1')

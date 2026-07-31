@@ -294,97 +294,6 @@
       color: rgba(255, 255, 255, 0.72);
     }
 
-    body.notify-app .notify-lost-mode-photo-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.55rem;
-      padding: 0.75rem 0.8rem;
-      border-radius: 12px;
-      border: 1px dashed rgba(255, 59, 48, 0.5);
-      background: rgba(0, 0, 0, 0.22);
-    }
-
-    body.notify-app .notify-lost-mode-photo-title {
-      margin: 0;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #fecaca;
-    }
-
-    body.notify-app .notify-lost-mode-photo-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    body.notify-app .notify-lost-mode-photo-btn {
-      appearance: none;
-      border: 1px solid rgba(255, 59, 48, 0.55);
-      background: rgba(255, 59, 48, 0.2);
-      color: #fecaca;
-      border-radius: 999px;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.78rem;
-      font-weight: 650;
-      cursor: pointer;
-      pointer-events: auto;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body.notify-app .notify-lost-mode-photo-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    body.notify-app .notify-lost-mode-send-btn {
-      appearance: none;
-      border: none;
-      background: #ff3b30;
-      color: #fff;
-      border-radius: 999px;
-      padding: 0.55rem 1rem;
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-      pointer-events: auto;
-      touch-action: manipulation;
-    }
-
-    body.notify-app .notify-lost-mode-send-btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    body.notify-app .notify-lost-mode-file-input {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-      opacity: 0;
-    }
-
-    body.notify-app .notify-lost-mode-photo-thumbs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      min-height: 0;
-    }
-
-    body.notify-app .notify-lost-mode-photo-thumbs img {
-      width: 56px;
-      height: 56px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-    }
-
     body.notify-app .notify-lost-mode-badge {
       display: inline-flex;
       align-items: center;
@@ -4294,39 +4203,6 @@
       <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
       <div class="notify-lost-mode-help" id="notifyLostModeHelp">
         <p class="notify-lost-mode-loc-status" id="notifyLostModeLocStatus">Preparing tip for the owner…</p>
-        <div class="notify-lost-mode-photo-card" id="notifyLostModePhotoCard">
-          <p class="notify-lost-mode-photo-title">Add a photo of the vehicle (optional)</p>
-          <div class="notify-lost-mode-photo-row">
-            <button type="button" class="notify-lost-mode-photo-btn" id="notifyLostModeCameraBtn">
-              <i class="bi bi-camera-fill" aria-hidden="true"></i> Take photo
-            </button>
-            <button type="button" class="notify-lost-mode-photo-btn" id="notifyLostModeGalleryBtn">
-              <i class="bi bi-image-fill" aria-hidden="true"></i> Choose photo
-            </button>
-            <button type="button" class="notify-lost-mode-send-btn" id="notifyLostModeSendBtn">
-              Send tip now
-            </button>
-          </div>
-          <input
-            type="file"
-            id="notifyLostModeCameraInput"
-            class="notify-lost-mode-file-input"
-            accept="image/*"
-            capture="environment"
-            tabindex="-1"
-            aria-hidden="true"
-          >
-          <input
-            type="file"
-            id="notifyLostModeGalleryInput"
-            class="notify-lost-mode-file-input"
-            accept="image/*"
-            multiple
-            tabindex="-1"
-            aria-hidden="true"
-          >
-          <div class="notify-lost-mode-photo-thumbs" id="notifyLostModePhotoThumbs" aria-live="polite"></div>
-        </div>
       </div>
       <p class="notify-lost-mode-auto-sent" id="notifyLostModeAutoSent"{% if not lost_mode_auto_push.sent and lost_mode_auto_push.skipped_reason != 'already_sent' %} hidden{% endif %}>
         <i class="bi bi-bell-fill" aria-hidden="true"></i>
@@ -6588,14 +6464,13 @@
     });
 
     // -------------------------------------------------------------------------
-    // Lost Mode sighting: approximate location + optional photos → owner push
     // -------------------------------------------------------------------------
-    var lostModeSightingPhotos = [];
+    // Lost Mode sighting: approximate location + scan time → owner push
+    // -------------------------------------------------------------------------
     var lostModeSightingInFlight = false;
     var lostModeSightingDone = lostModeAlreadyAutoSent;
     var lostModeLocationPayload = {};
     var lostModeSubmitStarted = false;
-    var LOST_MODE_MAX_PHOTOS = 3;
 
     function setLostModeLocStatus(text) {
       var el = document.getElementById('notifyLostModeLocStatus');
@@ -6607,116 +6482,6 @@
       var txt = document.getElementById('notifyLostModeAutoSentText');
       if (txt && text) txt.textContent = text;
       if (wrap) wrap.hidden = false;
-    }
-
-    function setLostModePhotoButtonsEnabled(enabled) {
-      ['notifyLostModeCameraBtn', 'notifyLostModeGalleryBtn', 'notifyLostModeSendBtn'].forEach(
-        function (id) {
-          var btn = document.getElementById(id);
-          if (!btn) return;
-          if (id === 'notifyLostModeSendBtn') {
-            btn.disabled = !enabled || lostModeSightingDone || lostModeSightingInFlight;
-            return;
-          }
-          btn.disabled =
-            !enabled ||
-            lostModeSightingDone ||
-            lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS;
-        }
-      );
-    }
-
-    function renderLostModePhotoThumbs() {
-      var box = document.getElementById('notifyLostModePhotoThumbs');
-      if (!box) return;
-      box.innerHTML = '';
-      lostModeSightingPhotos.forEach(function (dataUrl, idx) {
-        var img = document.createElement('img');
-        img.src = dataUrl;
-        img.alt = 'Sighting photo ' + (idx + 1);
-        box.appendChild(img);
-      });
-      setLostModePhotoButtonsEnabled(true);
-      if (lostModeSightingPhotos.length) {
-        setLostModeLocStatus(
-          'Photo' +
-            (lostModeSightingPhotos.length > 1 ? 's' : '') +
-            ' ready (' +
-            lostModeSightingPhotos.length +
-            '/' +
-            LOST_MODE_MAX_PHOTOS +
-            '). Tap “Send tip now” or wait for auto-send.'
-        );
-      }
-    }
-
-    function compressImageFile(file, maxSide, quality) {
-      return new Promise(function (resolve) {
-        if (!file) {
-          resolve(null);
-          return;
-        }
-        var type = String(file.type || '');
-        // Some phones omit MIME or use HEIC — still try to decode as image.
-        if (type && type.indexOf('image/') !== 0 && type !== 'application/octet-stream') {
-          resolve(null);
-          return;
-        }
-        var reader = new FileReader();
-        reader.onload = function () {
-          var img = new Image();
-          img.onload = function () {
-            var w = img.width || 1;
-            var h = img.height || 1;
-            var scale = Math.min(1, maxSide / Math.max(w, h));
-            var cw = Math.max(1, Math.round(w * scale));
-            var ch = Math.max(1, Math.round(h * scale));
-            var canvas = document.createElement('canvas');
-            canvas.width = cw;
-            canvas.height = ch;
-            var ctx = canvas.getContext('2d');
-            if (!ctx) {
-              resolve(typeof reader.result === 'string' ? reader.result : null);
-              return;
-            }
-            ctx.drawImage(img, 0, 0, cw, ch);
-            try {
-              var out = canvas.toDataURL('image/jpeg', quality);
-              resolve(out || null);
-            } catch (err) {
-              resolve(typeof reader.result === 'string' ? reader.result : null);
-            }
-          };
-          img.onerror = function () {
-            // Fallback: send original data URL if browser can still upload it.
-            resolve(typeof reader.result === 'string' ? reader.result : null);
-          };
-          img.src = reader.result;
-        };
-        reader.onerror = function () {
-          resolve(null);
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function addLostModePhotoFiles(fileList) {
-      var files = Array.prototype.slice.call(fileList || [], 0);
-      var chain = Promise.resolve();
-      files.forEach(function (file) {
-        chain = chain.then(function () {
-          if (lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS) return;
-          return compressImageFile(file, 1280, 0.72).then(function (dataUrl) {
-            if (dataUrl) {
-              lostModeSightingPhotos.push(dataUrl);
-              renderLostModePhotoThumbs();
-            } else if (typeof showToast === 'function') {
-              showToast('Could not use that image. Try another photo or the camera.', 'error');
-            }
-          });
-        });
-      });
-      return chain;
     }
 
     function reverseGeocodeApprox(lat, lng) {
@@ -6806,13 +6571,9 @@
       }
       lostModeSightingInFlight = true;
       lostModeSubmitStarted = true;
-      setLostModePhotoButtonsEnabled(false);
       setLostModeLocStatus('Sending tip to the owner…');
       var bodyPayload = Object.assign({}, payload || lostModeLocationPayload || {}, {
-        notification_method: 'lost_mode_sighting',
-        contact_target: 'owner',
-        scanned_at: new Date().toISOString(),
-        photos: lostModeSightingPhotos.slice(0, LOST_MODE_MAX_PHOTOS)
+        scanned_at: new Date().toISOString()
       });
       return fetch('', {
         method: 'POST',
@@ -6829,7 +6590,7 @@
           accuracy: bodyPayload.accuracy,
           place_label: bodyPayload.place_label || '',
           scanned_at: bodyPayload.scanned_at,
-          photos: bodyPayload.photos
+          photos: []
         })
       })
         .then(function (response) {
@@ -6853,15 +6614,9 @@
             if (res.data.scanned_at_display) {
               locLine += ' · time: ' + res.data.scanned_at_display;
             }
-            if (res.data.photo_count) {
-              locLine += ' · ' + res.data.photo_count + ' photo(s)';
-            }
             setLostModeLocStatus(locLine + '. You can still message or call below if needed.');
-            renderLostModePhotoThumbs();
-            setLostModePhotoButtonsEnabled(false);
             return res.data;
           }
-          setLostModePhotoButtonsEnabled(true);
           setLostModeLocStatus(
             'Automatic tip could not be sent. Please tip the owner manually below.'
           );
@@ -6869,7 +6624,6 @@
         })
         .catch(function () {
           lostModeSightingInFlight = false;
-          setLostModePhotoButtonsEnabled(true);
           setLostModeLocStatus(
             'Automatic tip could not be sent. Please tip the owner manually below.'
           );
@@ -6877,97 +6631,35 @@
         });
     }
 
-    function wireLostModePhotoControls() {
-      var cameraBtn = document.getElementById('notifyLostModeCameraBtn');
-      var galleryBtn = document.getElementById('notifyLostModeGalleryBtn');
-      var sendBtn = document.getElementById('notifyLostModeSendBtn');
-      var cameraInput = document.getElementById('notifyLostModeCameraInput');
-      var galleryInput = document.getElementById('notifyLostModeGalleryInput');
-
-      function openPicker(input) {
-        if (!input || lostModeSightingDone) return;
-        if (lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS) {
-          if (typeof showToast === 'function') {
-            showToast('You can add up to ' + LOST_MODE_MAX_PHOTOS + ' photos.', 'error');
-          }
-          return;
-        }
-        try {
-          input.value = '';
-          input.click();
-        } catch (err) {
-          if (typeof showToast === 'function') {
-            showToast('Could not open the photo picker on this device.', 'error');
-          }
-        }
-      }
-
-      if (cameraBtn && cameraInput) {
-        cameraBtn.addEventListener('click', function (ev) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          openPicker(cameraInput);
-        });
-        cameraInput.addEventListener('change', function () {
-          addLostModePhotoFiles(cameraInput.files).then(function () {
-            cameraInput.value = '';
-          });
-        });
-      }
-      if (galleryBtn && galleryInput) {
-        galleryBtn.addEventListener('click', function (ev) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          openPicker(galleryInput);
-        });
-        galleryInput.addEventListener('change', function () {
-          addLostModePhotoFiles(galleryInput.files).then(function () {
-            galleryInput.value = '';
-          });
-        });
-      }
-      if (sendBtn) {
-        sendBtn.addEventListener('click', function (ev) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          if (lostModeSightingDone || lostModeSightingInFlight) return;
-          submitLostModeSighting(lostModeLocationPayload);
-        });
-      }
-    }
-
     function initLostModeSightingFlow() {
       if (!vehicleLostMode || SUDO_NOTIFY_TERMINAL_GATE) return;
 
-      wireLostModePhotoControls();
-
       if (lostModeAlreadyAutoSent) {
-        setLostModeLocStatus('Owner was already tipped from this scan session.');
+        setLostModeLocStatus(
+          'Owner was just notified from a recent scan. Another tip will send on the next scan.'
+        );
         setLostModeAutoSentNotice(
           document.getElementById('notifyLostModeAutoSentText')
             ? document.getElementById('notifyLostModeAutoSentText').textContent
             : ''
         );
-        setLostModePhotoButtonsEnabled(false);
         return;
       }
 
       if (!lostModePendingSighting) {
         setLostModeLocStatus(
-          'Automatic tip is unavailable right now. Add a photo if you want, then tip the owner manually below.'
+          'Automatic tip is unavailable right now. Please tip the owner manually below.'
         );
-        setLostModePhotoButtonsEnabled(true);
         return;
       }
 
-      setLostModeLocStatus('Waiting for you to continue… then we will tip the owner with location & time.');
-      setLostModePhotoButtonsEnabled(true);
+      setLostModeLocStatus(
+        'Waiting for you to continue… then we will tip the owner with location & time.'
+      );
 
       waitUntilLostModeUiInteractive().then(function () {
         if (lostModeSightingDone) return;
-        setLostModeLocStatus(
-          'Getting approximate location… Take or choose a photo, then tap “Send tip now” (or wait ~12s for auto-send).'
-        );
+        setLostModeLocStatus('Getting approximate location… tipping the owner shortly.');
 
         getApproxGeolocation()
           .then(function (coords) {
@@ -6985,21 +6677,11 @@
               function (label) {
                 lostModeLocationPayload.place_label = label || '';
                 if (label) {
-                  setLostModeLocStatus(
-                    'Area: ' +
-                      label +
-                      ' — add a photo if you can, then tap “Send tip now”.'
-                  );
+                  setLostModeLocStatus('Area: ' + label + ' — tipping owner…');
                 }
                 return lostModeLocationPayload;
               }
             );
-          })
-          .then(function () {
-            // Auto-send after a short window so optional photos can be attached.
-            return new Promise(function (resolve) {
-              setTimeout(resolve, 12000);
-            });
           })
           .then(function () {
             if (lostModeSightingDone || lostModeSubmitStarted) return;

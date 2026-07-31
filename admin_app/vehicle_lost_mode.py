@@ -326,10 +326,10 @@ def attempt_lost_mode_auto_push(
     upload_photos: bool = True,
 ) -> dict:
     """
-    Push the owner for a Lost Mode sighting (once per browser session).
+    Push the owner for a Lost Mode sighting on each QR scan.
 
-    Optionally attaches approximate location + Cloudinary photo URLs, stores a
-    ``lostModeSightings`` row, and puts ``sightingId`` / map hints in FCM data.
+    A short per-QR cooldown blocks only accidental double page-loads; every
+    new scan (after the cooldown) notifies again with location + scan time.
     """
     from .scanner_notify_session_controls import (
         has_lost_mode_auto_push_sent,
