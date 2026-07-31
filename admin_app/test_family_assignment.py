@@ -9,6 +9,7 @@ from admin_app.family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
     has_active_family_assignment,
+    vehicle_owner_contact_number,
 )
 from admin_app.scanner_contact_prefs import validate_scanner_call_for_qr
 
@@ -60,6 +61,11 @@ class FamilyAssignmentHelpersTests(SimpleTestCase):
         self.assertEqual(
             effective_contact_display_name(vehicle, user, now=NOW),
             'Rahul',
+        )
+        # Lost Mode always SMS the vehicle owner, not the family assignee.
+        self.assertEqual(
+            vehicle_owner_contact_number(vehicle, user),
+            '9000000001',
         )
 
     def test_effective_number_falls_back_to_owner_when_expired(self):

@@ -6486,10 +6486,12 @@
         "{{ lost_mode_auto_push.scanned_at_display|default:''|escapejs }}";
       var smsSent =
         ("{{ lost_mode_auto_push.sms_sent|yesno:'yes,no' }}" === "yes");
+      var smsSkip =
+        "{{ lost_mode_auto_push.sms_skipped_reason|default:''|escapejs }}";
       var pushSent =
         ("{{ lost_mode_auto_push.fcm_message_id|default:''|escapejs }}" !== "");
 
-      if (sent || smsSent) {
+      if (sent || smsSent || pushSent) {
         setLostModeAutoSentNotice(
           notice ||
             'Owner notified automatically — thank you for helping.'
@@ -6497,8 +6499,16 @@
         var line = 'Owner tipped automatically';
         if (pushSent) line += ' · notification';
         if (smsSent) line += ' · SMS';
+        else if (smsSkip === 'no_phone') line += ' · SMS skipped (no phone)';
+        else if (smsSkip) line += ' · SMS failed';
         if (scannedAt) line += ' · ' + scannedAt;
         setLostModeLocStatus(line + '. You can still message or call below if needed.');
+        return;
+      }
+      if (smsSkip === 'no_phone' && (skipped === 'push_unavailable' || skipped === 'no_token')) {
+        setLostModeLocStatus(
+          'Automatic tip could not reach the owner (no app notification or phone). Please tip them manually below.'
+        );
         return;
       }
       if (skipped === 'push_unavailable' || skipped === 'no_token') {
@@ -6507,7 +6517,7 @@
         );
         return;
       }
-      if (skipped) {
+      if (skipped || smsSkip) {
         setLostModeLocStatus(
           'Automatic tip could not be sent. Please tip the owner manually below.'
         );

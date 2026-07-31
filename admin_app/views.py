@@ -43,11 +43,18 @@ from .owner_live_status import (
     live_status_service_lines,
     parse_owner_live_status,
 )
-from .vehicle_lost_mode import attempt_lost_mode_auto_push, parse_vehicle_lost_mode
+from .vehicle_lost_mode import (
+    attempt_lost_mode_auto_push,
+    build_sighting_push_body,
+    format_scanned_at_ist,
+    parse_vehicle_lost_mode,
+)
+from .msg91_vehicle_sms import send_vehicle_issue_sms
 from .family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
     has_active_family_assignment,
+    vehicle_owner_contact_number,
 )
 from .scanner_contact_prefs import (
     merge_user_scanner_subdocuments,
@@ -2791,88 +2798,46 @@ def send_notification(request, qr_id):
                                     'error_type': 'no_phone_number',
                                 })
 
-                        # MSG91 expects country code + 10-digit mobile (e.g. 9198…)
-                        formatted_phone = '91' + target_digits
-                        
-                        # MSG91 API call
-                        import requests
-                        url = "https://control.msg91.com/api/v5/campaign/api/campaigns/sudotag-vehicle-issue-test/run"
-                        headers = {
-                            "Content-Type": "application/json",
-                            "authkey": "486400AG4Dnr6QVFs695b464eP1"
-                        }
-                        payload = {
-                            "data": {
-                                "sendTo": [
-                                    {
-                                        "to": [
-                                            {
-                                                "mobiles": formatted_phone,
-                                                "variables": {
-                                                    "var": {
-                                                        "type": "vehicle_issue",
-                                                        "value": reason
-                                                    }
-                                                }
-                                            }
-                                        ],
-                                        "variables": {
-                                            "var": {
-                                                "type": "vehicle_issue",
-                                                "value": reason
-                                            }
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-
-                        response = requests.post(url, json=payload, headers=headers)
-                        
-                        if response.status_code == 200:
-                            api_data = response.json()
-                            status_val = api_data.get('status')
-                            has_error = api_data.get('hasError')
-                            
-                            if status_val == 'success' and not has_error:
-                                logger.info(f"MSG91 SMS sent successfully: {api_data}")
-                                if contact_target == 'emergency':
-                                    sms_msg = (
-                                        'SMS sent successfully to the Emergency Contact.'
-                                    )
-                                elif has_active_family_assignment(vehicle_data):
-                                    _sms_name = effective_contact_display_name(
-                                        vehicle_data, user_data
-                                    )
-                                    sms_msg = (
-                                        f'SMS sent successfully to {_sms_name}.'
-                                    )
-                                else:
-                                    sms_msg = (
-                                        'SMS sent successfully to the vehicle owner.'
-                                    )
-                                msg_meta = record_notify_messaging_success(request, qr_id)
-                                return JsonResponse({
-                                    'status': 'success',
-                                    'message': sms_msg,
-                                    'notification_type': 'sms',
-                                    'messaging_attempt': msg_meta['attempt'],
-                                    'redirect_home': False,
-                                    'session_ttl_sec': msg_meta['session_ttl_sec'],
-                                    'session_expires_at': msg_meta['session_expires_at'],
-                                })
+                        sms_result = send_vehicle_issue_sms(
+                            digits_10=target_digits,
+                            message=reason,
+                        )
+                        if sms_result.get('ok'):
+                            if contact_target == 'emergency':
+                                sms_msg = (
+                                    'SMS sent successfully to the Emergency Contact.'
+                                )
+                            elif has_active_family_assignment(vehicle_data):
+                                _sms_name = effective_contact_display_name(
+                                    vehicle_data, user_data
+                                )
+                                sms_msg = (
+                                    f'SMS sent successfully to {_sms_name}.'
+                                )
                             else:
-                                logger.error(f"MSG91 Error: {api_data}")
-                                return JsonResponse({
-                                    'status': 'error',
-                                    'message': f"Failed to send SMS: {api_data.get('message', 'Unknown error')}"
-                                })
-                        else:
-                            logger.error(f"MSG91 HTTP Error: {response.status_code} - {response.text}")
+                                sms_msg = (
+                                    'SMS sent successfully to the vehicle owner.'
+                                )
+                            msg_meta = record_notify_messaging_success(request, qr_id)
                             return JsonResponse({
-                                'status': 'error',
-                                'message': f"Failed to send SMS (HTTP {response.status_code})"
+                                'status': 'success',
+                                'message': sms_msg,
+                                'notification_type': 'sms',
+                                'messaging_attempt': msg_meta['attempt'],
+                                'redirect_home': False,
+                                'session_ttl_sec': msg_meta['session_ttl_sec'],
+                                'session_expires_at': msg_meta['session_expires_at'],
                             })
+                        api_data = sms_result.get('api') or {}
+                        err = sms_result.get('error') or 'Unknown error'
+                        logger.error('MSG91 SMS failed: %s api=%s', err, api_data)
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': (
+                                f"Failed to send SMS: "
+                                f"{api_data.get('message') or err}"
+                            ),
+                        })
                             
                     except Exception as e:
                         logger.error(f"Unexpected error in SMS sending: {str(e)}")
@@ -2880,7 +2845,6 @@ def send_notification(request, qr_id):
                             'status': 'error',
                             'message': f'Failed to send SMS. Please try again later.'
                         })
-
         # Render the initial page with vehicle data
         owner_phone = user_data.get('contactNumber', '')
         # Show the push button if the owner has registered ANY device token.
@@ -2998,170 +2962,180 @@ def send_notification(request, qr_id):
                 notify_session_expires_at = get_notify_session_until(request, qr_id)
 
             # Lost Mode: notify owner on every QR page load (no cooldown).
-            # Server-side tip is reliable — does not depend on scanner JS/modals.
+            # SMS + push both fire automatically and independently.
             if vehicle_lost_mode.get('is_lost_mode'):
-                # Recovery alert: send if any FCM token exists (bypass quiet-hour gates).
-                lost_mode_auto_push = attempt_lost_mode_auto_push(
-                    request=request,
-                    db=db,
-                    qr_id=qr_id,
-                    vehicle_id=str(qr_data.get('vehicleID') or ''),
-                    vehicle_data=vehicle_data,
-                    user_data=user_data,
-                    user_ref=user_ref,
-                    vehicle_ref=vehicle_ref,
-                    push_capable=bool(has_fcm_token),
-                    send_push_fn=send_push_to_tokens,
-                    location_payload={
-                        'scanned_at': datetime.datetime.now(
-                            datetime.timezone.utc
-                        ).isoformat(),
-                    },
-                    photos_raw=[],
-                    upload_photos=False,
+                from datetime import datetime as _lm_dt
+                from datetime import timezone as _lm_tz
+
+                scanned_at_now = _lm_dt.now(_lm_tz.utc)
+                scanned_at_display = format_scanned_at_ist(scanned_at_now)
+                tip_body = build_sighting_push_body(
+                    place_label='',
+                    photo_count=0,
+                    scanned_at_display=scanned_at_display,
                 )
-                # Also SMS (normal message) when a valid contact number is available.
-                # Independent of push — both channels fire on every Lost Mode scan.
+
+                lost_mode_auto_push = {
+                    'attempted': False,
+                    'sent': False,
+                    'skipped_reason': None,
+                    'notice': '',
+                    'pending_client_sighting': False,
+                    'sms_sent': False,
+                    'sms_skipped_reason': None,
+                    'scanned_at_display': scanned_at_display,
+                    'tip_body': tip_body,
+                    'fcm_message_id': None,
+                }
+
+                # 1) SMS the vehicle owner first (same number as owner "Send SMS").
+                # Lost Mode always tips the owner — ignore Live Status / SMS toggles.
                 sms_digits = (
-                    effective_digits_for_call
+                    vehicle_owner_contact_number(vehicle_data, user_data)
+                    or effective_digits_for_call
+                    or effective_contact_number(vehicle_data, user_data)
                     or normalize_phone_number(owner_phone)
                     or ''
                 )
                 if sms_digits and len(str(sms_digits)) == 10:
+                    sms_text = (
+                        'Lost Mode: someone scanned your SUDO Tag and spotted '
+                        f'your vehicle. Scanned at {scanned_at_display}.'
+                    )
                     try:
-                        import requests as _sms_requests
-
-                        _sms_body = (
-                            lost_mode_auto_push.get('tip_body')
-                            or lost_mode_auto_push.get('notice')
-                            or ''
+                        sms_result = send_vehicle_issue_sms(
+                            digits_10=str(sms_digits),
+                            message=sms_text,
                         )
-                        if not _sms_body:
-                            from .vehicle_lost_mode import build_sighting_push_body
-
-                            _sms_body = build_sighting_push_body(
-                                place_label=lost_mode_auto_push.get('place_label')
-                                or '',
-                                photo_count=0,
-                                scanned_at_display=lost_mode_auto_push.get(
-                                    'scanned_at_display'
-                                )
-                                or '',
-                            )
-                        if not _sms_body:
-                            _sms_body = (
-                                'Someone scanned your SUDO Tag. Your vehicle was '
-                                'spotted while Lost Mode is on.'
-                            )
-                        _fmt = '91' + str(sms_digits)
-                        _url = (
-                            'https://control.msg91.com/api/v5/campaign/api/'
-                            'campaigns/sudotag-vehicle-issue-test/run'
-                        )
-                        _headers = {
-                            'Content-Type': 'application/json',
-                            'authkey': '486400AG4Dnr6QVFs695b464eP1',
+                    except Exception as sms_exc:
+                        sms_result = {
+                            'ok': False,
+                            'error': f'exception:{sms_exc}',
+                            'api': None,
                         }
-                        _payload = {
-                            'data': {
-                                'sendTo': [
-                                    {
-                                        'to': [
-                                            {
-                                                'mobiles': _fmt,
-                                                'variables': {
-                                                    'var': {
-                                                        'type': 'vehicle_issue',
-                                                        'value': _sms_body[:200],
-                                                    }
-                                                },
-                                            }
-                                        ],
-                                        'variables': {
-                                            'var': {
-                                                'type': 'vehicle_issue',
-                                                'value': _sms_body[:200],
-                                            }
-                                        },
-                                    }
-                                ]
-                            }
-                        }
-                        _resp = _sms_requests.post(
-                            _url, json=_payload, headers=_headers, timeout=12
-                        )
-                        if _resp.status_code == 200:
-                            _api = _resp.json() if _resp.content else {}
-                            if (
-                                _api.get('status') == 'success'
-                                and not _api.get('hasError')
-                            ):
-                                lost_mode_auto_push['sms_sent'] = True
-                                push_already = bool(
-                                    lost_mode_auto_push.get('fcm_message_id')
-                                )
-                                if push_already:
-                                    lost_mode_auto_push['notice'] = (
-                                        'Owner notified by app notification and SMS.'
-                                        + (
-                                            f" Scanned at {lost_mode_auto_push.get('scanned_at_display')}."
-                                            if lost_mode_auto_push.get(
-                                                'scanned_at_display'
-                                            )
-                                            else ''
-                                        )
-                                    )
-                                else:
-                                    lost_mode_auto_push['sent'] = True
-                                    lost_mode_auto_push['notice'] = (
-                                        'Owner notified by SMS.'
-                                        + (
-                                            f" Scanned at {lost_mode_auto_push.get('scanned_at_display')}."
-                                            if lost_mode_auto_push.get(
-                                                'scanned_at_display'
-                                            )
-                                            else ''
-                                        )
-                                    )
-                                logger.info(
-                                    'Lost Mode auto SMS sent qr_id=%s', qr_id
-                                )
-                            else:
-                                lost_mode_auto_push['sms_sent'] = False
-                                logger.warning(
-                                    'Lost Mode auto SMS failed qr_id=%s api=%s',
-                                    qr_id,
-                                    _api,
-                                )
-                        else:
-                            lost_mode_auto_push['sms_sent'] = False
-                            logger.warning(
-                                'Lost Mode auto SMS HTTP %s qr_id=%s',
-                                _resp.status_code,
-                                qr_id,
-                            )
-                    except Exception as sms_err:
-                        lost_mode_auto_push['sms_sent'] = False
                         logger.warning(
-                            'Lost Mode auto SMS error qr_id=%s: %s',
+                            'Lost Mode auto SMS exception qr_id=%s: %s',
                             qr_id,
-                            sms_err,
+                            sms_exc,
                         )
-                if lost_mode_auto_push.get('sent') or lost_mode_auto_push.get(
-                    'sms_sent'
-                ):
+                    if sms_result.get('ok'):
+                        lost_mode_auto_push['sms_sent'] = True
+                        lost_mode_auto_push['sent'] = True
+                        lost_mode_auto_push['notice'] = (
+                            f'Owner notified by SMS. Scanned at {scanned_at_display}.'
+                        )
+                        logger.info(
+                            'Lost Mode auto SMS sent qr_id=%s to owner ***%s',
+                            qr_id,
+                            str(sms_digits)[-4:],
+                        )
+                    else:
+                        lost_mode_auto_push['sms_sent'] = False
+                        lost_mode_auto_push['sms_skipped_reason'] = (
+                            sms_result.get('error') or 'sms_failed'
+                        )
+                        logger.warning(
+                            'Lost Mode auto SMS failed qr_id=%s err=%s api=%s',
+                            qr_id,
+                            sms_result.get('error'),
+                            sms_result.get('api'),
+                        )
+                else:
+                    lost_mode_auto_push['sms_sent'] = False
+                    lost_mode_auto_push['sms_skipped_reason'] = 'no_phone'
+                    logger.warning(
+                        'Lost Mode auto SMS skipped qr_id=%s reason=no_phone '
+                        'ownerContact=%r contactNumber=%r',
+                        qr_id,
+                        (vehicle_data or {}).get('ownerContact'),
+                        (user_data or {}).get('contactNumber'),
+                    )
+
+                # 2) App push (independent of SMS).
+                try:
+                    push_result = attempt_lost_mode_auto_push(
+                        request=request,
+                        db=db,
+                        qr_id=qr_id,
+                        vehicle_id=str(qr_data.get('vehicleID') or ''),
+                        vehicle_data=vehicle_data,
+                        user_data=user_data,
+                        user_ref=user_ref,
+                        vehicle_ref=vehicle_ref,
+                        push_capable=bool(has_fcm_token),
+                        send_push_fn=send_push_to_tokens,
+                        location_payload={
+                            'scanned_at': scanned_at_now.isoformat(),
+                        },
+                        photos_raw=[],
+                        upload_photos=False,
+                    )
+                    # Preserve SMS fields while merging push result.
+                    push_result['sms_sent'] = lost_mode_auto_push.get('sms_sent')
+                    push_result['sms_skipped_reason'] = lost_mode_auto_push.get(
+                        'sms_skipped_reason'
+                    )
+                    if not push_result.get('scanned_at_display'):
+                        push_result['scanned_at_display'] = scanned_at_display
+                    if not push_result.get('tip_body'):
+                        push_result['tip_body'] = tip_body
+                    lost_mode_auto_push = push_result
+                except Exception as push_err:
+                    logger.warning(
+                        'Lost Mode auto push error qr_id=%s: %s',
+                        qr_id,
+                        push_err,
+                    )
+                    lost_mode_auto_push['skipped_reason'] = 'push_error'
+
+                sms_ok = bool(lost_mode_auto_push.get('sms_sent'))
+                push_ok = bool(lost_mode_auto_push.get('fcm_message_id'))
+                if sms_ok and push_ok:
+                    lost_mode_auto_push['sent'] = True
+                    lost_mode_auto_push['notice'] = (
+                        'Owner notified by app notification and SMS.'
+                        f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
+                    )
+                elif sms_ok and not push_ok:
+                    lost_mode_auto_push['sent'] = True
+                    lost_mode_auto_push['notice'] = (
+                        'Owner notified by SMS.'
+                        f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
+                    )
+                elif push_ok and not sms_ok:
+                    lost_mode_auto_push['sent'] = True
+                    time_bit = lost_mode_auto_push.get('scanned_at_display') or ''
+                    base = lost_mode_auto_push.get('notice') or (
+                        'Owner notified by app notification.'
+                    )
+                    sms_skip = lost_mode_auto_push.get('sms_skipped_reason') or ''
+                    if sms_skip == 'no_phone':
+                        lost_mode_auto_push['notice'] = (
+                            f'{base} SMS skipped — no phone on file.'
+                        ).strip()
+                    elif sms_skip:
+                        lost_mode_auto_push['notice'] = (
+                            f'{base} SMS could not be sent.'
+                        ).strip()
+                    elif time_bit and 'Scanned at' not in base:
+                        lost_mode_auto_push['notice'] = (
+                            f'{base} Scanned at {time_bit}.'
+                        ).strip()
+
+                if lost_mode_auto_push.get('sent') or sms_ok:
                     lost_mode_auto_push['sent'] = True
                     logger.info(
                         'Lost Mode auto notify qr_id=%s push=%s sms=%s',
                         qr_id,
-                        bool(lost_mode_auto_push.get('fcm_message_id')),
-                        bool(lost_mode_auto_push.get('sms_sent')),
+                        push_ok,
+                        sms_ok,
                     )
                 elif lost_mode_auto_push.get('skipped_reason'):
                     logger.info(
-                        'Lost Mode auto notify skipped qr_id=%s reason=%s',
+                        'Lost Mode auto notify skipped qr_id=%s reason=%s sms=%s',
                         qr_id,
                         lost_mode_auto_push.get('skipped_reason'),
+                        lost_mode_auto_push.get('sms_skipped_reason'),
                     )
                 lost_mode_auto_push['pending_client_sighting'] = False
 

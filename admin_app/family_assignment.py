@@ -64,6 +64,22 @@ def has_active_family_assignment(
     return now < until_dt
 
 
+def vehicle_owner_contact_number(
+    vehicle_data: Optional[Mapping[str, Any]],
+    user_data: Optional[Mapping[str, Any]] = None,
+) -> Optional[str]:
+    """
+    Always the vehicle owner's 10-digit phone (never family assignment).
+
+    Prefers ``vehicle.ownerContact``, then ``users.contactNumber``.
+    """
+    vehicle_data = vehicle_data or {}
+    user_data = user_data or {}
+    return normalize_phone_digits(
+        vehicle_data.get('ownerContact') or user_data.get('contactNumber')
+    )
+
+
 def effective_contact_number(
     vehicle_data: Optional[Mapping[str, Any]],
     user_data: Optional[Mapping[str, Any]] = None,
