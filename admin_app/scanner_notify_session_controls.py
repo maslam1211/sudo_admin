@@ -19,6 +19,7 @@ from django.http import JsonResponse
 SHEET_DONE_KEY = "sudo_notify_sheet_done_{qr_id}"
 MESSAGING_ATTEMPTS_KEY = "sudo_notify_msg_attempts_{qr_id}"
 SESSION_UNTIL_KEY = "sudo_notify_session_until_{qr_id}"
+LOST_AUTO_PUSH_KEY = "sudo_lost_auto_push_{qr_id}"
 
 # Hard ceiling for the server-side visit (QR continuity after a successful contact).
 NOTIFY_SESSION_TTL_SEC = 180
@@ -36,6 +37,10 @@ def notify_messaging_attempts_key(qr_id: str) -> str:
 
 def notify_session_until_key(qr_id: str) -> str:
     return SESSION_UNTIL_KEY.format(qr_id=str(qr_id or "").strip())
+
+
+def lost_mode_auto_push_key(qr_id: str) -> str:
+    return LOST_AUTO_PUSH_KEY.format(qr_id=str(qr_id or "").strip())
 
 
 def mark_notify_sheet_done(request, qr_id: str) -> None:
@@ -66,11 +71,29 @@ def clear_notify_session_until(request, qr_id: str) -> None:
         request.session.modified = True
 
 
+def clear_lost_mode_auto_push(request, qr_id: str) -> None:
+    """Allow another automatic Lost Mode sighting push after a fresh rescan."""
+    key = lost_mode_auto_push_key(qr_id)
+    if key in request.session:
+        request.session.pop(key, None)
+        request.session.modified = True
+
+
+def has_lost_mode_auto_push_sent(request, qr_id: str) -> bool:
+    return bool(request.session.get(lost_mode_auto_push_key(qr_id)))
+
+
+def mark_lost_mode_auto_push_sent(request, qr_id: str) -> None:
+    request.session[lost_mode_auto_push_key(qr_id)] = True
+    request.session.modified = True
+
+
 def clear_notify_session_for_rescan(request, qr_id: str) -> None:
     """Full reset when the scanner reloads with ?_sudo_rescan=1."""
     clear_notify_sheet_done(request, qr_id)
     clear_notify_messaging_attempts(request, qr_id)
     clear_notify_session_until(request, qr_id)
+    clear_lost_mode_auto_push(request, qr_id)
 
 
 def get_notify_session_until(request, qr_id: str) -> float | None:

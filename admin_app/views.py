@@ -43,7 +43,7 @@ from .owner_live_status import (
     live_status_service_lines,
     parse_owner_live_status,
 )
-from .vehicle_lost_mode import parse_vehicle_lost_mode
+from .vehicle_lost_mode import attempt_lost_mode_auto_push, parse_vehicle_lost_mode
 from .family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
@@ -2903,6 +2903,12 @@ def send_notification(request, qr_id):
             )
         scanner_notify_show_terminal_sheet = False
         notify_session_expires_at = None
+        lost_mode_auto_push = {
+            'attempted': False,
+            'sent': False,
+            'skipped_reason': None,
+            'notice': '',
+        }
         if request.method == 'GET':
             if request.GET.get('_sudo_rescan') == '1':
                 clear_notify_session_for_rescan(request, qr_id)
@@ -2912,6 +2918,40 @@ def send_notification(request, qr_id):
                 )
             if is_notify_session_active(request, qr_id):
                 notify_session_expires_at = get_notify_session_until(request, qr_id)
+
+            # Lost Mode: auto tip the owner once per browser session when the QR opens.
+            if (
+                vehicle_lost_mode.get('is_lost_mode')
+                and not scanner_notify_show_terminal_sheet
+            ):
+                lost_mode_auto_push = attempt_lost_mode_auto_push(
+                    request=request,
+                    db=db,
+                    qr_id=qr_id,
+                    vehicle_id=str(qr_data.get('vehicleID') or ''),
+                    vehicle_data=vehicle_data,
+                    user_data=user_data,
+                    user_ref=user_ref,
+                    vehicle_ref=vehicle_ref,
+                    push_capable=push_capable,
+                    send_push_fn=send_push_to_tokens,
+                )
+                if lost_mode_auto_push.get('sent'):
+                    logger.info(
+                        'Lost Mode auto push sent for qr_id=%s vehicle_id=%s',
+                        qr_id,
+                        qr_data.get('vehicleID'),
+                    )
+                elif lost_mode_auto_push.get('skipped_reason') not in (
+                    None,
+                    'already_sent',
+                    'not_lost_mode',
+                ):
+                    logger.info(
+                        'Lost Mode auto push skipped qr_id=%s reason=%s',
+                        qr_id,
+                        lost_mode_auto_push.get('skipped_reason'),
+                    )
 
         context = {
             'vehicle_data': _notify_vehicle_context(vehicle_data),
@@ -2943,6 +2983,7 @@ def send_notification(request, qr_id):
             'owner_live_status': owner_live,
             'owner_live_status_json': live_status_json_payload(owner_live),
             'vehicle_lost_mode': vehicle_lost_mode,
+            'lost_mode_auto_push': lost_mode_auto_push,
         }
         
         return render(request, 'send_notification.html', context)

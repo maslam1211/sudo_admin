@@ -263,6 +263,18 @@
       color: rgba(255, 255, 255, 0.78);
     }
 
+    body.notify-app .notify-lost-mode-auto-sent {
+      margin: 0.15rem 0 0;
+      padding: 0.55rem 0.7rem;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 650;
+      line-height: 1.35;
+      color: #fecaca;
+      background: rgba(255, 59, 48, 0.16);
+      border: 1px solid rgba(255, 59, 48, 0.35);
+    }
+
     body.notify-app .notify-lost-mode-badge {
       display: inline-flex;
       align-items: center;
@@ -4170,6 +4182,12 @@
         <p class="notify-lost-mode-banner-title">{{ vehicle_lost_mode.banner_title }}</p>
       </div>
       <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
+      {% if lost_mode_auto_push.sent or lost_mode_auto_push.skipped_reason == 'already_sent' %}
+      <p class="notify-lost-mode-auto-sent" id="notifyLostModeAutoSent">
+        <i class="bi bi-bell-fill" aria-hidden="true"></i>
+        {{ lost_mode_auto_push.notice|default:vehicle_lost_mode.auto_push_sent_notice }}
+      </p>
+      {% endif %}
     </aside>
     {% endif %}
     {% if scanner_has_any_channel %}

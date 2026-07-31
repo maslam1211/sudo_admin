@@ -26,6 +26,15 @@ TIP_CTA_SUB = 'Send a tip to help recover this vehicle'
 REASONS_HEADING = 'Help recover this vehicle'
 REASONS_LEAD = 'Tip the owner — choose how you spotted this vehicle, or pick another reason.'
 
+# Automatic push when a Lost Mode vehicle QR is opened in the browser.
+AUTO_PUSH_TITLE = 'Lost Mode — Vehicle spotted'
+AUTO_PUSH_BODY = (
+    'Someone scanned your SUDO Tag. Your vehicle was spotted while Lost Mode is on.'
+)
+AUTO_PUSH_SENT_NOTICE = (
+    'Owner notified automatically on their phone — thank you for helping.'
+)
+
 
 def _truthy_bool(raw: Any) -> bool:
     if raw is True:
@@ -80,4 +89,130 @@ def parse_vehicle_lost_mode(vehicle_data: dict | None) -> dict:
         'tip_cta_sub': TIP_CTA_SUB,
         'reasons_heading': REASONS_HEADING,
         'reasons_lead': REASONS_LEAD,
+        'auto_push_sent_notice': AUTO_PUSH_SENT_NOTICE,
     }
+
+
+def collect_owner_fcm_tokens(vehicle_data: dict | None, user_data: dict | None) -> list[str]:
+    """Vehicle fcmToken first, then users/{uid}.fcmToken (same as manual push)."""
+    vehicle = vehicle_data if isinstance(vehicle_data, dict) else {}
+    user = user_data if isinstance(user_data, dict) else {}
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for raw in (vehicle.get('fcmToken'), user.get('fcmToken')):
+        if isinstance(raw, str) and raw.strip() and raw.strip() not in seen:
+            seen.add(raw.strip())
+            tokens.append(raw.strip())
+    return tokens
+
+
+def attempt_lost_mode_auto_push(
+    *,
+    request,
+    db,
+    qr_id: str,
+    vehicle_id: str,
+    vehicle_data: dict | None,
+    user_data: dict | None,
+    user_ref,
+    vehicle_ref,
+    push_capable: bool,
+    send_push_fn,
+) -> dict:
+    """
+    On Lost Mode QR page load, push the owner once per browser session.
+
+    Uses push capability (token + prefs) but does **not** require Live Status
+    messaging — recovery sightings should still reach the owner when possible.
+    Reloads are deduped via session; ``?_sudo_rescan=1`` clears the flag.
+    """
+    from .scanner_notify_session_controls import (
+        has_lost_mode_auto_push_sent,
+        mark_lost_mode_auto_push_sent,
+    )
+
+    result = {
+        'attempted': False,
+        'sent': False,
+        'skipped_reason': None,
+        'notice': '',
+    }
+    lost = parse_vehicle_lost_mode(vehicle_data)
+    if not lost['is_lost_mode']:
+        result['skipped_reason'] = 'not_lost_mode'
+        return result
+
+    if has_lost_mode_auto_push_sent(request, qr_id):
+        result['skipped_reason'] = 'already_sent'
+        result['notice'] = AUTO_PUSH_SENT_NOTICE
+        return result
+
+    if not push_capable:
+        result['skipped_reason'] = 'push_unavailable'
+        return result
+
+    tokens = collect_owner_fcm_tokens(vehicle_data, user_data)
+    if not tokens:
+        result['skipped_reason'] = 'no_token'
+        return result
+
+    owner_id = str((vehicle_data or {}).get('ownerId') or '')
+    if not owner_id:
+        result['skipped_reason'] = 'no_owner'
+        return result
+
+    result['attempted'] = True
+    fcm_data = {
+        'vehicleId': str(vehicle_id or ''),
+        'qrId': str(qr_id or ''),
+        'notificationType': 'vehicle_alert',
+        'type': 'vehicle_alert',
+        'lostMode': 'true',
+        'lostModeSighting': 'true',
+    }
+    try:
+        push_result = send_push_fn(
+            db,
+            user_id=owner_id,
+            tokens=tokens,
+            title=AUTO_PUSH_TITLE,
+            body=AUTO_PUSH_BODY,
+            data=fcm_data,
+            store_inbox=True,
+        )
+    except Exception as exc:
+        result['skipped_reason'] = 'send_failed'
+        result['error'] = str(exc)
+        return result
+
+    success_count = int(push_result.get('success_count') or 0)
+    failed_tokens = push_result.get('failed_tokens') or []
+    vehicle_token = ''
+    single_token = ''
+    if isinstance(vehicle_data, dict):
+        vehicle_token = vehicle_data.get('fcmToken') or ''
+    if isinstance(user_data, dict):
+        single_token = user_data.get('fcmToken') or ''
+
+    if failed_tokens:
+        try:
+            if single_token and single_token in failed_tokens and user_ref is not None:
+                user_ref.update({'fcmToken': ''})
+        except Exception:
+            pass
+        try:
+            if vehicle_token and vehicle_token in failed_tokens and vehicle_ref is not None:
+                vehicle_ref.update({'fcmToken': ''})
+        except Exception:
+            pass
+
+    if success_count > 0:
+        mark_lost_mode_auto_push_sent(request, qr_id)
+        result['sent'] = True
+        result['notice'] = AUTO_PUSH_SENT_NOTICE
+        result['fcm_message_id'] = push_result.get('message_id')
+        return result
+
+    result['skipped_reason'] = 'send_failed'
+    result['error'] = str(push_result.get('last_error') or push_result.get('error') or 'Unknown')
+    return result
