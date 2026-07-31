@@ -86,6 +86,8 @@ def notify_owner_lost_mode_enabled(
     vehicle_id: str,
     vehicle_data: Optional[Mapping[str, Any]] = None,
     user_data: Optional[Mapping[str, Any]] = None,
+    client_sms_sent: bool = False,
+    sms_body_override: str = '',
 ) -> dict[str, Any]:
     """
     Send the existing MSG91 vehicle-issue SMS when Lost Mode turns ON.
@@ -93,6 +95,9 @@ def notify_owner_lost_mode_enabled(
     Loads vehicle/owner from Firestore when docs are not passed in.
     Always writes ``lostModeNotificationHistory``; also stores an inbox row
     when SMS is queued successfully.
+
+    If ``client_sms_sent`` is True, skips MSG91 (mobile already used the
+    working SmsService path) and only logs + inbox.
     """
     result: dict[str, Any] = {
         'ok': False,
@@ -135,6 +140,71 @@ def notify_owner_lost_mode_enabled(
         user_data = udoc.to_dict() if udoc.exists else {}
 
     digits = _owner_digits(vehicle_data, user_data)
+    sms_body = (sms_body_override or '').strip() or build_lost_mode_enabled_sms_body(
+        registration_number=str(
+            (vehicle_data or {}).get('registrationNumber') or ''
+        ),
+        vehicle_name=str(
+            (vehicle_data or {}).get('vehicleName')
+            or (vehicle_data or {}).get('vehicleNameWithMake')
+            or ''
+        ),
+    )
+    phone_last4 = (digits or '')[-4:] if digits else ''
+
+    # Mobile already sent via the proven SmsService path — log only.
+    if client_sms_sent:
+        inbox_id = None
+        try:
+            stored = store_inbox_notification(
+                db,
+                user_id=owner_id,
+                title=LOST_MODE_ENABLED_SMS_TITLE,
+                body=sms_body,
+                type_value=LOST_MODE_ENABLED_INBOX_TYPE,
+                data={
+                    'vehicleId': vid,
+                    'lostMode': 'true',
+                    'channel': 'sms',
+                    'clientSmsSent': 'true',
+                    'notificationType': LOST_MODE_ENABLED_INBOX_TYPE,
+                    'type': LOST_MODE_ENABLED_INBOX_TYPE,
+                },
+            )
+            inbox_id = stored.get('notification_id')
+        except Exception as exc:
+            logger.warning(
+                'Lost Mode enabled inbox write failed vehicle=%s: %s',
+                vid,
+                exc,
+            )
+        history_id = _write_history(
+            db,
+            vehicle_id=vid,
+            owner_id=owner_id,
+            status='sent',
+            phone_last4=phone_last4,
+            sms_body=sms_body,
+            msg91={'source': 'client_sms_service'},
+            inbox_notification_id=inbox_id,
+        )
+        result.update(
+            {
+                'ok': True,
+                'sms_sent': True,
+                'history_id': history_id,
+                'inbox_notification_id': inbox_id,
+                'phone_last4': phone_last4,
+                'skipped_reason': None,
+            }
+        )
+        logger.info(
+            'Lost Mode enabled SMS logged (client-sent) vehicle=%s history=%s',
+            vid,
+            history_id,
+        )
+        return result
+
     if not digits or len(digits) != 10:
         result['skipped_reason'] = 'no_phone'
         result['error'] = 'no_phone'
@@ -151,17 +221,6 @@ def notify_owner_lost_mode_enabled(
             vid,
         )
         return result
-
-    sms_body = build_lost_mode_enabled_sms_body(
-        registration_number=str(
-            (vehicle_data or {}).get('registrationNumber') or ''
-        ),
-        vehicle_name=str(
-            (vehicle_data or {}).get('vehicleName')
-            or (vehicle_data or {}).get('vehicleNameWithMake')
-            or ''
-        ),
-    )
 
     sms_result = send_vehicle_issue_sms(digits_10=digits, message=sms_body)
     phone_last4 = digits[-4:]

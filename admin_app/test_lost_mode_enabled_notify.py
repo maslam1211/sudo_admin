@@ -55,6 +55,34 @@ class LostModeEnabledNotifyTests(SimpleTestCase):
         self.assertEqual(history_ref.set.call_args.args[0]['status'], 'sent')
         self.assertEqual(history_ref.set.call_args.args[0]['channel'], 'sms')
 
+    @patch('admin_app.lost_mode_enabled_notify.store_inbox_notification')
+    @patch('admin_app.lost_mode_enabled_notify.send_vehicle_issue_sms')
+    def test_client_already_sent_skips_msg91(self, sms_fn, inbox_fn):
+        inbox_fn.return_value = {'notification_id': 'n2', 'delivery_id': 'd2'}
+        history_ref = MagicMock()
+        history_ref.id = 'h3'
+        db = MagicMock()
+        db.collection.return_value.document.return_value = history_ref
+
+        result = notify_owner_lost_mode_enabled(
+            db,
+            vehicle_id='v1',
+            vehicle_data={
+                'ownerId': 'u1',
+                'ownerContact': '9876543210',
+                'registrationNumber': 'KL01A1',
+            },
+            user_data={},
+            client_sms_sent=True,
+            sms_body_override='Lost Mode is now ON for KL01A1.',
+        )
+        self.assertTrue(result['sms_sent'])
+        sms_fn.assert_not_called()
+        self.assertEqual(
+            history_ref.set.call_args.args[0]['msg91'].get('source'),
+            'client_sms_service',
+        )
+
     @patch('admin_app.lost_mode_enabled_notify.send_vehicle_issue_sms')
     def test_skips_when_no_phone(self, sms_fn):
         history_ref = MagicMock()

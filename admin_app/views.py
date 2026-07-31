@@ -3813,24 +3813,42 @@ def lost_mode_enabled_webhook(request):
             )
         vehicle_data = vdoc.to_dict() or {}
         lost = parse_vehicle_lost_mode(vehicle_data)
-        if not lost.get('is_lost_mode'):
-            # App should write Firestore first; still allow explicit force.
-            if not data.get('force'):
-                return JsonResponse(
-                    {
-                        'status': 'ok',
-                        'sms_sent': False,
-                        'skipped_reason': 'not_lost_mode_in_firestore',
-                        'message': (
-                            'Vehicle isLostMode is not true in Firestore yet.'
-                        ),
-                    }
-                )
+        source = str(data.get('source') or '').strip().lower()
+        client_sms_sent = data.get('client_sms_sent') in (
+            True,
+            1,
+            '1',
+            'true',
+            'True',
+            'yes',
+        )
+        # Mobile writes Firestore then calls immediately — skip stale-read gate.
+        force = bool(data.get('force')) or source == 'mobile' or client_sms_sent
+        if not lost.get('is_lost_mode') and not force:
+            return JsonResponse(
+                {
+                    'status': 'ok',
+                    'sms_sent': False,
+                    'skipped_reason': 'not_lost_mode_in_firestore',
+                    'message': (
+                        'Vehicle isLostMode is not true in Firestore yet.'
+                    ),
+                }
+            )
+
+        sms_body_override = str(
+            data.get('sms_body')
+            or data.get('message')
+            or data.get('issue')
+            or ''
+        ).strip()
 
         notify = notify_owner_lost_mode_enabled(
             db,
             vehicle_id=vehicle_id,
             vehicle_data=vehicle_data,
+            client_sms_sent=client_sms_sent,
+            sms_body_override=sms_body_override,
         )
         if notify.get('sms_sent'):
             return JsonResponse(

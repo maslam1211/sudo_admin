@@ -69,6 +69,8 @@ def send_vehicle_issue_sms(
         'Content-Type': 'application/json',
         'authkey': authkey,
     }
+    # Match the working mobile SmsService payload exactly (approved DLT mapping).
+    # Flutter uses var.type = "text" for vehicle-issue campaign SMS.
     payload = {
         'data': {
             'sendTo': [
@@ -78,7 +80,7 @@ def send_vehicle_issue_sms(
                             'mobiles': formatted,
                             'variables': {
                                 'var': {
-                                    'type': 'vehicle_issue',
+                                    'type': 'text',
                                     'value': text,
                                 }
                             },
@@ -86,7 +88,7 @@ def send_vehicle_issue_sms(
                     ],
                     'variables': {
                         'var': {
-                            'type': 'vehicle_issue',
+                            'type': 'text',
                             'value': text,
                         }
                     },

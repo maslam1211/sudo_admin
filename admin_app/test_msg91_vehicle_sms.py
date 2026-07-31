@@ -32,6 +32,10 @@ class SendVehicleIssueSmsTests(SimpleTestCase):
         self.assertEqual(mobile, '919876543210')
         value = payload['data']['sendTo'][0]['to'][0]['variables']['var']['value']
         self.assertEqual(value, 'Lost Mode tip')
+        self.assertEqual(
+            payload['data']['sendTo'][0]['to'][0]['variables']['var']['type'],
+            'text',
+        )
 
     @override_settings(MSG91_AUTH_KEY='test-key')
     @patch('admin_app.msg91_vehicle_sms.requests.post')
