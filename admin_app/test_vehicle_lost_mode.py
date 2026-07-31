@@ -117,10 +117,24 @@ class LostModeLocationTests(SimpleTestCase):
         self.assertEqual(loc['accuracy_m'], 40.0)
 
     def test_build_push_body_with_place_and_photos(self):
-        body = build_sighting_push_body(place_label='Kochi', photo_count=2)
+        body = build_sighting_push_body(
+            place_label='Kochi',
+            photo_count=2,
+            scanned_at_display='01 Aug 2026, 04:10 AM IST',
+        )
         self.assertIn('Kochi', body)
         self.assertIn('2 photo', body)
-        self.assertIn(AUTO_PUSH_BODY.split('.')[0], build_sighting_push_body())
+        self.assertIn('01 Aug 2026', body)
+        self.assertIn('Scanned at', body)
+
+    def test_format_scanned_at_ist(self):
+        from admin_app.vehicle_lost_mode import format_scanned_at_ist
+
+        label = format_scanned_at_ist(
+            datetime(2026, 8, 1, 10, 30, tzinfo=timezone.utc)
+        )
+        self.assertIn('IST', label)
+        self.assertIn('2026', label)
 
 
 class LostModeAutoPushTests(SimpleTestCase):

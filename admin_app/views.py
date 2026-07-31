@@ -2470,6 +2470,9 @@ def send_notification(request, qr_id):
                                 'sighting_id': sighting.get('sighting_id'),
                                 'place_label': sighting.get('place_label') or '',
                                 'photo_count': sighting.get('photo_count') or 0,
+                                'scanned_at': sighting.get('scanned_at') or '',
+                                'scanned_at_display': sighting.get('scanned_at_display')
+                                or '',
                                 'redirect_home': False,
                             }
                         )

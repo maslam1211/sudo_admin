@@ -153,6 +153,7 @@ def build_sighting_push_body(
     *,
     place_label: str = '',
     photo_count: int = 0,
+    scanned_at_display: str = '',
 ) -> str:
     if place_label:
         body = (
@@ -161,9 +162,29 @@ def build_sighting_push_body(
         )
     else:
         body = AUTO_PUSH_BODY
+    if scanned_at_display:
+        body += f' Scanned at {scanned_at_display}.'
     if photo_count > 0:
-        body += f' {int(photo_count)} photo(s) attached — open the app notification for details.'
+        body += (
+            f' {int(photo_count)} photo(s) attached — '
+            'open the app notification for details.'
+        )
     return body
+
+
+def format_scanned_at_ist(when: datetime | None = None) -> str:
+    """Human-readable scan time in India Standard Time for owner push copy."""
+    try:
+        import pytz
+
+        tz = pytz.timezone('Asia/Kolkata')
+    except Exception:
+        tz = timezone.utc
+    now = when or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    local = now.astimezone(tz)
+    return local.strftime('%d %b %Y, %I:%M %p IST')
 
 
 def parse_sighting_location(payload: dict | None) -> dict:
@@ -258,10 +279,15 @@ def store_lost_mode_sighting(
     location: dict,
     photo_urls: list[str],
     source: str = 'web_qr',
+    scanned_at: datetime | None = None,
+    scanned_at_display: str = '',
 ) -> str:
     """Persist a sighting document; returns sighting id."""
     ref = db.collection('lostModeSightings').document()
-    now = datetime.now(timezone.utc)
+    now = scanned_at or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    display = scanned_at_display or format_scanned_at_ist(now)
     doc = {
         'ownerId': str(owner_id or '').strip(),
         'vehicleId': str(vehicle_id or '').strip(),
@@ -273,6 +299,9 @@ def store_lost_mode_sighting(
         'placeLabel': location.get('place_label') or '',
         'photoUrls': list(photo_urls or []),
         'photoCount': len(photo_urls or []),
+        'scannedAt': now,
+        'scannedAtIso': now.isoformat(),
+        'scannedAtDisplay': display,
         'createdAt': now,
         'createdAtIso': now.isoformat(),
     }
@@ -342,6 +371,24 @@ def attempt_lost_mode_auto_push(
         return result
 
     location = parse_sighting_location(location_payload)
+    scanned_at = datetime.now(timezone.utc)
+    raw_scanned = None
+    if isinstance(location_payload, dict):
+        raw_scanned = location_payload.get('scanned_at') or location_payload.get(
+            'scannedAt'
+        )
+    if isinstance(raw_scanned, str) and raw_scanned.strip():
+        try:
+            parsed = datetime.fromisoformat(
+                raw_scanned.strip().replace('Z', '+00:00')
+            )
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            scanned_at = parsed.astimezone(timezone.utc)
+        except ValueError:
+            pass
+    scanned_at_display = format_scanned_at_ist(scanned_at)
+
     sighting_id = uuid.uuid4().hex[:16]
     photo_urls: list[str] = []
     if upload_photos and photos_raw:
@@ -359,6 +406,8 @@ def attempt_lost_mode_auto_push(
             qr_id=qr_id,
             location=location,
             photo_urls=photo_urls,
+            scanned_at=scanned_at,
+            scanned_at_display=scanned_at_display,
         )
     except Exception as exc:
         logger.warning('Lost Mode sighting store failed: %s', exc)
@@ -368,12 +417,15 @@ def attempt_lost_mode_auto_push(
     body = build_sighting_push_body(
         place_label=place,
         photo_count=len(photo_urls),
+        scanned_at_display=scanned_at_display,
     )
     result['attempted'] = True
     result['place_label'] = place
     result['photo_count'] = len(photo_urls)
     result['photo_urls'] = photo_urls
     result['sighting_id'] = sighting_id
+    result['scanned_at'] = scanned_at.isoformat()
+    result['scanned_at_display'] = scanned_at_display
 
     fcm_data = {
         'vehicleId': str(vehicle_id or ''),
@@ -385,6 +437,8 @@ def attempt_lost_mode_auto_push(
         'sightingId': str(sighting_id),
         'placeLabel': place,
         'photoCount': str(len(photo_urls)),
+        'scannedAt': scanned_at.isoformat(),
+        'scannedAtDisplay': scanned_at_display,
     }
     if location.get('has_location'):
         fcm_data['latitude'] = str(location['latitude'])
@@ -436,21 +490,22 @@ def attempt_lost_mode_auto_push(
     if success_count > 0:
         mark_lost_mode_auto_push_sent(request, qr_id)
         result['sent'] = True
+        time_bit = f' Scanned at {scanned_at_display}.' if scanned_at_display else ''
         if place and photo_urls:
             result['notice'] = (
                 f'Owner notified with your approximate location ({place}) '
-                f'and {len(photo_urls)} photo(s).'
+                f'and {len(photo_urls)} photo(s).{time_bit}'
             )
         elif place:
             result['notice'] = (
-                f'Owner notified with your approximate location ({place}).'
+                f'Owner notified with your approximate location ({place}).{time_bit}'
             )
         elif photo_urls:
             result['notice'] = (
-                f'Owner notified with {len(photo_urls)} photo(s).'
+                f'Owner notified with {len(photo_urls)} photo(s).{time_bit}'
             )
         else:
-            result['notice'] = AUTO_PUSH_SENT_NOTICE
+            result['notice'] = AUTO_PUSH_SENT_NOTICE + time_bit
         result['fcm_message_id'] = push_result.get('message_id')
         return result
 
