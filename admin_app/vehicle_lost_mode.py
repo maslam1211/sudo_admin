@@ -326,16 +326,11 @@ def attempt_lost_mode_auto_push(
     upload_photos: bool = True,
 ) -> dict:
     """
-    Push the owner for a Lost Mode sighting on each QR scan.
+    Push the owner for a Lost Mode sighting on each QR page load (every scan).
 
-    A short per-QR cooldown blocks only accidental double page-loads; every
-    new scan (after the cooldown) notifies again with location + scan time.
+    No cooldown — each successful page open notifies again. Approximate
+    location may be empty on the initial server tip; scan time is always set.
     """
-    from .scanner_notify_session_controls import (
-        has_lost_mode_auto_push_sent,
-        mark_lost_mode_auto_push_sent,
-    )
-
     result = {
         'attempted': False,
         'sent': False,
@@ -349,20 +344,6 @@ def attempt_lost_mode_auto_push(
     lost = parse_vehicle_lost_mode(vehicle_data)
     if not lost['is_lost_mode']:
         result['skipped_reason'] = 'not_lost_mode'
-        return result
-
-    if has_lost_mode_auto_push_sent(request, qr_id):
-        result['skipped_reason'] = 'already_sent'
-        result['notice'] = AUTO_PUSH_SENT_NOTICE
-        return result
-
-    if not push_capable:
-        result['skipped_reason'] = 'push_unavailable'
-        return result
-
-    tokens = collect_owner_fcm_tokens(vehicle_data, user_data)
-    if not tokens:
-        result['skipped_reason'] = 'no_token'
         return result
 
     owner_id = str((vehicle_data or {}).get('ownerId') or '')
@@ -426,6 +407,16 @@ def attempt_lost_mode_auto_push(
     result['sighting_id'] = sighting_id
     result['scanned_at'] = scanned_at.isoformat()
     result['scanned_at_display'] = scanned_at_display
+    # Shared tip body for SMS when push is unavailable.
+    result['tip_body'] = body
+
+    tokens = collect_owner_fcm_tokens(vehicle_data, user_data)
+    if not push_capable:
+        result['skipped_reason'] = 'push_unavailable'
+        return result
+    if not tokens:
+        result['skipped_reason'] = 'no_token'
+        return result
 
     fcm_data = {
         'vehicleId': str(vehicle_id or ''),
@@ -488,7 +479,6 @@ def attempt_lost_mode_auto_push(
             pass
 
     if success_count > 0:
-        mark_lost_mode_auto_push_sent(request, qr_id)
         result['sent'] = True
         time_bit = f' Scanned at {scanned_at_display}.' if scanned_at_display else ''
         if place and photo_urls:

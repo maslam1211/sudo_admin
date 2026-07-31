@@ -5,12 +5,6 @@ from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, SimpleTestCase
 
-from admin_app.scanner_notify_session_controls import (
-    clear_lost_mode_auto_push,
-    clear_notify_session_for_rescan,
-    has_lost_mode_auto_push_sent,
-    mark_lost_mode_auto_push_sent,
-)
 from admin_app.vehicle_lost_mode import (
     AUTO_PUSH_BODY,
     AUTO_PUSH_TITLE,
@@ -23,6 +17,7 @@ from admin_app.vehicle_lost_mode import (
     build_sighting_push_body,
     collect_owner_fcm_tokens,
     format_place_label,
+    format_scanned_at_ist,
     parse_sighting_location,
     parse_vehicle_lost_mode,
 )
@@ -128,8 +123,6 @@ class LostModeLocationTests(SimpleTestCase):
         self.assertIn('Scanned at', body)
 
     def test_format_scanned_at_ist(self):
-        from admin_app.vehicle_lost_mode import format_scanned_at_ist
-
         label = format_scanned_at_ist(
             datetime(2026, 8, 1, 10, 30, tzinfo=timezone.utc)
         )
@@ -182,8 +175,8 @@ class LostModeAutoPushTests(SimpleTestCase):
         self.assertFalse(result['sent'])
         self.assertEqual(result['skipped_reason'], 'not_lost_mode')
 
-    @patch('admin_app.vehicle_lost_mode.upload_sighting_photos', return_value=['https://cdn.example/p1.jpg'])
-    def test_dedupe_skips_second_send(self, _upload):
+    @patch('admin_app.vehicle_lost_mode.upload_sighting_photos', return_value=[])
+    def test_every_scan_sends_again_no_cooldown(self, _upload):
         request = self._session_request()
         send_fn = MagicMock(return_value={'success_count': 1, 'message_id': 'm1'})
         vehicle = {
@@ -206,20 +199,22 @@ class LostModeAutoPushTests(SimpleTestCase):
                 'latitude': 12.97,
                 'longitude': 77.59,
                 'place_label': 'Bengaluru',
+                'scanned_at': '2026-08-01T10:00:00+00:00',
             },
-            photos_raw=['data:image/jpeg;base64,aaaa'],
+            photos_raw=[],
+            upload_photos=False,
         )
         self.assertTrue(first['sent'])
-        self.assertTrue(has_lost_mode_auto_push_sent(request, 'qr1'))
-        self.assertEqual(first['photo_count'], 1)
         self.assertIn('Bengaluru', first['notice'])
-        send_fn.assert_called_once()
+        self.assertTrue(first.get('scanned_at_display'))
+        self.assertIn('Scanned at', first['notice'])
         kwargs = send_fn.call_args.kwargs
         self.assertEqual(kwargs['title'], AUTO_PUSH_TITLE)
         self.assertIn('Bengaluru', kwargs['body'])
+        self.assertIn('Scanned at', kwargs['body'])
         self.assertEqual(kwargs['data'].get('lostMode'), 'true')
-        self.assertEqual(kwargs['data'].get('photoCount'), '1')
 
+        # No cooldown — second scan also notifies.
         second = attempt_lost_mode_auto_push(
             request=request,
             db=self._mock_db(),
@@ -231,38 +226,11 @@ class LostModeAutoPushTests(SimpleTestCase):
             vehicle_ref=None,
             push_capable=True,
             send_push_fn=send_fn,
+            location_payload={'scanned_at': '2026-08-01T10:05:00+00:00'},
+            upload_photos=False,
         )
-        self.assertFalse(second['sent'])
-        self.assertEqual(second['skipped_reason'], 'already_sent')
-        self.assertEqual(send_fn.call_count, 1)
-
-    def test_cooldown_expires_allows_next_scan(self):
-        from admin_app.scanner_notify_session_controls import (
-            LOST_MODE_AUTO_PUSH_COOLDOWN_SEC,
-            lost_mode_auto_push_key,
-        )
-
-        request = self._session_request()
-        # Pretend cooldown already elapsed.
-        request.session[lost_mode_auto_push_key('qr1')] = (
-            __import__('time').time() - 1
-        )
-        self.assertFalse(has_lost_mode_auto_push_sent(request, 'qr1'))
-        mark_lost_mode_auto_push_sent(request, 'qr1')
-        self.assertTrue(has_lost_mode_auto_push_sent(request, 'qr1'))
-        # Force expiry
-        request.session[lost_mode_auto_push_key('qr1')] = (
-            __import__('time').time() - LOST_MODE_AUTO_PUSH_COOLDOWN_SEC
-        )
-        self.assertFalse(has_lost_mode_auto_push_sent(request, 'qr1'))
-
-    def test_rescan_clears_dedupe(self):
-        request = self._session_request()
-        mark_lost_mode_auto_push_sent(request, 'qr1')
-        self.assertTrue(has_lost_mode_auto_push_sent(request, 'qr1'))
-        clear_notify_session_for_rescan(request, 'qr1')
-        self.assertFalse(has_lost_mode_auto_push_sent(request, 'qr1'))
-        clear_lost_mode_auto_push(request, 'qr1')  # idempotent
+        self.assertTrue(second['sent'])
+        self.assertEqual(send_fn.call_count, 2)
 
     def test_skip_when_push_not_capable(self):
         request = self._session_request()
@@ -277,5 +245,11 @@ class LostModeAutoPushTests(SimpleTestCase):
             vehicle_ref=None,
             push_capable=False,
             send_push_fn=MagicMock(),
+            location_payload={'scanned_at': '2026-08-01T10:00:00+00:00'},
+            upload_photos=False,
         )
         self.assertEqual(result['skipped_reason'], 'push_unavailable')
+        self.assertFalse(result['sent'])
+        # Scan time still prepared so SMS can use the same tip body.
+        self.assertTrue(result.get('scanned_at_display'))
+        self.assertTrue(result.get('tip_body'))
