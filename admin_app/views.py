@@ -2375,7 +2375,8 @@ def send_notification(request, qr_id):
 
                 _nm_quick = str(data.get('notification_method') or '').strip().lower()
                 if (
-                    _nm_quick not in ('verify_plate', 'lost_mode_sighting')
+                    _nm_quick
+                    not in ('verify_plate', 'lost_mode_sighting', 'lost_mode_sms')
                     and is_notify_sheet_done(request, qr_id)
                 ):
                     return JsonResponse(
@@ -2399,7 +2400,7 @@ def send_notification(request, qr_id):
                     if _raw_method not in (None, '')
                     else ''
                 )
-                if _method_s in ('push', 'sms', 'lost_mode_sighting'):
+                if _method_s in ('push', 'sms', 'lost_mode_sighting', 'lost_mode_sms'):
                     notification_method = _method_s
                 elif _method_s == '':
                     notification_method = 'push'
@@ -2421,6 +2422,102 @@ def send_notification(request, qr_id):
                 _scanner_f = scanner_flags_from_user_doc(user_data, vehicle_data)
                 _scanner_eff = scanner_effective_channels_now(user_data, vehicle_data)
                 _owner_live = parse_owner_live_status(user_data)
+
+                # Lost Mode auto SMS — always to vehicle owner; bypass Live Status / SMS prefs.
+                if notification_method == 'lost_mode_sms':
+                    vehicle_lost = parse_vehicle_lost_mode(vehicle_data)
+                    if not vehicle_lost.get('is_lost_mode'):
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'error_type': 'not_lost_mode',
+                                'message': 'This vehicle is not in Lost Mode.',
+                            },
+                            status=400,
+                        )
+                    owner_digits = (
+                        vehicle_owner_contact_number(vehicle_data, user_data)
+                        or effective_contact_number(vehicle_data, user_data)
+                        or normalize_phone_number(
+                            user_data.get('contactNumber')
+                            or vehicle_data.get('ownerContact')
+                            or ''
+                        )
+                        or ''
+                    )
+                    if not owner_digits or len(str(owner_digits)) != 10:
+                        logger.warning(
+                            'Lost Mode SMS POST no_phone qr_id=%s ownerContact=%r contactNumber=%r',
+                            qr_id,
+                            vehicle_data.get('ownerContact'),
+                            user_data.get('contactNumber'),
+                        )
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'error_type': 'no_phone_number',
+                                'message': (
+                                    'Owner does not have a valid 10-digit phone '
+                                    'number registered.'
+                                ),
+                                'sms_sent': False,
+                            },
+                            status=400,
+                        )
+                    from .vehicle_lost_mode import format_scanned_at_ist as _fmt_ist
+                    from datetime import datetime as _dt_sms
+                    from datetime import timezone as _tz_sms
+
+                    _when = _dt_sms.now(_tz_sms.utc)
+                    _display = _fmt_ist(_when)
+                    sms_text = (
+                        data.get('reason')
+                        or (
+                            'Lost Mode: someone scanned your SUDO Tag and spotted '
+                            f'your vehicle. Scanned at {_display}.'
+                        )
+                    )
+                    sms_result = send_vehicle_issue_sms(
+                        digits_10=str(owner_digits),
+                        message=str(sms_text),
+                    )
+                    if sms_result.get('ok'):
+                        logger.info(
+                            'Lost Mode SMS POST sent qr_id=%s to owner ***%s',
+                            qr_id,
+                            str(owner_digits)[-4:],
+                        )
+                        return JsonResponse(
+                            {
+                                'status': 'success',
+                                'message': (
+                                    'Owner notified by SMS. '
+                                    f'Scanned at {_display}.'
+                                ),
+                                'notification_type': 'lost_mode_sms',
+                                'sms_sent': True,
+                                'scanned_at_display': _display,
+                                'redirect_home': False,
+                            }
+                        )
+                    logger.warning(
+                        'Lost Mode SMS POST failed qr_id=%s err=%s api=%s',
+                        qr_id,
+                        sms_result.get('error'),
+                        sms_result.get('api'),
+                    )
+                    return JsonResponse(
+                        {
+                            'status': 'error',
+                            'error_type': 'sms_failed',
+                            'message': (
+                                'Could not send SMS to the owner. '
+                                f'{sms_result.get("error") or ""}'
+                            ).strip(),
+                            'sms_sent': False,
+                        },
+                        status=400,
+                    )
 
                 # Lost Mode sighting: approx location + optional photos → owner push.
                 if notification_method == 'lost_mode_sighting':
@@ -2961,8 +3058,8 @@ def send_notification(request, qr_id):
             if is_notify_session_active(request, qr_id):
                 notify_session_expires_at = get_notify_session_until(request, qr_id)
 
-            # Lost Mode: notify owner on every QR page load (no cooldown).
-            # SMS + push both fire automatically and independently.
+            # Lost Mode: push on every QR page load (no cooldown).
+            # SMS is sent via client POST lost_mode_sms (same XHR path as manual SMS).
             if vehicle_lost_mode.get('is_lost_mode'):
                 from datetime import datetime as _lm_dt
                 from datetime import timezone as _lm_tz
@@ -2986,10 +3083,10 @@ def send_notification(request, qr_id):
                     'scanned_at_display': scanned_at_display,
                     'tip_body': tip_body,
                     'fcm_message_id': None,
+                    'pending_client_sms': True,
                 }
 
-                # 1) SMS the vehicle owner first (same number as owner "Send SMS").
-                # Lost Mode always tips the owner — ignore Live Status / SMS toggles.
+                # SMS to vehicle owner (server). Client also POSTs lost_mode_sms if this fails.
                 sms_digits = (
                     vehicle_owner_contact_number(vehicle_data, user_data)
                     or effective_digits_for_call
@@ -3008,50 +3105,45 @@ def send_notification(request, qr_id):
                             message=sms_text,
                         )
                     except Exception as sms_exc:
-                        sms_result = {
-                            'ok': False,
-                            'error': f'exception:{sms_exc}',
-                            'api': None,
-                        }
+                        sms_result = {'ok': False, 'error': f'exception:{sms_exc}'}
                         logger.warning(
-                            'Lost Mode auto SMS exception qr_id=%s: %s',
+                            'Lost Mode GET SMS exception qr_id=%s: %s',
                             qr_id,
                             sms_exc,
                         )
                     if sms_result.get('ok'):
                         lost_mode_auto_push['sms_sent'] = True
                         lost_mode_auto_push['sent'] = True
+                        lost_mode_auto_push['pending_client_sms'] = False
                         lost_mode_auto_push['notice'] = (
                             f'Owner notified by SMS. Scanned at {scanned_at_display}.'
                         )
                         logger.info(
-                            'Lost Mode auto SMS sent qr_id=%s to owner ***%s',
+                            'Lost Mode GET SMS sent qr_id=%s to owner ***%s',
                             qr_id,
                             str(sms_digits)[-4:],
                         )
                     else:
-                        lost_mode_auto_push['sms_sent'] = False
                         lost_mode_auto_push['sms_skipped_reason'] = (
                             sms_result.get('error') or 'sms_failed'
                         )
                         logger.warning(
-                            'Lost Mode auto SMS failed qr_id=%s err=%s api=%s',
+                            'Lost Mode GET SMS failed qr_id=%s err=%s — client will retry',
                             qr_id,
                             sms_result.get('error'),
-                            sms_result.get('api'),
                         )
                 else:
-                    lost_mode_auto_push['sms_sent'] = False
                     lost_mode_auto_push['sms_skipped_reason'] = 'no_phone'
+                    lost_mode_auto_push['pending_client_sms'] = False
                     logger.warning(
-                        'Lost Mode auto SMS skipped qr_id=%s reason=no_phone '
+                        'Lost Mode auto SMS unavailable qr_id=%s reason=no_phone '
                         'ownerContact=%r contactNumber=%r',
                         qr_id,
                         (vehicle_data or {}).get('ownerContact'),
                         (user_data or {}).get('contactNumber'),
                     )
 
-                # 2) App push (independent of SMS).
+                # App push (independent of SMS).
                 try:
                     push_result = attempt_lost_mode_auto_push(
                         request=request,
@@ -3070,10 +3162,12 @@ def send_notification(request, qr_id):
                         photos_raw=[],
                         upload_photos=False,
                     )
-                    # Preserve SMS fields while merging push result.
                     push_result['sms_sent'] = lost_mode_auto_push.get('sms_sent')
                     push_result['sms_skipped_reason'] = lost_mode_auto_push.get(
                         'sms_skipped_reason'
+                    )
+                    push_result['pending_client_sms'] = lost_mode_auto_push.get(
+                        'pending_client_sms', True
                     )
                     if not push_result.get('scanned_at_display'):
                         push_result['scanned_at_display'] = scanned_at_display
@@ -3096,47 +3190,27 @@ def send_notification(request, qr_id):
                         'Owner notified by app notification and SMS.'
                         f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
                     )
-                elif sms_ok and not push_ok:
+                elif sms_ok:
                     lost_mode_auto_push['sent'] = True
                     lost_mode_auto_push['notice'] = (
                         'Owner notified by SMS.'
                         f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
                     )
-                elif push_ok and not sms_ok:
+                elif push_ok:
                     lost_mode_auto_push['sent'] = True
-                    time_bit = lost_mode_auto_push.get('scanned_at_display') or ''
-                    base = lost_mode_auto_push.get('notice') or (
-                        'Owner notified by app notification.'
-                    )
-                    sms_skip = lost_mode_auto_push.get('sms_skipped_reason') or ''
-                    if sms_skip == 'no_phone':
+                    if not lost_mode_auto_push.get('notice'):
                         lost_mode_auto_push['notice'] = (
-                            f'{base} SMS skipped — no phone on file.'
-                        ).strip()
-                    elif sms_skip:
-                        lost_mode_auto_push['notice'] = (
-                            f'{base} SMS could not be sent.'
-                        ).strip()
-                    elif time_bit and 'Scanned at' not in base:
-                        lost_mode_auto_push['notice'] = (
-                            f'{base} Scanned at {time_bit}.'
-                        ).strip()
+                            'Owner notified by app notification.'
+                            f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
+                        )
 
-                if lost_mode_auto_push.get('sent') or sms_ok:
-                    lost_mode_auto_push['sent'] = True
-                    logger.info(
-                        'Lost Mode auto notify qr_id=%s push=%s sms=%s',
-                        qr_id,
-                        push_ok,
-                        sms_ok,
-                    )
-                elif lost_mode_auto_push.get('skipped_reason'):
-                    logger.info(
-                        'Lost Mode auto notify skipped qr_id=%s reason=%s sms=%s',
-                        qr_id,
-                        lost_mode_auto_push.get('skipped_reason'),
-                        lost_mode_auto_push.get('sms_skipped_reason'),
-                    )
+                logger.info(
+                    'Lost Mode auto notify qr_id=%s push=%s sms=%s pending_client_sms=%s',
+                    qr_id,
+                    push_ok,
+                    sms_ok,
+                    bool(lost_mode_auto_push.get('pending_client_sms')),
+                )
                 lost_mode_auto_push['pending_client_sighting'] = False
 
 
@@ -3665,6 +3739,132 @@ def archive_deleted_user_webhook(request):
     except Exception as e:
         logger.error(f"Archive webhook error: {str(e)}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def lost_mode_enabled_webhook(request):
+    """
+    Mobile app calls this after turning Lost Mode ON for a vehicle.
+
+    Body JSON: { "vehicle_id": "<id>", "is_lost_mode": true }
+
+    Sends the existing MSG91 vehicle-issue campaign SMS to the owner
+    (same campaign / authkey / DLT path as scanner Send SMS). Logs delivery
+    to ``lostModeNotificationHistory`` and writes an inbox notification.
+    """
+    if request.method != 'POST':
+        return JsonResponse(
+            {'status': 'error', 'message': 'Invalid request method'},
+            status=405,
+        )
+
+    try:
+        data = json.loads(request.body or b'{}')
+    except (json.JSONDecodeError, TypeError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    vehicle_id = (
+        data.get('vehicle_id')
+        or data.get('vehicleId')
+        or request.GET.get('vehicle_id')
+        or request.GET.get('vehicleId')
+        or ''
+    )
+    vehicle_id = str(vehicle_id).strip()
+    if not vehicle_id:
+        return JsonResponse(
+            {
+                'status': 'error',
+                'message': 'Missing vehicle_id.',
+                'error_type': 'missing_vehicle_id',
+            },
+            status=400,
+        )
+
+    # Only act on Lost Mode ON (ignore OFF / missing flag).
+    raw_on = data.get('is_lost_mode', data.get('isLostMode', True))
+    is_on = raw_on in (True, 1, '1', 'true', 'True', 'yes', 'on')
+    if not is_on:
+        return JsonResponse(
+            {
+                'status': 'ok',
+                'sms_sent': False,
+                'skipped_reason': 'not_enabled',
+                'message': 'Lost Mode is not ON — no SMS sent.',
+            }
+        )
+
+    try:
+        from .lost_mode_enabled_notify import notify_owner_lost_mode_enabled
+        from .vehicle_lost_mode import parse_vehicle_lost_mode
+
+        vdoc = db.collection('vehicles').document(vehicle_id).get()
+        if not vdoc.exists:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'error_type': 'vehicle_not_found',
+                    'message': 'Vehicle not found.',
+                    'sms_sent': False,
+                },
+                status=404,
+            )
+        vehicle_data = vdoc.to_dict() or {}
+        lost = parse_vehicle_lost_mode(vehicle_data)
+        if not lost.get('is_lost_mode'):
+            # App should write Firestore first; still allow explicit force.
+            if not data.get('force'):
+                return JsonResponse(
+                    {
+                        'status': 'ok',
+                        'sms_sent': False,
+                        'skipped_reason': 'not_lost_mode_in_firestore',
+                        'message': (
+                            'Vehicle isLostMode is not true in Firestore yet.'
+                        ),
+                    }
+                )
+
+        notify = notify_owner_lost_mode_enabled(
+            db,
+            vehicle_id=vehicle_id,
+            vehicle_data=vehicle_data,
+        )
+        if notify.get('sms_sent'):
+            return JsonResponse(
+                {
+                    'status': 'success',
+                    'sms_sent': True,
+                    'history_id': notify.get('history_id'),
+                    'inbox_notification_id': notify.get(
+                        'inbox_notification_id'
+                    ),
+                    'message': 'Lost Mode enabled SMS sent to owner.',
+                }
+            )
+        return JsonResponse(
+            {
+                'status': 'error',
+                'sms_sent': False,
+                'error_type': notify.get('skipped_reason')
+                or notify.get('error')
+                or 'sms_failed',
+                'history_id': notify.get('history_id'),
+                'message': (
+                    'Could not send Lost Mode enabled SMS: '
+                    f'{notify.get("error") or notify.get("skipped_reason")}'
+                ),
+            },
+            status=400,
+        )
+    except Exception as exc:
+        logger.error('lost_mode_enabled_webhook error: %s', exc)
+        return JsonResponse(
+            {'status': 'error', 'message': str(exc), 'sms_sent': False},
+            status=500,
+        )
 
 
 def _paginate_queryset(request, qs, per_page=20):

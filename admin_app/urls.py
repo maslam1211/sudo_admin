@@ -106,6 +106,12 @@ urlpatterns = [
 
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),
+    # Lost Mode ON → existing MSG91 vehicle-issue SMS to owner
+    path(
+        'api/lost-mode-enabled/',
+        views.lost_mode_enabled_webhook,
+        name='lost_mode_enabled_webhook',
+    ),
     path('archived/data/', views.view_archived_data, name='view_archived_data'),
     path('archived/data/export/', views.export_archived_data_csv, name='export_archived_data_csv'),
     path('archived/user/<str:user_id>/delete/', views.delete_archived_user, name='delete_archived_user'),
