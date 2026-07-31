@@ -1,4 +1,4 @@
-"""Scanner notify page — messaging attempt limits and voice-call throttle."""
+"""Scanner notify page — timed session, messaging attempts, and voice-call throttle."""
 
 from __future__ import annotations
 
@@ -7,16 +7,23 @@ import time
 
 from django.http import JsonResponse
 
+
 # -----------------------------------------------------------------------------
-# Notify sheet / messaging attempts (SMS + push share one counter per QR):
-#   1st & 2nd success → stay on Contact Owner
-#   3rd success → mark sheet done (client redirects to landing)
-# Voice call-register does not consume the sheet (user may cancel the dialer).
+# Notify session (SMS / push / call share one window per QR):
+#   • Stay on Contact Owner after send/call (no instant landing redirect)
+#   • Client inactivity timeout → calm wrap-up → landing page
+#   • Server TTL is a visit ceiling (refreshed on success) for QR continuity
+#   • ?_sudo_rescan=1 clears the session for a fresh start
 # -----------------------------------------------------------------------------
 
 SHEET_DONE_KEY = "sudo_notify_sheet_done_{qr_id}"
 MESSAGING_ATTEMPTS_KEY = "sudo_notify_msg_attempts_{qr_id}"
-MAX_MESSAGING_ATTEMPTS_BEFORE_HOME = 3
+SESSION_UNTIL_KEY = "sudo_notify_session_until_{qr_id}"
+
+# Hard ceiling for the server-side visit (QR continuity after a successful contact).
+NOTIFY_SESSION_TTL_SEC = 180
+# Client inactivity → landing redirect (seconds without interaction on Contact Owner).
+NOTIFY_IDLE_TIMEOUT_SEC = 60
 
 
 def notify_sheet_session_key(qr_id: str) -> str:
@@ -27,13 +34,14 @@ def notify_messaging_attempts_key(qr_id: str) -> str:
     return MESSAGING_ATTEMPTS_KEY.format(qr_id=str(qr_id or "").strip())
 
 
+def notify_session_until_key(qr_id: str) -> str:
+    return SESSION_UNTIL_KEY.format(qr_id=str(qr_id or "").strip())
+
+
 def mark_notify_sheet_done(request, qr_id: str) -> None:
+    """Legacy / explicit lock. Prefer touch + TTL expiry for the normal flow."""
     request.session[notify_sheet_session_key(qr_id)] = True
     request.session.modified = True
-
-
-def is_notify_sheet_done(request, qr_id: str) -> bool:
-    return bool(request.session.get(notify_sheet_session_key(qr_id)))
 
 
 def clear_notify_sheet_done(request, qr_id: str) -> None:
@@ -51,14 +59,82 @@ def clear_notify_messaging_attempts(request, qr_id: str) -> None:
         request.session.modified = True
 
 
+def clear_notify_session_until(request, qr_id: str) -> None:
+    key = notify_session_until_key(qr_id)
+    if key in request.session:
+        request.session.pop(key, None)
+        request.session.modified = True
+
+
 def clear_notify_session_for_rescan(request, qr_id: str) -> None:
     """Full reset when the scanner reloads with ?_sudo_rescan=1."""
     clear_notify_sheet_done(request, qr_id)
     clear_notify_messaging_attempts(request, qr_id)
+    clear_notify_session_until(request, qr_id)
+
+
+def get_notify_session_until(request, qr_id: str) -> float | None:
+    raw = request.session.get(notify_session_until_key(qr_id))
+    try:
+        until = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if until <= 0:
+        return None
+    return until
+
+
+def is_notify_session_active(request, qr_id: str) -> bool:
+    until = get_notify_session_until(request, qr_id)
+    if until is None:
+        return False
+    return time.time() < until
+
+
+def is_notify_session_expired(request, qr_id: str) -> bool:
+    """True when a session was started and its TTL has elapsed."""
+    until = get_notify_session_until(request, qr_id)
+    if until is None:
+        return False
+    return time.time() >= until
+
+
+def touch_notify_active_session(request, qr_id: str) -> dict:
+    """
+    Start or refresh the Contact Owner session window after SMS / push / call.
+
+    Always keeps the user on Contact Owner (redirect_home is False). Soft
+    wrap-up / landing happens client-side after idle; this TTL is the ceiling.
+    """
+    qr_id = str(qr_id or "").strip()
+    clear_notify_sheet_done(request, qr_id)
+    until = time.time() + NOTIFY_SESSION_TTL_SEC
+    request.session[notify_session_until_key(qr_id)] = until
+    request.session.modified = True
+    return {
+        "session_expires_at": until,
+        "session_ttl_sec": NOTIFY_SESSION_TTL_SEC,
+        "redirect_home": False,
+    }
+
+
+def is_notify_sheet_done(request, qr_id: str) -> bool:
+    """
+    Block further notify / call-register actions until the user rescans.
+
+    True when the timed session has expired, or a legacy explicit done flag is set.
+    """
+    if bool(request.session.get(notify_sheet_session_key(qr_id))):
+        return True
+    return is_notify_session_expired(request, qr_id)
 
 
 def pop_notify_sheet_done_for_terminal_view(request, qr_id: str) -> bool:
-    """Return True once if the next full page load should show the terminal sheet."""
+    """
+    Legacy helper: return True once if an explicit sheet-done flag was set.
+
+    Prefer should_show_notify_terminal_on_load for new code.
+    """
     key = notify_sheet_session_key(qr_id)
     if request.session.get(key):
         request.session.pop(key, None)
@@ -67,27 +143,44 @@ def pop_notify_sheet_done_for_terminal_view(request, qr_id: str) -> bool:
     return False
 
 
+def should_show_notify_terminal_on_load(request, qr_id: str) -> bool:
+    """
+    Whether GET should show the calm wrap-up sheet.
+
+    Active session → False (continue Contact Owner, including QR reload).
+    Expired session → True once, then clear so a later scan starts fresh.
+    Never started → False.
+    """
+    if is_notify_session_active(request, qr_id):
+        return False
+    if is_notify_session_expired(request, qr_id):
+        # One-shot wrap-up: don't trap the scanner in an expired loop on every QR.
+        clear_notify_session_until(request, qr_id)
+        clear_notify_sheet_done(request, qr_id)
+        return True
+    # Legacy explicit done flag (one-shot pop so a later rescan works).
+    return pop_notify_sheet_done_for_terminal_view(request, qr_id)
+
+
 def record_notify_messaging_success(request, qr_id: str) -> dict:
     """
-    Count a successful SMS/push for this QR session.
+    Count a successful SMS/push for this QR session and refresh the visit window.
 
     Returns:
-      attempt (1-based), redirect_home (True on 3rd+ success).
-    On the 3rd success the notify sheet is marked done so a reload shows
-    the terminal/landing path.
+      attempt (1-based), redirect_home (always False), session_ttl_sec,
+      session_expires_at.
     """
     qr_id = str(qr_id or "").strip()
     key = notify_messaging_attempts_key(qr_id)
     attempt = int(request.session.get(key) or 0) + 1
     request.session[key] = attempt
     request.session.modified = True
-    redirect_home = attempt >= MAX_MESSAGING_ATTEMPTS_BEFORE_HOME
-    if redirect_home:
-        mark_notify_sheet_done(request, qr_id)
+    session_meta = touch_notify_active_session(request, qr_id)
     return {
         "attempt": attempt,
-        "redirect_home": redirect_home,
-        "max_before_home": MAX_MESSAGING_ATTEMPTS_BEFORE_HOME,
+        "redirect_home": False,
+        "session_ttl_sec": session_meta["session_ttl_sec"],
+        "session_expires_at": session_meta["session_expires_at"],
     }
 
 

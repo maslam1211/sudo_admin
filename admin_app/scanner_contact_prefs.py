@@ -968,6 +968,13 @@ def validate_scanner_call_for_qr(db, qr_id, destination_10):
     if effective_d and dest == effective_d:
         if not app_prefs['owner_call_allowed']:
             return 'Owner voice calls are disabled in the owner\'s app settings.'
+        from .owner_live_status import parse_owner_live_status
+
+        live = parse_owner_live_status(user_data)
+        if not live['allows_owner_call']:
+            return (
+                f'Owner voice calls are paused while status is {live["label"]}.'
+            )
         return None
     if emerg_d and dest == emerg_d:
         if not flags['emergency']:
@@ -981,5 +988,12 @@ def validate_scanner_call_for_qr(db, qr_id, destination_10):
             return 'Emergency voice calls are disabled for this vehicle.'
         if not app_prefs['emergency_call_allowed']:
             return 'Emergency calling is disabled in the owner\'s app settings.'
+        from .owner_live_status import parse_owner_live_status
+
+        live = parse_owner_live_status(user_data)
+        if not live['allows_emergency']:
+            return (
+                f'Emergency calling is paused while status is {live["label"]}.'
+            )
         return None
     return 'This number is not authorized for this QR code.'

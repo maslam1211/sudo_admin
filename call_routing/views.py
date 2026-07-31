@@ -94,6 +94,7 @@ def register_call_destination(request):
         )
         from admin_app.scanner_notify_session_controls import (
             is_notify_sheet_done,
+            touch_notify_active_session,
             voice_register_maybe_block,
             voice_register_record_success,
         )
@@ -134,14 +135,18 @@ def register_call_destination(request):
     except Exception as exc:
         logger.warning('call_route register owner push alert failed: %s', exc)
     try:
-        # Record voice throttle only. Do not consume the notify sheet here —
-        # the user may cancel the system dialer and should remain on Contact Owner
-        # (SMS/push/call again) instead of being forced to the landing/terminal flow.
+        # Refresh the Contact Owner visit window so the user stays on this page
+        # (and QR reload continues here). Soft idle wrap-up is client-driven.
         started_cd = voice_register_record_success(request, qr_id, key)
+        session_meta = touch_notify_active_session(request, qr_id)
     except Exception as exc:
         logger.warning('call_route session throttle failed: %s', exc)
         started_cd = None
-    payload = {'status': 'ok'}
+        session_meta = None
+    payload = {'status': 'ok', 'redirect_home': False}
+    if session_meta:
+        payload['session_ttl_sec'] = session_meta['session_ttl_sec']
+        payload['session_expires_at'] = session_meta['session_expires_at']
     if started_cd:
         payload['cooldown_seconds_remaining'] = int(started_cd)
         payload['voice_call_waiting'] = True

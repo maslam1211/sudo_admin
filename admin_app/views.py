@@ -29,10 +29,19 @@ from dotenv import load_dotenv
 from call_routing.constants import CALL_ROUTING_EXPECTED_DID
 
 from .scanner_notify_session_controls import (
+    NOTIFY_IDLE_TIMEOUT_SEC,
+    NOTIFY_SESSION_TTL_SEC,
     clear_notify_session_for_rescan,
+    get_notify_session_until,
+    is_notify_session_active,
     is_notify_sheet_done,
-    pop_notify_sheet_done_for_terminal_view,
     record_notify_messaging_success,
+    should_show_notify_terminal_on_load,
+)
+from .owner_live_status import (
+    live_status_json_payload,
+    live_status_service_lines,
+    parse_owner_live_status,
 )
 from .family_assignment import (
     effective_contact_display_name,
@@ -2316,6 +2325,7 @@ def send_notification(request, qr_id):
                 _app_prefs = scanner_user_app_prefs_from_merged(_merged)
                 _scanner_f = scanner_flags_from_user_doc(user_data, vehicle_data)
                 _scanner_eff = scanner_effective_channels_now(user_data, vehicle_data)
+                _owner_live = parse_owner_live_status(user_data)
 
                 if contact_target == 'emergency':
                     if not _scanner_f['emergency']:
@@ -2342,6 +2352,18 @@ def send_notification(request, qr_id):
                             },
                             status=400,
                         )
+                    if not _owner_live['allows_emergency']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Emergency contact is not available for the owner\'s '
+                                    'current live status.'
+                                ),
+                                'error_type': 'live_status_blocked',
+                            },
+                            status=400,
+                        )
 
                 if notification_method == 'sms':
                     if contact_target == 'emergency':
@@ -2353,6 +2375,18 @@ def send_notification(request, qr_id):
                                     'Please use voice call.'
                                 ),
                                 'error_type': 'emergency_sms_not_supported',
+                            },
+                            status=400,
+                        )
+                    if not _owner_live['allows_messaging']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Messaging is paused while the owner\'s status is '
+                                    f'{_owner_live["label"]}.'
+                                ),
+                                'error_type': 'live_status_blocked',
                             },
                             status=400,
                         )
@@ -2392,6 +2426,18 @@ def send_notification(request, qr_id):
                         )
 
                 if notification_method == 'push':
+                    if not _owner_live['allows_messaging']:
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'message': (
+                                    'Messaging is paused while the owner\'s status is '
+                                    f'{_owner_live["label"]}.'
+                                ),
+                                'error_type': 'live_status_blocked',
+                            },
+                            status=400,
+                        )
                     if not _scanner_f['push']:
                         return JsonResponse(
                             {
@@ -2552,7 +2598,9 @@ def send_notification(request, qr_id):
                             'push_delivered': True,
                             'fcm_message_id': push_result.get('message_id'),
                             'messaging_attempt': msg_meta['attempt'],
-                            'redirect_home': msg_meta['redirect_home'],
+                            'redirect_home': False,
+                            'session_ttl_sec': msg_meta['session_ttl_sec'],
+                            'session_expires_at': msg_meta['session_expires_at'],
                         })
 
                     return JsonResponse({
@@ -2647,7 +2695,9 @@ def send_notification(request, qr_id):
                                     'message': sms_msg,
                                     'notification_type': 'sms',
                                     'messaging_attempt': msg_meta['attempt'],
-                                    'redirect_home': msg_meta['redirect_home'],
+                                    'redirect_home': False,
+                                    'session_ttl_sec': msg_meta['session_ttl_sec'],
+                                    'session_expires_at': msg_meta['session_expires_at'],
                                 })
                             else:
                                 logger.error(f"MSG91 Error: {api_data}")
@@ -2701,47 +2751,61 @@ def send_notification(request, qr_id):
         )
         has_emergency_digits = bool(emergency_digits_for_call)
         has_emergency_contact = has_emergency_digits and emerg_path_on
-        # Owner-lane SMS/voice use effective contact (family assignee when active).
-        # App prefs still come from the vehicle owner.
-        call_register_ready = (
+        owner_live = parse_owner_live_status(user_data)
+        # Capability ignores Live Status (prefs + hardware). Ready = capable AND live allows.
+        call_register_capable = (
             bool(effective_digits_for_call)
             and voice_on
             and _app_prefs['owner_call_allowed']
         )
-        emergency_call_ready = (
+        call_register_ready = (
+            call_register_capable and owner_live['allows_owner_call']
+        )
+        emergency_call_capable = (
             bool(emergency_digits_for_call)
             and voice_on
             and emerg_path_on
             and emergency_voice_on
             and _app_prefs['emergency_call_allowed']
         )
-        owner_sms_ready = (
+        emergency_call_ready = (
+            emergency_call_capable and owner_live['allows_emergency']
+        )
+        owner_sms_capable = (
             bool(effective_digits_for_call)
             and sms_on
             and _app_prefs['owner_sms_allowed']
         )
+        owner_sms_ready = owner_sms_capable and owner_live['allows_messaging']
         # Emergency QR path is voice-call only (no SMS to emergency contact).
         emergency_sms_ready = False
-        push_ready = bool(has_fcm_token) and push_on and _app_prefs['push_allowed']
+        push_capable = (
+            bool(has_fcm_token) and push_on and _app_prefs['push_allowed']
+        )
+        push_ready = push_capable and owner_live['allows_messaging']
         scanner_has_any_channel = bool(
-            push_ready
-            or call_register_ready
-            or owner_sms_ready
-            or emergency_call_ready
+            push_capable
+            or call_register_capable
+            or owner_sms_capable
+            or emergency_call_capable
         )
         service_status_lines = []
+        service_status_lines.extend(live_status_service_lines(owner_live))
         if bool(effective_digits_for_call) and not call_register_ready:
-            service_status_lines.append(
-                'Voice Call service is currently disabled.'
-            )
+            if owner_live['allows_owner_call']:
+                service_status_lines.append(
+                    'Voice Call service is currently disabled.'
+                )
         if bool(has_fcm_token) and not push_ready:
-            service_status_lines.append(
-                'Push Notification service is currently turned off.'
-            )
+            if owner_live['allows_messaging']:
+                service_status_lines.append(
+                    'Push Notification service is currently turned off.'
+                )
         if bool(effective_digits_for_call) and not owner_sms_ready:
-            service_status_lines.append(
-                'SMS to the vehicle owner is unavailable.'
-            )
+            if owner_live['allows_messaging']:
+                service_status_lines.append(
+                    'SMS to the vehicle owner is unavailable.'
+                )
         if (
             bool(emergency_digits_for_call)
             and emerg_path_on
@@ -2751,13 +2815,16 @@ def send_notification(request, qr_id):
                 'Emergency Call service is disabled.'
             )
         scanner_notify_show_terminal_sheet = False
+        notify_session_expires_at = None
         if request.method == 'GET':
             if request.GET.get('_sudo_rescan') == '1':
                 clear_notify_session_for_rescan(request, qr_id)
             else:
-                scanner_notify_show_terminal_sheet = pop_notify_sheet_done_for_terminal_view(
+                scanner_notify_show_terminal_sheet = should_show_notify_terminal_on_load(
                     request, qr_id
                 )
+            if is_notify_session_active(request, qr_id):
+                notify_session_expires_at = get_notify_session_until(request, qr_id)
 
         context = {
             'vehicle_data': _notify_vehicle_context(vehicle_data),
@@ -2773,12 +2840,21 @@ def send_notification(request, qr_id):
             'owner_sms_ready': owner_sms_ready,
             'emergency_sms_ready': emergency_sms_ready,
             'emergency_call_ready': emergency_call_ready,
+            'owner_sms_capable': owner_sms_capable,
+            'push_capable': push_capable,
+            'call_register_capable': call_register_capable,
+            'emergency_call_capable': emergency_call_capable,
             'qr_id': qr_id,
             'scanner_has_any_channel': scanner_has_any_channel,
             'service_status_lines': service_status_lines,
             'scanner_notify_show_terminal_sheet': scanner_notify_show_terminal_sheet,
+            'notify_session_expires_at': notify_session_expires_at,
+            'notify_session_ttl_sec': NOTIFY_SESSION_TTL_SEC,
+            'notify_idle_timeout_sec': NOTIFY_IDLE_TIMEOUT_SEC,
             'has_active_family_assignment': family_assignment_active,
             'owner_contact_display_name': owner_contact_display_name,
+            'owner_live_status': owner_live,
+            'owner_live_status_json': live_status_json_payload(owner_live),
         }
         
         return render(request, 'send_notification.html', context)

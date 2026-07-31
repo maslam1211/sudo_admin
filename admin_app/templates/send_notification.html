@@ -123,6 +123,91 @@
       color: var(--sudo-orange);
     }
 
+    body.notify-app .notify-live-status {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.4rem;
+      margin: 0.85rem 0 0.15rem;
+    }
+
+    body.notify-app .notify-live-status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    body.notify-app .notify-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.32rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      color: #86efac;
+      background: rgba(52, 199, 89, 0.22);
+      border-color: rgba(52, 199, 89, 0.5);
+    }
+
+    body.notify-app .notify-live-badge[data-color="green"] {
+      background: rgba(52, 199, 89, 0.22);
+      border-color: rgba(52, 199, 89, 0.5);
+      color: #86efac;
+    }
+
+    body.notify-app .notify-live-badge[data-color="red"] {
+      background: rgba(255, 59, 48, 0.2);
+      border-color: rgba(255, 59, 48, 0.45);
+      color: #fca5a5;
+    }
+
+    body.notify-app .notify-live-badge[data-color="orange"] {
+      background: rgba(255, 149, 0, 0.2);
+      border-color: rgba(255, 149, 0, 0.45);
+      color: #fdba74;
+    }
+
+    body.notify-app .notify-live-badge[data-color="blue"] {
+      background: rgba(100, 210, 255, 0.18);
+      border-color: rgba(100, 210, 255, 0.45);
+      color: #7dd3fc;
+    }
+
+    body.notify-app .notify-live-badge[data-color="grey"] {
+      background: rgba(142, 142, 147, 0.22);
+      border-color: rgba(142, 142, 147, 0.45);
+      color: #d1d5db;
+    }
+
+    body.notify-app .notify-live-badge[data-color="purple"] {
+      background: rgba(94, 92, 230, 0.22);
+      border-color: rgba(94, 92, 230, 0.45);
+      color: #c4b5fd;
+    }
+
+    body.notify-app .notify-live-presence {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    body.notify-app .notify-live-presence.is-online {
+      color: #86efac;
+    }
+
+    body.notify-app .notify-live-message {
+      margin: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
     body.notify-app.sudo-mobile-flow header.header .header-title {
       display: inline-block;
       margin: 10px 0 0;
@@ -3529,6 +3614,65 @@
       max-width: 10rem;
     }
 
+    /* Soft idle nudge — bottom sheet, non-blocking */
+    body.notify-app .notify-idle-nudge {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 12050;
+      padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.notify-app .notify-idle-nudge.is-visible {
+      pointer-events: auto;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    body.notify-app .notify-idle-nudge-inner {
+      max-width: min(420px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 0.95rem;
+      border-radius: 14px;
+      border: 1px solid rgba(229, 129, 71, 0.35);
+      background: rgba(18, 22, 36, 0.94);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    body.notify-app .notify-idle-nudge-text {
+      flex: 1;
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    body.notify-app .notify-idle-nudge-stay {
+      flex-shrink: 0;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 650;
+      color: #1a120c;
+      background: #e58147;
+      cursor: pointer;
+    }
+
+    body.notify-app .notify-idle-nudge-stay:active {
+      transform: scale(0.97);
+    }
+
     body.notify-app .daily-limit-modal::after {
       display: none !important;
     }
@@ -3921,6 +4065,25 @@
       <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
       {% endif %}
       <div class="plate-number" aria-label="Registration number">{{ vehicle_data.registrationNumber }}</div>
+      {% if owner_live_status %}
+      <div class="notify-live-status" id="notifyLiveStatus" data-status="{{ owner_live_status.status }}">
+        <div class="notify-live-status-row">
+          <span
+            class="notify-live-badge"
+            id="notifyLiveBadge"
+            data-color="{{ owner_live_status.color }}"
+          >
+            <span id="notifyLiveEmoji" aria-hidden="true">{{ owner_live_status.emoji }}</span>
+            <span id="notifyLiveLabel">{{ owner_live_status.label }}</span>
+          </span>
+          <span
+            class="notify-live-presence{% if owner_live_status.is_online %} is-online{% endif %}"
+            id="notifyLivePresence"
+          >{% if owner_live_status.is_online %}Online{% else %}Offline{% endif %}</span>
+        </div>
+        <p class="notify-live-message" id="notifyLiveMessage">{{ owner_live_status.message }}</p>
+      </div>
+      {% endif %}
     </section>
 
     {% if not has_emergency_contact %}
@@ -4271,7 +4434,25 @@
     </div>
   </div>
 
-  <!-- Completed scan sheet (one shot per completed action) -->
+  <!-- Soft idle nudge — non-blocking; appears only after a quiet spell -->
+  <div
+    id="notifyIdleNudge"
+    class="notify-idle-nudge"
+    role="status"
+    aria-live="polite"
+    hidden
+  >
+    <div class="notify-idle-nudge-inner">
+      <p class="notify-idle-nudge-text" id="notifyIdleNudgeText">
+        No activity detected — returning to SudoTag shortly.
+      </p>
+      <button type="button" class="notify-idle-nudge-stay" id="notifyIdleNudgeStayBtn">
+        Keep going
+      </button>
+    </div>
+  </div>
+
+  <!-- Calm wrap-up after idle / visit end (not an abrupt “session expired” interrupt) -->
   <div
     id="notifySessionTerminalOverlay"
     class="notify-session-terminal-overlay"
@@ -4294,21 +4475,21 @@
             fetchpriority="low"
           />
           <div class="notify-session-terminal-icon-ring" aria-hidden="true">
-            <i class="bi bi-hourglass-bottom"></i>
+            <i class="bi bi-check2-circle"></i>
           </div>
         </div>
       </div>
-      <p class="notify-session-terminal-eyebrow">Session expired</p>
-      <p class="notify-session-terminal-title" id="notifySessionTerminalHeading">Session Has Been Expired</p>
+      <p class="notify-session-terminal-eyebrow">All set</p>
+      <p class="notify-session-terminal-title" id="notifySessionTerminalHeading">Thanks for using SudoTag</p>
       <p class="notify-session-terminal-text" id="notifySessionTerminalDesc">
-        Your session has ended. You will be returned to SudoTag shortly.
+        Taking you back to the home page.
       </p>
       <div class="notify-flow-progress notify-terminal-progress" id="notifyTerminalProgress" hidden aria-hidden="true">
         <span class="notify-flow-progress-track">
           <span class="notify-flow-progress-bar" id="notifyTerminalProgressBar"></span>
         </span>
       </div>
-      <button type="button" class="notify-session-terminal-ok" id="notifySessionRescanBtn">Continue</button>
+      <button type="button" class="notify-session-terminal-ok" id="notifySessionRescanBtn">Done</button>
     </div>
   </div>
 
@@ -4459,13 +4640,45 @@
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
       'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
-    /** Adaptive holds (no visible countdown numbers). Time only advances while the page is visible. */
+    /** Legacy short celebrate hold — messaging no longer redirects via this path. */
     var NOTIFY_SUCCESS_HOLD_MS = 5200;
-    /** Brief success toast on Contact Owner for SMS/push attempts 1–2 (no landing redirect). */
+    /** Brief success toast on Contact Owner after SMS/push (no landing redirect). */
     var NOTIFY_SUCCESS_STAY_DISMISS_MS = 2800;
-    var NOTIFY_TERMINAL_HOLD_MS = 2600;
+    /** Soft wrap-up card before home (calm, not abrupt). */
+    var NOTIFY_TERMINAL_HOLD_MS = 2800;
     var NOTIFY_CROSSFADE_MS = 480;
+    /**
+     * Server visit ceiling (ms). Used after a successful contact for QR continuity.
+     */
+    var NOTIFY_SESSION_TTL_MS = Math.max(
+      60000,
+      Math.floor(Number('{{ notify_session_ttl_sec|default:180 }}') || 180) * 1000
+    );
+    /**
+     * No interaction for this long → calm wrap-up → landing page.
+     * Any tap / type / scroll resets the timer.
+     */
+    var NOTIFY_IDLE_TIMEOUT_MS = Math.max(
+      15000,
+      Math.floor(Number('{{ notify_idle_timeout_sec|default:60 }}') || 60) * 1000
+    );
+    /** @deprecated kept for older call sites — same as idle timeout */
+    var NOTIFY_IDLE_GRACE_MS = NOTIFY_IDLE_TIMEOUT_MS;
+    /** Brief last-chance banner before wrap-up (part of the idle window). */
+    var NOTIFY_IDLE_NUDGE_WAIT_MS = 10000;
+    /** Server unix timestamp (seconds) when the active session ends, if any. */
+    var SERVER_NOTIFY_SESSION_EXPIRES_AT = (function () {
+      var raw = '{{ notify_session_expires_at|default_if_none:"" }}';
+      var n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    })();
     var notifySuccessStayDismissTimer = null;
+    var notifySessionExpireTimer = null;
+    var notifyIdleTimer = null;
+    var notifyIdleNudgeTimer = null;
+    var notifySessionArmed = false;
+    var notifyIdleNudgeVisible = false;
+    var notifyActivityBound = false;
     var NOTIFY_HOLD_TICK_MS = 100;
     var notifySuccessPhaseTimer = null;
     var notifyTerminalPhaseTimer = null;
@@ -4477,10 +4690,12 @@
     var notifySessionTerminalActive = false;
     var notifyRedirectInFlight = false;
     var notifyLastSuccessMethod = 'push';
-    var NOTIFY_SESSION_EXPIRED_MESSAGE =
-      'Your session has ended. You will be returned to SudoTag shortly.';
-    var NOTIFY_SESSION_EXPIRED_SHORT =
-      'Your session has ended. Returning you to SudoTag.';
+    var NOTIFY_SESSION_WRAP_MESSAGE =
+      'Taking you back to the home page.';
+    var NOTIFY_SESSION_WRAP_SHORT =
+      'Taking you back to SudoTag.';
+    var NOTIFY_SESSION_EXPIRED_MESSAGE = NOTIFY_SESSION_WRAP_MESSAGE;
+    var NOTIFY_SESSION_EXPIRED_SHORT = NOTIFY_SESSION_WRAP_SHORT;
     /** Mirrors `normalize_vehicle_registration` — instant plate check before any network calls */
     const serverVehicleRegistrationRaw =
       '{{ vehicle_data.registrationNumber|default:""|escapejs }}';
@@ -5283,23 +5498,14 @@
       customSmsSendInFlight = false;
       setSmsComposerStatus('sent', 'Sent');
       syncCustomSmsSendButton();
-
-      var redirectHome =
-        data &&
-        (data.redirect_home === true ||
-          data.redirect_home === 1 ||
-          data.redirect_home === '1' ||
-          Number(data.messaging_attempt) >= 3);
+      // Stay on Contact Owner; soft idle wrap-up handles leaving later.
+      armNotifySessionTimeout(data || {});
 
       clearSmsComposerSentCloseTimer();
       smsComposerSentCloseTimer = window.setTimeout(function () {
         smsComposerSentCloseTimer = null;
         closeSmsComposer({ clearMethod: true, preserveDraft: false });
-        if (redirectHome) {
-          // Defer home flow until after Sent is shown in-place (no modal swap mid-send).
-          showSuccessModal(channel);
-        }
-      }, redirectHome ? 1100 : 1400);
+      }, 1400);
     }
 
     function resetCustomSmsComposer(opts) {
@@ -5918,8 +6124,14 @@
       if (document.visibilityState === 'visible') {
         resetUiAfterEmergencyDialerReturn();
         resumeNotifyHoldTicker();
+        if (notifySessionArmed && !notifySessionTerminalActive) {
+          resetNotifyIdleGrace();
+        }
       } else {
         pauseNotifyHoldTicker();
+        // Don't burn idle grace while the tab is backgrounded (e.g. phone dialer).
+        clearNotifyIdleTimers();
+        hideNotifyIdleNudge();
       }
     });
     window.addEventListener('pageshow', function () {
@@ -5933,16 +6145,25 @@
     document.addEventListener('DOMContentLoaded', function () {
       resetUiAfterEmergencyDialerReturn();
 
-      // Never wipe an in-progress success/terminal hold on reload — only clear on fresh rescan.
+      // Never wipe an in-progress active session on reload — only clear on fresh rescan.
       if (isNotifyRescanLanding()) {
         clearNotifySheetDoneLocal();
         clearNotifyHoldState();
+        clearNotifySessionDeadline();
         setNotifyPostSuccessActive(false);
+        notifySessionTerminalActive = false;
+        notifyRedirectInFlight = false;
+      } else if (restoreNotifyActiveSessionTimer()) {
+        // QR reload during an active visit: continue Contact Owner.
+        clearNotifySheetDoneLocal();
+        setNotifyPostSuccessActive(false);
+        cancelNotifySuccessPhase();
         notifySessionTerminalActive = false;
         notifyRedirectInFlight = false;
       } else if (!SUDO_NOTIFY_TERMINAL_GATE && !hasActiveNotifyHoldState()) {
         clearNotifySheetDoneLocal();
         clearNotifyHoldState();
+        clearNotifySessionDeadline();
         setNotifyPostSuccessActive(false);
         notifySessionTerminalActive = false;
         notifyRedirectInFlight = false;
@@ -6192,20 +6413,25 @@
       var notifySessionRescanBtn = document.getElementById('notifySessionRescanBtn');
       if (notifySessionRescanBtn) {
         notifySessionRescanBtn.addEventListener('click', function () {
-          navigateNotifyRescanQr();
+          // Soft wrap-up: go home. Scanning the QR again starts a fresh visit.
+          navigateNotifyOfficialHome();
         });
       }
 
       if (isNotifyRescanLanding()) {
         clearNotifySheetDoneLocal();
         clearNotifyHoldState();
+        clearNotifySessionDeadline();
         setNotifyPostSuccessActive(false);
         cancelNotifySuccessPhase();
         cancelNotifyTerminalPhase();
         hideNotifySessionTerminalOverlay();
         resetNotifyFlowForFreshSession();
         stripNotifyRescanQueryFromHistory();
+        // Fresh visit after rescan: watch for inactivity → landing.
+        startNotifyInactivityWatch();
       } else if (SUDO_NOTIFY_TERMINAL_GATE) {
+        clearNotifySessionDeadline();
         markNotifySheetDoneLocal();
         presentNotifySessionExpired({
           message: NOTIFY_SESSION_EXPIRED_MESSAGE,
@@ -6213,6 +6439,10 @@
         });
       } else {
         restoreNotifySessionExpiryState();
+        // Ensure inactivity → landing is armed for a normal Contact Owner visit.
+        if (!notifySessionTerminalActive) {
+          startNotifyInactivityWatch();
+        }
       }
 
       initNotifyVoiceCooldownUi();
@@ -6531,8 +6761,9 @@
                   setCallFlowDialogEmergencyVisual(false);
                   callFlowModal.style.display = 'none';
                 }
-                // Open the system dialer only. Do not start the success→landing hold —
-                // cancelling/backing out of the dialer must leave Contact Owner active.
+                // Open the system dialer only. Stay on Contact Owner; soft idle wrap-up
+                // handles leaving later (user may cancel dialer and keep contacting).
+                armNotifySessionTimeout(result.data || {});
                 setNotifyDockSending(false);
                 setNotifySwipeCallSending(false);
                 if (typeof resetNotifySwipeCall === 'function') {
@@ -6773,6 +7004,310 @@
       return 'sudo_notify_sheet_done_local_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
     }
 
+    function notifySessionDeadlineKey() {
+      return 'sudo_notify_session_deadline_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function notifySessionArmedKey() {
+      return 'sudo_notify_session_armed_' + String(notifyPageQrId || 'x').replace(/\W+/g, '_');
+    }
+
+    function clearNotifySessionExpireTimer() {
+      if (notifySessionExpireTimer) {
+        window.clearTimeout(notifySessionExpireTimer);
+        notifySessionExpireTimer = null;
+      }
+    }
+
+    function clearNotifyIdleTimers() {
+      if (notifyIdleTimer) {
+        window.clearTimeout(notifyIdleTimer);
+        notifyIdleTimer = null;
+      }
+      if (notifyIdleNudgeTimer) {
+        window.clearTimeout(notifyIdleNudgeTimer);
+        notifyIdleNudgeTimer = null;
+      }
+    }
+
+    function persistNotifySessionDeadline(deadlineMs) {
+      try {
+        var ms = Math.floor(Number(deadlineMs) || 0);
+        if (ms > 0) {
+          sessionStorage.setItem(notifySessionDeadlineKey(), String(ms));
+        }
+      } catch (e) {}
+    }
+
+    function readNotifySessionDeadline() {
+      try {
+        var raw = sessionStorage.getItem(notifySessionDeadlineKey());
+        if (!raw) return 0;
+        var n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    function persistNotifySessionArmed(armed) {
+      try {
+        if (armed) {
+          sessionStorage.setItem(notifySessionArmedKey(), '1');
+        } else {
+          sessionStorage.removeItem(notifySessionArmedKey());
+        }
+      } catch (e) {}
+    }
+
+    function readNotifySessionArmed() {
+      try {
+        return sessionStorage.getItem(notifySessionArmedKey()) === '1';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function clearNotifySessionDeadline() {
+      clearNotifySessionExpireTimer();
+      clearNotifyIdleTimers();
+      hideNotifyIdleNudge();
+      notifySessionArmed = false;
+      persistNotifySessionArmed(false);
+      try {
+        sessionStorage.removeItem(notifySessionDeadlineKey());
+      } catch (e) {}
+    }
+
+    function hideNotifyIdleNudge() {
+      var nudge = document.getElementById('notifyIdleNudge');
+      notifyIdleNudgeVisible = false;
+      if (notifyIdleNudgeTimer) {
+        window.clearTimeout(notifyIdleNudgeTimer);
+        notifyIdleNudgeTimer = null;
+      }
+      if (nudge) {
+        nudge.classList.remove('is-visible');
+        nudge.hidden = true;
+      }
+    }
+
+    function showNotifyIdleNudge() {
+      var nudge = document.getElementById('notifyIdleNudge');
+      if (!nudge || notifySessionTerminalActive || notifyRedirectInFlight) return;
+      notifyIdleNudgeVisible = true;
+      nudge.hidden = false;
+      requestAnimationFrame(function () {
+        nudge.classList.add('is-visible');
+      });
+    }
+
+    function isNotifySessionBusy() {
+      if (notifySessionTerminalActive || notifyRedirectInFlight) return true;
+      if (customSmsSendInFlight) return true;
+      if (smsComposerOpen) return true;
+      if (successModal && successModal.style.display === 'flex') return true;
+      if (errorModal && errorModal.style.display === 'flex') return true;
+      if (dailyLimitModal && dailyLimitModal.style.display === 'flex') return true;
+      try {
+        if (sessionStorage.getItem(CALL_DIALER_RETURN_KEY) === '1') return true;
+        if (sessionStorage.getItem(EMERGENCY_TEL_RETURN_KEY) === '1') return true;
+      } catch (e) {}
+      if (document.body.classList.contains('notify-dock-sending')) return true;
+      return false;
+    }
+
+    function beginNotifySoftWrapUp() {
+      if (notifyRedirectInFlight) return;
+      if (isNotifySessionBusy()) {
+        // Don't yank the user mid-compose / mid-send — retry shortly.
+        clearNotifyIdleTimers();
+        notifyIdleTimer = window.setTimeout(function () {
+          notifyIdleTimer = null;
+          beginNotifySoftWrapUp();
+        }, 4000);
+        return;
+      }
+      hideNotifyIdleNudge();
+      clearNotifySessionExpireTimer();
+      clearNotifyIdleTimers();
+      try {
+        sessionStorage.removeItem(notifySessionDeadlineKey());
+      } catch (e) {}
+      markNotifySheetDoneLocal();
+      presentNotifySessionExpired({
+        message: NOTIFY_SESSION_WRAP_MESSAGE,
+        autoRedirect: true,
+        softWrap: true
+      });
+    }
+
+    function scheduleNotifyHardCeiling(deadlineMs) {
+      clearNotifySessionExpireTimer();
+      var remaining = Math.floor(Number(deadlineMs) || 0) - Date.now();
+      if (remaining <= 0) {
+        beginNotifySoftWrapUp();
+        return;
+      }
+      notifySessionExpireTimer = window.setTimeout(function () {
+        notifySessionExpireTimer = null;
+        beginNotifySoftWrapUp();
+      }, remaining);
+    }
+
+    function resetNotifyIdleGrace() {
+      if (!notifySessionArmed || notifySessionTerminalActive || notifyRedirectInFlight) {
+        return;
+      }
+      if (document.visibilityState !== 'visible') {
+        clearNotifyIdleTimers();
+        hideNotifyIdleNudge();
+        return;
+      }
+      hideNotifyIdleNudge();
+      clearNotifyIdleTimers();
+      if (isNotifySessionBusy()) {
+        // Check again soon once the busy state clears.
+        notifyIdleTimer = window.setTimeout(function () {
+          notifyIdleTimer = null;
+          resetNotifyIdleGrace();
+        }, 2500);
+        return;
+      }
+
+      var hardDeadline = readNotifySessionDeadline();
+      var idleMs = NOTIFY_IDLE_TIMEOUT_MS;
+      if (hardDeadline > 0) {
+        idleMs = Math.min(idleMs, Math.max(5000, hardDeadline - Date.now()));
+      }
+
+      // Most of the idle window is silent; a short nudge appears near the end.
+      var silentMs = Math.max(5000, idleMs - NOTIFY_IDLE_NUDGE_WAIT_MS);
+      var nudgeMs = Math.max(3000, idleMs - silentMs);
+
+      notifyIdleTimer = window.setTimeout(function () {
+        notifyIdleTimer = null;
+        if (!notifySessionArmed || notifySessionTerminalActive) return;
+        if (isNotifySessionBusy()) {
+          resetNotifyIdleGrace();
+          return;
+        }
+        showNotifyIdleNudge();
+        notifyIdleNudgeTimer = window.setTimeout(function () {
+          notifyIdleNudgeTimer = null;
+          beginNotifySoftWrapUp();
+        }, nudgeMs);
+      }, silentMs);
+    }
+
+    function onNotifyUserActivity() {
+      if (!notifySessionArmed || notifySessionTerminalActive || notifyRedirectInFlight) {
+        return;
+      }
+      resetNotifyIdleGrace();
+    }
+
+    function bindNotifyActivityWatchers() {
+      if (notifyActivityBound) return;
+      notifyActivityBound = true;
+      var throttleUntil = 0;
+      function onAct() {
+        var now = Date.now();
+        if (now < throttleUntil) return;
+        throttleUntil = now + 400;
+        onNotifyUserActivity();
+      }
+      ['pointerdown', 'keydown', 'touchstart', 'scroll', 'input'].forEach(function (evt) {
+        document.addEventListener(evt, onAct, { passive: true, capture: true });
+      });
+      var stayBtn = document.getElementById('notifyIdleNudgeStayBtn');
+      if (stayBtn) {
+        stayBtn.addEventListener('click', function () {
+          hideNotifyIdleNudge();
+          resetNotifyIdleGrace();
+        });
+      }
+    }
+
+    /**
+     * Start inactivity watching on Contact Owner.
+     * After NOTIFY_IDLE_TIMEOUT_MS with no interaction → wrap-up → landing.
+     */
+    function startNotifyInactivityWatch(opts) {
+      opts = opts || {};
+      if (SUDO_NOTIFY_TERMINAL_GATE || notifySessionTerminalActive || notifyRedirectInFlight) {
+        return;
+      }
+      notifySessionArmed = true;
+      persistNotifySessionArmed(true);
+      bindNotifyActivityWatchers();
+      if (opts.deadlineMs && opts.deadlineMs > Date.now()) {
+        persistNotifySessionDeadline(opts.deadlineMs);
+        scheduleNotifyHardCeiling(opts.deadlineMs);
+      }
+      resetNotifyIdleGrace();
+    }
+
+    /**
+     * After SMS / push / call success: stay on Contact Owner, refresh visit ceiling,
+     * and reset the inactivity timer so the user isn't redirected while still engaging.
+     */
+    function armNotifySessionTimeout(data) {
+      data = data || {};
+      clearNotifySheetDoneLocal();
+      cancelNotifySuccessPhase();
+      setNotifyPostSuccessActive(false);
+      if (successModal && successModal.classList.contains('is-post-success-flow')) {
+        successModal.classList.remove('is-post-success-flow', 'is-phase-exiting');
+      }
+
+      var deadlineMs = 0;
+      var expiresAt = Number(data.session_expires_at);
+      if (Number.isFinite(expiresAt) && expiresAt > 0) {
+        deadlineMs = expiresAt > 1e12 ? expiresAt : expiresAt * 1000;
+      } else {
+        var ttlSec = Number(data.session_ttl_sec);
+        var ttlMs =
+          Number.isFinite(ttlSec) && ttlSec > 0
+            ? Math.floor(ttlSec * 1000)
+            : NOTIFY_SESSION_TTL_MS;
+        deadlineMs = Date.now() + ttlMs;
+      }
+
+      startNotifyInactivityWatch({ deadlineMs: deadlineMs });
+    }
+
+    /** Resume inactivity watching on reload / QR scan while the visit is still active. */
+    function restoreNotifyActiveSessionTimer() {
+      if (SUDO_NOTIFY_TERMINAL_GATE) {
+        clearNotifySessionDeadline();
+        return false;
+      }
+      var deadlineMs = 0;
+      if (SERVER_NOTIFY_SESSION_EXPIRES_AT > 0) {
+        deadlineMs = SERVER_NOTIFY_SESSION_EXPIRES_AT * 1000;
+      }
+      var localDeadline = readNotifySessionDeadline();
+      if (localDeadline > deadlineMs) {
+        deadlineMs = localDeadline;
+      }
+      var armed = readNotifySessionArmed() || true;
+      if (armed) {
+        var opts = {};
+        if (deadlineMs > Date.now()) {
+          opts.deadlineMs = deadlineMs;
+        }
+        startNotifyInactivityWatch(opts);
+        clearNotifySheetDoneLocal();
+        return true;
+      }
+      if (deadlineMs > 0 && deadlineMs <= Date.now()) {
+        clearNotifySessionDeadline();
+        return false;
+      }
+      return false;
+    }
+
     function isNotifySheetDoneLocal() {
       try {
         return sessionStorage.getItem(notifyLocalTerminalKey()) === '1';
@@ -6970,15 +7505,33 @@
       cancelNotifyTerminalPhase();
     }
 
-    function showNotifySessionTerminalOverlay(detailMessage) {
+    function showNotifySessionTerminalOverlay(detailMessage, opts) {
+      opts = opts || {};
       var overlay = document.getElementById('notifySessionTerminalOverlay');
       var sub = document.getElementById('notifySessionTerminalDesc');
+      var heading = document.getElementById('notifySessionTerminalHeading');
+      var eyebrow = overlay
+        ? overlay.querySelector('.notify-session-terminal-eyebrow')
+        : null;
+      var icon = overlay
+        ? overlay.querySelector('.notify-session-terminal-icon-ring i')
+        : null;
+      if (heading) {
+        heading.textContent = opts.title || 'Thanks for using SudoTag';
+      }
+      if (eyebrow) {
+        eyebrow.textContent = opts.eyebrow || 'All set';
+      }
+      if (icon) {
+        icon.className = opts.iconClass || 'bi bi-check2-circle';
+      }
       if (sub) {
         sub.textContent =
           typeof detailMessage === 'string' && detailMessage.trim()
             ? detailMessage.trim()
-            : NOTIFY_SESSION_EXPIRED_MESSAGE;
+            : NOTIFY_SESSION_WRAP_MESSAGE;
       }
+      hideNotifyIdleNudge();
       hideNotifySendingOverlay();
       if (successModal) {
         successModal.style.display = 'none';
@@ -7252,6 +7805,8 @@
 
     function presentNotifySessionExpired(options) {
       var opts = options || {};
+      hideNotifyIdleNudge();
+      clearNotifyIdleTimers();
       if (notifySessionTerminalActive) {
         if (opts.autoRedirect !== false && notifyHoldPhase !== 'terminal') {
           var remActive =
@@ -7263,6 +7818,7 @@
         return;
       }
       notifySessionTerminalActive = true;
+      notifySessionArmed = false;
       cancelNotifySuccessPhase();
       setNotifyPostSuccessActive(false);
       if (successModal) {
@@ -7273,8 +7829,13 @@
       var terminalMsg =
         typeof opts.message === 'string' && opts.message.trim()
           ? opts.message.trim()
-          : NOTIFY_SESSION_EXPIRED_MESSAGE;
-      showNotifySessionTerminalOverlay(terminalMsg);
+          : NOTIFY_SESSION_WRAP_MESSAGE;
+      showNotifySessionTerminalOverlay(terminalMsg, {
+        title: opts.title || 'Thanks for using SudoTag',
+        eyebrow: opts.eyebrow || 'All set',
+        iconClass: opts.iconClass || 'bi bi-check2-circle',
+        softWrap: opts.softWrap !== false
+      });
       if (opts.autoRedirect !== false) {
         var termMs = opts.terminalRemainingMs;
         startNotifyTerminalRedirectPhase(
@@ -7287,6 +7848,7 @@
       if (notifyRedirectInFlight) return;
       notifyRedirectInFlight = true;
       clearNotifySuccessStayDismissTimer();
+      clearNotifySessionDeadline();
       cancelNotifySuccessPhase();
       cancelNotifyTerminalPhase();
       notifySessionTerminalActive = false;
@@ -7303,6 +7865,7 @@
     function navigateNotifyRescanQr() {
       if (notifyRedirectInFlight) return;
       notifyRedirectInFlight = true;
+      clearNotifySessionDeadline();
       cancelNotifySuccessPhase();
       cancelNotifyTerminalPhase();
       notifySessionTerminalActive = false;
@@ -7331,6 +7894,18 @@
       if (notifyRedirectInFlight) return;
       if (document.visibilityState !== 'visible') return;
 
+      // Active visit: stay on Contact Owner (including after QR reload).
+      if (restoreNotifyActiveSessionTimer()) {
+        cancelNotifySuccessPhase();
+        setNotifyPostSuccessActive(false);
+        if (notifyHoldPhase === 'success') {
+          hideNotifySuccessProgress();
+          notifyHoldPhase = null;
+          notifyHoldRemainingMs = 0;
+        }
+        return;
+      }
+
       // Already running a visible hold — just ensure the ticker is alive.
       if (notifyHoldPhase && notifyHoldRemainingMs > 0) {
         resumeNotifyHoldTicker();
@@ -7357,16 +7932,15 @@
         return;
       }
 
+      // Legacy success→home hold is no longer used for messaging; clear stale state.
       if (storedPhase === 'success' || isNotifyPostSuccessActive()) {
-        var successRem =
-          storedRemaining > 0 ? storedRemaining : NOTIFY_SUCCESS_HOLD_MS;
-        notifyLastSuccessMethod = readNotifyPostSuccessMethod();
-        showSuccessModal(notifyLastSuccessMethod, { skipPostFlow: true });
-        startNotifyPostSuccessFlow(successRem);
-        return;
+        cancelNotifySuccessPhase();
+        setNotifyPostSuccessActive(false);
+        clearNotifyHoldState();
+        dismissSuccessStayModal();
       }
 
-      if (isNotifySheetDoneLocal()) {
+      if (isNotifySheetDoneLocal() || SUDO_NOTIFY_TERMINAL_GATE) {
         presentNotifySessionExpired({
           message: NOTIFY_SESSION_EXPIRED_MESSAGE,
           autoRedirect: true
@@ -7709,23 +8283,14 @@
               handleInlineSmsSendSuccess(data);
               return;
             }
-            var redirectHome =
-              data.redirect_home === true ||
-              data.redirect_home === 1 ||
-              data.redirect_home === '1' ||
-              Number(data.messaging_attempt) >= 3;
-            if (redirectHome) {
-              // 3rd SMS/push success → celebrate, then land on the official home page.
-              showSuccessModal(successMethod);
-            } else {
-              // 1st & 2nd attempts stay on Contact Owner so the scanner can try again.
-              showSuccessModal(successMethod, {
-                skipPostFlow: true,
-                autoDismissMs: NOTIFY_SUCCESS_STAY_DISMISS_MS,
-                stayOnContactOwner: true,
-                messagingAttempt: Number(data.messaging_attempt) || 0
-              });
-            }
+            // Always stay on Contact Owner after SMS/push. Soft idle wraps up later.
+            armNotifySessionTimeout(data);
+            showSuccessModal(successMethod, {
+              skipPostFlow: true,
+              autoDismissMs: NOTIFY_SUCCESS_STAY_DISMISS_MS,
+              stayOnContactOwner: true,
+              messagingAttempt: Number(data.messaging_attempt) || 0
+            });
           } else {
             // Handle server-side errors with detailed messages
             let errorType = data.error_type || 'server';
@@ -7901,7 +8466,7 @@
       setNotifyPostSuccessActive(false);
     }
 
-    // Success sheet → either stay on Contact Owner (SMS/push 1–2) or home redirect (3rd+)
+    // Success sheet stays on Contact Owner; soft idle wrap-up owns leaving.
     function showSuccessModal(method, options) {
       var opts = options || {};
       var m = method || 'push';
@@ -7948,11 +8513,12 @@
       clearNotifySuccessStayDismissTimer();
       successModal.style.display = 'flex';
       successModal.classList.remove('is-phase-exiting', 'is-post-success-flow');
-      if (!opts.skipPostFlow) {
-        startNotifyPostSuccessFlow(NOTIFY_SUCCESS_HOLD_MS);
-        return;
-      }
-      var dismissMs = Math.max(0, Math.floor(Number(opts.autoDismissMs) || 0));
+      // Never auto-redirect to landing from this modal — soft idle wrap-up owns that.
+      opts.stayOnContactOwner = true;
+      var dismissMs = Math.max(
+        0,
+        Math.floor(Number(opts.autoDismissMs) || NOTIFY_SUCCESS_STAY_DISMISS_MS)
+      );
       if (dismissMs > 0) {
         notifySuccessStayDismissTimer = window.setTimeout(function () {
           notifySuccessStayDismissTimer = null;
