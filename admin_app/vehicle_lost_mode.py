@@ -5,14 +5,21 @@ Canonical Firestore fields (per-vehicle, written by the mobile app):
   - isLostMode          bool
   - lostModeEnabledAt   Timestamp | null  (set on enable, cleared on disable)
 
-Lost Mode does not gate SMS / push / call / emergency channels — Live Status
-and scanner prefs still do. This helper only drives scanner recovery copy.
+Web QR scanners can submit a Lost Mode *sighting* with approximate location
+and optional photos. Photos go to Cloudinary; the sighting is stored in
+``lostModeSightings`` and the owner gets a push + inbox row.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
+import base64
+import logging
+import re
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 BANNER_TITLE = 'Vehicle reported missing'
 BANNER_BODY = (
@@ -26,13 +33,22 @@ TIP_CTA_SUB = 'Send a tip to help recover this vehicle'
 REASONS_HEADING = 'Help recover this vehicle'
 REASONS_LEAD = 'Tip the owner — choose how you spotted this vehicle, or pick another reason.'
 
-# Automatic push when a Lost Mode vehicle QR is opened in the browser.
 AUTO_PUSH_TITLE = 'Lost Mode — Vehicle spotted'
 AUTO_PUSH_BODY = (
     'Someone scanned your SUDO Tag. Your vehicle was spotted while Lost Mode is on.'
 )
 AUTO_PUSH_SENT_NOTICE = (
     'Owner notified automatically on their phone — thank you for helping.'
+)
+
+MAX_SIGHTING_PHOTOS = 3
+MAX_PHOTO_BYTES = 450_000
+# ~110 m grid — prefer approximate area over exact pin (privacy).
+COORD_DECIMALS = 3
+
+_DATA_URL_RE = re.compile(
+    r'^data:(image/(?:jpeg|jpg|png|webp));base64,(.+)$',
+    re.IGNORECASE | re.DOTALL,
 )
 
 
@@ -106,6 +122,164 @@ def collect_owner_fcm_tokens(vehicle_data: dict | None, user_data: dict | None) 
     return tokens
 
 
+def approximate_coordinates(lat: Any, lng: Any) -> tuple[float, float] | None:
+    """Round to a coarse grid for privacy (city/area scale, not exact pin)."""
+    try:
+        la = float(lat)
+        lo = float(lng)
+    except (TypeError, ValueError):
+        return None
+    if not (-90.0 <= la <= 90.0 and -180.0 <= lo <= 180.0):
+        return None
+    return round(la, COORD_DECIMALS), round(lo, COORD_DECIMALS)
+
+
+def format_place_label(
+    lat: float | None,
+    lng: float | None,
+    place_label: Any = None,
+) -> str:
+    label = str(place_label or '').strip()
+    if label:
+        return label[:160]
+    if lat is None or lng is None:
+        return ''
+    ns = 'N' if lat >= 0 else 'S'
+    ew = 'E' if lng >= 0 else 'W'
+    return f'Near {abs(lat):.3f}°{ns}, {abs(lng):.3f}°{ew}'
+
+
+def build_sighting_push_body(
+    *,
+    place_label: str = '',
+    photo_count: int = 0,
+) -> str:
+    if place_label:
+        body = (
+            f'Someone spotted your vehicle near {place_label} '
+            'while Lost Mode is on.'
+        )
+    else:
+        body = AUTO_PUSH_BODY
+    if photo_count > 0:
+        body += f' {int(photo_count)} photo(s) attached — open the app notification for details.'
+    return body
+
+
+def parse_sighting_location(payload: dict | None) -> dict:
+    """Extract approximate lat/lng + optional human place label from client JSON."""
+    data = payload if isinstance(payload, dict) else {}
+    coords = approximate_coordinates(data.get('latitude'), data.get('longitude'))
+    lat = coords[0] if coords else None
+    lng = coords[1] if coords else None
+    accuracy = None
+    try:
+        if data.get('accuracy') is not None:
+            accuracy = max(0.0, float(data.get('accuracy')))
+    except (TypeError, ValueError):
+        accuracy = None
+    label = format_place_label(lat, lng, data.get('place_label') or data.get('placeLabel'))
+    return {
+        'latitude': lat,
+        'longitude': lng,
+        'accuracy_m': accuracy,
+        'place_label': label,
+        'has_location': lat is not None and lng is not None,
+    }
+
+
+def _decode_photo_data_url(raw: Any) -> tuple[bytes, str] | None:
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    s = raw.strip()
+    m = _DATA_URL_RE.match(s)
+    if m:
+        mime = m.group(1).lower().replace('image/jpg', 'image/jpeg')
+        try:
+            blob = base64.b64decode(m.group(2), validate=False)
+        except Exception:
+            return None
+    else:
+        # Raw base64 JPEG fallback
+        try:
+            blob = base64.b64decode(s, validate=False)
+        except Exception:
+            return None
+        mime = 'image/jpeg'
+    if not blob or len(blob) > MAX_PHOTO_BYTES:
+        return None
+    return blob, mime
+
+
+def upload_sighting_photos(
+    photos_raw: Any,
+    *,
+    vehicle_id: str,
+    sighting_id: str,
+    uploader: Any = None,
+) -> list[str]:
+    """Upload up to MAX_SIGHTING_PHOTOS images to Cloudinary; skip failures."""
+    if uploader is None:
+        import cloudinary.uploader as uploader  # type: ignore
+
+    urls: list[str] = []
+    if not isinstance(photos_raw, list):
+        return urls
+    vid = str(vehicle_id or 'unknown').strip() or 'unknown'
+    sid = str(sighting_id or uuid.uuid4().hex).strip()
+    for i, raw in enumerate(photos_raw[:MAX_SIGHTING_PHOTOS]):
+        decoded = _decode_photo_data_url(raw)
+        if not decoded:
+            continue
+        blob, mime = decoded
+        try:
+            result = uploader.upload(
+                f'data:{mime};base64,{base64.b64encode(blob).decode("ascii")}',
+                folder=f'lost_mode_sightings/{vid}',
+                public_id=f'{sid}_{i}',
+                overwrite=True,
+                resource_type='image',
+                transformation=[{'width': 1280, 'crop': 'limit', 'quality': 'auto:good'}],
+            )
+            url = (result or {}).get('secure_url') or (result or {}).get('url')
+            if url:
+                urls.append(str(url))
+        except Exception as exc:
+            logger.warning('Lost Mode photo upload failed: %s', exc)
+    return urls
+
+
+def store_lost_mode_sighting(
+    db,
+    *,
+    owner_id: str,
+    vehicle_id: str,
+    qr_id: str,
+    location: dict,
+    photo_urls: list[str],
+    source: str = 'web_qr',
+) -> str:
+    """Persist a sighting document; returns sighting id."""
+    ref = db.collection('lostModeSightings').document()
+    now = datetime.now(timezone.utc)
+    doc = {
+        'ownerId': str(owner_id or '').strip(),
+        'vehicleId': str(vehicle_id or '').strip(),
+        'qrId': str(qr_id or '').strip(),
+        'source': source,
+        'latitude': location.get('latitude'),
+        'longitude': location.get('longitude'),
+        'accuracyM': location.get('accuracy_m'),
+        'placeLabel': location.get('place_label') or '',
+        'photoUrls': list(photo_urls or []),
+        'photoCount': len(photo_urls or []),
+        'createdAt': now,
+        'createdAtIso': now.isoformat(),
+    }
+    ref.set(doc)
+    return ref.id
+
+
 def attempt_lost_mode_auto_push(
     *,
     request,
@@ -117,14 +291,16 @@ def attempt_lost_mode_auto_push(
     user_ref,
     vehicle_ref,
     push_capable: bool,
-    send_push_fn,
+    send_push_fn: Callable[..., dict],
+    location_payload: dict | None = None,
+    photos_raw: Any = None,
+    upload_photos: bool = True,
 ) -> dict:
     """
-    On Lost Mode QR page load, push the owner once per browser session.
+    Push the owner for a Lost Mode sighting (once per browser session).
 
-    Uses push capability (token + prefs) but does **not** require Live Status
-    messaging — recovery sightings should still reach the owner when possible.
-    Reloads are deduped via session; ``?_sudo_rescan=1`` clears the flag.
+    Optionally attaches approximate location + Cloudinary photo URLs, stores a
+    ``lostModeSightings`` row, and puts ``sightingId`` / map hints in FCM data.
     """
     from .scanner_notify_session_controls import (
         has_lost_mode_auto_push_sent,
@@ -136,6 +312,10 @@ def attempt_lost_mode_auto_push(
         'sent': False,
         'skipped_reason': None,
         'notice': '',
+        'sighting_id': None,
+        'place_label': '',
+        'photo_count': 0,
+        'photo_urls': [],
     }
     lost = parse_vehicle_lost_mode(vehicle_data)
     if not lost['is_lost_mode']:
@@ -161,7 +341,40 @@ def attempt_lost_mode_auto_push(
         result['skipped_reason'] = 'no_owner'
         return result
 
+    location = parse_sighting_location(location_payload)
+    sighting_id = uuid.uuid4().hex[:16]
+    photo_urls: list[str] = []
+    if upload_photos and photos_raw:
+        photo_urls = upload_sighting_photos(
+            photos_raw,
+            vehicle_id=vehicle_id,
+            sighting_id=sighting_id,
+        )
+
+    try:
+        sighting_id = store_lost_mode_sighting(
+            db,
+            owner_id=owner_id,
+            vehicle_id=vehicle_id,
+            qr_id=qr_id,
+            location=location,
+            photo_urls=photo_urls,
+        )
+    except Exception as exc:
+        logger.warning('Lost Mode sighting store failed: %s', exc)
+        sighting_id = sighting_id or uuid.uuid4().hex[:16]
+
+    place = location.get('place_label') or ''
+    body = build_sighting_push_body(
+        place_label=place,
+        photo_count=len(photo_urls),
+    )
     result['attempted'] = True
+    result['place_label'] = place
+    result['photo_count'] = len(photo_urls)
+    result['photo_urls'] = photo_urls
+    result['sighting_id'] = sighting_id
+
     fcm_data = {
         'vehicleId': str(vehicle_id or ''),
         'qrId': str(qr_id or ''),
@@ -169,14 +382,28 @@ def attempt_lost_mode_auto_push(
         'type': 'vehicle_alert',
         'lostMode': 'true',
         'lostModeSighting': 'true',
+        'sightingId': str(sighting_id),
+        'placeLabel': place,
+        'photoCount': str(len(photo_urls)),
     }
+    if location.get('has_location'):
+        fcm_data['latitude'] = str(location['latitude'])
+        fcm_data['longitude'] = str(location['longitude'])
+        fcm_data['mapsUrl'] = (
+            f"https://maps.google.com/?q={location['latitude']},{location['longitude']}"
+        )
+    if photo_urls:
+        fcm_data['photoUrl'] = photo_urls[0]
+        # Keep payload small — full list lives on the Firestore sighting doc.
+        fcm_data['photoUrls'] = ','.join(photo_urls[:MAX_SIGHTING_PHOTOS])
+
     try:
         push_result = send_push_fn(
             db,
             user_id=owner_id,
             tokens=tokens,
             title=AUTO_PUSH_TITLE,
-            body=AUTO_PUSH_BODY,
+            body=body,
             data=fcm_data,
             store_inbox=True,
         )
@@ -209,7 +436,21 @@ def attempt_lost_mode_auto_push(
     if success_count > 0:
         mark_lost_mode_auto_push_sent(request, qr_id)
         result['sent'] = True
-        result['notice'] = AUTO_PUSH_SENT_NOTICE
+        if place and photo_urls:
+            result['notice'] = (
+                f'Owner notified with your approximate location ({place}) '
+                f'and {len(photo_urls)} photo(s).'
+            )
+        elif place:
+            result['notice'] = (
+                f'Owner notified with your approximate location ({place}).'
+            )
+        elif photo_urls:
+            result['notice'] = (
+                f'Owner notified with {len(photo_urls)} photo(s).'
+            )
+        else:
+            result['notice'] = AUTO_PUSH_SENT_NOTICE
         result['fcm_message_id'] = push_result.get('message_id')
         return result
 

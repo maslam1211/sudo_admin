@@ -275,6 +275,58 @@
       border: 1px solid rgba(255, 59, 48, 0.35);
     }
 
+    body.notify-app .notify-lost-mode-help {
+      margin: 0.55rem 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    body.notify-app .notify-lost-mode-loc-status {
+      margin: 0;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    body.notify-app .notify-lost-mode-photo-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    body.notify-app .notify-lost-mode-photo-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 59, 48, 0.45);
+      background: rgba(255, 59, 48, 0.14);
+      color: #fecaca;
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    body.notify-app .notify-lost-mode-photo-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    body.notify-app .notify-lost-mode-photo-thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    body.notify-app .notify-lost-mode-photo-thumbs img {
+      width: 52px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
     body.notify-app .notify-lost-mode-badge {
       display: inline-flex;
       align-items: center;
@@ -4182,12 +4234,20 @@
         <p class="notify-lost-mode-banner-title">{{ vehicle_lost_mode.banner_title }}</p>
       </div>
       <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
-      {% if lost_mode_auto_push.sent or lost_mode_auto_push.skipped_reason == 'already_sent' %}
-      <p class="notify-lost-mode-auto-sent" id="notifyLostModeAutoSent">
+      <div class="notify-lost-mode-help" id="notifyLostModeHelp">
+        <p class="notify-lost-mode-loc-status" id="notifyLostModeLocStatus">Preparing to tip the owner with approximate location…</p>
+        <div class="notify-lost-mode-photo-row">
+          <button type="button" class="notify-lost-mode-photo-btn" id="notifyLostModePhotoBtn">
+            <i class="bi bi-camera-fill" aria-hidden="true"></i> Add photo (optional)
+          </button>
+          <input type="file" id="notifyLostModePhotoInput" accept="image/*" capture="environment" multiple hidden>
+          <div class="notify-lost-mode-photo-thumbs" id="notifyLostModePhotoThumbs" aria-live="polite"></div>
+        </div>
+      </div>
+      <p class="notify-lost-mode-auto-sent" id="notifyLostModeAutoSent"{% if not lost_mode_auto_push.sent and lost_mode_auto_push.skipped_reason != 'already_sent' %} hidden{% endif %}>
         <i class="bi bi-bell-fill" aria-hidden="true"></i>
-        {{ lost_mode_auto_push.notice|default:vehicle_lost_mode.auto_push_sent_notice }}
+        <span id="notifyLostModeAutoSentText">{{ lost_mode_auto_push.notice|default:vehicle_lost_mode.auto_push_sent_notice }}</span>
       </p>
-      {% endif %}
     </aside>
     {% endif %}
     {% if scanner_has_any_channel %}
@@ -4779,6 +4839,10 @@
     const lostModeTipReason = "{{ vehicle_lost_mode.tip_reason|default:'I spotted this vehicle'|escapejs }}";
     const lostModeTipCtaTitle = "{{ vehicle_lost_mode.tip_cta_title|default:'Tip owner — I spotted this vehicle'|escapejs }}";
     const lostModeTipCtaSub = "{{ vehicle_lost_mode.tip_cta_sub|default:'Send a tip to help recover this vehicle'|escapejs }}";
+    const lostModePendingSighting =
+      ("{{ lost_mode_auto_push.pending_client_sighting|yesno:'yes,no' }}" === "yes");
+    const lostModeAlreadyAutoSent =
+      ("{{ lost_mode_auto_push.skipped_reason|default:''|escapejs }}" === "already_sent");
     var pushReady = ("{{ push_ready|yesno:'yes,no' }}" === "yes");
     var emergencyContactConfirmed = false;
     var vehiclePlateLast4VerifiedValue = '';
@@ -6439,6 +6503,293 @@
       resetUiAfterEmergencyDialerReturn();
     });
 
+    // -------------------------------------------------------------------------
+    // Lost Mode sighting: approximate location + optional photos → owner push
+    // -------------------------------------------------------------------------
+    var lostModeSightingPhotos = [];
+    var lostModeSightingInFlight = false;
+    var lostModeSightingDone = lostModeAlreadyAutoSent;
+    var LOST_MODE_MAX_PHOTOS = 3;
+
+    function setLostModeLocStatus(text) {
+      var el = document.getElementById('notifyLostModeLocStatus');
+      if (el) el.textContent = text || '';
+    }
+
+    function setLostModeAutoSentNotice(text) {
+      var wrap = document.getElementById('notifyLostModeAutoSent');
+      var txt = document.getElementById('notifyLostModeAutoSentText');
+      if (txt && text) txt.textContent = text;
+      if (wrap) wrap.hidden = false;
+    }
+
+    function renderLostModePhotoThumbs() {
+      var box = document.getElementById('notifyLostModePhotoThumbs');
+      if (!box) return;
+      box.innerHTML = '';
+      lostModeSightingPhotos.forEach(function (dataUrl) {
+        var img = document.createElement('img');
+        img.src = dataUrl;
+        img.alt = 'Sighting photo';
+        box.appendChild(img);
+      });
+      var btn = document.getElementById('notifyLostModePhotoBtn');
+      if (btn) {
+        btn.disabled = lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS || lostModeSightingDone;
+        btn.textContent =
+          lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS
+            ? 'Photos added (' + LOST_MODE_MAX_PHOTOS + ')'
+            : 'Add photo (optional)';
+      }
+    }
+
+    function compressImageFile(file, maxSide, quality) {
+      return new Promise(function (resolve) {
+        if (!file || !file.type || file.type.indexOf('image/') !== 0) {
+          resolve(null);
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var img = new Image();
+          img.onload = function () {
+            var w = img.width || 1;
+            var h = img.height || 1;
+            var scale = Math.min(1, maxSide / Math.max(w, h));
+            var cw = Math.max(1, Math.round(w * scale));
+            var ch = Math.max(1, Math.round(h * scale));
+            var canvas = document.createElement('canvas');
+            canvas.width = cw;
+            canvas.height = ch;
+            var ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(null);
+              return;
+            }
+            ctx.drawImage(img, 0, 0, cw, ch);
+            try {
+              resolve(canvas.toDataURL('image/jpeg', quality));
+            } catch (err) {
+              resolve(null);
+            }
+          };
+          img.onerror = function () {
+            resolve(null);
+          };
+          img.src = reader.result;
+        };
+        reader.onerror = function () {
+          resolve(null);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function reverseGeocodeApprox(lat, lng) {
+      var url =
+        'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' +
+        encodeURIComponent(lat) +
+        '&longitude=' +
+        encodeURIComponent(lng) +
+        '&localityLanguage=en';
+      return fetch(url, { method: 'GET' })
+        .then(function (r) {
+          return r.ok ? r.json() : null;
+        })
+        .then(function (data) {
+          if (!data) return '';
+          var parts = [];
+          if (data.locality) parts.push(data.locality);
+          else if (data.city) parts.push(data.city);
+          if (data.principalSubdivision) parts.push(data.principalSubdivision);
+          if (data.countryName) parts.push(data.countryName);
+          return parts.filter(Boolean).join(', ').slice(0, 160);
+        })
+        .catch(function () {
+          return '';
+        });
+    }
+
+    function getApproxGeolocation() {
+      return new Promise(function (resolve) {
+        if (!navigator.geolocation) {
+          resolve(null);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            });
+          },
+          function () {
+            resolve(null);
+          },
+          { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 }
+        );
+      });
+    }
+
+    function submitLostModeSighting(payload) {
+      if (lostModeSightingInFlight || lostModeSightingDone) {
+        return Promise.resolve(null);
+      }
+      var csrfToken = getCSRFToken();
+      if (!csrfToken) {
+        setLostModeLocStatus('Could not tip owner automatically — security token missing. Tip them manually below.');
+        return Promise.resolve(null);
+      }
+      lostModeSightingInFlight = true;
+      setLostModeLocStatus('Sending tip to the owner…');
+      return fetch('', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          notification_method: 'lost_mode_sighting',
+          contact_target: 'owner',
+          latitude: payload && payload.latitude,
+          longitude: payload && payload.longitude,
+          accuracy: payload && payload.accuracy,
+          place_label: (payload && payload.place_label) || '',
+          photos: lostModeSightingPhotos.slice(0, LOST_MODE_MAX_PHOTOS)
+        })
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        })
+        .then(function (res) {
+          lostModeSightingInFlight = false;
+          if (res && res.data && (res.data.status === 'success' || res.data.already_sent)) {
+            lostModeSightingDone = true;
+            setLostModeAutoSentNotice(
+              (res.data && res.data.message) ||
+                'Owner notified automatically on their phone — thank you for helping.'
+            );
+            setLostModeLocStatus(
+              res.data.place_label
+                ? 'Approximate area shared: ' + res.data.place_label
+                : 'Tip sent. You can still message or call below if needed.'
+            );
+            renderLostModePhotoThumbs();
+            return res.data;
+          }
+          setLostModeLocStatus(
+            'Automatic tip could not be sent. Please tip the owner manually below.'
+          );
+          return null;
+        })
+        .catch(function () {
+          lostModeSightingInFlight = false;
+          setLostModeLocStatus(
+            'Automatic tip could not be sent. Please tip the owner manually below.'
+          );
+          return null;
+        });
+    }
+
+    function initLostModeSightingFlow() {
+      if (!vehicleLostMode || SUDO_NOTIFY_TERMINAL_GATE) return;
+
+      var photoBtn = document.getElementById('notifyLostModePhotoBtn');
+      var photoInput = document.getElementById('notifyLostModePhotoInput');
+      if (photoBtn && photoInput) {
+        photoBtn.addEventListener('click', function () {
+          if (lostModeSightingDone || lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS) return;
+          photoInput.click();
+        });
+        photoInput.addEventListener('change', function () {
+          var files = Array.prototype.slice.call(photoInput.files || [], 0);
+          photoInput.value = '';
+          var chain = Promise.resolve();
+          files.forEach(function (file) {
+            chain = chain.then(function () {
+              if (lostModeSightingPhotos.length >= LOST_MODE_MAX_PHOTOS) return;
+              return compressImageFile(file, 1280, 0.72).then(function (dataUrl) {
+                if (dataUrl) {
+                  lostModeSightingPhotos.push(dataUrl);
+                  renderLostModePhotoThumbs();
+                }
+              });
+            });
+          });
+        });
+      }
+
+      if (lostModeAlreadyAutoSent) {
+        setLostModeLocStatus('Owner was already tipped from this scan session.');
+        setLostModeAutoSentNotice(
+          document.getElementById('notifyLostModeAutoSentText')
+            ? document.getElementById('notifyLostModeAutoSentText').textContent
+            : ''
+        );
+        return;
+      }
+
+      if (!lostModePendingSighting) {
+        setLostModeLocStatus(
+          'Automatic tip is unavailable right now. Please tip the owner manually below — you can still add a photo first.'
+        );
+        return;
+      }
+
+      setLostModeLocStatus(
+        'Getting approximate location… Add a photo in the next few seconds (optional), then we tip the owner.'
+      );
+
+      var locationPayload = {};
+      var locationReady = getApproxGeolocation().then(function (coords) {
+        if (!coords) return locationPayload;
+        locationPayload = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: coords.accuracy,
+          place_label: ''
+        };
+        return reverseGeocodeApprox(coords.latitude, coords.longitude).then(function (label) {
+          locationPayload.place_label = label || '';
+          if (label) {
+            setLostModeLocStatus(
+              'Area: ' + label + ' — add a photo if you can, then tipping owner…'
+            );
+          }
+          return locationPayload;
+        });
+      });
+
+      // Short window so optional photos can be attached to the same tip.
+      var photoWindow = new Promise(function (resolve) {
+        setTimeout(resolve, 7000);
+      });
+
+      Promise.all([locationReady, photoWindow]).then(function () {
+        if (lostModeSightingDone) return;
+        if (locationPayload.place_label) {
+          setLostModeLocStatus(
+            'Sending tip with approximate location' +
+              (lostModeSightingPhotos.length
+                ? ' and ' + lostModeSightingPhotos.length + ' photo(s)'
+                : '') +
+              '…'
+          );
+        } else {
+          setLostModeLocStatus(
+            lostModeSightingPhotos.length
+              ? 'Sending tip with ' + lostModeSightingPhotos.length + ' photo(s)…'
+              : 'Sending tip to the owner…'
+          );
+        }
+        return submitLostModeSighting(locationPayload);
+      });
+    }
+
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function () {
       resetUiAfterEmergencyDialerReturn();
@@ -6545,6 +6896,8 @@
           if (reasonTextBoot) reasonTextBoot.textContent = lostModeTipReason;
         }
       }
+
+      initLostModeSightingFlow();
 
       if (
         contactMode &&

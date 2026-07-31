@@ -33,6 +33,7 @@ from .scanner_notify_session_controls import (
     NOTIFY_SESSION_TTL_SEC,
     clear_notify_session_for_rescan,
     get_notify_session_until,
+    has_lost_mode_auto_push_sent,
     is_notify_session_active,
     is_notify_sheet_done,
     record_notify_messaging_success,
@@ -2366,8 +2367,11 @@ def send_notification(request, qr_id):
                 if not isinstance(data, dict):
                     data = {}
 
-                _nm_quick = str(data.get('notification_method') or '').strip()
-                if _nm_quick != 'verify_plate' and is_notify_sheet_done(request, qr_id):
+                _nm_quick = str(data.get('notification_method') or '').strip().lower()
+                if (
+                    _nm_quick not in ('verify_plate', 'lost_mode_sighting')
+                    and is_notify_sheet_done(request, qr_id)
+                ):
                     return JsonResponse(
                         {
                             'status': 'error',
@@ -2389,7 +2393,7 @@ def send_notification(request, qr_id):
                     if _raw_method not in (None, '')
                     else ''
                 )
-                if _method_s in ('push', 'sms'):
+                if _method_s in ('push', 'sms', 'lost_mode_sighting'):
                     notification_method = _method_s
                 elif _method_s == '':
                     notification_method = 'push'
@@ -2411,6 +2415,76 @@ def send_notification(request, qr_id):
                 _scanner_f = scanner_flags_from_user_doc(user_data, vehicle_data)
                 _scanner_eff = scanner_effective_channels_now(user_data, vehicle_data)
                 _owner_live = parse_owner_live_status(user_data)
+
+                # Lost Mode sighting: approx location + optional photos → owner push.
+                if notification_method == 'lost_mode_sighting':
+                    vehicle_lost = parse_vehicle_lost_mode(vehicle_data)
+                    if not vehicle_lost.get('is_lost_mode'):
+                        return JsonResponse(
+                            {
+                                'status': 'error',
+                                'error_type': 'not_lost_mode',
+                                'message': 'This vehicle is not in Lost Mode.',
+                            },
+                            status=400,
+                        )
+                    _vehicle_token = vehicle_data.get('fcmToken') or ''
+                    _single_token = user_data.get('fcmToken') or ''
+                    _has_token = bool(_vehicle_token) or bool(_single_token)
+                    _push_capable = (
+                        bool(_has_token)
+                        and bool(_scanner_eff.get('push'))
+                        and bool(_app_prefs.get('push_allowed'))
+                    )
+                    sighting = attempt_lost_mode_auto_push(
+                        request=request,
+                        db=db,
+                        qr_id=qr_id,
+                        vehicle_id=str(qr_data.get('vehicleID') or ''),
+                        vehicle_data=vehicle_data,
+                        user_data=user_data,
+                        user_ref=user_ref,
+                        vehicle_ref=vehicle_ref,
+                        push_capable=_push_capable,
+                        send_push_fn=send_push_to_tokens,
+                        location_payload={
+                            'latitude': data.get('latitude'),
+                            'longitude': data.get('longitude'),
+                            'accuracy': data.get('accuracy'),
+                            'place_label': data.get('place_label')
+                            or data.get('placeLabel'),
+                        },
+                        photos_raw=data.get('photos') or [],
+                        upload_photos=True,
+                    )
+                    if sighting.get('sent') or sighting.get('skipped_reason') == 'already_sent':
+                        return JsonResponse(
+                            {
+                                'status': 'success',
+                                'message': sighting.get('notice')
+                                or 'Owner notified.',
+                                'notification_type': 'lost_mode_sighting',
+                                'push_delivered': bool(sighting.get('sent')),
+                                'already_sent': sighting.get('skipped_reason')
+                                == 'already_sent',
+                                'sighting_id': sighting.get('sighting_id'),
+                                'place_label': sighting.get('place_label') or '',
+                                'photo_count': sighting.get('photo_count') or 0,
+                                'redirect_home': False,
+                            }
+                        )
+                    return JsonResponse(
+                        {
+                            'status': 'error',
+                            'error_type': sighting.get('skipped_reason')
+                            or 'send_failed',
+                            'message': (
+                                'Could not notify the owner automatically. '
+                                'You can still tip them manually below.'
+                            ),
+                        },
+                        status=400,
+                    )
 
                 if contact_target == 'emergency':
                     if not _scanner_f['emergency']:
@@ -2908,6 +2982,7 @@ def send_notification(request, qr_id):
             'sent': False,
             'skipped_reason': None,
             'notice': '',
+            'pending_client_sighting': False,
         }
         if request.method == 'GET':
             if request.GET.get('_sudo_rescan') == '1':
@@ -2919,39 +2994,23 @@ def send_notification(request, qr_id):
             if is_notify_session_active(request, qr_id):
                 notify_session_expires_at = get_notify_session_until(request, qr_id)
 
-            # Lost Mode: auto tip the owner once per browser session when the QR opens.
+            # Lost Mode: client captures approx location + optional photos, then POSTs.
             if (
                 vehicle_lost_mode.get('is_lost_mode')
                 and not scanner_notify_show_terminal_sheet
             ):
-                lost_mode_auto_push = attempt_lost_mode_auto_push(
-                    request=request,
-                    db=db,
-                    qr_id=qr_id,
-                    vehicle_id=str(qr_data.get('vehicleID') or ''),
-                    vehicle_data=vehicle_data,
-                    user_data=user_data,
-                    user_ref=user_ref,
-                    vehicle_ref=vehicle_ref,
-                    push_capable=push_capable,
-                    send_push_fn=send_push_to_tokens,
-                )
-                if lost_mode_auto_push.get('sent'):
-                    logger.info(
-                        'Lost Mode auto push sent for qr_id=%s vehicle_id=%s',
-                        qr_id,
-                        qr_data.get('vehicleID'),
-                    )
-                elif lost_mode_auto_push.get('skipped_reason') not in (
-                    None,
-                    'already_sent',
-                    'not_lost_mode',
-                ):
-                    logger.info(
-                        'Lost Mode auto push skipped qr_id=%s reason=%s',
-                        qr_id,
-                        lost_mode_auto_push.get('skipped_reason'),
-                    )
+                if has_lost_mode_auto_push_sent(request, qr_id):
+                    lost_mode_auto_push = {
+                        'attempted': False,
+                        'sent': False,
+                        'skipped_reason': 'already_sent',
+                        'notice': vehicle_lost_mode.get('auto_push_sent_notice') or '',
+                        'pending_client_sighting': False,
+                    }
+                elif push_capable:
+                    lost_mode_auto_push['pending_client_sighting'] = True
+                else:
+                    lost_mode_auto_push['skipped_reason'] = 'push_unavailable'
 
         context = {
             'vehicle_data': _notify_vehicle_context(vehicle_data),
