@@ -434,16 +434,10 @@
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.16);
     }
-    body.notify-app a.notify-lost-mode-loc-share-btn--maps {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
+    body.notify-app .notify-lost-mode-loc-share-btn--send {
       color: #fff;
       background: linear-gradient(180deg, #4285f4 0%, #3367d6 100%);
-      box-sizing: border-box;
     }
-    body.notify-app a.notify-lost-mode-loc-share-btn--maps[hidden],
     body.notify-app .notify-lost-mode-loc-share-btn[hidden] {
       display: none !important;
     }
@@ -4446,7 +4440,7 @@
         <div class="notify-lost-mode-loc-share" id="notifyLostModeLocShare">
           <p class="notify-lost-mode-loc-share-title">Share location with owner</p>
           <p class="notify-lost-mode-loc-share-body" id="notifyLostModeLocHelpText">
-            One tap: get GPS → start live location → send Google Maps pin to the owner.
+            Tap Share My Location to get your GPS, then Send to notify the owner.
           </p>
           <div class="notify-lost-mode-loc-steps" id="notifyLostModeLocSteps" aria-label="Location share steps">
             <div class="notify-lost-mode-loc-step is-active" data-step="1" id="lostModeStep1">1. Position</div>
@@ -4476,14 +4470,13 @@
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--share" id="lostModeLocShareInlineBtn">
               Share My Location
             </button>
-            <a
-              class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--maps"
-              id="lostModeLocOpenMapsBtn"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--send"
+              id="lostModeLocSendBtn"
               hidden
-            >View Google Maps link</a>
+              disabled
+            >Send</button>
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--skip" id="lostModeLocStopBtn" hidden>
               Stop Sharing
             </button>
@@ -7098,7 +7091,7 @@
       var LIVE_MIN_INTERVAL_MS = 45 * 1000;
       var LIVE_MIN_MOVE_M = 35;
       var shareBtn = document.getElementById('lostModeLocShareInlineBtn');
-      var openMapsBtn = document.getElementById('lostModeLocOpenMapsBtn');
+      var sendBtn = document.getElementById('lostModeLocSendBtn');
       var stopLiveBtn = document.getElementById('lostModeLocStopBtn');
       var liveBadge = document.getElementById('notifyLostModeLiveBadge');
       var liveBadgeText = document.getElementById('notifyLostModeLiveBadgeText');
@@ -7115,7 +7108,8 @@
        */
       function setLostModeLocUiState(state, statusText) {
         var step = 1;
-        if (state === 'live_ready' || state === 'sending') step = 2;
+        if (state === 'live_ready') step = 2;
+        if (state === 'sending') step = 3;
         if (state === 'sharing') step = 3;
         if (state === 'stopped') step = 3;
         if (state === 'error') step = firstLiveTipSent ? 3 : liveShareActive ? 2 : 1;
@@ -7133,22 +7127,25 @@
         if (helpTextEl) {
           if (state === 'sharing') {
             helpTextEl.textContent =
-              'Owner has your Google Maps pin. Keep this page open for live updates.';
-          } else if (state === 'live_ready' || state === 'sending') {
+              'Owner has your location pin. Keep this page open for live updates.';
+          } else if (state === 'sending') {
             helpTextEl.textContent =
-              'Live GPS is on. Sending your Google Maps pin to the owner…';
+              'Sending your location pin to the owner…';
+          } else if (state === 'live_ready') {
+            helpTextEl.textContent =
+              'Location ready — check the map preview, then tap Send.';
           } else if (state === 'fetching') {
             helpTextEl.textContent =
               'Getting your GPS position. Allow location if your phone asks.';
           } else if (state === 'stopped') {
             helpTextEl.textContent =
-              'Live sharing stopped. Owner can still open the last Google Maps pin.';
+              'Live sharing stopped. You can share again anytime.';
           } else if (state === 'error') {
             helpTextEl.textContent =
               'Location could not be shared yet. You can try again.';
           } else {
             helpTextEl.textContent =
-              'One tap: get GPS → start live location → send Google Maps pin to the owner.';
+              'Tap Share My Location to get your GPS, then Send to notify the owner.';
           }
         }
 
@@ -7160,8 +7157,8 @@
         }
         if (liveBadgeText) {
           if (state === 'sharing') liveBadgeText.textContent = 'Live Location Active';
-          else if (state === 'sending') liveBadgeText.textContent = 'Location Shared';
-          else if (state === 'live_ready') liveBadgeText.textContent = 'Location Shared';
+          else if (state === 'sending') liveBadgeText.textContent = 'Sending…';
+          else if (state === 'live_ready') liveBadgeText.textContent = 'Location Ready';
           else if (state === 'stopped') liveBadgeText.textContent = 'Location Shared';
         }
         if (state === 'stopped' && liveBadge && placeShared) {
@@ -7177,6 +7174,26 @@
             else if (state === 'error') shareBtn.textContent = 'Try again — Share Location';
             else if (state === 'stopped') shareBtn.textContent = 'Share again';
             else shareBtn.textContent = 'Share My Location';
+          }
+        }
+        // Send replaces the old Google Maps link button — enabled only after GPS is ready.
+        if (sendBtn) {
+          if (state === 'live_ready') {
+            sendBtn.hidden = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+          } else if (state === 'sending') {
+            sendBtn.hidden = false;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending…';
+          } else if (state === 'error' && liveShareActive && !firstLiveTipSent) {
+            sendBtn.hidden = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+          } else {
+            sendBtn.hidden = true;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Send';
           }
         }
         if (stopLiveBtn) {
@@ -7490,12 +7507,7 @@
 
       function setOpenMapsLink(coords) {
         if (!coords) return;
-        var url = buildGoogleMapsUrl(coords.latitude, coords.longitude);
-        // Keep as an optional user-opened link only (no auto redirect / window.open).
-        if (openMapsBtn) {
-          openMapsBtn.href = url;
-          openMapsBtn.hidden = false;
-        }
+        // On-page map preview only — no Google Maps button / auto-open.
         showLostModeMapPreview(coords);
       }
 
@@ -7539,7 +7551,7 @@
           'sharing',
           'Live Location Active — keep this page open (~' +
             leftMin +
-            ' min left). Map preview updates here; Maps opens only if you tap the link.'
+            ' min left). Map preview updates here.'
         );
       }
 
@@ -7592,12 +7604,16 @@
           !navigator.geolocation ||
           typeof navigator.geolocation.watchPosition !== 'function'
         ) {
-          if (initialCoords) {
-            lastLiveCoords = initialCoords;
-            setOpenMapsLink(initialCoords);
-          }
-          setLostModeLocStatus(
-            'Live GPS watch not supported here — sending your current Google Maps pin…'
+          // Still allow a one-shot Send with the fetched pin.
+          liveShareActive = true;
+          liveStartedAt = Date.now();
+          lastLiveCoords = initialCoords || null;
+          if (initialCoords) setOpenMapsLink(initialCoords);
+          setLostModeLocUiState(
+            opts.awaitingSend ? 'live_ready' : 'sharing',
+            opts.awaitingSend
+              ? 'Location ready — tap Send to notify the owner.'
+              : 'Location shared with owner.'
           );
           return;
         }
@@ -7609,7 +7625,7 @@
         setLostModeLocUiState(
           opts.awaitingSend ? 'live_ready' : 'sharing',
           opts.awaitingSend
-            ? 'Live GPS ready — sending Google Maps pin to the owner…'
+            ? 'Location ready — tap Send to notify the owner.'
             : 'Live sharing with owner… keep this page open.'
         );
 
@@ -7675,7 +7691,7 @@
         showLostModeLocDeniedMessage(false);
         setLostModeLocUiState(
           'fetching',
-          'Step 1/3 — getting your GPS position…'
+          'Getting your GPS position…'
         );
 
         // Geolocation starts inside this call synchronously (required for iOS).
@@ -7688,59 +7704,79 @@
               setLostModeShareButtonBusy(false);
               locationShareInFlight = false;
               setLostModeLocUiState('error', locationFailMessage(1));
-              return null;
+              return;
             }
             if (!coords) {
               setLostModeShareButtonBusy(false);
               locationShareInFlight = false;
               setLostModeLocUiState('error', locationFailMessage(errCode));
-              return null;
+              return;
             }
 
-            // 1) Position fetched → 2) Live GPS → 3) Send Maps tip.
+            // Position ready → show map + enable Send (do not auto-notify).
             setOpenMapsLink(coords);
             startLiveLocationShare(coords, { awaitingSend: true });
+            setLostModeShareButtonBusy(false);
+            locationShareInFlight = false;
             setLostModeLocUiState(
-              'sending',
-              'Step 3/3 — sending live Google Maps pin to the owner…'
-            );
-
-            var sendCoords = lastLiveCoords || coords;
-            return sendLocationTip(sendCoords, { liveUpdate: false }).then(
-              function (sendRes) {
-                if (!sendRes || !sendRes.ok) {
-                  setLostModeShareButtonBusy(false);
-                  setLostModeLocUiState(
-                    'error',
-                    'Live GPS is on, but sending failed. Tap Try again.'
-                  );
-                  // Keep maps link available even if send failed.
-                  if (stopLiveBtn) stopLiveBtn.hidden = false;
-                  return null;
-                }
-                firstLiveTipSent = true;
-                lastLiveSentAt = Date.now();
-                locationShareDone = true;
-                placeShared = true;
-                setOpenMapsLink(sendCoords);
-                setLostModeAutoSentNotice(
-                  'Owner notified with your live Google Maps location. Updates continue while this page stays open.'
-                );
-                updateLiveShareStatus();
-                return sendRes;
-              }
+              'live_ready',
+              'Location ready — check the map, then tap Send.'
             );
           })
           .catch(function () {
             setLostModeShareButtonBusy(false);
             locationShareInFlight = false;
             setLostModeLocUiState('error', locationFailMessage(0));
+          });
+      }
+
+      function onSendLocationClick(evt) {
+        if (evt && typeof evt.preventDefault === 'function') evt.preventDefault();
+        if (firstLiveTipSent || locationShareInFlight) return;
+        var sendCoords = lastLiveCoords;
+        if (!sendCoords) {
+          setLostModeLocUiState(
+            'error',
+            'No location yet. Tap Share My Location first.'
+          );
+          return;
+        }
+
+        locationShareInFlight = true;
+        setLostModeLocUiState(
+          'sending',
+          'Sending your location pin to the owner…'
+        );
+
+        sendLocationTip(sendCoords, { liveUpdate: false })
+          .then(function (sendRes) {
+            if (!sendRes || !sendRes.ok) {
+              setLostModeLocUiState(
+                'error',
+                'Sending failed. Tap Send to try again.'
+              );
+              if (stopLiveBtn) stopLiveBtn.hidden = false;
+              return null;
+            }
+            firstLiveTipSent = true;
+            lastLiveSentAt = Date.now();
+            locationShareDone = true;
+            placeShared = true;
+            setOpenMapsLink(sendCoords);
+            setLostModeAutoSentNotice(
+              'Owner notified with your live location. Updates continue while this page stays open.'
+            );
+            updateLiveShareStatus();
+            return sendRes;
+          })
+          .catch(function () {
+            setLostModeLocUiState(
+              'error',
+              'Sending failed. Tap Send to try again.'
+            );
           })
           .then(function () {
             locationShareInFlight = false;
-            if (!locationShareDone && !liveShareActive) {
-              setLostModeShareButtonBusy(false);
-            }
           });
       }
 
@@ -7748,10 +7784,13 @@
         // click is enough; geolocation is started synchronously in the handler for iOS.
         shareBtn.addEventListener('click', onShareMyLocationClick);
       }
+      if (sendBtn) {
+        sendBtn.addEventListener('click', onSendLocationClick);
+      }
       if (stopLiveBtn) {
         stopLiveBtn.addEventListener('click', function () {
           stopLiveLocationShare(
-            'Live sharing stopped. Owner can still open the last Google Maps pin.'
+            'Live sharing stopped. You can share again anytime.'
           );
         });
       }
@@ -7784,7 +7823,7 @@
           if (!SUDO_NOTIFY_TERMINAL_GATE && !locationShareDone) {
             setLostModeLocUiState(
               'idle',
-              'Owner tip can go without a map. Tap Share My Location to also send a live Google Maps pin.'
+              'Owner tip can go without a map. Tap Share My Location, then Send, to also share a live pin.'
             );
             setLostModeShareButtonBusy(false);
           }
