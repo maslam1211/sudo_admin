@@ -2608,7 +2608,11 @@ def send_notification(request, qr_id):
                                     qr_id,
                                     str(owner_digits)[-4:],
                                 )
-                        maps_url = sighting.get('maps_url') or ''
+                        maps_url = (
+                            sighting.get('google_maps_url')
+                            or sighting.get('maps_url')
+                            or ''
+                        )
                         msg = sighting.get('notice') or 'Owner notified.'
                         if sms_sent_now and maps_url:
                             msg = (
@@ -2631,6 +2635,10 @@ def send_notification(request, qr_id):
                                 'sighting_id': sighting.get('sighting_id'),
                                 'place_label': sighting.get('place_label') or '',
                                 'maps_url': maps_url,
+                                'googleMapsUrl': maps_url,
+                                'google_maps_url': maps_url,
+                                'latitude': sighting.get('latitude'),
+                                'longitude': sighting.get('longitude'),
                                 'photo_count': sighting.get('photo_count') or 0,
                                 'scanned_at': sighting.get('scanned_at') or '',
                                 'scanned_at_display': sighting.get('scanned_at_display')
@@ -2714,6 +2722,11 @@ def send_notification(request, qr_id):
                                 'Sighting recorded. App notification unavailable — '
                                 'the owner may still get SMS.'
                             )
+                        maps_url = (
+                            sighting.get('google_maps_url')
+                            or sighting.get('maps_url')
+                            or ''
+                        )
                         return JsonResponse(
                             {
                                 'status': 'success',
@@ -2724,6 +2737,11 @@ def send_notification(request, qr_id):
                                 'already_sent': False,
                                 'sighting_id': sighting.get('sighting_id'),
                                 'place_label': place,
+                                'maps_url': maps_url,
+                                'googleMapsUrl': maps_url,
+                                'google_maps_url': maps_url,
+                                'latitude': sighting.get('latitude'),
+                                'longitude': sighting.get('longitude'),
                                 'photo_count': sighting.get('photo_count') or 0,
                                 'scanned_at': sighting.get('scanned_at') or '',
                                 'scanned_at_display': sighting.get('scanned_at_display')

@@ -34,6 +34,7 @@ REASONS_HEADING = 'Help recover this vehicle'
 REASONS_LEAD = 'Tip the owner — choose how you spotted this vehicle, or pick another reason.'
 
 AUTO_PUSH_TITLE = 'DANGER WARNING'
+SPOTTER_LOCATION_TITLE = '📍 Spotter Location Shared'
 AUTO_PUSH_BODY = (
     'Your vehicle has been found. Please check the details immediately.'
 )
@@ -45,6 +46,8 @@ MAX_SIGHTING_PHOTOS = 3
 MAX_PHOTO_BYTES = 450_000
 # ~110 m grid — prefer approximate area over exact pin (privacy).
 COORD_DECIMALS = 3
+# Maps pin / notification display precision (~0.1 m).
+MAPS_COORD_DECIMALS = 6
 
 _DATA_URL_RE = re.compile(
     r'^data:(image/(?:jpeg|jpg|png|webp));base64,(.+)$',
@@ -149,9 +152,26 @@ def format_place_label(
     return f'Near {abs(lat):.3f}°{ns}, {abs(lng):.3f}°{ew}'
 
 
+def maps_coordinates(lat: Any, lng: Any) -> tuple[float, float] | None:
+    """Validate and round lat/lng for Google Maps pins (6 decimal places)."""
+    try:
+        la = float(lat)
+        lo = float(lng)
+    except (TypeError, ValueError):
+        return None
+    if not (-90.0 <= la <= 90.0 and -180.0 <= lo <= 180.0):
+        return None
+    return round(la, MAPS_COORD_DECIMALS), round(lo, MAPS_COORD_DECIMALS)
+
+
+def format_coord(value: float) -> str:
+    """Stable decimal string for notification / URL (trim trailing zeros)."""
+    return f'{float(value):.{MAPS_COORD_DECIMALS}f}'.rstrip('0').rstrip('.')
+
+
 def google_maps_url(lat: float, lng: float) -> str:
-    """Open Google Maps at approximate lat/lng (matches FCM mapsUrl)."""
-    return f'https://maps.google.com/?q={lat},{lng}'
+    """Clickable Google Maps URL: https://www.google.com/maps?q=<lat>,<lng>."""
+    return f'https://www.google.com/maps?q={format_coord(lat)},{format_coord(lng)}'
 
 
 def build_lost_mode_sms_message(
@@ -168,7 +188,7 @@ def build_lost_mode_sms_message(
     FCM can open the spotter location from SMS alone.
     """
     base = (reason or '').strip() or TIP_REASON
-    coords = approximate_coordinates(latitude, longitude)
+    coords = maps_coordinates(latitude, longitude)
     if not coords:
         return base[:max_len]
     url = google_maps_url(coords[0], coords[1])
@@ -181,16 +201,60 @@ def build_lost_mode_sms_message(
     return f'{base[:room].rstrip()} {url}'
 
 
+def build_spotter_location_notification(
+    *,
+    latitude: float,
+    longitude: float,
+    maps_url: str = '',
+    shared_at_display: str = '',
+) -> tuple[str, str]:
+    """
+    Title + body for a location-share Lost Mode tip.
+
+    Body includes lat/lng, clickable Google Maps URL, and share time.
+    """
+    lat_s = format_coord(latitude)
+    lng_s = format_coord(longitude)
+    url = (maps_url or '').strip() or google_maps_url(latitude, longitude)
+    lines = [
+        f'Latitude: {lat_s}',
+        f'Longitude: {lng_s}',
+        '',
+        'View on Google Maps:',
+        url,
+    ]
+    if shared_at_display:
+        lines.extend(['', f'Shared at: {shared_at_display}'])
+    return SPOTTER_LOCATION_TITLE, '\n'.join(lines)
+
+
 def build_sighting_push_body(
     *,
     place_label: str = '',
     photo_count: int = 0,
     scanned_at_display: str = '',
     maps_url: str = '',
+    latitude: Any = None,
+    longitude: Any = None,
 ) -> str:
+    coords = maps_coordinates(latitude, longitude)
     maps = (maps_url or '').strip()
+    if coords:
+        if not maps:
+            maps = google_maps_url(coords[0], coords[1])
+        _title, body = build_spotter_location_notification(
+            latitude=coords[0],
+            longitude=coords[1],
+            maps_url=maps,
+            shared_at_display=scanned_at_display,
+        )
+        if photo_count > 0:
+            body += (
+                f'\n\n{int(photo_count)} photo(s) attached — '
+                'open the app notification for details.'
+            )
+        return body
     if maps:
-        # Keep notification text short; Maps link is the actionable location.
         body = f'Your vehicle has been found. Live location: {maps}'
         if place_label:
             body = f'Your vehicle has been found near {place_label}. Map: {maps}'
@@ -227,9 +291,9 @@ def format_scanned_at_ist(when: datetime | None = None) -> str:
 
 
 def parse_sighting_location(payload: dict | None) -> dict:
-    """Extract approximate lat/lng + optional human place label from client JSON."""
+    """Extract lat/lng (maps precision) + optional human place label from client JSON."""
     data = payload if isinstance(payload, dict) else {}
-    coords = approximate_coordinates(data.get('latitude'), data.get('longitude'))
+    coords = maps_coordinates(data.get('latitude'), data.get('longitude'))
     lat = coords[0] if coords else None
     lng = coords[1] if coords else None
     accuracy = None
@@ -239,11 +303,15 @@ def parse_sighting_location(payload: dict | None) -> dict:
     except (TypeError, ValueError):
         accuracy = None
     label = format_place_label(lat, lng, data.get('place_label') or data.get('placeLabel'))
+    maps_url = ''
+    if lat is not None and lng is not None:
+        maps_url = google_maps_url(lat, lng)
     return {
         'latitude': lat,
         'longitude': lng,
         'accuracy_m': accuracy,
         'place_label': label,
+        'google_maps_url': maps_url,
         'has_location': lat is not None and lng is not None,
     }
 
@@ -327,23 +395,34 @@ def store_lost_mode_sighting(
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     display = scanned_at_display or format_scanned_at_ist(now)
-    # Spotter coordinates are delivered in push/SMS only for this tip — not retained.
     had_location = bool(
         location
         and location.get('has_location')
         and location.get('latitude') is not None
         and location.get('longitude') is not None
     )
+    maps_url = ''
+    lat = None
+    lng = None
+    if had_location:
+        lat = location.get('latitude')
+        lng = location.get('longitude')
+        maps_url = (
+            (location.get('google_maps_url') or '').strip()
+            or google_maps_url(float(lat), float(lng))
+        )
     doc = {
         'ownerId': str(owner_id or '').strip(),
         'vehicleId': str(vehicle_id or '').strip(),
         'qrId': str(qr_id or '').strip(),
         'source': source,
-        'latitude': None,
-        'longitude': None,
-        'accuracyM': None,
-        'placeLabel': '',
-        'locationSharedEphemeral': had_location,
+        # Dedicated maps field so clients/inbox never drop the clickable URL.
+        'googleMapsUrl': maps_url or None,
+        'latitude': lat,
+        'longitude': lng,
+        'accuracyM': location.get('accuracy_m') if had_location else None,
+        'placeLabel': (location.get('place_label') or '') if had_location else '',
+        'locationShared': had_location,
         'photoUrls': list(photo_urls or []),
         'photoCount': len(photo_urls or []),
         'scannedAt': now,
@@ -386,6 +465,9 @@ def attempt_lost_mode_auto_push(
         'sighting_id': None,
         'place_label': '',
         'maps_url': '',
+        'google_maps_url': '',
+        'latitude': None,
+        'longitude': None,
         'photo_count': 0,
         'photo_urls': [],
     }
@@ -444,20 +526,41 @@ def attempt_lost_mode_auto_push(
 
     place = location.get('place_label') or ''
     maps_link = ''
-    if location.get('has_location'):
-        maps_link = google_maps_url(
-            float(location['latitude']),
-            float(location['longitude']),
+    lat = location.get('latitude')
+    lng = location.get('longitude')
+    has_location = bool(location.get('has_location') and lat is not None and lng is not None)
+    if has_location:
+        maps_link = (
+            (location.get('google_maps_url') or '').strip()
+            or google_maps_url(float(lat), float(lng))
         )
     body = build_sighting_push_body(
         place_label=place,
         photo_count=len(photo_urls),
         scanned_at_display=scanned_at_display,
         maps_url=maps_link,
+        latitude=lat,
+        longitude=lng,
     )
+    push_title = AUTO_PUSH_TITLE
+    if has_location:
+        push_title, body = build_spotter_location_notification(
+            latitude=float(lat),
+            longitude=float(lng),
+            maps_url=maps_link,
+            shared_at_display=scanned_at_display,
+        )
+        if photo_urls:
+            body += (
+                f'\n\n{len(photo_urls)} photo(s) attached — '
+                'open the app notification for details.'
+            )
     result['attempted'] = True
     result['place_label'] = place
     result['maps_url'] = maps_link
+    result['google_maps_url'] = maps_link
+    result['latitude'] = lat
+    result['longitude'] = lng
     result['photo_count'] = len(photo_urls)
     result['photo_urls'] = photo_urls
     result['sighting_id'] = sighting_id
@@ -465,6 +568,7 @@ def attempt_lost_mode_auto_push(
     result['scanned_at_display'] = scanned_at_display
     # Shared tip body for SMS when push is unavailable.
     result['tip_body'] = body
+    result['push_title'] = push_title
 
     tokens = collect_owner_fcm_tokens(vehicle_data, user_data)
     if not push_capable:
@@ -503,7 +607,7 @@ def attempt_lost_mode_auto_push(
         'sighting_time': scanned_at.isoformat(),
         'scanned_at': scanned_at.isoformat(),
         'approx_location': place,
-        'title': AUTO_PUSH_TITLE,
+        'title': push_title,
         'body': body,
         # Legacy / web aliases (kept for older clients)
         'vehicleId': str(vehicle_id or ''),
@@ -517,13 +621,22 @@ def attempt_lost_mode_auto_push(
         'scannedAtDisplay': scanned_at_display,
         'registrationNumber': plate,
         'vehicleName': vehicle_name,
+        'locationShared': 'true' if has_location else 'false',
     }
-    if location.get('has_location'):
-        fcm_data['latitude'] = str(location['latitude'])
-        fcm_data['longitude'] = str(location['longitude'])
+    if has_location:
+        lat_s = format_coord(float(lat))
+        lng_s = format_coord(float(lng))
+        # Dedicated + alias fields so URL is not stripped by clients/services.
+        fcm_data['latitude'] = lat_s
+        fcm_data['longitude'] = lng_s
+        fcm_data['googleMapsUrl'] = maps_link
+        fcm_data['google_maps_url'] = maps_link
         fcm_data['mapsUrl'] = maps_link
         fcm_data['maps_url'] = maps_link
         fcm_data['live_location_url'] = maps_link
+        fcm_data['sharedAt'] = scanned_at.isoformat()
+        fcm_data['sharedAtDisplay'] = scanned_at_display
+        fcm_data['spotter_location_shared'] = 'true'
     if photo_urls:
         fcm_data['photoUrl'] = photo_urls[0]
         # Keep payload small — full list lives on the Firestore sighting doc.
@@ -534,7 +647,7 @@ def attempt_lost_mode_auto_push(
             db,
             user_id=owner_id,
             tokens=tokens,
-            title=AUTO_PUSH_TITLE,
+            title=push_title,
             body=body,
             data=fcm_data,
             store_inbox=True,
@@ -568,7 +681,12 @@ def attempt_lost_mode_auto_push(
     if success_count > 0:
         result['sent'] = True
         time_bit = f' Scanned at {scanned_at_display}.' if scanned_at_display else ''
-        if place and photo_urls:
+        if has_location:
+            result['notice'] = (
+                'Owner notified with your Google Maps location link.'
+                f'{time_bit}'
+            )
+        elif place and photo_urls:
             result['notice'] = (
                 f'Owner notified with your approximate location ({place}) '
                 f'and {len(photo_urls)} photo(s).{time_bit}'

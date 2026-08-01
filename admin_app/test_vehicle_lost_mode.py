@@ -11,11 +11,13 @@ from admin_app.vehicle_lost_mode import (
     BADGE_LABEL,
     BANNER_BODY,
     BANNER_TITLE,
+    SPOTTER_LOCATION_TITLE,
     TIP_REASON,
     approximate_coordinates,
     attempt_lost_mode_auto_push,
     build_lost_mode_sms_message,
     build_sighting_push_body,
+    build_spotter_location_notification,
     collect_owner_fcm_tokens,
     format_place_label,
     format_scanned_at_ist,
@@ -126,30 +128,62 @@ class LostModeLocationTests(SimpleTestCase):
 
     def test_build_push_body_includes_maps_link(self):
         body = build_sighting_push_body(
-            place_label='Kochi',
-            maps_url='https://maps.google.com/?q=9.931,76.267',
+            latitude=11.258753,
+            longitude=75.780411,
+            scanned_at_display='02 Aug 2026, 04:45 PM IST',
         )
-        self.assertIn('Kochi', body)
-        self.assertIn('https://maps.google.com/?q=9.931,76.267', body)
+        self.assertIn('Latitude: 11.258753', body)
+        self.assertIn('Longitude: 75.780411', body)
+        self.assertIn(
+            'https://www.google.com/maps?q=11.258753,75.780411',
+            body,
+        )
+        self.assertIn('Shared at: 02 Aug 2026, 04:45 PM IST', body)
+
+    def test_spotter_location_notification_format(self):
+        title, body = build_spotter_location_notification(
+            latitude=11.258753,
+            longitude=75.780411,
+            shared_at_display='02 Aug 2026, 4:45 PM',
+        )
+        self.assertEqual(title, SPOTTER_LOCATION_TITLE)
+        self.assertIn('View on Google Maps:', body)
+        self.assertIn(
+            'https://www.google.com/maps?q=11.258753,75.780411',
+            body,
+        )
 
     def test_lost_mode_sms_includes_google_maps_link(self):
         msg = build_lost_mode_sms_message(
             reason='I spotted this vehicle',
-            latitude=12.9715987,
-            longitude=77.5945627,
+            latitude=11.258753,
+            longitude=75.780411,
         )
         self.assertIn('I spotted this vehicle', msg)
-        self.assertIn('https://maps.google.com/?q=12.972,77.595', msg)
+        self.assertIn(
+            'https://www.google.com/maps?q=11.258753,75.780411',
+            msg,
+        )
         self.assertLessEqual(len(msg), 200)
         self.assertEqual(
-            google_maps_url(12.972, 77.595),
-            'https://maps.google.com/?q=12.972,77.595',
+            google_maps_url(11.258753, 75.780411),
+            'https://www.google.com/maps?q=11.258753,75.780411',
         )
 
     def test_lost_mode_sms_without_coords_is_plain_tip(self):
         msg = build_lost_mode_sms_message(reason='I spotted this vehicle')
         self.assertEqual(msg, 'I spotted this vehicle')
-        self.assertNotIn('maps.google', msg)
+        self.assertNotIn('google.com/maps', msg)
+
+    def test_parse_sighting_sets_google_maps_url(self):
+        loc = parse_sighting_location(
+            {'latitude': 11.258753, 'longitude': 75.780411}
+        )
+        self.assertTrue(loc['has_location'])
+        self.assertEqual(
+            loc['google_maps_url'],
+            'https://www.google.com/maps?q=11.258753,75.780411',
+        )
 
     def test_format_scanned_at_ist(self):
         label = format_scanned_at_ist(
@@ -234,14 +268,21 @@ class LostModeAutoPushTests(SimpleTestCase):
             upload_photos=False,
         )
         self.assertTrue(first['sent'])
-        self.assertIn('Bengaluru', first['notice'])
+        self.assertIn('Google Maps', first['notice'])
         self.assertTrue(first.get('scanned_at_display'))
         self.assertIn('Scanned at', first['notice'])
         kwargs = send_fn.call_args.kwargs
-        self.assertEqual(kwargs['title'], AUTO_PUSH_TITLE)
-        self.assertIn('Bengaluru', kwargs['body'])
-        self.assertIn('Scanned at', kwargs['body'])
+        self.assertEqual(kwargs['title'], SPOTTER_LOCATION_TITLE)
+        self.assertIn('View on Google Maps:', kwargs['body'])
+        self.assertIn('https://www.google.com/maps?q=', kwargs['body'])
+        self.assertIn('Shared at:', kwargs['body'])
         self.assertEqual(kwargs['data'].get('lostMode'), 'true')
+        self.assertEqual(
+            kwargs['data'].get('googleMapsUrl'),
+            first.get('google_maps_url'),
+        )
+        self.assertTrue(kwargs['data'].get('googleMapsUrl'))
+        self.assertEqual(kwargs['data'].get('locationShared'), 'true')
 
         # No cooldown — second scan also notifies.
         second = attempt_lost_mode_auto_push(
