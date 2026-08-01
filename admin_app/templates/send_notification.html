@@ -4346,11 +4346,12 @@
       <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
       <div class="notify-lost-mode-help" id="notifyLostModeHelp">
         <p class="notify-lost-mode-loc-status" id="notifyLostModeLocStatus">
-          Optional: share your location for this Lost Mode report only. Permission is requested only when you tap the button below.
+          Help the owner find this vehicle — send your current pin as a Google Maps link.
         </p>
         <div class="notify-lost-mode-loc-share" id="notifyLostModeLocShare">
+          <p class="notify-lost-mode-loc-share-title">Send Google Maps location</p>
           <p class="notify-lost-mode-loc-share-body">
-            Tap once to tip the owner with a Google Maps link, then keep this page open to share live updates for a few minutes. Permission is requested only when you tap the button.
+            Tap the button, allow location when asked, and stay outdoors with a clear sky if possible. The owner gets a clickable Maps pin (and short live updates while this page stays open).
           </p>
           <div class="notify-lost-mode-loc-share-actions">
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--share" id="lostModeLocShareInlineBtn">
@@ -4369,7 +4370,7 @@
             </button>
           </div>
           <p class="notify-lost-mode-loc-denied" id="notifyLostModeLocDenied" hidden>
-            Location permission is disabled. Please enable it in your browser settings if you'd like to share your location.
+            Location permission is disabled. On iPhone: Settings → Safari → Location → Allow, then tap Share My Location again.
           </p>
         </div>
       </div>
@@ -6728,53 +6729,93 @@
       return 2 * r * Math.asin(Math.min(1, Math.sqrt(h)));
     }
 
-    function readBrowserPosition() {
+    /**
+     * One geolocation attempt. Returns { coords, errorCode }.
+     * errorCode: 1=permission denied, 2=unavailable, 3=timeout, 0=other/none.
+     */
+    function readBrowserPositionOnce(options) {
       return new Promise(function (resolve) {
         if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
-          resolve(null);
+          resolve({ coords: null, errorCode: 2 });
           return;
         }
-        // Only called after an explicit "Share My Location" tap.
         navigator.geolocation.getCurrentPosition(
           function (pos) {
-            resolve(coordsFromGeoPosition(pos));
+            resolve({ coords: coordsFromGeoPosition(pos), errorCode: 0 });
           },
-          function () {
-            // User declined the browser prompt, or a temporary error.
-            resolve(null);
+          function (err) {
+            var code = err && typeof err.code === 'number' ? err.code : 0;
+            resolve({ coords: null, errorCode: code });
           },
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0,
-          }
+          options || {}
         );
       });
     }
 
     /**
+     * Reliable mobile location read (esp. iOS Safari):
+     * 1) fresh high-accuracy GPS
+     * 2) network/cached fallback
+     * 3) one more low-accuracy retry
+     * Only called after an explicit "Share My Location" tap.
+     */
+    function readBrowserPositionReliable() {
+      var attempts = [
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 },
+        { enableHighAccuracy: false, timeout: 25000, maximumAge: 120000 },
+      ];
+
+      function run(i, lastCode) {
+        if (i >= attempts.length) {
+          return Promise.resolve({ coords: null, errorCode: lastCode || 0 });
+        }
+        if (i === 0) {
+          setLostModeLocStatus('Getting precise GPS location…');
+        } else if (i === 1) {
+          setLostModeLocStatus('GPS slow — trying network location…');
+        } else {
+          setLostModeLocStatus('Retrying location… stay outdoors if you can.');
+        }
+        return readBrowserPositionOnce(attempts[i]).then(function (res) {
+          if (res && res.coords) return res;
+          // Permission denied — do not keep prompting.
+          if (res && res.errorCode === 1) return res;
+          return run(i + 1, (res && res.errorCode) || lastCode || 0);
+        });
+      }
+      return run(0, 0);
+    }
+
+    /**
      * Manual Lost Mode location share.
      * Never calls geolocation on page load — only after Share My Location click.
-     * Returns { denied: boolean, coords: object|null }.
+     * Returns { denied, coords, errorCode }.
      */
     function requestLostModeLocationAfterUserTap() {
       return queryGeolocationPermissionState().then(function (state) {
         if (state === 'denied') {
           showLostModeLocDeniedMessage(true);
           setLostModeLocStatus(
-            'Location permission is disabled. Please enable it in your browser settings if you\'d like to share your location.'
+            'Location is blocked for this site. Enable it in browser settings, then tap Share My Location again.'
           );
-          return { denied: true, coords: null };
+          return { denied: true, coords: null, errorCode: 1 };
         }
         showLostModeLocDeniedMessage(false);
         if (state === 'granted') {
           setLostModeLocStatus('Getting your current location…');
         } else {
-          // prompt | unknown — browser may show its permission dialog only now.
-          setLostModeLocStatus('Waiting for location permission…');
+          // prompt | unknown (common on iOS) — browser may show its dialog only now.
+          setLostModeLocStatus('Allow location when asked, then wait a moment…');
         }
-        return readBrowserPosition().then(function (coords) {
-          return { denied: false, coords: coords || null };
+        return readBrowserPositionReliable().then(function (res) {
+          var coords = res && res.coords ? res.coords : null;
+          var code = res && res.errorCode ? res.errorCode : 0;
+          if (!coords && code === 1) {
+            showLostModeLocDeniedMessage(true);
+            return { denied: true, coords: null, errorCode: 1 };
+          }
+          return { denied: false, coords: coords, errorCode: code };
         });
       });
     }
@@ -7163,37 +7204,58 @@
         });
       }
 
+      function locationFailMessage(errorCode) {
+        if (errorCode === 1) {
+          return 'Location permission was denied. Enable it for this site, then tap Try again.';
+        }
+        if (errorCode === 3) {
+          return 'Location timed out. Move outdoors / turn on Location Services, then tap Try again.';
+        }
+        if (errorCode === 2) {
+          return 'Location unavailable right now. Check GPS/Wi‑Fi, then tap Try again.';
+        }
+        return 'Could not read location. Tap Try again — allow location when asked.';
+      }
+
       function onShareMyLocationClick() {
-        if (locationShareInFlight || locationShareDone || liveShareActive) return;
+        if (locationShareInFlight || liveShareActive) return;
+        // Allow retry after a failed attempt (locationShareDone stays false until success).
+        if (locationShareDone) return;
         locationShareInFlight = true;
         setLostModeShareButtonBusy(true);
         showLostModeLocDeniedMessage(false);
+        if (shareBtn) shareBtn.textContent = 'Getting location…';
 
         requestLostModeLocationAfterUserTap()
           .then(function (result) {
             var denied = !!(result && result.denied);
             var coords = result && result.coords ? result.coords : null;
+            var errCode = result && result.errorCode ? result.errorCode : 0;
             if (denied) {
-              // Already blocked — do not prompt again.
-              setLostModeShareButtonBusy(true);
+              setLostModeShareButtonBusy(false);
               locationShareInFlight = false;
+              if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
+              setLostModeLocStatus(locationFailMessage(1));
               return null;
             }
             if (!coords) {
-              // Declined the browser prompt or temporary error — continue without location.
               setLostModeShareButtonBusy(false);
               locationShareInFlight = false;
-              setLostModeLocStatus(
-                'Location not shared. Lost Mode tip continues without a map link.'
-              );
+              if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
+              setLostModeLocStatus(locationFailMessage(errCode));
               return null;
             }
+            setLostModeLocStatus('Sending Google Maps pin to the owner…');
+            if (shareBtn) shareBtn.textContent = 'Sending…';
             return sendLocationTip(coords, { liveUpdate: false }).then(function () {
               locationShareDone = true;
               placeShared = true;
               setOpenMapsLink(coords);
               setLostModeAutoSentNotice(
-                'Owner notified with your Google Maps location. Live updates continue while this page stays open.'
+                'Owner notified with your Google Maps location link. Live updates continue while this page stays open.'
+              );
+              setLostModeLocStatus(
+                'Maps pin sent. Keep this page open for live updates, or open Google Maps below.'
               );
               startLiveLocationShare(coords);
             });
@@ -7201,12 +7263,17 @@
           .catch(function () {
             setLostModeShareButtonBusy(false);
             locationShareInFlight = false;
-            setLostModeLocStatus(
-              'Location not shared. Lost Mode tip continues without a map link.'
-            );
+            if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
+            setLostModeLocStatus(locationFailMessage(0));
           })
           .then(function () {
             locationShareInFlight = false;
+            if (!locationShareDone && shareBtn && !shareBtn.disabled) {
+              // Ensure retry label after any unfinished path.
+              if (shareBtn.textContent === 'Getting location…' || shareBtn.textContent === 'Sending…') {
+                shareBtn.textContent = 'Try again — Share Location';
+              }
+            }
           });
       }
 
@@ -7226,11 +7293,8 @@
         setLostModeAutoSentNotice(
           notice || 'Owner notified by SMS — thank you for helping.'
         );
-        showLostModeTipLine(true);
       } else if (!SUDO_NOTIFY_TERMINAL_GATE) {
-        setLostModeLocStatus(
-          'Notifying the owner… Optional: tap Share My Location to include a map link.'
-        );
+        setLostModeLocStatus('Notifying the owner… then you can send a Maps pin.');
       }
 
       var bootPromise = Promise.resolve(null);
@@ -7248,12 +7312,14 @@
         })
         .then(function () {
           if (!SUDO_NOTIFY_TERMINAL_GATE && !locationShareDone) {
+            // Keep tip notice in the green/bell line; location status is the call-to-action.
             setLostModeLocStatus(
-              (pushSent || smsAlready
-                ? 'Owner tipped. '
-                : '') +
-                'Optional: tap Share My Location to send a Google Maps link for this report only.'
+              'Tap Share My Location to send a Google Maps pin to the owner (recommended).'
             );
+            if (shareBtn) {
+              shareBtn.textContent = 'Share My Location';
+              setLostModeShareButtonBusy(false);
+            }
           }
         });
     }
