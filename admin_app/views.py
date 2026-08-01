@@ -3257,14 +3257,14 @@ def send_notification(request, qr_id):
                         (user_data or {}).get('contactNumber'),
                     )
                 else:
+                    # Tip SMS without maps first; maps link only if user taps Share My Location.
                     lost_mode_auto_push['pending_client_sms'] = True
                     lost_mode_auto_push['notice'] = (
-                        'Share location so the owner gets a Google Maps link '
-                        'by push and SMS.'
+                        'Owner will be tipped automatically. Location share is optional.'
                     )
                     logger.info(
                         'Lost Mode GET SMS deferred qr_id=%s — '
-                        'waiting for spotter location for maps link',
+                        'client tip without auto location permission',
                         qr_id,
                     )
 

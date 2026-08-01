@@ -337,6 +337,16 @@
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.16);
     }
+    body.notify-app .notify-lost-mode-loc-share-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    body.notify-app .notify-lost-mode-loc-denied {
+      margin: 0.55rem 0 0;
+      font-size: 0.74rem;
+      line-height: 1.35;
+      color: #fecaca;
+    }
 
     body.notify-app .notify-lost-mode-badge {
       display: inline-flex;
@@ -4324,21 +4334,20 @@
       <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
       <div class="notify-lost-mode-help" id="notifyLostModeHelp">
         <p class="notify-lost-mode-loc-status" id="notifyLostModeLocStatus">
-          Share your live location so the owner gets a Google Maps link by push and SMS.
+          Optional: share your location for this Lost Mode report only. Permission is requested only when you tap the button below.
         </p>
         <div class="notify-lost-mode-loc-share" id="notifyLostModeLocShare">
-          <p class="notify-lost-mode-loc-share-title">Share Your Location</p>
           <p class="notify-lost-mode-loc-share-body">
-            Would you like to share your current location with the vehicle owner? Your location will only be shared for this Lost Mode report to help the owner locate the vehicle. Your location will not be stored or shared for any other purpose.
+            Your location is used only for this tip (Google Maps link in push and SMS) and is not kept after the notification is sent.
           </p>
           <div class="notify-lost-mode-loc-share-actions">
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--share" id="lostModeLocShareInlineBtn">
-              Share Location
-            </button>
-            <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--skip" id="lostModeLocSkipInlineBtn">
-              Skip
+              Share My Location
             </button>
           </div>
+          <p class="notify-lost-mode-loc-denied" id="notifyLostModeLocDenied" hidden>
+            Location permission is disabled. Please enable it in your browser settings if you'd like to share your location.
+          </p>
         </div>
       </div>
       <p class="notify-lost-mode-auto-sent" id="notifyLostModeAutoSent"{% if not lost_mode_auto_push.sent %} hidden{% endif %}>
@@ -4800,33 +4809,6 @@
         </span>
       </div>
       <button type="button" class="notify-session-terminal-ok" id="notifySessionRescanBtn">Done</button>
-    </div>
-  </div>
-
-  <!-- Success Modal -->
-  <div class="modal-overlay notify-flow-modal" id="lostModeLocationModal" style="display: none;" aria-hidden="true">
-    <div
-      class="notify-flow-sheet lost-mode-loc-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="lostModeLocationTitle"
-      aria-describedby="lostModeLocationBody"
-    >
-      <div class="lost-mode-loc-dialog__icon" aria-hidden="true">
-        <i class="bi bi-geo-alt-fill"></i>
-      </div>
-      <h3 class="lost-mode-loc-dialog__title" id="lostModeLocationTitle">Share Your Location</h3>
-      <p class="lost-mode-loc-dialog__body" id="lostModeLocationBody">
-        Would you like to share your current location with the vehicle owner? Your location will only be shared for this Lost Mode report to help the owner locate the vehicle. Your location will not be stored or shared for any other purpose.
-      </p>
-      <div class="lost-mode-loc-dialog__actions">
-        <button type="button" class="lost-mode-loc-dialog__btn lost-mode-loc-dialog__btn--share" id="lostModeLocShareBtn">
-          Share Location
-        </button>
-        <button type="button" class="lost-mode-loc-dialog__btn lost-mode-loc-dialog__btn--skip" id="lostModeLocSkipBtn">
-          Skip
-        </button>
-      </div>
     </div>
   </div>
 
@@ -6649,32 +6631,19 @@
       return csrfToken || '';
     }
 
-    function showLostModeLocSharePanel(show) {
-      var panel = document.getElementById('notifyLostModeLocShare');
-      if (panel) panel.hidden = !show;
+    function showLostModeLocDeniedMessage(show) {
+      var el = document.getElementById('notifyLostModeLocDenied');
+      if (el) el.hidden = !show;
     }
 
-    function openLostModeLocationModal() {
-      var modal = document.getElementById('lostModeLocationModal');
-      if (!modal) return;
-      modal.style.display = 'flex';
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.classList.add('notify-modal-lock');
-    }
-
-    function closeLostModeLocationModal() {
-      var modal = document.getElementById('lostModeLocationModal');
-      if (!modal) return;
-      modal.style.display = 'none';
-      modal.setAttribute('aria-hidden', 'true');
-      // Keep page usable if contact-mode modal is still open underneath.
-      var contactOpen = document.getElementById('contactModeModal');
-      var contactVisible =
-        contactOpen &&
-        contactOpen.style.display !== 'none' &&
-        contactOpen.getAttribute('aria-hidden') !== 'true';
-      if (!contactVisible) {
-        document.body.classList.remove('notify-modal-lock');
+    function setLostModeShareButtonBusy(busy) {
+      var btn = document.getElementById('lostModeLocShareInlineBtn');
+      if (!btn) return;
+      btn.disabled = !!busy;
+      if (busy) {
+        btn.setAttribute('aria-busy', 'true');
+      } else {
+        btn.removeAttribute('aria-busy');
       }
     }
 
@@ -6709,6 +6678,7 @@
           resolve(null);
           return;
         }
+        // Only called after an explicit "Share My Location" tap.
         navigator.geolocation.getCurrentPosition(
           function (pos) {
             if (!pos || !pos.coords) {
@@ -6722,80 +6692,42 @@
             });
           },
           function () {
+            // User declined the browser prompt, or a temporary error.
             resolve(null);
           },
           {
-            enableHighAccuracy: false,
-            timeout: 12000,
-            maximumAge: 60000,
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
           }
         );
       });
     }
 
     /**
-     * Lost Mode only: always show Share Location (banner + modal) until the
-     * spotter chooses Share or Skip. Maps link is then sent via push + SMS.
+     * Manual Lost Mode location share.
+     * Never calls geolocation on page load — only after Share My Location click.
+     * Returns { denied: boolean, coords: object|null }.
      */
-    function resolveLostModeSpotterLocation() {
-      return new Promise(function (resolve) {
-        var shareBtn = document.getElementById('lostModeLocShareBtn');
-        var skipBtn = document.getElementById('lostModeLocSkipBtn');
-        var shareInline = document.getElementById('lostModeLocShareInlineBtn');
-        var skipInline = document.getElementById('lostModeLocSkipInlineBtn');
-        if (!shareBtn && !shareInline) {
-          resolve(null);
-          return;
+    function requestLostModeLocationAfterUserTap() {
+      return queryGeolocationPermissionState().then(function (state) {
+        if (state === 'denied') {
+          showLostModeLocDeniedMessage(true);
+          setLostModeLocStatus(
+            'Location permission is disabled. Please enable it in your browser settings if you\'d like to share your location.'
+          );
+          return { denied: true, coords: null };
         }
-
-        setLostModeLocStatus(
-          'Share your live location so the owner gets a Google Maps link by push and SMS.'
-        );
-        showLostModeLocSharePanel(true);
-
-        function cleanup() {
-          if (shareBtn) shareBtn.removeEventListener('click', onShare);
-          if (skipBtn) skipBtn.removeEventListener('click', onSkip);
-          if (shareInline) shareInline.removeEventListener('click', onShare);
-          if (skipInline) skipInline.removeEventListener('click', onSkip);
-          closeLostModeLocationModal();
-          showLostModeLocSharePanel(false);
+        showLostModeLocDeniedMessage(false);
+        if (state === 'granted') {
+          setLostModeLocStatus('Getting your current location…');
+        } else {
+          // prompt | unknown — browser may show its permission dialog only now.
+          setLostModeLocStatus('Waiting for location permission…');
         }
-
-        function onSkip() {
-          cleanup();
-          setLostModeLocStatus('Location skipped. Sending tip without map link…');
-          resolve(null);
-        }
-
-        function onShare() {
-          cleanup();
-          setLostModeLocStatus('Getting your live location…');
-          queryGeolocationPermissionState().then(function (state) {
-            if (state === 'denied') {
-              setLostModeLocStatus(
-                'Location blocked in browser settings. Tip continues without map link.'
-              );
-              resolve(null);
-              return;
-            }
-            readBrowserPosition().then(function (coords) {
-              if (!coords) {
-                setLostModeLocStatus(
-                  'Could not read location. Tip continues without map link.'
-                );
-              }
-              resolve(coords);
-            });
-          });
-        }
-
-        if (shareBtn) shareBtn.addEventListener('click', onShare);
-        if (skipBtn) skipBtn.addEventListener('click', onSkip);
-        if (shareInline) shareInline.addEventListener('click', onShare);
-        if (skipInline) skipInline.addEventListener('click', onSkip);
-        // Always show modal above contact-mode / other notify sheets.
-        openLostModeLocationModal();
+        return readBrowserPosition().then(function (coords) {
+          return { denied: false, coords: coords || null };
+        });
       });
     }
 
@@ -6825,8 +6757,6 @@
 
       var notice =
         "{{ lost_mode_auto_push.notice|default:''|escapejs }}";
-      var skipped =
-        "{{ lost_mode_auto_push.skipped_reason|default:''|escapejs }}";
       var scannedAt =
         "{{ lost_mode_auto_push.scanned_at_display|default:''|escapejs }}";
       var smsSkip =
@@ -6839,6 +6769,9 @@
         ("{{ lost_mode_auto_push.pending_client_sighting|yesno:'yes,no' }}" === "yes");
       var pushSent = false;
       var placeShared = false;
+      var locationShareInFlight = false;
+      var locationShareDone = false;
+      var shareBtn = document.getElementById('lostModeLocShareInlineBtn');
 
       function showLostModeTipLine(smsOk) {
         var line = 'Owner tipped automatically';
@@ -6849,7 +6782,10 @@
         else if (!pendingSms && smsSkip) line += ' · SMS failed';
         if (scannedAt) line += ' · ' + scannedAt;
         setLostModeLocStatus(
-          line + '. You can still message or call below if needed.'
+          line +
+            (locationShareDone
+              ? ''
+              : ' You can still tap Share My Location to send a map link.')
         );
       }
 
@@ -6860,7 +6796,7 @@
               notice ||
                 (pushSent
                   ? placeShared
-                    ? 'Owner notified with your approximate location — thank you for helping.'
+                    ? 'Owner notified with your location — thank you for helping.'
                     : 'Owner notified automatically — thank you for helping.'
                   : notice) ||
                 'Owner notified automatically — thank you for helping.'
@@ -6949,10 +6885,6 @@
       }
 
       function sendSightingWithLocation(coords) {
-        if (!pendingSighting) {
-          return Promise.resolve(coords || null);
-        }
-
         setLostModeLocStatus(
           coords
             ? 'Notifying the owner with your location…'
@@ -6976,12 +6908,10 @@
         return postLostModeJson(payload)
           .then(function (res) {
             var data = res.data || {};
-            pendingSighting = false;
             if (data.status === 'success') {
-              pushSent = !!data.push_delivered;
+              pushSent = !!data.push_delivered || pushSent;
               if (data.scanned_at_display) scannedAt = data.scanned_at_display;
-              if (data.place_label) placeShared = true;
-              // Server may already SMS the maps link when there is no FCM.
+              if (data.place_label || placeShared) placeShared = true;
               if (data.sms_sent) {
                 smsAlready = true;
                 pendingSms = false;
@@ -6989,19 +6919,18 @@
               notice =
                 data.message ||
                 (placeShared
-                  ? 'Owner notified with your approximate location — thank you for helping.'
+                  ? 'Owner notified with your location — thank you for helping.'
                   : 'Owner notified automatically — thank you for helping.');
               setLostModeAutoSentNotice(notice);
               return coords || null;
             }
-            // Sighting stored but push unavailable — still treat location as shared.
             var errType = data.error_type || '';
             if (
               (errType === 'no_token' || errType === 'push_unavailable') &&
               placeShared
             ) {
               notice =
-                'Location tip recorded. App notification unavailable — SMS may still reach the owner.';
+                'Location tip sent. App notification unavailable — SMS may still reach the owner.';
               setLostModeAutoSentNotice(notice);
               return coords || null;
             }
@@ -7013,7 +6942,6 @@
             return coords || null;
           })
           .catch(function () {
-            pendingSighting = false;
             if (!SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
               setLostModeLocStatus(
                 'Automatic tip could not be sent. Please tip the owner manually below.'
@@ -7023,6 +6951,73 @@
           });
       }
 
+      function sendLocationTip(coords) {
+        // Location tip: push + SMS with maps (even if a tip without location already went).
+        pendingSighting = true;
+        if (smsSkip !== 'no_phone') {
+          pendingSms = true;
+          smsAlready = false;
+        }
+        return sendSightingWithLocation(coords).then(function (c) {
+          // Server may have already SMS'd the maps link with the sighting.
+          if (pendingSms) return finishSmsIfNeeded(c);
+          return c;
+        });
+      }
+
+      function onShareMyLocationClick() {
+        if (locationShareInFlight || locationShareDone) return;
+        locationShareInFlight = true;
+        setLostModeShareButtonBusy(true);
+        showLostModeLocDeniedMessage(false);
+
+        requestLostModeLocationAfterUserTap()
+          .then(function (result) {
+            var denied = !!(result && result.denied);
+            var coords = result && result.coords ? result.coords : null;
+            if (denied) {
+              // Already blocked — do not prompt again.
+              setLostModeShareButtonBusy(true);
+              locationShareInFlight = false;
+              return null;
+            }
+            if (!coords) {
+              // Declined the browser prompt or temporary error — continue without location.
+              setLostModeShareButtonBusy(false);
+              locationShareInFlight = false;
+              setLostModeLocStatus(
+                'Location not shared. Lost Mode tip continues without a map link.'
+              );
+              return null;
+            }
+            return sendLocationTip(coords).then(function () {
+              locationShareDone = true;
+              placeShared = true;
+              setLostModeShareButtonBusy(true);
+              if (shareBtn) shareBtn.textContent = 'Location shared';
+              setLostModeLocStatus(
+                'Location shared for this Lost Mode report. Owner notified with a Google Maps link.'
+              );
+              showLostModeTipLine(smsAlready);
+            });
+          })
+          .catch(function () {
+            setLostModeShareButtonBusy(false);
+            locationShareInFlight = false;
+            setLostModeLocStatus(
+              'Location not shared. Lost Mode tip continues without a map link.'
+            );
+          })
+          .then(function () {
+            locationShareInFlight = false;
+          });
+      }
+
+      if (shareBtn) {
+        shareBtn.addEventListener('click', onShareMyLocationClick);
+      }
+
+      // Page load: tip without location. Never request geolocation automatically.
       if (smsAlready && !pendingSighting) {
         setLostModeAutoSentNotice(
           notice || 'Owner notified by SMS — thank you for helping.'
@@ -7030,24 +7025,32 @@
         showLostModeTipLine(true);
       } else if (!SUDO_NOTIFY_TERMINAL_GATE) {
         setLostModeLocStatus(
-          pendingSighting || pendingSms
-            ? skipped === 'no_token'
-              ? 'Share location so we can SMS the owner a Google Maps link…'
-              : 'Checking location permission…'
-            : 'Preparing tip for the owner…'
+          'Notifying the owner… Optional: tap Share My Location to include a map link.'
         );
       }
 
-      // Always present Share Location on Lost Mode (banner is outside contact-mode gate).
-      resolveLostModeSpotterLocation()
-        .then(function (coords) {
-          return sendSightingWithLocation(coords);
-        })
-        .then(function (coords) {
-          return finishSmsIfNeeded(coords);
+      var bootPromise = Promise.resolve(null);
+      if (pendingSighting) {
+        bootPromise = sendSightingWithLocation(null).then(function () {
+          pendingSighting = false;
+        });
+      }
+      bootPromise
+        .then(function () {
+          return finishSmsIfNeeded(null);
         })
         .catch(function () {
           return finishSmsIfNeeded(null);
+        })
+        .then(function () {
+          if (!SUDO_NOTIFY_TERMINAL_GATE && !locationShareDone) {
+            setLostModeLocStatus(
+              (pushSent || smsAlready
+                ? 'Owner tipped. '
+                : '') +
+                'Optional: tap Share My Location to send a Google Maps link for this report only.'
+            );
+          }
         });
     }
 

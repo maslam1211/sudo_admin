@@ -327,15 +327,23 @@ def store_lost_mode_sighting(
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     display = scanned_at_display or format_scanned_at_ist(now)
+    # Spotter coordinates are delivered in push/SMS only for this tip — not retained.
+    had_location = bool(
+        location
+        and location.get('has_location')
+        and location.get('latitude') is not None
+        and location.get('longitude') is not None
+    )
     doc = {
         'ownerId': str(owner_id or '').strip(),
         'vehicleId': str(vehicle_id or '').strip(),
         'qrId': str(qr_id or '').strip(),
         'source': source,
-        'latitude': location.get('latitude'),
-        'longitude': location.get('longitude'),
-        'accuracyM': location.get('accuracy_m'),
-        'placeLabel': location.get('place_label') or '',
+        'latitude': None,
+        'longitude': None,
+        'accuracyM': None,
+        'placeLabel': '',
+        'locationSharedEphemeral': had_location,
         'photoUrls': list(photo_urls or []),
         'photoCount': len(photo_urls or []),
         'scannedAt': now,
