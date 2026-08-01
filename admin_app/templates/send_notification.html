@@ -6563,7 +6563,7 @@
         body: JSON.stringify({
           notification_method: 'lost_mode_sms',
           contact_target: 'owner',
-          reason: '',
+          reason: lostModeTipReason || 'I spotted this vehicle',
         }),
       })
         .then(function (response) {

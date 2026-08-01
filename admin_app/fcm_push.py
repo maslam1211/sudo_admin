@@ -118,6 +118,21 @@ def store_inbox_notification(
     return {'notification_id': ref.id, 'delivery_id': str(delivery_id)}
 
 
+def _is_lost_mode_payload(data: Optional[Dict[str, Any]]) -> bool:
+    if not data:
+        return False
+    type_val = str(data.get('type') or data.get('notificationType') or '').strip().lower()
+    if type_val in ('lost_mode_sighting', 'lost_mode'):
+        return True
+    for key in ('lost_mode', 'lostMode', 'lostModeSighting'):
+        raw = data.get(key)
+        if raw is True:
+            return True
+        if isinstance(raw, str) and raw.strip().lower() in ('1', 'true', 'yes', 'on'):
+            return True
+    return False
+
+
 def build_fcm_message(
     *,
     token: str,
@@ -140,8 +155,37 @@ def build_fcm_message(
     if badge < 1:
         badge = 1
 
-    string_data.setdefault('sound', PUSH_SOUND_ANDROID)
-    string_data.setdefault('channel_id', PUSH_CHANNEL_ID)
+    lost_mode = _is_lost_mode_payload(string_data)
+    string_data.setdefault('title', title)
+    string_data.setdefault('body', body)
+    if not lost_mode:
+        string_data.setdefault('sound', PUSH_SOUND_ANDROID)
+        string_data.setdefault('channel_id', PUSH_CHANNEL_ID)
+
+    # Lost Mode: Android data-only so MyFirebaseMessagingService can start the
+    # looping LostModeAlarmService (root notification would skip that path).
+    if lost_mode:
+        return messaging.Message(
+            token=token.strip(),
+            data=string_data,
+            android=messaging.AndroidConfig(
+                priority='high',
+            ),
+            apns=messaging.APNSConfig(
+                headers={
+                    'apns-priority': '10',
+                    'apns-push-type': 'alert',
+                },
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(
+                        alert=messaging.ApsAlert(title=title, body=body),
+                        sound=PUSH_SOUND_IOS,
+                        badge=badge,
+                        custom_data={'interruption-level': 'time-sensitive'},
+                    )
+                ),
+            ),
+        )
 
     return messaging.Message(
         token=token.strip(),

@@ -33,9 +33,9 @@ TIP_CTA_SUB = 'Send a tip to help recover this vehicle'
 REASONS_HEADING = 'Help recover this vehicle'
 REASONS_LEAD = 'Tip the owner — choose how you spotted this vehicle, or pick another reason.'
 
-AUTO_PUSH_TITLE = 'Lost Mode — Vehicle spotted'
+AUTO_PUSH_TITLE = 'DANGER WARNING'
 AUTO_PUSH_BODY = (
-    'Someone scanned your SUDO Tag. Your vehicle was spotted while Lost Mode is on.'
+    'Your vehicle has been found. Please check the details immediately.'
 )
 AUTO_PUSH_SENT_NOTICE = (
     'Owner notified automatically on their phone — thank you for helping.'
@@ -157,8 +157,8 @@ def build_sighting_push_body(
 ) -> str:
     if place_label:
         body = (
-            f'Someone spotted your vehicle near {place_label} '
-            'while Lost Mode is on.'
+            f'Your vehicle has been found near {place_label}. '
+            'Please check the details immediately.'
         )
     else:
         body = AUTO_PUSH_BODY
@@ -418,11 +418,40 @@ def attempt_lost_mode_auto_push(
         result['skipped_reason'] = 'no_token'
         return result
 
+    # Match mobile LostModeSightingService so the app opens DANGER WARNING + alarm.
+    plate = ''
+    vehicle_name = ''
+    if isinstance(vehicle_data, dict):
+        plate = str(
+            vehicle_data.get('registrationNumber')
+            or vehicle_data.get('registration_number')
+            or vehicle_data.get('vehicleNumber')
+            or ''
+        ).strip()
+        vehicle_name = str(
+            vehicle_data.get('vehicleName')
+            or vehicle_data.get('vehicle_name')
+            or vehicle_data.get('name')
+            or ''
+        ).strip()
+
     fcm_data = {
+        # Canonical mobile contract
+        'type': 'lost_mode_sighting',
+        'notificationType': 'lost_mode_sighting',
+        'lost_mode': 'true',
+        'urgent': 'true',
+        'vehicle_id': str(vehicle_id or ''),
+        'registration_number': plate,
+        'vehicle_name': vehicle_name,
+        'sighting_time': scanned_at.isoformat(),
+        'scanned_at': scanned_at.isoformat(),
+        'approx_location': place,
+        'title': AUTO_PUSH_TITLE,
+        'body': body,
+        # Legacy / web aliases (kept for older clients)
         'vehicleId': str(vehicle_id or ''),
         'qrId': str(qr_id or ''),
-        'notificationType': 'vehicle_alert',
-        'type': 'vehicle_alert',
         'lostMode': 'true',
         'lostModeSighting': 'true',
         'sightingId': str(sighting_id),
@@ -430,6 +459,8 @@ def attempt_lost_mode_auto_push(
         'photoCount': str(len(photo_urls)),
         'scannedAt': scanned_at.isoformat(),
         'scannedAtDisplay': scanned_at_display,
+        'registrationNumber': plate,
+        'vehicleName': vehicle_name,
     }
     if location.get('has_location'):
         fcm_data['latitude'] = str(location['latitude'])

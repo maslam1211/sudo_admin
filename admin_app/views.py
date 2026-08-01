@@ -2470,12 +2470,10 @@ def send_notification(request, qr_id):
 
                     _when = _dt_sms.now(_tz_sms.utc)
                     _display = _fmt_ist(_when)
+                    # Prefer client reason; default to same tip text as manual issue SMS.
                     sms_text = (
-                        data.get('reason')
-                        or (
-                            'Lost Mode: someone scanned your SUDO Tag and spotted '
-                            f'your vehicle. Scanned at {_display}.'
-                        )
+                        (data.get('reason') or '').strip()
+                        or 'I spotted this vehicle'
                     )
                     sms_result = send_vehicle_issue_sms(
                         digits_10=str(owner_digits),
@@ -3095,10 +3093,8 @@ def send_notification(request, qr_id):
                     or ''
                 )
                 if sms_digits and len(str(sms_digits)) == 10:
-                    sms_text = (
-                        'Lost Mode: someone scanned your SUDO Tag and spotted '
-                        f'your vehicle. Scanned at {scanned_at_display}.'
-                    )
+                    # Same campaign variable style as working issue tips.
+                    sms_text = 'I spotted this vehicle'
                     try:
                         sms_result = send_vehicle_issue_sms(
                             digits_10=str(sms_digits),
