@@ -14,10 +14,12 @@ from admin_app.vehicle_lost_mode import (
     TIP_REASON,
     approximate_coordinates,
     attempt_lost_mode_auto_push,
+    build_lost_mode_sms_message,
     build_sighting_push_body,
     collect_owner_fcm_tokens,
     format_place_label,
     format_scanned_at_ist,
+    google_maps_url,
     parse_sighting_location,
     parse_vehicle_lost_mode,
 )
@@ -121,6 +123,25 @@ class LostModeLocationTests(SimpleTestCase):
         self.assertIn('2 photo', body)
         self.assertIn('01 Aug 2026', body)
         self.assertIn('Scanned at', body)
+
+    def test_lost_mode_sms_includes_google_maps_link(self):
+        msg = build_lost_mode_sms_message(
+            reason='I spotted this vehicle',
+            latitude=12.9715987,
+            longitude=77.5945627,
+        )
+        self.assertIn('I spotted this vehicle', msg)
+        self.assertIn('https://maps.google.com/?q=12.972,77.595', msg)
+        self.assertLessEqual(len(msg), 200)
+        self.assertEqual(
+            google_maps_url(12.972, 77.595),
+            'https://maps.google.com/?q=12.972,77.595',
+        )
+
+    def test_lost_mode_sms_without_coords_is_plain_tip(self):
+        msg = build_lost_mode_sms_message(reason='I spotted this vehicle')
+        self.assertEqual(msg, 'I spotted this vehicle')
+        self.assertNotIn('maps.google', msg)
 
     def test_format_scanned_at_ist(self):
         label = format_scanned_at_ist(

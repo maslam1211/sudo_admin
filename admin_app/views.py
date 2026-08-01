@@ -2464,16 +2464,21 @@ def send_notification(request, qr_id):
                             },
                             status=400,
                         )
-                    from .vehicle_lost_mode import format_scanned_at_ist as _fmt_ist
+                    from .vehicle_lost_mode import (
+                        build_lost_mode_sms_message,
+                        format_scanned_at_ist as _fmt_ist,
+                    )
                     from datetime import datetime as _dt_sms
                     from datetime import timezone as _tz_sms
 
                     _when = _dt_sms.now(_tz_sms.utc)
                     _display = _fmt_ist(_when)
-                    # Prefer client reason; default to same tip text as manual issue SMS.
-                    sms_text = (
-                        (data.get('reason') or '').strip()
-                        or 'I spotted this vehicle'
+                    # Prefer client reason; append Google Maps link when coords given.
+                    sms_text = build_lost_mode_sms_message(
+                        reason=(data.get('reason') or '').strip()
+                        or 'I spotted this vehicle',
+                        latitude=data.get('latitude'),
+                        longitude=data.get('longitude'),
                     )
                     sms_result = send_vehicle_issue_sms(
                         digits_10=str(owner_digits),
@@ -2575,11 +2580,104 @@ def send_notification(request, qr_id):
                                 'redirect_home': False,
                             }
                         )
+                    # Sighting may still be stored when push is unavailable (no FCM).
+                    # SMS the Google Maps pin so the owner can open the location.
+                    skip = sighting.get('skipped_reason') or 'send_failed'
+                    if sighting.get('attempted') and skip in (
+                        'no_token',
+                        'push_unavailable',
+                    ):
+                        from .vehicle_lost_mode import build_lost_mode_sms_message
+
+                        place = sighting.get('place_label') or ''
+                        sms_sent_now = False
+                        owner_digits = (
+                            vehicle_owner_contact_number(vehicle_data, user_data)
+                            or effective_contact_number(vehicle_data, user_data)
+                            or normalize_phone_number(
+                                user_data.get('contactNumber')
+                                or vehicle_data.get('ownerContact')
+                                or ''
+                            )
+                            or ''
+                        )
+                        has_coords = (
+                            data.get('latitude') is not None
+                            and data.get('longitude') is not None
+                        )
+                        if (
+                            has_coords
+                            and owner_digits
+                            and len(str(owner_digits)) == 10
+                        ):
+                            sms_text = build_lost_mode_sms_message(
+                                reason=(data.get('reason') or '').strip()
+                                or 'I spotted this vehicle',
+                                latitude=data.get('latitude'),
+                                longitude=data.get('longitude'),
+                            )
+                            try:
+                                sms_result = send_vehicle_issue_sms(
+                                    digits_10=str(owner_digits),
+                                    message=sms_text,
+                                )
+                            except Exception as sms_exc:
+                                sms_result = {
+                                    'ok': False,
+                                    'error': f'exception:{sms_exc}',
+                                }
+                            sms_sent_now = bool(sms_result.get('ok'))
+                            if sms_sent_now:
+                                logger.info(
+                                    'Lost Mode no-FCM SMS+maps sent qr_id=%s to ***%s',
+                                    qr_id,
+                                    str(owner_digits)[-4:],
+                                )
+                            else:
+                                logger.warning(
+                                    'Lost Mode no-FCM SMS+maps failed qr_id=%s err=%s',
+                                    qr_id,
+                                    sms_result.get('error'),
+                                )
+
+                        if sms_sent_now and place:
+                            msg = (
+                                f'Owner notified by SMS with map link near {place}.'
+                            )
+                        elif sms_sent_now:
+                            msg = 'Owner notified by SMS with a Google Maps location link.'
+                        elif place:
+                            msg = (
+                                f'Location tip recorded near {place}. '
+                                'App notification unavailable — SMS could not be sent.'
+                            )
+                        else:
+                            msg = (
+                                'Sighting recorded. App notification unavailable — '
+                                'the owner may still get SMS.'
+                            )
+                        return JsonResponse(
+                            {
+                                'status': 'success',
+                                'message': msg,
+                                'notification_type': 'lost_mode_sighting',
+                                'push_delivered': False,
+                                'sms_sent': sms_sent_now,
+                                'already_sent': False,
+                                'sighting_id': sighting.get('sighting_id'),
+                                'place_label': place,
+                                'photo_count': sighting.get('photo_count') or 0,
+                                'scanned_at': sighting.get('scanned_at') or '',
+                                'scanned_at_display': sighting.get('scanned_at_display')
+                                or '',
+                                'skipped_reason': skip,
+                                'redirect_home': False,
+                            }
+                        )
                     return JsonResponse(
                         {
                             'status': 'error',
-                            'error_type': sighting.get('skipped_reason')
-                            or 'send_failed',
+                            'error_type': skip,
                             'message': (
                                 'Could not notify the owner automatically. '
                                 'You can still tip them manually below.'
@@ -3081,7 +3179,9 @@ def send_notification(request, qr_id):
                     'pending_client_sms': True,
                 }
 
-                # SMS to vehicle owner (server). Client also POSTs lost_mode_sms if this fails.
+                # SMS to vehicle owner.
+                # Without FCM: defer SMS until the client has spotter location so the
+                # SMS can include a Google Maps link (push cannot carry the pin).
                 sms_digits = (
                     vehicle_owner_contact_number(vehicle_data, user_data)
                     or effective_digits_for_call
@@ -3089,7 +3189,29 @@ def send_notification(request, qr_id):
                     or normalize_phone_number(owner_phone)
                     or ''
                 )
-                if sms_digits and len(str(sms_digits)) == 10:
+                if not sms_digits or len(str(sms_digits)) != 10:
+                    lost_mode_auto_push['sms_skipped_reason'] = 'no_phone'
+                    lost_mode_auto_push['pending_client_sms'] = False
+                    logger.warning(
+                        'Lost Mode auto SMS unavailable qr_id=%s reason=no_phone '
+                        'ownerContact=%r contactNumber=%r',
+                        qr_id,
+                        (vehicle_data or {}).get('ownerContact'),
+                        (user_data or {}).get('contactNumber'),
+                    )
+                elif not has_fcm_token:
+                    # Wait for client location → POST lost_mode_sms with maps URL.
+                    lost_mode_auto_push['pending_client_sms'] = True
+                    lost_mode_auto_push['skipped_reason'] = 'no_token'
+                    lost_mode_auto_push['notice'] = (
+                        'Share location so we can SMS the owner a map link.'
+                    )
+                    logger.info(
+                        'Lost Mode GET SMS deferred (no FCM) qr_id=%s — '
+                        'client will send with maps link',
+                        qr_id,
+                    )
+                else:
                     # Same campaign variable style as working issue tips.
                     sms_text = 'I spotted this vehicle'
                     try:
@@ -3125,23 +3247,11 @@ def send_notification(request, qr_id):
                             qr_id,
                             sms_result.get('error'),
                         )
-                else:
-                    lost_mode_auto_push['sms_skipped_reason'] = 'no_phone'
-                    lost_mode_auto_push['pending_client_sms'] = False
-                    logger.warning(
-                        'Lost Mode auto SMS unavailable qr_id=%s reason=no_phone '
-                        'ownerContact=%r contactNumber=%r',
-                        qr_id,
-                        (vehicle_data or {}).get('ownerContact'),
-                        (user_data or {}).get('contactNumber'),
-                    )
 
-                # Defer owner push to the client so spotter location can be included.
-                # Client POSTs lost_mode_sighting after Permissions API / share dialog.
+                # Always let the client run location + sighting tip (even without FCM).
                 lost_mode_auto_push['pending_client_sighting'] = True
                 if not has_fcm_token:
                     lost_mode_auto_push['skipped_reason'] = 'no_token'
-                    lost_mode_auto_push['pending_client_sighting'] = False
 
                 sms_ok = bool(lost_mode_auto_push.get('sms_sent'))
                 if sms_ok:

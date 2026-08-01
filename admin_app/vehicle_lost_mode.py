@@ -149,6 +149,38 @@ def format_place_label(
     return f'Near {abs(lat):.3f}°{ns}, {abs(lng):.3f}°{ew}'
 
 
+def google_maps_url(lat: float, lng: float) -> str:
+    """Open Google Maps at approximate lat/lng (matches FCM mapsUrl)."""
+    return f'https://maps.google.com/?q={lat},{lng}'
+
+
+def build_lost_mode_sms_message(
+    *,
+    reason: str = '',
+    latitude: Any = None,
+    longitude: Any = None,
+    max_len: int = 200,
+) -> str:
+    """
+    MSG91 campaign ``var`` text (max ~200 chars).
+
+    When coords are present, append a Google Maps link so owners without
+    FCM can open the spotter location from SMS alone.
+    """
+    base = (reason or '').strip() or TIP_REASON
+    coords = approximate_coordinates(latitude, longitude)
+    if not coords:
+        return base[:max_len]
+    url = google_maps_url(coords[0], coords[1])
+    combined = f'{base} {url}'
+    if len(combined) <= max_len:
+        return combined
+    room = max_len - len(url) - 1
+    if room < 8:
+        return url[:max_len]
+    return f'{base[:room].rstrip()} {url}'
+
+
 def build_sighting_push_body(
     *,
     place_label: str = '',
