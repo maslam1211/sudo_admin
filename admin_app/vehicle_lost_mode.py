@@ -186,8 +186,15 @@ def build_sighting_push_body(
     place_label: str = '',
     photo_count: int = 0,
     scanned_at_display: str = '',
+    maps_url: str = '',
 ) -> str:
-    if place_label:
+    maps = (maps_url or '').strip()
+    if maps:
+        # Keep notification text short; Maps link is the actionable location.
+        body = f'Your vehicle has been found. Live location: {maps}'
+        if place_label:
+            body = f'Your vehicle has been found near {place_label}. Map: {maps}'
+    elif place_label:
         body = (
             f'Your vehicle has been found near {place_label}. '
             'Please check the details immediately.'
@@ -370,6 +377,7 @@ def attempt_lost_mode_auto_push(
         'notice': '',
         'sighting_id': None,
         'place_label': '',
+        'maps_url': '',
         'photo_count': 0,
         'photo_urls': [],
     }
@@ -427,13 +435,21 @@ def attempt_lost_mode_auto_push(
         sighting_id = sighting_id or uuid.uuid4().hex[:16]
 
     place = location.get('place_label') or ''
+    maps_link = ''
+    if location.get('has_location'):
+        maps_link = google_maps_url(
+            float(location['latitude']),
+            float(location['longitude']),
+        )
     body = build_sighting_push_body(
         place_label=place,
         photo_count=len(photo_urls),
         scanned_at_display=scanned_at_display,
+        maps_url=maps_link,
     )
     result['attempted'] = True
     result['place_label'] = place
+    result['maps_url'] = maps_link
     result['photo_count'] = len(photo_urls)
     result['photo_urls'] = photo_urls
     result['sighting_id'] = sighting_id
@@ -497,9 +513,9 @@ def attempt_lost_mode_auto_push(
     if location.get('has_location'):
         fcm_data['latitude'] = str(location['latitude'])
         fcm_data['longitude'] = str(location['longitude'])
-        fcm_data['mapsUrl'] = (
-            f"https://maps.google.com/?q={location['latitude']},{location['longitude']}"
-        )
+        fcm_data['mapsUrl'] = maps_link
+        fcm_data['maps_url'] = maps_link
+        fcm_data['live_location_url'] = maps_link
     if photo_urls:
         fcm_data['photoUrl'] = photo_urls[0]
         # Keep payload small — full list lives on the Firestore sighting doc.

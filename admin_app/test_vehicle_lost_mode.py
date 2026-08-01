@@ -124,6 +124,14 @@ class LostModeLocationTests(SimpleTestCase):
         self.assertIn('01 Aug 2026', body)
         self.assertIn('Scanned at', body)
 
+    def test_build_push_body_includes_maps_link(self):
+        body = build_sighting_push_body(
+            place_label='Kochi',
+            maps_url='https://maps.google.com/?q=9.931,76.267',
+        )
+        self.assertIn('Kochi', body)
+        self.assertIn('https://maps.google.com/?q=9.931,76.267', body)
+
     def test_lost_mode_sms_includes_google_maps_link(self):
         msg = build_lost_mode_sms_message(
             reason='I spotted this vehicle',
