@@ -13,6 +13,14 @@
   <!-- Vendor CSS Files -->
   <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  {% if vehicle_lost_mode.is_lost_mode %}
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  {% endif %}
   {# Inline fallback when sudo_* CSS or logo URLs 404 after deploy (nginx/static path, stale collectstatic). External sheets below override when present. #}
   <style id="notify-flow-static-fallback">
     :root {
@@ -295,23 +303,112 @@
     }
 
     body.notify-app .notify-lost-mode-loc-share {
-      margin-top: 0.35rem;
-      padding: 0.85rem 0.85rem 0.9rem;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.28);
-      border: 1px solid rgba(255, 59, 48, 0.4);
+      margin-top: 0.45rem;
+      padding: 0.9rem 0.9rem 0.95rem;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.32);
+      border: 1px solid rgba(255, 59, 48, 0.42);
     }
     body.notify-app .notify-lost-mode-loc-share-title {
-      margin: 0 0 0.4rem;
-      font-size: 0.92rem;
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
       font-weight: 800;
       color: #fecaca;
     }
     body.notify-app .notify-lost-mode-loc-share-body {
-      margin: 0 0 0.75rem;
-      font-size: 0.78rem;
+      margin: 0 0 0.65rem;
+      font-size: 0.76rem;
       line-height: 1.4;
-      color: rgba(255, 255, 255, 0.78);
+      color: rgba(255, 255, 255, 0.76);
+    }
+    body.notify-app .notify-lost-mode-loc-steps {
+      display: flex;
+      gap: 0.35rem;
+      margin: 0 0 0.7rem;
+    }
+    body.notify-app .notify-lost-mode-loc-step {
+      flex: 1;
+      min-height: 2.1rem;
+      padding: 0.35rem 0.25rem;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.55);
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    body.notify-app .notify-lost-mode-loc-step.is-active {
+      color: #fff;
+      border-color: rgba(255, 90, 82, 0.75);
+      background: rgba(255, 59, 48, 0.22);
+    }
+    body.notify-app .notify-lost-mode-loc-step.is-done {
+      color: #bbf7d0;
+      border-color: rgba(34, 197, 94, 0.55);
+      background: rgba(34, 197, 94, 0.14);
+    }
+    body.notify-app .notify-lost-mode-loc-live-badge {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 2.55rem;
+      margin: 0.55rem 0 0.45rem;
+      border-radius: 10px;
+      border: 1px solid rgba(34, 197, 94, 0.45);
+      background: rgba(34, 197, 94, 0.14);
+      color: #bbf7d0;
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+    body.notify-app .notify-lost-mode-loc-live-badge.is-on {
+      display: flex;
+    }
+    body.notify-app .notify-lost-mode-map-card {
+      display: none;
+      margin: 0.55rem 0 0.35rem;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: #0f1115;
+    }
+    body.notify-app .notify-lost-mode-map-card.is-visible {
+      display: block;
+    }
+    body.notify-app .notify-lost-mode-map {
+      width: 100%;
+      height: 160px;
+      z-index: 0;
+      background: #1a1d24;
+    }
+    body.notify-app .notify-lost-mode-map-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      padding: 0.5rem 0.65rem 0.55rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.7rem;
+      line-height: 1.3;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    body.notify-app .notify-lost-mode-map-meta strong {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 700;
+    }
+    body.notify-app .notify-lost-mode-loc-live-dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: lost-mode-live-pulse 1.4s ease-out infinite;
+    }
+    @keyframes lost-mode-live-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+      70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
     }
     body.notify-app .notify-lost-mode-loc-share-actions {
       display: flex;
@@ -346,7 +443,8 @@
       background: linear-gradient(180deg, #4285f4 0%, #3367d6 100%);
       box-sizing: border-box;
     }
-    body.notify-app a.notify-lost-mode-loc-share-btn--maps[hidden] {
+    body.notify-app a.notify-lost-mode-loc-share-btn--maps[hidden],
+    body.notify-app .notify-lost-mode-loc-share-btn[hidden] {
       display: none !important;
     }
     body.notify-app .notify-lost-mode-loc-share-btn:disabled {
@@ -4345,14 +4443,35 @@
       </div>
       <p class="notify-lost-mode-banner-body">{{ vehicle_lost_mode.banner_body }}</p>
       <div class="notify-lost-mode-help" id="notifyLostModeHelp">
-        <p class="notify-lost-mode-loc-status" id="notifyLostModeLocStatus">
-          Help the owner find this vehicle — send your current pin as a Google Maps link.
-        </p>
         <div class="notify-lost-mode-loc-share" id="notifyLostModeLocShare">
-          <p class="notify-lost-mode-loc-share-title">Send Google Maps location</p>
-          <p class="notify-lost-mode-loc-share-body">
-            Tap once: we auto-fetch your GPS position, start live location, then send a Google Maps pin to the owner. Keep this page open for live updates.
+          <p class="notify-lost-mode-loc-share-title">Share location with owner</p>
+          <p class="notify-lost-mode-loc-share-body" id="notifyLostModeLocHelpText">
+            One tap: get GPS → start live location → send Google Maps pin to the owner.
           </p>
+          <div class="notify-lost-mode-loc-steps" id="notifyLostModeLocSteps" aria-label="Location share steps">
+            <div class="notify-lost-mode-loc-step is-active" data-step="1" id="lostModeStep1">1. Position</div>
+            <div class="notify-lost-mode-loc-step" data-step="2" id="lostModeStep2">2. Live</div>
+            <div class="notify-lost-mode-loc-step" data-step="3" id="lostModeStep3">3. Sent</div>
+          </div>
+          <p class="notify-lost-mode-loc-status" id="notifyLostModeLocStatus">
+            Tap Share My Location to help the owner find this vehicle.
+          </p>
+          <div class="notify-lost-mode-map-card" id="notifyLostModeMapCard" hidden>
+            <div
+              id="notifyLostModeMap"
+              class="notify-lost-mode-map"
+              role="img"
+              aria-label="Preview of your shared location"
+            ></div>
+            <div class="notify-lost-mode-map-meta">
+              <span id="notifyLostModeMapCoords"><strong>Position:</strong> —</span>
+              <span id="notifyLostModeMapTime"><strong>Updated:</strong> —</span>
+            </div>
+          </div>
+          <div class="notify-lost-mode-loc-live-badge" id="notifyLostModeLiveBadge" aria-live="polite">
+            <span class="notify-lost-mode-loc-live-dot" aria-hidden="true"></span>
+            <span id="notifyLostModeLiveBadgeText">Live Location Active</span>
+          </div>
           <div class="notify-lost-mode-loc-share-actions">
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--share" id="lostModeLocShareInlineBtn">
               Share My Location
@@ -4364,9 +4483,9 @@
               target="_blank"
               rel="noopener noreferrer"
               hidden
-            >Open in Google Maps</a>
+            >View Google Maps link</a>
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--skip" id="lostModeLocStopBtn" hidden>
-              Stop live sharing
+              Stop Sharing
             </button>
           </div>
           <p class="notify-lost-mode-loc-denied" id="notifyLostModeLocDenied" hidden>
@@ -4945,6 +5064,13 @@
 
   <!-- Vendor JS Files -->
   <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  {% if vehicle_lost_mode.is_lost_mode %}
+  <script
+    src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  {% endif %}
 
   {{ owner_live_status_json|json_script:"ownerLiveStatusBoot" }}
 
@@ -6974,6 +7100,94 @@
       var shareBtn = document.getElementById('lostModeLocShareInlineBtn');
       var openMapsBtn = document.getElementById('lostModeLocOpenMapsBtn');
       var stopLiveBtn = document.getElementById('lostModeLocStopBtn');
+      var liveBadge = document.getElementById('notifyLostModeLiveBadge');
+      var liveBadgeText = document.getElementById('notifyLostModeLiveBadgeText');
+      var helpTextEl = document.getElementById('notifyLostModeLocHelpText');
+      var stepEls = [
+        document.getElementById('lostModeStep1'),
+        document.getElementById('lostModeStep2'),
+        document.getElementById('lostModeStep3'),
+      ];
+
+      /**
+       * Proper UI states:
+       * idle | fetching | live_ready | sending | sharing | error | stopped
+       */
+      function setLostModeLocUiState(state, statusText) {
+        var step = 1;
+        if (state === 'live_ready' || state === 'sending') step = 2;
+        if (state === 'sharing') step = 3;
+        if (state === 'stopped') step = 3;
+        if (state === 'error') step = firstLiveTipSent ? 3 : liveShareActive ? 2 : 1;
+
+        stepEls.forEach(function (el, idx) {
+          if (!el) return;
+          var n = idx + 1;
+          el.classList.remove('is-active', 'is-done');
+          if (n < step) el.classList.add('is-done');
+          else if (n === step) el.classList.add('is-active');
+        });
+
+        if (statusText) setLostModeLocStatus(statusText);
+
+        if (helpTextEl) {
+          if (state === 'sharing') {
+            helpTextEl.textContent =
+              'Owner has your Google Maps pin. Keep this page open for live updates.';
+          } else if (state === 'live_ready' || state === 'sending') {
+            helpTextEl.textContent =
+              'Live GPS is on. Sending your Google Maps pin to the owner…';
+          } else if (state === 'fetching') {
+            helpTextEl.textContent =
+              'Getting your GPS position. Allow location if your phone asks.';
+          } else if (state === 'stopped') {
+            helpTextEl.textContent =
+              'Live sharing stopped. Owner can still open the last Google Maps pin.';
+          } else if (state === 'error') {
+            helpTextEl.textContent =
+              'Location could not be shared yet. You can try again.';
+          } else {
+            helpTextEl.textContent =
+              'One tap: get GPS → start live location → send Google Maps pin to the owner.';
+          }
+        }
+
+        if (liveBadge) {
+          var showLive =
+            state === 'sharing' || state === 'live_ready' || state === 'sending';
+          if (showLive) liveBadge.classList.add('is-on');
+          else liveBadge.classList.remove('is-on');
+        }
+        if (liveBadgeText) {
+          if (state === 'sharing') liveBadgeText.textContent = 'Live Location Active';
+          else if (state === 'sending') liveBadgeText.textContent = 'Location Shared';
+          else if (state === 'live_ready') liveBadgeText.textContent = 'Location Shared';
+          else if (state === 'stopped') liveBadgeText.textContent = 'Location Shared';
+        }
+        if (state === 'stopped' && liveBadge && placeShared) {
+          liveBadge.classList.add('is-on');
+        }
+
+        if (shareBtn) {
+          if (state === 'sharing' || state === 'live_ready' || state === 'sending') {
+            shareBtn.hidden = true;
+          } else {
+            shareBtn.hidden = false;
+            if (state === 'fetching') shareBtn.textContent = 'Getting location…';
+            else if (state === 'error') shareBtn.textContent = 'Try again — Share Location';
+            else if (state === 'stopped') shareBtn.textContent = 'Share again';
+            else shareBtn.textContent = 'Share My Location';
+          }
+        }
+        if (stopLiveBtn) {
+          stopLiveBtn.hidden = !(
+            state === 'sharing' ||
+            state === 'live_ready' ||
+            state === 'sending' ||
+            (state === 'error' && liveShareActive)
+          );
+        }
+      }
 
       function showLostModeTipLine(smsOk) {
         var line = 'Owner tipped automatically';
@@ -7192,11 +7406,97 @@
         );
       }
 
+      var mapCard = document.getElementById('notifyLostModeMapCard');
+      var mapCoordsEl = document.getElementById('notifyLostModeMapCoords');
+      var mapTimeEl = document.getElementById('notifyLostModeMapTime');
+      var lostModeMap = null;
+      var lostModeMarker = null;
+
+      function formatLocalShareTime(when) {
+        try {
+          var d = when instanceof Date ? when : new Date();
+          return d.toLocaleString(undefined, {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+        } catch (e) {
+          return new Date().toISOString();
+        }
+      }
+
+      function showLostModeMapPreview(coords) {
+        if (!coords || coords.latitude == null || coords.longitude == null) return;
+        var lat = Number(coords.latitude);
+        var lng = Number(coords.longitude);
+        if (!isFinite(lat) || !isFinite(lng)) return;
+
+        if (mapCard) {
+          mapCard.hidden = false;
+          mapCard.classList.add('is-visible');
+        }
+        if (mapCoordsEl) {
+          mapCoordsEl.innerHTML =
+            '<strong>Position:</strong> ' +
+            lat.toFixed(6) +
+            ', ' +
+            lng.toFixed(6);
+        }
+        if (mapTimeEl) {
+          mapTimeEl.innerHTML =
+            '<strong>Updated:</strong> ' + formatLocalShareTime(new Date());
+        }
+
+        // Compact on-page preview only — never auto-open Google Maps.
+        if (typeof L === 'undefined') return;
+        var mapEl = document.getElementById('notifyLostModeMap');
+        if (!mapEl) return;
+
+        try {
+          if (!lostModeMap) {
+            lostModeMap = L.map(mapEl, {
+              zoomControl: false,
+              attributionControl: false,
+              dragging: false,
+              scrollWheelZoom: false,
+              doubleClickZoom: false,
+              boxZoom: false,
+              keyboard: false,
+              tap: false,
+            }).setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 19,
+            }).addTo(lostModeMap);
+            lostModeMarker = L.marker([lat, lng]).addTo(lostModeMap);
+            setTimeout(function () {
+              try {
+                lostModeMap.invalidateSize();
+              } catch (e) {}
+            }, 80);
+          } else {
+            lostModeMap.setView([lat, lng], lostModeMap.getZoom() || 16);
+            if (lostModeMarker) lostModeMarker.setLatLng([lat, lng]);
+            else lostModeMarker = L.marker([lat, lng]).addTo(lostModeMap);
+            try {
+              lostModeMap.invalidateSize();
+            } catch (e2) {}
+          }
+        } catch (err) {
+          // Preview is optional; Google Maps link + owner tip still work.
+        }
+      }
+
       function setOpenMapsLink(coords) {
-        if (!openMapsBtn || !coords) return;
+        if (!coords) return;
         var url = buildGoogleMapsUrl(coords.latitude, coords.longitude);
-        openMapsBtn.href = url;
-        openMapsBtn.hidden = false;
+        // Keep as an optional user-opened link only (no auto redirect / window.open).
+        if (openMapsBtn) {
+          openMapsBtn.href = url;
+          openMapsBtn.hidden = false;
+        }
+        showLostModeMapPreview(coords);
       }
 
       function clearLiveShareTimers() {
@@ -7220,25 +7520,26 @@
         if (!liveShareActive && liveWatchId == null) return;
         liveShareActive = false;
         clearLiveShareTimers();
-        if (stopLiveBtn) stopLiveBtn.hidden = true;
-        if (shareBtn) {
-          shareBtn.textContent = 'Location shared';
-          setLostModeShareButtonBusy(true);
-        }
-        setLostModeLocStatus(
+        // Allow a fresh share session after stop.
+        locationShareDone = false;
+        firstLiveTipSent = false;
+        setLostModeShareButtonBusy(false);
+        setLostModeLocUiState(
+          'stopped',
           reason ||
-            'Live location sharing stopped. Owner already has your Google Maps link.'
+            'Live sharing stopped. Owner can still open the last Google Maps pin.'
         );
       }
 
       function updateLiveShareStatus() {
-        if (!liveShareActive) return;
+        if (!liveShareActive || !firstLiveTipSent) return;
         var leftMs = Math.max(0, LIVE_SHARE_MS - (Date.now() - liveStartedAt));
-        var leftMin = Math.ceil(leftMs / 60000);
-        setLostModeLocStatus(
-          'Live sharing with owner… keep this page open (~' +
+        var leftMin = Math.max(1, Math.ceil(leftMs / 60000));
+        setLostModeLocUiState(
+          'sharing',
+          'Live Location Active — keep this page open (~' +
             leftMin +
-            ' min left). Tap Open in Google Maps anytime.'
+            ' min left). Map preview updates here; Maps opens only if you tap the link.'
         );
       }
 
@@ -7305,15 +7606,10 @@
         lastLiveSentAt = 0;
         lastLiveCoords = initialCoords || null;
         if (initialCoords) setOpenMapsLink(initialCoords);
-        if (stopLiveBtn) stopLiveBtn.hidden = false;
-        if (shareBtn) {
-          shareBtn.textContent = opts.awaitingSend
-            ? 'Live GPS on…'
-            : 'Sharing live…';
-        }
-        setLostModeLocStatus(
+        setLostModeLocUiState(
+          opts.awaitingSend ? 'live_ready' : 'sharing',
           opts.awaitingSend
-            ? 'Live position ready — sending Google Maps link to the owner…'
+            ? 'Live GPS ready — sending Google Maps pin to the owner…'
             : 'Live sharing with owner… keep this page open.'
         );
 
@@ -7377,7 +7673,10 @@
         locationShareInFlight = true;
         setLostModeShareButtonBusy(true);
         showLostModeLocDeniedMessage(false);
-        if (shareBtn) shareBtn.textContent = 'Getting location…';
+        setLostModeLocUiState(
+          'fetching',
+          'Step 1/3 — getting your GPS position…'
+        );
 
         // Geolocation starts inside this call synchronously (required for iOS).
         requestLostModeLocationAfterUserTap()
@@ -7388,40 +7687,35 @@
             if (denied) {
               setLostModeShareButtonBusy(false);
               locationShareInFlight = false;
-              if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
-              setLostModeLocStatus(locationFailMessage(1));
+              setLostModeLocUiState('error', locationFailMessage(1));
               return null;
             }
             if (!coords) {
               setLostModeShareButtonBusy(false);
               locationShareInFlight = false;
-              if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
-              setLostModeLocStatus(locationFailMessage(errCode));
+              setLostModeLocUiState('error', locationFailMessage(errCode));
               return null;
             }
 
-            // 1) Auto-fetched position → 2) make live GPS → 3) then send Maps tip.
-            setLostModeLocStatus(
-              'Position found — starting live location, then sending…'
-            );
+            // 1) Position fetched → 2) Live GPS → 3) Send Maps tip.
             setOpenMapsLink(coords);
             startLiveLocationShare(coords, { awaitingSend: true });
-
-            // Prefer the freshest live fix if watch already updated.
-            var sendCoords = lastLiveCoords || coords;
-            if (shareBtn) shareBtn.textContent = 'Sending live pin…';
-            setLostModeLocStatus(
-              'Sending live Google Maps location to the owner…'
+            setLostModeLocUiState(
+              'sending',
+              'Step 3/3 — sending live Google Maps pin to the owner…'
             );
 
+            var sendCoords = lastLiveCoords || coords;
             return sendLocationTip(sendCoords, { liveUpdate: false }).then(
               function (sendRes) {
                 if (!sendRes || !sendRes.ok) {
                   setLostModeShareButtonBusy(false);
-                  if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
-                  setLostModeLocStatus(
-                    'Live GPS is on, but sending the Maps pin failed. Tap Try again.'
+                  setLostModeLocUiState(
+                    'error',
+                    'Live GPS is on, but sending failed. Tap Try again.'
                   );
+                  // Keep maps link available even if send failed.
+                  if (stopLiveBtn) stopLiveBtn.hidden = false;
                   return null;
                 }
                 firstLiveTipSent = true;
@@ -7429,7 +7723,6 @@
                 locationShareDone = true;
                 placeShared = true;
                 setOpenMapsLink(sendCoords);
-                if (shareBtn) shareBtn.textContent = 'Sharing live…';
                 setLostModeAutoSentNotice(
                   'Owner notified with your live Google Maps location. Updates continue while this page stays open.'
                 );
@@ -7441,16 +7734,12 @@
           .catch(function () {
             setLostModeShareButtonBusy(false);
             locationShareInFlight = false;
-            if (shareBtn) shareBtn.textContent = 'Try again — Share Location';
-            setLostModeLocStatus(locationFailMessage(0));
+            setLostModeLocUiState('error', locationFailMessage(0));
           })
           .then(function () {
             locationShareInFlight = false;
-            if (!locationShareDone && shareBtn && !shareBtn.disabled) {
-              // Ensure retry label after any unfinished path.
-              if (shareBtn.textContent === 'Getting location…' || shareBtn.textContent === 'Sending…') {
-                shareBtn.textContent = 'Try again — Share Location';
-              }
+            if (!locationShareDone && !liveShareActive) {
+              setLostModeShareButtonBusy(false);
             }
           });
       }
@@ -7462,18 +7751,20 @@
       if (stopLiveBtn) {
         stopLiveBtn.addEventListener('click', function () {
           stopLiveLocationShare(
-            'Live sharing stopped. Owner already has your Google Maps link.'
+            'Live sharing stopped. Owner can still open the last Google Maps pin.'
           );
         });
       }
 
       // Page load: tip without location. Never request geolocation automatically.
+      setLostModeLocUiState(
+        'idle',
+        'Tap Share My Location to help the owner find this vehicle.'
+      );
       if (smsAlready && !pendingSighting) {
         setLostModeAutoSentNotice(
           notice || 'Owner notified by SMS — thank you for helping.'
         );
-      } else if (!SUDO_NOTIFY_TERMINAL_GATE) {
-        setLostModeLocStatus('Notifying the owner… then you can send a Maps pin.');
       }
 
       var bootPromise = Promise.resolve(null);
@@ -7491,14 +7782,11 @@
         })
         .then(function () {
           if (!SUDO_NOTIFY_TERMINAL_GATE && !locationShareDone) {
-            // Keep tip notice in the green/bell line; location status is the call-to-action.
-            setLostModeLocStatus(
-              'Tap Share My Location to send a Google Maps pin to the owner (recommended).'
+            setLostModeLocUiState(
+              'idle',
+              'Owner tip can go without a map. Tap Share My Location to also send a live Google Maps pin.'
             );
-            if (shareBtn) {
-              shareBtn.textContent = 'Share My Location';
-              setLostModeShareButtonBusy(false);
-            }
+            setLostModeShareButtonBusy(false);
           }
         });
     }

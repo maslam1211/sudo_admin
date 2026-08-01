@@ -133,8 +133,11 @@ class LostModeLocationTests(SimpleTestCase):
             longitude=75.780411,
             scanned_at_display='02 Aug 2026, 04:45 PM IST',
         )
-        self.assertIn('Latitude: 11.258753', body)
-        self.assertIn('Longitude: 75.780411', body)
+        self.assertIn(
+            'A person has shared their location while reporting your vehicle.',
+            body,
+        )
+        self.assertIn('View on Google Maps:', body)
         self.assertIn(
             'https://www.google.com/maps?q=11.258753,75.780411',
             body,

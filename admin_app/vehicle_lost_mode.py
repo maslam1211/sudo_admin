@@ -34,7 +34,7 @@ REASONS_HEADING = 'Help recover this vehicle'
 REASONS_LEAD = 'Tip the owner — choose how you spotted this vehicle, or pick another reason.'
 
 AUTO_PUSH_TITLE = 'DANGER WARNING'
-SPOTTER_LOCATION_TITLE = '📍 Spotter Location Shared'
+SPOTTER_LOCATION_TITLE = '📍 Spotter Location Received'
 SPOTTER_LIVE_LOCATION_TITLE = '📍 Spotter live location update'
 AUTO_PUSH_BODY = (
     'Your vehicle has been found. Please check the details immediately.'
@@ -213,23 +213,30 @@ def build_spotter_location_notification(
     """
     Title + body for a location-share Lost Mode tip.
 
-    Body includes lat/lng, clickable Google Maps URL, and share time.
+    Includes a clickable Google Maps URL and share/update timestamp.
+    Lat/lng also go in FCM data fields for the app.
     """
-    lat_s = format_coord(latitude)
-    lng_s = format_coord(longitude)
     url = (maps_url or '').strip() or google_maps_url(latitude, longitude)
+    if live_update:
+        lines = [
+            'A person updated their shared location while reporting your vehicle.',
+            '',
+            'View on Google Maps:',
+            url,
+        ]
+        if shared_at_display:
+            lines.extend(['', f'Updated at: {shared_at_display}'])
+        return SPOTTER_LIVE_LOCATION_TITLE, '\n'.join(lines)
+
     lines = [
-        f'Latitude: {lat_s}',
-        f'Longitude: {lng_s}',
+        'A person has shared their location while reporting your vehicle.',
         '',
         'View on Google Maps:',
         url,
     ]
     if shared_at_display:
-        label = 'Updated at' if live_update else 'Shared at'
-        lines.extend(['', f'{label}: {shared_at_display}'])
-    title = SPOTTER_LIVE_LOCATION_TITLE if live_update else SPOTTER_LOCATION_TITLE
-    return title, '\n'.join(lines)
+        lines.extend(['', f'Shared at: {shared_at_display}'])
+    return SPOTTER_LOCATION_TITLE, '\n'.join(lines)
 
 
 def build_sighting_push_body(
