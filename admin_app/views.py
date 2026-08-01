@@ -2539,6 +2539,15 @@ def send_notification(request, qr_id):
                     _has_token = bool(_vehicle_token) or bool(_single_token)
                     # Lost Mode recovery: send if any FCM token (bypass quiet-hour gates).
                     _push_capable = bool(_has_token)
+                    _live_raw = data.get('live_update')
+                    if _live_raw is None:
+                        _live_raw = data.get('liveUpdate')
+                    live_update = str(_live_raw).strip().lower() in (
+                        '1',
+                        'true',
+                        'yes',
+                        'on',
+                    )
                     sighting = attempt_lost_mode_auto_push(
                         request=request,
                         db=db,
@@ -2559,8 +2568,9 @@ def send_notification(request, qr_id):
                             'scanned_at': data.get('scanned_at')
                             or data.get('scannedAt'),
                         },
-                        photos_raw=data.get('photos') or [],
-                        upload_photos=True,
+                        photos_raw=[] if live_update else (data.get('photos') or []),
+                        upload_photos=not live_update,
+                        live_update=live_update,
                     )
                     if sighting.get('sent'):
                         from .vehicle_lost_mode import build_lost_mode_sms_message
@@ -2580,8 +2590,10 @@ def send_notification(request, qr_id):
                             )
                             or ''
                         )
+                        # SMS only on the first location share — not on live updates.
                         if (
-                            has_coords
+                            not live_update
+                            and has_coords
                             and owner_digits
                             and len(str(owner_digits)) == 10
                         ):
@@ -2672,7 +2684,8 @@ def send_notification(request, qr_id):
                             and data.get('longitude') is not None
                         )
                         if (
-                            has_coords
+                            not live_update
+                            and has_coords
                             and owner_digits
                             and len(str(owner_digits)) == 10
                         ):

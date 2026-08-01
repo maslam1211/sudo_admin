@@ -337,6 +337,18 @@
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.16);
     }
+    body.notify-app a.notify-lost-mode-loc-share-btn--maps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(180deg, #4285f4 0%, #3367d6 100%);
+      box-sizing: border-box;
+    }
+    body.notify-app a.notify-lost-mode-loc-share-btn--maps[hidden] {
+      display: none !important;
+    }
     body.notify-app .notify-lost-mode-loc-share-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -4338,11 +4350,22 @@
         </p>
         <div class="notify-lost-mode-loc-share" id="notifyLostModeLocShare">
           <p class="notify-lost-mode-loc-share-body">
-            Your location is used only for this tip (Google Maps link in push and SMS) and is not kept after the notification is sent.
+            Tap once to tip the owner with a Google Maps link, then keep this page open to share live updates for a few minutes. Permission is requested only when you tap the button.
           </p>
           <div class="notify-lost-mode-loc-share-actions">
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--share" id="lostModeLocShareInlineBtn">
               Share My Location
+            </button>
+            <a
+              class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--maps"
+              id="lostModeLocOpenMapsBtn"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+            >Open in Google Maps</a>
+            <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--skip" id="lostModeLocStopBtn" hidden>
+              Stop live sharing
             </button>
           </div>
           <p class="notify-lost-mode-loc-denied" id="notifyLostModeLocDenied" hidden>
@@ -6672,6 +6695,39 @@
       });
     }
 
+    function coordsFromGeoPosition(pos) {
+      if (!pos || !pos.coords) return null;
+      return {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      };
+    }
+
+    function buildGoogleMapsUrl(lat, lng) {
+      return (
+        'https://www.google.com/maps?q=' +
+        encodeURIComponent(String(lat) + ',' + String(lng))
+      );
+    }
+
+    /** Approx distance in meters (haversine). */
+    function metersBetweenCoords(a, b) {
+      if (!a || !b) return 0;
+      var toRad = function (d) {
+        return (d * Math.PI) / 180;
+      };
+      var r = 6371000;
+      var dLat = toRad(b.latitude - a.latitude);
+      var dLng = toRad(b.longitude - a.longitude);
+      var la1 = toRad(a.latitude);
+      var la2 = toRad(b.latitude);
+      var h =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return 2 * r * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+
     function readBrowserPosition() {
       return new Promise(function (resolve) {
         if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
@@ -6681,15 +6737,7 @@
         // Only called after an explicit "Share My Location" tap.
         navigator.geolocation.getCurrentPosition(
           function (pos) {
-            if (!pos || !pos.coords) {
-              resolve(null);
-              return;
-            }
-            resolve({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy,
-            });
+            resolve(coordsFromGeoPosition(pos));
           },
           function () {
             // User declined the browser prompt, or a temporary error.
@@ -6771,7 +6819,21 @@
       var placeShared = false;
       var locationShareInFlight = false;
       var locationShareDone = false;
+      var liveShareActive = false;
+      var liveWatchId = null;
+      var liveEndTimer = null;
+      var liveTickTimer = null;
+      var liveStartedAt = 0;
+      var lastLiveSentAt = 0;
+      var lastLiveCoords = null;
+      var liveSendInFlight = false;
+      // First tip + SMS, then push-only updates while this page stays open.
+      var LIVE_SHARE_MS = 5 * 60 * 1000;
+      var LIVE_MIN_INTERVAL_MS = 45 * 1000;
+      var LIVE_MIN_MOVE_M = 35;
       var shareBtn = document.getElementById('lostModeLocShareInlineBtn');
+      var openMapsBtn = document.getElementById('lostModeLocOpenMapsBtn');
+      var stopLiveBtn = document.getElementById('lostModeLocStopBtn');
 
       function showLostModeTipLine(smsOk) {
         var line = 'Owner tipped automatically';
@@ -6884,12 +6946,16 @@
           });
       }
 
-      function sendSightingWithLocation(coords) {
-        setLostModeLocStatus(
-          coords
-            ? 'Notifying the owner with your location…'
-            : 'Notifying the owner…'
-        );
+      function sendSightingWithLocation(coords, options) {
+        var opts = options || {};
+        var isLive = !!opts.liveUpdate;
+        if (!isLive) {
+          setLostModeLocStatus(
+            coords
+              ? 'Notifying the owner with your location…'
+              : 'Notifying the owner…'
+          );
+        }
 
         var payload = {
           notification_method: 'lost_mode_sighting',
@@ -6897,6 +6963,7 @@
           reason: lostModeTipReason || 'I spotted this vehicle',
           scanned_at: new Date().toISOString(),
           photos: [],
+          live_update: isLive,
         };
         if (coords && coords.latitude != null && coords.longitude != null) {
           payload.latitude = coords.latitude;
@@ -6916,12 +6983,14 @@
                 smsAlready = true;
                 pendingSms = false;
               }
-              notice =
-                data.message ||
-                (placeShared
-                  ? 'Owner notified with your location — thank you for helping.'
-                  : 'Owner notified automatically — thank you for helping.');
-              setLostModeAutoSentNotice(notice);
+              if (!isLive) {
+                notice =
+                  data.message ||
+                  (placeShared
+                    ? 'Owner notified with your location — thank you for helping.'
+                    : 'Owner notified automatically — thank you for helping.');
+                setLostModeAutoSentNotice(notice);
+              }
               return coords || null;
             }
             var errType = data.error_type || '';
@@ -6929,12 +6998,14 @@
               (errType === 'no_token' || errType === 'push_unavailable') &&
               placeShared
             ) {
-              notice =
-                'Location tip sent. App notification unavailable — SMS may still reach the owner.';
-              setLostModeAutoSentNotice(notice);
+              if (!isLive) {
+                notice =
+                  'Location tip sent. App notification unavailable — SMS may still reach the owner.';
+                setLostModeAutoSentNotice(notice);
+              }
               return coords || null;
             }
-            if (!SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
+            if (!isLive && !SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
               setLostModeLocStatus(
                 'Automatic push could not be sent. You can still tip the owner below.'
               );
@@ -6942,7 +7013,7 @@
             return coords || null;
           })
           .catch(function () {
-            if (!SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
+            if (!isLive && !SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
               setLostModeLocStatus(
                 'Automatic tip could not be sent. Please tip the owner manually below.'
               );
@@ -6951,22 +7022,149 @@
           });
       }
 
-      function sendLocationTip(coords) {
-        // Location tip: push + SMS with maps (even if a tip without location already went).
+      function sendLocationTip(coords, options) {
+        var opts = options || {};
+        var isLive = !!opts.liveUpdate;
         pendingSighting = true;
-        if (smsSkip !== 'no_phone') {
+        // SMS only on the first location share — never on live updates.
+        if (!isLive && smsSkip !== 'no_phone') {
           pendingSms = true;
           smsAlready = false;
+        } else if (isLive) {
+          pendingSms = false;
         }
-        return sendSightingWithLocation(coords).then(function (c) {
-          // Server may have already SMS'd the maps link with the sighting.
-          if (pendingSms) return finishSmsIfNeeded(c);
-          return c;
+        return sendSightingWithLocation(coords, { liveUpdate: isLive }).then(
+          function (c) {
+            if (pendingSms) return finishSmsIfNeeded(c);
+            return c;
+          }
+        );
+      }
+
+      function setOpenMapsLink(coords) {
+        if (!openMapsBtn || !coords) return;
+        var url = buildGoogleMapsUrl(coords.latitude, coords.longitude);
+        openMapsBtn.href = url;
+        openMapsBtn.hidden = false;
+      }
+
+      function clearLiveShareTimers() {
+        if (liveWatchId != null && navigator.geolocation) {
+          try {
+            navigator.geolocation.clearWatch(liveWatchId);
+          } catch (e) {}
+          liveWatchId = null;
+        }
+        if (liveEndTimer) {
+          clearTimeout(liveEndTimer);
+          liveEndTimer = null;
+        }
+        if (liveTickTimer) {
+          clearInterval(liveTickTimer);
+          liveTickTimer = null;
+        }
+      }
+
+      function stopLiveLocationShare(reason) {
+        if (!liveShareActive && liveWatchId == null) return;
+        liveShareActive = false;
+        clearLiveShareTimers();
+        if (stopLiveBtn) stopLiveBtn.hidden = true;
+        if (shareBtn) {
+          shareBtn.textContent = 'Location shared';
+          setLostModeShareButtonBusy(true);
+        }
+        setLostModeLocStatus(
+          reason ||
+            'Live location sharing stopped. Owner already has your Google Maps link.'
+        );
+      }
+
+      function updateLiveShareStatus() {
+        if (!liveShareActive) return;
+        var leftMs = Math.max(0, LIVE_SHARE_MS - (Date.now() - liveStartedAt));
+        var leftMin = Math.ceil(leftMs / 60000);
+        setLostModeLocStatus(
+          'Live sharing with owner… keep this page open (~' +
+            leftMin +
+            ' min left). Tap Open in Google Maps anytime.'
+        );
+      }
+
+      function maybeSendLiveUpdate(coords) {
+        if (!liveShareActive || !coords || liveSendInFlight) return;
+        var now = Date.now();
+        var moved = metersBetweenCoords(lastLiveCoords, coords);
+        var dueByTime = now - lastLiveSentAt >= LIVE_MIN_INTERVAL_MS;
+        var dueByMove = moved >= LIVE_MIN_MOVE_M;
+        if (lastLiveSentAt && !dueByTime && !dueByMove) return;
+
+        liveSendInFlight = true;
+        sendLocationTip(coords, { liveUpdate: true })
+          .then(function () {
+            lastLiveSentAt = Date.now();
+            lastLiveCoords = coords;
+            setOpenMapsLink(coords);
+            updateLiveShareStatus();
+          })
+          .catch(function () {})
+          .then(function () {
+            liveSendInFlight = false;
+          });
+      }
+
+      function startLiveLocationShare(initialCoords) {
+        if (
+          !navigator.geolocation ||
+          typeof navigator.geolocation.watchPosition !== 'function'
+        ) {
+          setLostModeLocStatus(
+            'Location shared. Live updates are not supported in this browser — owner has your Google Maps link.'
+          );
+          return;
+        }
+        liveShareActive = true;
+        liveStartedAt = Date.now();
+        lastLiveSentAt = Date.now();
+        lastLiveCoords = initialCoords;
+        setOpenMapsLink(initialCoords);
+        if (stopLiveBtn) stopLiveBtn.hidden = false;
+        if (shareBtn) shareBtn.textContent = 'Sharing live…';
+        updateLiveShareStatus();
+
+        liveWatchId = navigator.geolocation.watchPosition(
+          function (pos) {
+            var coords = coordsFromGeoPosition(pos);
+            if (!coords) return;
+            maybeSendLiveUpdate(coords);
+          },
+          function () {
+            // Keep first pin; stop noisy errors.
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 20000,
+          }
+        );
+
+        liveTickTimer = setInterval(updateLiveShareStatus, 15000);
+        liveEndTimer = setTimeout(function () {
+          stopLiveLocationShare(
+            'Live sharing ended after 5 minutes. Owner can still open your last Google Maps link.'
+          );
+        }, LIVE_SHARE_MS);
+
+        window.addEventListener('pagehide', function onHide() {
+          stopLiveLocationShare(
+            'Live sharing stopped when you left the page. Owner has your Google Maps link.'
+          );
+          window.removeEventListener('pagehide', onHide);
         });
       }
 
       function onShareMyLocationClick() {
-        if (locationShareInFlight || locationShareDone) return;
+        if (locationShareInFlight || locationShareDone || liveShareActive) return;
         locationShareInFlight = true;
         setLostModeShareButtonBusy(true);
         showLostModeLocDeniedMessage(false);
@@ -6990,15 +7188,14 @@
               );
               return null;
             }
-            return sendLocationTip(coords).then(function () {
+            return sendLocationTip(coords, { liveUpdate: false }).then(function () {
               locationShareDone = true;
               placeShared = true;
-              setLostModeShareButtonBusy(true);
-              if (shareBtn) shareBtn.textContent = 'Location shared';
-              setLostModeLocStatus(
-                'Location shared for this Lost Mode report. Owner notified with a Google Maps link.'
+              setOpenMapsLink(coords);
+              setLostModeAutoSentNotice(
+                'Owner notified with your Google Maps location. Live updates continue while this page stays open.'
               );
-              showLostModeTipLine(smsAlready);
+              startLiveLocationShare(coords);
             });
           })
           .catch(function () {
@@ -7015,6 +7212,13 @@
 
       if (shareBtn) {
         shareBtn.addEventListener('click', onShareMyLocationClick);
+      }
+      if (stopLiveBtn) {
+        stopLiveBtn.addEventListener('click', function () {
+          stopLiveLocationShare(
+            'Live sharing stopped. Owner already has your Google Maps link.'
+          );
+        });
       }
 
       // Page load: tip without location. Never request geolocation automatically.

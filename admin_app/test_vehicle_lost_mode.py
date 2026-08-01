@@ -11,6 +11,7 @@ from admin_app.vehicle_lost_mode import (
     BADGE_LABEL,
     BANNER_BODY,
     BANNER_TITLE,
+    SPOTTER_LIVE_LOCATION_TITLE,
     SPOTTER_LOCATION_TITLE,
     TIP_REASON,
     approximate_coordinates,
@@ -148,6 +149,21 @@ class LostModeLocationTests(SimpleTestCase):
         )
         self.assertEqual(title, SPOTTER_LOCATION_TITLE)
         self.assertIn('View on Google Maps:', body)
+        self.assertIn(
+            'https://www.google.com/maps?q=11.258753,75.780411',
+            body,
+        )
+        self.assertIn('Shared at:', body)
+
+    def test_spotter_live_location_notification_format(self):
+        title, body = build_spotter_location_notification(
+            latitude=11.258753,
+            longitude=75.780411,
+            shared_at_display='02 Aug 2026, 4:50 PM',
+            live_update=True,
+        )
+        self.assertEqual(title, SPOTTER_LIVE_LOCATION_TITLE)
+        self.assertIn('Updated at:', body)
         self.assertIn(
             'https://www.google.com/maps?q=11.258753,75.780411',
             body,

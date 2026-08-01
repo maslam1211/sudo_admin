@@ -35,6 +35,7 @@ REASONS_LEAD = 'Tip the owner — choose how you spotted this vehicle, or pick a
 
 AUTO_PUSH_TITLE = 'DANGER WARNING'
 SPOTTER_LOCATION_TITLE = '📍 Spotter Location Shared'
+SPOTTER_LIVE_LOCATION_TITLE = '📍 Spotter live location update'
 AUTO_PUSH_BODY = (
     'Your vehicle has been found. Please check the details immediately.'
 )
@@ -207,6 +208,7 @@ def build_spotter_location_notification(
     longitude: float,
     maps_url: str = '',
     shared_at_display: str = '',
+    live_update: bool = False,
 ) -> tuple[str, str]:
     """
     Title + body for a location-share Lost Mode tip.
@@ -224,8 +226,10 @@ def build_spotter_location_notification(
         url,
     ]
     if shared_at_display:
-        lines.extend(['', f'Shared at: {shared_at_display}'])
-    return SPOTTER_LOCATION_TITLE, '\n'.join(lines)
+        label = 'Updated at' if live_update else 'Shared at'
+        lines.extend(['', f'{label}: {shared_at_display}'])
+    title = SPOTTER_LIVE_LOCATION_TITLE if live_update else SPOTTER_LOCATION_TITLE
+    return title, '\n'.join(lines)
 
 
 def build_sighting_push_body(
@@ -450,6 +454,7 @@ def attempt_lost_mode_auto_push(
     location_payload: dict | None = None,
     photos_raw: Any = None,
     upload_photos: bool = True,
+    live_update: bool = False,
 ) -> dict:
     """
     Push the owner for a Lost Mode sighting on each QR page load (every scan).
@@ -549,8 +554,9 @@ def attempt_lost_mode_auto_push(
             longitude=float(lng),
             maps_url=maps_link,
             shared_at_display=scanned_at_display,
+            live_update=bool(live_update),
         )
-        if photo_urls:
+        if photo_urls and not live_update:
             body += (
                 f'\n\n{len(photo_urls)} photo(s) attached — '
                 'open the app notification for details.'
@@ -622,6 +628,8 @@ def attempt_lost_mode_auto_push(
         'registrationNumber': plate,
         'vehicleName': vehicle_name,
         'locationShared': 'true' if has_location else 'false',
+        'liveUpdate': 'true' if live_update else 'false',
+        'live_update': 'true' if live_update else 'false',
     }
     if has_location:
         lat_s = format_coord(float(lat))
@@ -637,6 +645,8 @@ def attempt_lost_mode_auto_push(
         fcm_data['sharedAt'] = scanned_at.isoformat()
         fcm_data['sharedAtDisplay'] = scanned_at_display
         fcm_data['spotter_location_shared'] = 'true'
+        if live_update:
+            fcm_data['spotter_live_location'] = 'true'
     if photo_urls:
         fcm_data['photoUrl'] = photo_urls[0]
         # Keep payload small — full list lives on the Firestore sighting doc.
