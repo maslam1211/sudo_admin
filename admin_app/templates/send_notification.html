@@ -314,6 +314,71 @@
       font-size: 0.78rem;
     }
 
+    /* Lost Mode — Share Your Location dialog (only shown when permission is prompt) */
+    body.notify-app #lostModeLocationModal.modal-overlay {
+      z-index: 12050;
+    }
+    body.notify-app .lost-mode-loc-dialog {
+      width: min(92vw, 22.5rem);
+      padding: 1.25rem 1.15rem 1.1rem;
+      border-radius: 16px;
+      background: #12151c;
+      border: 1px solid rgba(255, 59, 48, 0.35);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+      color: #f4f4f5;
+    }
+    body.notify-app .lost-mode-loc-dialog__icon {
+      width: 2.6rem;
+      height: 2.6rem;
+      margin: 0 auto 0.75rem;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 59, 48, 0.16);
+      color: #ff6b63;
+      font-size: 1.25rem;
+    }
+    body.notify-app .lost-mode-loc-dialog__title {
+      margin: 0 0 0.55rem;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+    body.notify-app .lost-mode-loc-dialog__body {
+      margin: 0 0 1.1rem;
+      text-align: center;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.78);
+    }
+    body.notify-app .lost-mode-loc-dialog__actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    body.notify-app .lost-mode-loc-dialog__btn {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      min-height: 2.75rem;
+      padding: 0.7rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    body.notify-app .lost-mode-loc-dialog__btn--share {
+      color: #fff;
+      background: linear-gradient(180deg, #ff5a52 0%, #e03830 100%);
+    }
+    body.notify-app .lost-mode-loc-dialog__btn--skip {
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
     body.notify-app .vehicle-info.notify-vehicle-card.notify-vehicle-card--lost {
       border-color: rgba(255, 59, 48, 0.55);
       border-left: 4px solid var(--notify-lost-red);
@@ -4665,6 +4730,32 @@
   </div>
 
   <!-- Success Modal -->
+  <div class="modal-overlay notify-flow-modal" id="lostModeLocationModal" style="display: none;" aria-hidden="true">
+    <div
+      class="notify-flow-sheet lost-mode-loc-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lostModeLocationTitle"
+      aria-describedby="lostModeLocationBody"
+    >
+      <div class="lost-mode-loc-dialog__icon" aria-hidden="true">
+        <i class="bi bi-geo-alt-fill"></i>
+      </div>
+      <h3 class="lost-mode-loc-dialog__title" id="lostModeLocationTitle">Share Your Location</h3>
+      <p class="lost-mode-loc-dialog__body" id="lostModeLocationBody">
+        Would you like to share your current location with the vehicle owner? Your location will only be shared for this Lost Mode report to help the owner locate the vehicle. Your location will not be stored or shared for any other purpose.
+      </p>
+      <div class="lost-mode-loc-dialog__actions">
+        <button type="button" class="lost-mode-loc-dialog__btn lost-mode-loc-dialog__btn--share" id="lostModeLocShareBtn">
+          Share Location
+        </button>
+        <button type="button" class="lost-mode-loc-dialog__btn lost-mode-loc-dialog__btn--skip" id="lostModeLocSkipBtn">
+          Skip
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="successModal">
     <div class="success-modal sudo-flow-modal" role="dialog" aria-labelledby="successTitle" aria-describedby="successMessage">
       <div class="sudo-flow-modal-hero">
@@ -6460,7 +6551,8 @@
     });
 
     // -------------------------------------------------------------------------
-    // Lost Mode: server already auto-notifies on page load; show status only.
+    // Lost Mode: optional spotter location + push (POST lost_mode_sighting) + SMS.
+    // Location permission is requested ONLY on this Lost Mode page.
     // -------------------------------------------------------------------------
     function setLostModeLocStatus(text) {
       var el = document.getElementById('notifyLostModeLocStatus');
@@ -6474,11 +6566,160 @@
       if (wrap) wrap.hidden = false;
     }
 
+    function getNotifyCsrfToken() {
+      var csrfToken = typeof getCSRFToken === 'function' ? getCSRFToken() : '';
+      if (!csrfToken) {
+        var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+        csrfToken = csrfEl ? csrfEl.value : '';
+      }
+      return csrfToken || '';
+    }
+
+    function openLostModeLocationModal() {
+      var modal = document.getElementById('lostModeLocationModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('notify-modal-lock');
+    }
+
+    function closeLostModeLocationModal() {
+      var modal = document.getElementById('lostModeLocationModal');
+      if (!modal) return;
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('notify-modal-lock');
+    }
+
+    /** Query Permissions API for geolocation: 'granted' | 'denied' | 'prompt' | 'unknown'. */
+    function queryGeolocationPermissionState() {
+      return new Promise(function (resolve) {
+        try {
+          if (
+            !navigator.permissions ||
+            typeof navigator.permissions.query !== 'function'
+          ) {
+            resolve('unknown');
+            return;
+          }
+          navigator.permissions
+            .query({ name: 'geolocation' })
+            .then(function (status) {
+              resolve(status && status.state ? status.state : 'unknown');
+            })
+            .catch(function () {
+              resolve('unknown');
+            });
+        } catch (e) {
+          resolve('unknown');
+        }
+      });
+    }
+
+    function readBrowserPosition() {
+      return new Promise(function (resolve) {
+        if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
+          resolve(null);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            if (!pos || !pos.coords) {
+              resolve(null);
+              return;
+            }
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+            });
+          },
+          function () {
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 12000,
+            maximumAge: 60000,
+          }
+        );
+      });
+    }
+
+    /**
+     * Lost Mode only: resolve spotter location.
+     * - granted → read coords silently
+     * - denied → no prompt, continue without location
+     * - prompt → show Share Your Location dialog
+     */
+    function resolveLostModeSpotterLocation() {
+      return queryGeolocationPermissionState().then(function (state) {
+        if (state === 'denied') {
+          return null;
+        }
+        if (state === 'granted') {
+          setLostModeLocStatus('Sharing your location with the owner…');
+          return readBrowserPosition();
+        }
+
+        // prompt or unknown — ask only on Lost Mode page via our dialog.
+        return new Promise(function (resolve) {
+          var shareBtn = document.getElementById('lostModeLocShareBtn');
+          var skipBtn = document.getElementById('lostModeLocSkipBtn');
+          if (!shareBtn || !skipBtn) {
+            resolve(null);
+            return;
+          }
+
+          function cleanup() {
+            shareBtn.removeEventListener('click', onShare);
+            skipBtn.removeEventListener('click', onSkip);
+            closeLostModeLocationModal();
+          }
+
+          function onSkip() {
+            cleanup();
+            resolve(null);
+          }
+
+          function onShare() {
+            cleanup();
+            setLostModeLocStatus('Getting your location…');
+            // Triggers the browser geolocation permission prompt.
+            readBrowserPosition().then(resolve);
+          }
+
+          shareBtn.addEventListener('click', onShare);
+          skipBtn.addEventListener('click', onSkip);
+          openLostModeLocationModal();
+        });
+      });
+    }
+
+    function postLostModeJson(payload) {
+      var csrfToken = getNotifyCsrfToken();
+      if (!csrfToken) {
+        return Promise.reject(new Error('missing_csrf'));
+      }
+      return fetch('', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      }).then(function (response) {
+        return response.json().then(function (data) {
+          return { httpOk: response.ok, data: data || {} };
+        });
+      });
+    }
+
     function initLostModeSightingFlow() {
       if (!vehicleLostMode) return;
 
-      var sent =
-        ("{{ lost_mode_auto_push.sent|yesno:'yes,no' }}" === "yes");
       var notice =
         "{{ lost_mode_auto_push.notice|default:''|escapejs }}";
       var skipped =
@@ -6487,15 +6728,20 @@
         "{{ lost_mode_auto_push.scanned_at_display|default:''|escapejs }}";
       var smsSkip =
         "{{ lost_mode_auto_push.sms_skipped_reason|default:''|escapejs }}";
-      var pushSent =
-        ("{{ lost_mode_auto_push.fcm_message_id|default:''|escapejs }}" !== "");
+      var smsAlready =
+        ("{{ lost_mode_auto_push.sms_sent|yesno:'yes,no' }}" === "yes");
       var pendingSms =
         ("{{ lost_mode_auto_push.pending_client_sms|yesno:'yes,no' }}" === "yes");
+      var pendingSighting =
+        ("{{ lost_mode_auto_push.pending_client_sighting|yesno:'yes,no' }}" === "yes");
+      var pushSent = false;
+      var placeShared = false;
 
       function showLostModeTipLine(smsOk) {
         var line = 'Owner tipped automatically';
         if (pushSent) line += ' · notification';
-        if (smsOk) line += ' · SMS';
+        if (placeShared) line += ' · location';
+        if (smsOk || smsAlready) line += ' · SMS';
         else if (smsSkip === 'no_phone') line += ' · SMS skipped (no phone)';
         else if (!pendingSms && smsSkip) line += ' · SMS failed';
         if (scannedAt) line += ' · ' + scannedAt;
@@ -6504,116 +6750,168 @@
         );
       }
 
-      if (pushSent || sent) {
-        setLostModeAutoSentNotice(
-          notice ||
-            'Owner notified automatically — thank you for helping.'
-        );
-        showLostModeTipLine(false);
-      } else if (skipped === 'push_unavailable' || skipped === 'no_token') {
+      function finishSmsIfNeeded() {
+        if (!pendingSms) {
+          if (smsAlready || pushSent) {
+            setLostModeAutoSentNotice(
+              notice ||
+                (pushSent
+                  ? placeShared
+                    ? 'Owner notified with your approximate location — thank you for helping.'
+                    : 'Owner notified automatically — thank you for helping.'
+                  : notice) ||
+                'Owner notified automatically — thank you for helping.'
+            );
+            showLostModeTipLine(smsAlready);
+          } else if (smsSkip === 'no_phone' && !SUDO_NOTIFY_TERMINAL_GATE) {
+            setLostModeLocStatus(
+              (pushSent ? 'Owner notified by app notification. ' : '') +
+                'SMS skipped — no owner phone on file.'
+            );
+          }
+          return Promise.resolve();
+        }
+
         if (!SUDO_NOTIFY_TERMINAL_GATE) {
-          setLostModeLocStatus(
-            pendingSms
-              ? 'Sending SMS to the owner…'
-              : 'Automatic tip could not reach the owner. Please tip them manually below.'
-          );
+          setLostModeLocStatus('Sending SMS to the owner…');
         }
-      } else if (skipped && !pendingSms && !SUDO_NOTIFY_TERMINAL_GATE) {
-        setLostModeLocStatus(
-          'Automatic tip could not be sent. Please tip the owner manually below.'
-        );
-      }
 
-      if (!pendingSms) {
-        if (smsSkip === 'no_phone' && !SUDO_NOTIFY_TERMINAL_GATE) {
-          setLostModeLocStatus(
-            (pushSent ? 'Owner notified by app notification. ' : '') +
-              'SMS skipped — no owner phone on file.'
-          );
-        }
-        return;
-      }
-
-      if (!SUDO_NOTIFY_TERMINAL_GATE) {
-        setLostModeLocStatus('Sending SMS to the owner…');
-      }
-
-      var csrfToken = typeof getCSRFToken === 'function' ? getCSRFToken() : '';
-      if (!csrfToken) {
-        var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
-        csrfToken = csrfEl ? csrfEl.value : '';
-      }
-      if (!csrfToken) {
-        if (!SUDO_NOTIFY_TERMINAL_GATE) {
-          setLostModeLocStatus(
-            'Could not send SMS automatically. Please use Send SMS below.'
-          );
-        }
-        return;
-      }
-
-      fetch('', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({
+        return postLostModeJson({
           notification_method: 'lost_mode_sms',
           contact_target: 'owner',
           reason: lostModeTipReason || 'I spotted this vehicle',
-        }),
-      })
-        .then(function (response) {
-          return response.json().then(function (data) {
-            return { httpOk: response.ok, data: data || {} };
-          });
         })
-        .then(function (res) {
-          var data = res.data || {};
-          if (data.status === 'success' && data.sms_sent) {
-            var msg = data.message || 'Owner notified by SMS.';
-            if (pushSent) {
-              msg =
-                'Owner notified by app notification and SMS.' +
-                (data.scanned_at_display
-                  ? ' Scanned at ' + data.scanned_at_display + '.'
-                  : scannedAt
-                    ? ' Scanned at ' + scannedAt + '.'
-                    : '');
+          .then(function (res) {
+            var data = res.data || {};
+            if (data.status === 'success' && data.sms_sent) {
+              smsAlready = true;
+              pendingSms = false;
+              var msg = data.message || 'Owner notified by SMS.';
+              if (pushSent) {
+                msg = placeShared
+                  ? 'Owner notified by app notification (with location) and SMS.'
+                  : 'Owner notified by app notification and SMS.';
+                if (data.scanned_at_display || scannedAt) {
+                  msg +=
+                    ' Scanned at ' +
+                    (data.scanned_at_display || scannedAt) +
+                    '.';
+                }
+              }
+              setLostModeAutoSentNotice(msg);
+              showLostModeTipLine(true);
+              return;
             }
-            setLostModeAutoSentNotice(msg);
-            showLostModeTipLine(true);
-            return;
-          }
-          var errType = data.error_type || '';
-          if (errType === 'no_phone_number') {
-            smsSkip = 'no_phone';
-          } else {
+            var errType = data.error_type || '';
+            smsSkip = errType === 'no_phone_number' ? 'no_phone' : 'sms_failed';
+            pendingSms = false;
+            if (!SUDO_NOTIFY_TERMINAL_GATE) {
+              setLostModeLocStatus(
+                (pushSent ? 'Owner notified by app notification. ' : '') +
+                  (errType === 'no_phone_number'
+                    ? 'SMS skipped — no owner phone on file.'
+                    : 'SMS could not be sent. Please use Send SMS below.')
+              );
+            }
+          })
+          .catch(function () {
+            pendingSms = false;
             smsSkip = 'sms_failed';
-          }
-          if (!SUDO_NOTIFY_TERMINAL_GATE) {
-            setLostModeLocStatus(
-              (pushSent
-                ? 'Owner notified by app notification. '
-                : '') +
-                (errType === 'no_phone_number'
-                  ? 'SMS skipped — no owner phone on file.'
-                  : 'SMS could not be sent. Please use Send SMS below.')
-            );
-          }
+            if (!SUDO_NOTIFY_TERMINAL_GATE) {
+              setLostModeLocStatus(
+                (pushSent ? 'Owner notified by app notification. ' : '') +
+                  'SMS could not be sent. Please use Send SMS below.'
+              );
+            }
+          });
+      }
+
+      function sendSightingWithLocation(coords) {
+        if (!pendingSighting) {
+          return Promise.resolve();
+        }
+        if (skipped === 'no_token') {
+          pendingSighting = false;
+          return Promise.resolve();
+        }
+
+        setLostModeLocStatus(
+          coords
+            ? 'Notifying the owner with your location…'
+            : 'Notifying the owner…'
+        );
+
+        var payload = {
+          notification_method: 'lost_mode_sighting',
+          contact_target: 'owner',
+          scanned_at: new Date().toISOString(),
+          photos: [],
+        };
+        if (coords && coords.latitude != null && coords.longitude != null) {
+          payload.latitude = coords.latitude;
+          payload.longitude = coords.longitude;
+          if (coords.accuracy != null) payload.accuracy = coords.accuracy;
+          placeShared = true;
+        }
+
+        return postLostModeJson(payload)
+          .then(function (res) {
+            var data = res.data || {};
+            pendingSighting = false;
+            if (data.status === 'success') {
+              pushSent = true;
+              if (data.scanned_at_display) scannedAt = data.scanned_at_display;
+              if (data.place_label) placeShared = true;
+              notice =
+                data.message ||
+                (placeShared
+                  ? 'Owner notified with your approximate location — thank you for helping.'
+                  : 'Owner notified automatically — thank you for helping.');
+              setLostModeAutoSentNotice(notice);
+              return;
+            }
+            if (!SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
+              setLostModeLocStatus(
+                'Automatic push could not be sent. You can still tip the owner below.'
+              );
+            }
+          })
+          .catch(function () {
+            pendingSighting = false;
+            if (!SUDO_NOTIFY_TERMINAL_GATE && !smsAlready) {
+              setLostModeLocStatus(
+                'Automatic tip could not be sent. Please tip the owner manually below.'
+              );
+            }
+          });
+      }
+
+      if (smsAlready && !pendingSighting) {
+        setLostModeAutoSentNotice(
+          notice || 'Owner notified by SMS — thank you for helping.'
+        );
+        showLostModeTipLine(true);
+      } else if (!SUDO_NOTIFY_TERMINAL_GATE) {
+        setLostModeLocStatus(
+          pendingSighting
+            ? 'Checking location permission…'
+            : 'Preparing tip for the owner…'
+        );
+      }
+
+      var locationPromise = pendingSighting
+        ? resolveLostModeSpotterLocation()
+        : Promise.resolve(null);
+
+      locationPromise
+        .then(function (coords) {
+          return sendSightingWithLocation(coords);
+        })
+        .then(function () {
+          return finishSmsIfNeeded();
         })
         .catch(function () {
-          if (!SUDO_NOTIFY_TERMINAL_GATE) {
-            setLostModeLocStatus(
-              (pushSent
-                ? 'Owner notified by app notification. '
-                : '') +
-                'SMS could not be sent. Please use Send SMS below.'
-            );
-          }
+          return finishSmsIfNeeded();
         });
     }
 

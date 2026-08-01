@@ -2532,11 +2532,8 @@ def send_notification(request, qr_id):
                     _vehicle_token = vehicle_data.get('fcmToken') or ''
                     _single_token = user_data.get('fcmToken') or ''
                     _has_token = bool(_vehicle_token) or bool(_single_token)
-                    _push_capable = (
-                        bool(_has_token)
-                        and bool(_scanner_eff.get('push'))
-                        and bool(_app_prefs.get('push_allowed'))
-                    )
+                    # Lost Mode recovery: send if any FCM token (bypass quiet-hour gates).
+                    _push_capable = bool(_has_token)
                     sighting = attempt_lost_mode_auto_push(
                         request=request,
                         db=db,
@@ -3139,75 +3136,30 @@ def send_notification(request, qr_id):
                         (user_data or {}).get('contactNumber'),
                     )
 
-                # App push (independent of SMS).
-                try:
-                    push_result = attempt_lost_mode_auto_push(
-                        request=request,
-                        db=db,
-                        qr_id=qr_id,
-                        vehicle_id=str(qr_data.get('vehicleID') or ''),
-                        vehicle_data=vehicle_data,
-                        user_data=user_data,
-                        user_ref=user_ref,
-                        vehicle_ref=vehicle_ref,
-                        push_capable=bool(has_fcm_token),
-                        send_push_fn=send_push_to_tokens,
-                        location_payload={
-                            'scanned_at': scanned_at_now.isoformat(),
-                        },
-                        photos_raw=[],
-                        upload_photos=False,
-                    )
-                    push_result['sms_sent'] = lost_mode_auto_push.get('sms_sent')
-                    push_result['sms_skipped_reason'] = lost_mode_auto_push.get(
-                        'sms_skipped_reason'
-                    )
-                    push_result['pending_client_sms'] = lost_mode_auto_push.get(
-                        'pending_client_sms', True
-                    )
-                    if not push_result.get('scanned_at_display'):
-                        push_result['scanned_at_display'] = scanned_at_display
-                    if not push_result.get('tip_body'):
-                        push_result['tip_body'] = tip_body
-                    lost_mode_auto_push = push_result
-                except Exception as push_err:
-                    logger.warning(
-                        'Lost Mode auto push error qr_id=%s: %s',
-                        qr_id,
-                        push_err,
-                    )
-                    lost_mode_auto_push['skipped_reason'] = 'push_error'
+                # Defer owner push to the client so spotter location can be included.
+                # Client POSTs lost_mode_sighting after Permissions API / share dialog.
+                lost_mode_auto_push['pending_client_sighting'] = True
+                if not has_fcm_token:
+                    lost_mode_auto_push['skipped_reason'] = 'no_token'
+                    lost_mode_auto_push['pending_client_sighting'] = False
 
                 sms_ok = bool(lost_mode_auto_push.get('sms_sent'))
-                push_ok = bool(lost_mode_auto_push.get('fcm_message_id'))
-                if sms_ok and push_ok:
-                    lost_mode_auto_push['sent'] = True
-                    lost_mode_auto_push['notice'] = (
-                        'Owner notified by app notification and SMS.'
-                        f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
-                    )
-                elif sms_ok:
-                    lost_mode_auto_push['sent'] = True
-                    lost_mode_auto_push['notice'] = (
-                        'Owner notified by SMS.'
-                        f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
-                    )
-                elif push_ok:
+                if sms_ok:
                     lost_mode_auto_push['sent'] = True
                     if not lost_mode_auto_push.get('notice'):
                         lost_mode_auto_push['notice'] = (
-                            'Owner notified by app notification.'
-                            f' Scanned at {lost_mode_auto_push.get("scanned_at_display") or scanned_at_display}.'
+                            'Owner notified by SMS.'
+                            f' Scanned at {scanned_at_display}.'
                         )
 
                 logger.info(
-                    'Lost Mode auto notify qr_id=%s push=%s sms=%s pending_client_sms=%s',
+                    'Lost Mode GET notify qr_id=%s sms=%s pending_sighting=%s '
+                    'pending_sms=%s',
                     qr_id,
-                    push_ok,
                     sms_ok,
+                    bool(lost_mode_auto_push.get('pending_client_sighting')),
                     bool(lost_mode_auto_push.get('pending_client_sms')),
                 )
-                lost_mode_auto_push['pending_client_sighting'] = False
 
 
         context = {
