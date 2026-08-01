@@ -4351,7 +4351,7 @@
         <div class="notify-lost-mode-loc-share" id="notifyLostModeLocShare">
           <p class="notify-lost-mode-loc-share-title">Send Google Maps location</p>
           <p class="notify-lost-mode-loc-share-body">
-            Tap the button, allow location when asked, and stay outdoors with a clear sky if possible. The owner gets a clickable Maps pin (and short live updates while this page stays open).
+            Tap the button — your phone (iOS or Android) will show a location permission popup. Tap Allow, then wait. The owner gets a Google Maps pin (live updates while this page stays open).
           </p>
           <div class="notify-lost-mode-loc-share-actions">
             <button type="button" class="notify-lost-mode-loc-share-btn notify-lost-mode-loc-share-btn--share" id="lostModeLocShareInlineBtn">
@@ -6753,15 +6753,16 @@
     }
 
     /**
-     * Reliable mobile location read (esp. iOS Safari):
-     * 1) fresh high-accuracy GPS
-     * 2) network/cached fallback
-     * 3) one more low-accuracy retry
+     * Reliable mobile location read (iOS + Android).
+     * First getCurrentPosition() is what shows the system permission popup
+     * when the user has not granted location yet. Do not skip that call.
      * Only called after an explicit "Share My Location" tap.
      */
     function readBrowserPositionReliable() {
       var attempts = [
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+        // Fresh GPS — also triggers Allow/Don't Allow on iOS Safari & Android Chrome.
+        { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 },
+        // Network / cell fallback if GPS is slow (only after permission already decided).
         { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 },
         { enableHighAccuracy: false, timeout: 25000, maximumAge: 120000 },
       ];
@@ -6771,7 +6772,9 @@
           return Promise.resolve({ coords: null, errorCode: lastCode || 0 });
         }
         if (i === 0) {
-          setLostModeLocStatus('Getting precise GPS location…');
+          setLostModeLocStatus(
+            'Allow location on the phone popup, then wait…'
+          );
         } else if (i === 1) {
           setLostModeLocStatus('GPS slow — trying network location…');
         } else {
@@ -6779,7 +6782,7 @@
         }
         return readBrowserPositionOnce(attempts[i]).then(function (res) {
           if (res && res.coords) return res;
-          // Permission denied — do not keep prompting.
+          // User denied the system popup — stop (do not re-prompt in a loop).
           if (res && res.errorCode === 1) return res;
           return run(i + 1, (res && res.errorCode) || lastCode || 0);
         });
@@ -6789,34 +6792,31 @@
 
     /**
      * Manual Lost Mode location share.
-     * Never calls geolocation on page load — only after Share My Location click.
+     * Never requests permission on page load.
+     * On tap: always call Geolocation API so iOS/Android show the permission popup
+     * when permission is not granted yet. Permissions API is not used to block
+     * (unreliable on Safari / some Android WebViews).
      * Returns { denied, coords, errorCode }.
      */
     function requestLostModeLocationAfterUserTap() {
-      return queryGeolocationPermissionState().then(function (state) {
-        if (state === 'denied') {
+      showLostModeLocDeniedMessage(false);
+      setLostModeLocStatus(
+        'Allow location when your phone asks (iOS / Android)…'
+      );
+
+      // Always invoke getCurrentPosition on user gesture — required for the
+      // system permission sheet when permission is still "not determined".
+      return readBrowserPositionReliable().then(function (res) {
+        var coords = res && res.coords ? res.coords : null;
+        var code = res && res.errorCode ? res.errorCode : 0;
+        if (!coords && code === 1) {
           showLostModeLocDeniedMessage(true);
           setLostModeLocStatus(
-            'Location is blocked for this site. Enable it in browser settings, then tap Share My Location again.'
+            'Location permission was denied. Enable it in browser settings, then tap Try again.'
           );
           return { denied: true, coords: null, errorCode: 1 };
         }
-        showLostModeLocDeniedMessage(false);
-        if (state === 'granted') {
-          setLostModeLocStatus('Getting your current location…');
-        } else {
-          // prompt | unknown (common on iOS) — browser may show its dialog only now.
-          setLostModeLocStatus('Allow location when asked, then wait a moment…');
-        }
-        return readBrowserPositionReliable().then(function (res) {
-          var coords = res && res.coords ? res.coords : null;
-          var code = res && res.errorCode ? res.errorCode : 0;
-          if (!coords && code === 1) {
-            showLostModeLocDeniedMessage(true);
-            return { denied: true, coords: null, errorCode: 1 };
-          }
-          return { denied: false, coords: coords, errorCode: code };
-        });
+        return { denied: false, coords: coords, errorCode: code };
       });
     }
 
