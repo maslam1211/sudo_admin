@@ -243,7 +243,7 @@
             </div>
 
             <div class="find-vehicle-panel is-active" data-panel="qr" role="tabpanel">
-              <p class="find-vehicle-help">Point at the SudoTag sticker — we open the notify screen for you.</p>
+              <p class="find-vehicle-help">Scan or upload a SudoTag QR photo — we auto-detect and open notify.</p>
               <div class="find-vehicle-primary">
                 <button type="button" class="find-vehicle-scan-btn" id="findVehicleScanBtn" data-scan-mode="qr">
                   <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
@@ -269,7 +269,7 @@
             </div>
 
             <div class="find-vehicle-panel" data-panel="plate" role="tabpanel" hidden>
-              <p class="find-vehicle-help">Scan the number plate or type the registration to find the vehicle.</p>
+              <p class="find-vehicle-help">Scan or upload the number plate — we auto-read the registration.</p>
               <div class="find-vehicle-primary">
                 <button type="button" class="find-vehicle-scan-btn" id="findVehiclePlateScanBtn" data-scan-mode="plate">
                   <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
@@ -295,11 +295,11 @@
               </div>
             </div>
 
-            <div class="find-vehicle-preview" id="findVehiclePreviewWrap" hidden>
+              <div class="find-vehicle-preview is-qr" id="findVehiclePreviewWrap" hidden>
               <div class="find-vehicle-preview__frame" data-mode-label="QR">
                 <video id="findVehicleVideo" class="find-vehicle-video" playsinline muted hidden></video>
                 <img id="findVehicleSnap" class="find-vehicle-snap" alt="Captured preview" hidden>
-                <div class="find-vehicle-preview__guide" id="findVehicleGuide" aria-hidden="true"></div>
+                <div class="find-vehicle-preview__guide is-qr" id="findVehicleGuide" aria-hidden="true"></div>
                 <canvas id="findVehicleCanvas" hidden></canvas>
               </div>
               <div class="find-vehicle-preview__bar">

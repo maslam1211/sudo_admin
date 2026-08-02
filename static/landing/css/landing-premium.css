@@ -3549,13 +3549,41 @@ a.hiw-step-card:focus {
   border: 1px solid rgba(28, 22, 18, 0.1);
   background: #151515;
 }
-.find-vehicle-preview__frame { position: relative; }
+.find-vehicle-preview__frame {
+  position: relative;
+  overflow: hidden;
+  background: #0d0d0d;
+}
+/* QR: square camera viewfinder */
+.find-vehicle-preview.is-qr .find-vehicle-preview__frame {
+  width: min(100%, 360px);
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+}
+.find-vehicle-preview.is-qr {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+.find-vehicle-preview.is-qr .find-vehicle-preview__bar {
+  width: min(100%, 360px);
+  margin: 0 auto;
+  border-radius: 0 0 16px 16px;
+  margin-top: -1px;
+}
+/* Plate: wider frame */
+.find-vehicle-preview.is-plate .find-vehicle-preview__frame {
+  aspect-ratio: 16 / 10;
+  max-height: 280px;
+}
 .find-vehicle-preview__frame::before {
   content: attr(data-mode-label);
   position: absolute;
   top: 10px;
   left: 10px;
-  z-index: 2;
+  z-index: 3;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -3567,24 +3595,62 @@ a.hiw-step-card:focus {
 .find-vehicle-preview__guide {
   pointer-events: none;
   position: absolute;
-  inset: 18% 14%;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
-  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.25);
-  z-index: 1;
+  z-index: 2;
+  box-sizing: border-box;
+}
+/* Square QR reticle with corner brackets */
+.find-vehicle-preview__guide.is-qr {
+  inset: 14%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.45);
+  background:
+    linear-gradient(#E58147, #E58147) top left / 28px 3px no-repeat,
+    linear-gradient(#E58147, #E58147) top left / 3px 28px no-repeat,
+    linear-gradient(#E58147, #E58147) top right / 28px 3px no-repeat,
+    linear-gradient(#E58147, #E58147) top right / 3px 28px no-repeat,
+    linear-gradient(#E58147, #E58147) bottom left / 28px 3px no-repeat,
+    linear-gradient(#E58147, #E58147) bottom left / 3px 28px no-repeat,
+    linear-gradient(#E58147, #E58147) bottom right / 28px 3px no-repeat,
+    linear-gradient(#E58147, #E58147) bottom right / 3px 28px no-repeat;
+}
+.find-vehicle-preview__guide.is-qr::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  top: 0;
+  background: linear-gradient(90deg, transparent, #E58147, transparent);
+  box-shadow: 0 0 12px rgba(229, 129, 71, 0.7);
+  animation: fv-qr-line 2s ease-in-out infinite;
 }
 .find-vehicle-preview__guide.is-plate {
-  inset: 34% 10%;
+  inset: 32% 8%;
+  border: 2px dashed rgba(255, 255, 255, 0.55);
   border-radius: 8px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.28);
 }
 .find-vehicle-video,
 .find-vehicle-snap {
   width: 100%;
-  max-height: 280px;
+  height: 100%;
   object-fit: cover;
   display: block;
   background: #151515;
   margin: 0;
+}
+.find-vehicle-preview.is-qr .find-vehicle-video,
+.find-vehicle-preview.is-qr .find-vehicle-snap {
+  position: absolute;
+  inset: 0;
+  max-height: none;
+}
+.find-vehicle-preview.is-plate .find-vehicle-video,
+.find-vehicle-preview.is-plate .find-vehicle-snap {
+  position: absolute;
+  inset: 0;
+  max-height: none;
 }
 .find-vehicle-preview__bar {
   display: flex;
@@ -3600,6 +3666,10 @@ a.hiw-step-card:focus {
   background: transparent;
   color: #fff;
   border-color: rgba(255, 255, 255, 0.25);
+}
+@keyframes fv-qr-line {
+  0%, 100% { top: 8%; opacity: 0.4; }
+  50% { top: 88%; opacity: 1; }
 }
 
 .find-vehicle-sheet {
@@ -3716,7 +3786,8 @@ body.find-vehicle-sheet-open {
   .find-vehicle-visual__ring,
   .find-vehicle-visual__core,
   .find-vehicle-visual__scanline,
-  .find-vehicle-scan-btn__pulse {
+  .find-vehicle-scan-btn__pulse,
+  .find-vehicle-preview__guide.is-qr::after {
     animation: none;
   }
 }
