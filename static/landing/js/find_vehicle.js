@@ -33,15 +33,17 @@
   var mediaStream = null;
   var scanTimer = null;
   var busy = false;
+  var detecting = false;
   var activeMode = 'qr'; // 'qr' | 'plate'
   var pendingSheetMode = 'qr';
+  var jsQrLoader = null;
 
   var CAMERA_OPTS = {
     audio: false,
     video: {
       facingMode: { ideal: 'environment' },
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
     },
   };
 
@@ -65,6 +67,7 @@
       clearInterval(scanTimer);
       scanTimer = null;
     }
+    detecting = false;
     if (mediaStream) {
       mediaStream.getTracks().forEach(function (t) {
         try {
@@ -74,6 +77,9 @@
       mediaStream = null;
     }
     if (video) {
+      try {
+        video.pause();
+      } catch (e) {}
       video.srcObject = null;
       video.hidden = true;
     }
@@ -136,14 +142,45 @@
       });
   }
 
-  function detectBarcodeFromImageBitmap(bitmap) {
-    if (!('BarcodeDetector' in window)) {
-      return Promise.reject(new Error('unsupported'));
+  function ensureJsQR() {
+    if (typeof window.jsQR === 'function') {
+      return Promise.resolve(window.jsQR);
     }
-    var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-    return detector.detect(bitmap).then(function (codes) {
-      if (!codes || !codes.length) return null;
-      return codes[0].rawValue || null;
+    if (jsQrLoader) return jsQrLoader;
+    jsQrLoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      s.async = true;
+      s.onload = function () {
+        if (typeof window.jsQR === 'function') resolve(window.jsQR);
+        else reject(new Error('jsQR missing'));
+      };
+      s.onerror = function () {
+        jsQrLoader = null;
+        reject(new Error('jsQR load failed'));
+      };
+      document.head.appendChild(s);
+    });
+    return jsQrLoader;
+  }
+
+  function detectQrFromCanvas() {
+    if (!canvas) return Promise.resolve(null);
+    if ('BarcodeDetector' in window) {
+      var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+      return detector.detect(canvas).then(function (codes) {
+        if (!codes || !codes.length) return null;
+        return codes[0].rawValue || null;
+      });
+    }
+    return ensureJsQR().then(function (jsQR) {
+      var ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return null;
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      });
+      return code && code.data ? code.data : null;
     });
   }
 
@@ -160,11 +197,19 @@
           ? 'Scan number plate'
           : 'Scan SudoTag QR';
     }
-    if (sheet) sheet.hidden = false;
+    if (sheet) {
+      sheet.hidden = false;
+      sheet.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('find-vehicle-sheet-open');
+    }
   }
 
   function closeSheet() {
-    if (sheet) sheet.hidden = true;
+    if (sheet) {
+      sheet.hidden = true;
+      sheet.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('find-vehicle-sheet-open');
   }
 
   function setPreviewMode(mode) {
@@ -186,6 +231,13 @@
     setPreviewMode(activeMode);
     clearSnap();
 
+    if (!window.isSecureContext) {
+      setStatus(
+        'Camera needs HTTPS (or localhost). Use Gallery or paste the details.',
+        'error'
+      );
+      return;
+    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setStatus(
         'Camera not available. Use Gallery or type the details.',
@@ -193,21 +245,19 @@
       );
       return;
     }
+
+    // Warm up jsQR on Safari / browsers without BarcodeDetector
     if (activeMode === 'qr' && !('BarcodeDetector' in window)) {
-      setStatus(
-        'Live QR scan needs Chrome/Edge. Use Gallery or paste the QR link.',
-        'error'
-      );
-      return;
+      ensureJsQR().catch(function () {});
     }
 
     stopCamera();
-    setStatus('Starting rear camera… Allow access if asked.');
+    setStatus('Starting camera… Allow access if asked.');
+    if (previewWrap) previewWrap.hidden = false;
 
     navigator.mediaDevices
       .getUserMedia(CAMERA_OPTS)
       .catch(function () {
-        // Fallback if ideal constraints fail
         return navigator.mediaDevices.getUserMedia({
           audio: false,
           video: { facingMode: 'environment' },
@@ -221,61 +271,85 @@
       })
       .then(function (stream) {
         mediaStream = stream;
-        if (!video) return;
-        if (previewWrap) previewWrap.hidden = false;
+        if (!video) throw new Error('no-video');
         video.hidden = false;
         video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
         video.setAttribute('autoplay', 'true');
         video.muted = true;
+        video.playsInline = true;
         video.srcObject = stream;
-        return video.play();
+        var playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          return playPromise.catch(function () {
+            // Autoplay quirks: stream is still attached; UI can continue.
+          });
+        }
       })
       .then(function () {
         if (stopBtn) stopBtn.hidden = false;
+        // Plate always needs Capture; QR Capture is a manual fallback
         if (captureBtn) {
-          captureBtn.hidden = activeMode !== 'plate';
+          captureBtn.hidden = false;
+          captureBtn.textContent =
+            activeMode === 'plate' ? 'Capture' : 'Capture QR';
         }
         if (activeMode === 'qr') {
           setStatus('Point at the SudoTag QR…');
-          scanTimer = setInterval(tickQrDetect, 650);
+          scanTimer = setInterval(tickQrDetect, 500);
         } else {
           setStatus('Align the number plate in the frame, then tap Capture.');
+        }
+        // Scroll preview into view on small screens
+        if (previewWrap && previewWrap.scrollIntoView) {
+          try {
+            previewWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } catch (e) {}
         }
       })
       .catch(function (err) {
         var denied =
           err &&
           (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+        var secure =
+          err && (err.name === 'SecurityError' || err.name === 'NotSupportedError');
         setStatus(
           denied
             ? 'Camera permission denied. Enable it for this site, or use Gallery.'
-            : 'Could not open camera. Try Gallery instead.',
+            : secure
+              ? 'Camera blocked in this browser. Use Gallery or paste the details.'
+              : 'Could not open camera. Try Gallery instead.',
           'error'
         );
+        if (previewWrap && (!snapImg || snapImg.hidden)) {
+          previewWrap.hidden = true;
+        }
       });
   }
 
   function tickQrDetect() {
-    if (!video || video.readyState < 2 || !canvas) return;
+    if (detecting || busy || !video || !canvas) return;
+    if (video.readyState < 2) return;
     var w = video.videoWidth;
     var h = video.videoHeight;
     if (!w || !h) return;
+    detecting = true;
     canvas.width = w;
     canvas.height = h;
-    var ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      detecting = false;
+      return;
+    }
     ctx.drawImage(video, 0, 0, w, h);
-    createImageBitmap(canvas)
-      .then(function (bmp) {
-        return detectBarcodeFromImageBitmap(bmp).then(function (raw) {
-          bmp.close && bmp.close();
-          return raw;
-        });
-      })
+    detectQrFromCanvas()
       .then(function (raw) {
+        detecting = false;
         if (raw) handleQrRaw(raw);
       })
-      .catch(function () {});
+      .catch(function () {
+        detecting = false;
+      });
   }
 
   function capturePlateFrame() {
@@ -287,9 +361,38 @@
     var h = video.videoHeight;
     canvas.width = w;
     canvas.height = h;
-    var ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, w, h);
+
+    if (activeMode === 'qr') {
+      setStatus('Reading QR from capture…');
+      detectQrFromCanvas()
+        .then(function (raw) {
+          if (raw) {
+            handleQrRaw(raw);
+            return;
+          }
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          if (snapImg) {
+            snapImg.src = dataUrl;
+            snapImg.hidden = false;
+          }
+          if (previewWrap) previewWrap.hidden = false;
+          stopCamera();
+          if (previewWrap) previewWrap.hidden = false;
+          if (snapImg) snapImg.hidden = false;
+          setStatus(
+            'No QR found. Try again, use Gallery, or paste the QR link.',
+            'error'
+          );
+        })
+        .catch(function () {
+          setStatus('Could not read QR. Paste the link or try Gallery.', 'error');
+        });
+      return;
+    }
+
     var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     if (snapImg) {
       snapImg.src = dataUrl;
@@ -300,7 +403,7 @@
     if (previewWrap) previewWrap.hidden = false;
     if (snapImg) snapImg.hidden = false;
     setStatus(
-      'Photo captured. Type the plate you see, then tap Find vehicle.',
+      'Photo captured. Type the plate you see, then tap Find.',
       'ok'
     );
     if (plateInput) {
@@ -310,18 +413,54 @@
 
   function readQrFromFile(file) {
     if (!file) return;
-    if (!('BarcodeDetector' in window) || typeof createImageBitmap !== 'function') {
-      setStatus(
-        'QR image scan is not supported here. Paste the QR link instead.',
-        'error'
-      );
-      return;
-    }
     setStatus('Reading QR image…');
-    createImageBitmap(file)
+    var runDetect = function (source) {
+      if ('BarcodeDetector' in window) {
+        var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        return detector.detect(source).then(function (codes) {
+          if (!codes || !codes.length) return null;
+          return codes[0].rawValue || null;
+        });
+      }
+      return ensureJsQR().then(function (jsQR) {
+        var c = document.createElement('canvas');
+        var w = source.width || source.videoWidth || 0;
+        var h = source.height || source.videoHeight || 0;
+        if (!w || !h) return null;
+        c.width = w;
+        c.height = h;
+        var ctx = c.getContext('2d');
+        if (!ctx) return null;
+        ctx.drawImage(source, 0, 0, w, h);
+        var imageData = ctx.getImageData(0, 0, w, h);
+        var code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        return code && code.data ? code.data : null;
+      });
+    };
+
+    var bitmapPromise =
+      typeof createImageBitmap === 'function'
+        ? createImageBitmap(file)
+        : new Promise(function (resolve, reject) {
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () {
+              URL.revokeObjectURL(url);
+              resolve(img);
+            };
+            img.onerror = function () {
+              URL.revokeObjectURL(url);
+              reject(new Error('image'));
+            };
+            img.src = url;
+          });
+
+    bitmapPromise
       .then(function (bmp) {
-        return detectBarcodeFromImageBitmap(bmp).then(function (raw) {
-          bmp.close && bmp.close();
+        return runDetect(bmp).then(function (raw) {
+          if (bmp.close) bmp.close();
           return raw;
         });
       })
@@ -350,7 +489,7 @@
     }
     if (previewWrap) previewWrap.hidden = false;
     setStatus(
-      'Photo loaded. Type the plate from the photo, then tap Find vehicle.',
+      'Photo loaded. Type the plate from the photo, then tap Find.',
       'ok'
     );
     if (plateInput) plateInput.focus();
@@ -450,6 +589,7 @@
   if (sheetCamera) {
     sheetCamera.addEventListener('click', function () {
       closeSheet();
+      // Keep getUserMedia in the same user-gesture turn
       startCamera(pendingSheetMode);
     });
   }
@@ -482,4 +622,7 @@
   }
 
   window.addEventListener('pagehide', stopCamera);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sheet && !sheet.hidden) closeSheet();
+  });
 })();

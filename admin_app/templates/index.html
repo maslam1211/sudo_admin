@@ -313,23 +313,25 @@
         </div>
       </div>
 
-      <div class="find-vehicle-sheet" id="findVehicleCameraSheet" hidden>
-        <div class="find-vehicle-sheet__backdrop" data-sheet-close></div>
-        <div class="find-vehicle-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="findVehicleSheetTitle">
-          <div class="find-vehicle-sheet__handle" aria-hidden="true"></div>
-          <p class="find-vehicle-sheet__title" id="findVehicleSheetTitle">Choose how to scan</p>
-          <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetCamera">
-            <i class="bi bi-camera-fill" aria-hidden="true"></i>
-            <span><strong>Camera</strong><small>Use rear camera</small></span>
-          </button>
-          <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetGallery">
-            <i class="bi bi-images" aria-hidden="true"></i>
-            <span><strong>Gallery</strong><small>Pick a photo</small></span>
-          </button>
-          <button type="button" class="find-vehicle-sheet__cancel" data-sheet-close>Cancel</button>
-        </div>
-      </div>
     </section>
+
+    <!-- Outside section so overflow/transform never clips the camera sheet -->
+    <div class="find-vehicle-sheet" id="findVehicleCameraSheet" hidden>
+      <div class="find-vehicle-sheet__backdrop" data-sheet-close></div>
+      <div class="find-vehicle-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="findVehicleSheetTitle">
+        <div class="find-vehicle-sheet__handle" aria-hidden="true"></div>
+        <p class="find-vehicle-sheet__title" id="findVehicleSheetTitle">Choose how to scan</p>
+        <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetCamera">
+          <i class="bi bi-camera-fill" aria-hidden="true"></i>
+          <span><strong>Camera</strong><small>Use rear camera</small></span>
+        </button>
+        <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetGallery">
+          <i class="bi bi-images" aria-hidden="true"></i>
+          <span><strong>Gallery</strong><small>Pick a photo</small></span>
+        </button>
+        <button type="button" class="find-vehicle-sheet__cancel" data-sheet-close>Cancel</button>
+      </div>
+    </div>
 
     <!-- Advertisement Slider -->
     <section id="promo-ad" class="landing-ad section light-background">
