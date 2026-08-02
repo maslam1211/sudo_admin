@@ -93,7 +93,7 @@
                   <span class="platform-icon platform-icon--ios"><i class="bi bi-apple"></i></span>
                 </div>
                 <div class="hero-cta-row mb-3">
-                  <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
+                  <a class="btn-getstarted" href="#find-vehicle">Scan / Find vehicle</a>
                 </div>
                 <div class="app-store-buttons justify-content-start">
                   <a class="app-store-btn app-store-btn--android" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
@@ -197,6 +197,139 @@
       </a>
 
     </section><!-- /Hero Section -->
+
+    <!-- Find vehicle: QR scan + plate lookup → notify screen -->
+    <section id="find-vehicle" class="find-vehicle section">
+      <div class="find-vehicle-bg" aria-hidden="true">
+        <span class="find-vehicle-bg__glow"></span>
+        <span class="find-vehicle-bg__grid"></span>
+      </div>
+
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Find vehicle</h2>
+        <p>Scan once. Reach the owner instantly.</p>
+      </div>
+
+      <div class="container" data-aos="fade-up" data-aos-delay="80">
+        <div class="find-vehicle-stage" id="findVehicleCard" data-mode="qr"
+             data-lookup-url="{% url 'public_lookup_vehicle' %}">
+
+          <aside class="find-vehicle-visual" aria-hidden="true">
+            <div class="find-vehicle-visual__ring">
+              <div class="find-vehicle-visual__core">
+                <i class="bi bi-qr-code-scan find-vehicle-visual__icon find-vehicle-visual__icon--qr"></i>
+                <i class="bi bi-card-heading find-vehicle-visual__icon find-vehicle-visual__icon--plate"></i>
+                <span class="find-vehicle-visual__scanline"></span>
+              </div>
+            </div>
+            <ul class="find-vehicle-visual__points">
+              <li><i class="bi bi-shield-check"></i> Private notify</li>
+              <li><i class="bi bi-lightning-charge"></i> Instant lookup</li>
+              <li><i class="bi bi-telephone"></i> Masked call ready</li>
+            </ul>
+          </aside>
+
+          <div class="find-vehicle-console">
+            <div class="find-vehicle-seg" role="tablist" aria-label="Find method">
+              <span class="find-vehicle-seg__pill" aria-hidden="true"></span>
+              <button type="button" class="find-vehicle-tab is-active" data-tab="qr" role="tab" aria-selected="true">
+                <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
+                <span>Scan QR</span>
+              </button>
+              <button type="button" class="find-vehicle-tab" data-tab="plate" role="tab" aria-selected="false">
+                <i class="bi bi-card-text" aria-hidden="true"></i>
+                <span>Plate number</span>
+              </button>
+            </div>
+
+            <div class="find-vehicle-panel is-active" data-panel="qr" role="tabpanel">
+              <p class="find-vehicle-help">Point at the SudoTag sticker — we open the notify screen for you.</p>
+              <div class="find-vehicle-primary">
+                <button type="button" class="find-vehicle-scan-btn" id="findVehicleScanBtn" data-scan-mode="qr">
+                  <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
+                  <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                  <strong>Scan QR</strong>
+                  <small>Camera or gallery</small>
+                </button>
+                <label class="find-vehicle-ghost-btn find-vehicle-file-btn">
+                  <i class="bi bi-image" aria-hidden="true"></i> Gallery
+                  <input type="file" id="findVehicleQrFile" accept="image/*" hidden>
+                </label>
+              </div>
+              <div class="find-vehicle-divider"><span>or paste link / ID</span></div>
+              <div class="find-vehicle-row">
+                <div class="find-vehicle-field">
+                  <i class="bi bi-link-45deg" aria-hidden="true"></i>
+                  <input type="text" id="findVehicleQrInput" class="find-vehicle-input form-control"
+                         placeholder="Paste SudoTag QR link…"
+                         autocomplete="off" spellcheck="false">
+                </div>
+                <button type="button" class="find-vehicle-go" id="findVehicleQrGo">Go</button>
+              </div>
+            </div>
+
+            <div class="find-vehicle-panel" data-panel="plate" role="tabpanel" hidden>
+              <p class="find-vehicle-help">Scan the number plate or type the registration to find the vehicle.</p>
+              <div class="find-vehicle-primary">
+                <button type="button" class="find-vehicle-scan-btn" id="findVehiclePlateScanBtn" data-scan-mode="plate">
+                  <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
+                  <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                  <strong>Scan plate</strong>
+                  <small>Camera or gallery</small>
+                </button>
+                <label class="find-vehicle-ghost-btn find-vehicle-file-btn">
+                  <i class="bi bi-image" aria-hidden="true"></i> Gallery
+                  <input type="file" id="findVehiclePlateFile" accept="image/*" hidden>
+                </label>
+              </div>
+              <div class="find-vehicle-divider"><span>or type registration</span></div>
+              <label class="find-vehicle-plate-label" for="findVehiclePlateInput">Registration number</label>
+              <div class="find-vehicle-row">
+                <div class="find-vehicle-field">
+                  <i class="bi bi-upc" aria-hidden="true"></i>
+                  <input type="text" id="findVehiclePlateInput" class="find-vehicle-input find-vehicle-input--plate form-control"
+                         placeholder="e.g. KL10AY2121"
+                         autocomplete="off" autocapitalize="characters" spellcheck="false">
+                </div>
+                <button type="button" class="find-vehicle-go" id="findVehiclePlateGo">Find</button>
+              </div>
+            </div>
+
+            <div class="find-vehicle-preview" id="findVehiclePreviewWrap" hidden>
+              <div class="find-vehicle-preview__frame" data-mode-label="QR">
+                <video id="findVehicleVideo" class="find-vehicle-video" playsinline muted hidden></video>
+                <img id="findVehicleSnap" class="find-vehicle-snap" alt="Captured preview" hidden>
+                <div class="find-vehicle-preview__guide" id="findVehicleGuide" aria-hidden="true"></div>
+                <canvas id="findVehicleCanvas" hidden></canvas>
+              </div>
+              <div class="find-vehicle-preview__bar">
+                <button type="button" class="find-vehicle-go" id="findVehicleCaptureBtn" hidden>Capture</button>
+                <button type="button" class="find-vehicle-ghost-btn" id="findVehicleStopBtn" hidden>Stop</button>
+              </div>
+            </div>
+
+            <p class="find-vehicle-status" id="findVehicleStatus" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="find-vehicle-sheet" id="findVehicleCameraSheet" hidden>
+        <div class="find-vehicle-sheet__backdrop" data-sheet-close></div>
+        <div class="find-vehicle-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="findVehicleSheetTitle">
+          <div class="find-vehicle-sheet__handle" aria-hidden="true"></div>
+          <p class="find-vehicle-sheet__title" id="findVehicleSheetTitle">Choose how to scan</p>
+          <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetCamera">
+            <i class="bi bi-camera-fill" aria-hidden="true"></i>
+            <span><strong>Camera</strong><small>Use rear camera</small></span>
+          </button>
+          <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetGallery">
+            <i class="bi bi-images" aria-hidden="true"></i>
+            <span><strong>Gallery</strong><small>Pick a photo</small></span>
+          </button>
+          <button type="button" class="find-vehicle-sheet__cancel" data-sheet-close>Cancel</button>
+        </div>
+      </div>
+    </section>
 
     <!-- Advertisement Slider -->
     <section id="promo-ad" class="landing-ad section light-background">
@@ -547,10 +680,10 @@
           </div>
           <div class="col-lg-6" data-aos="fade-left" data-aos-delay="100">
             <div class="hiw-steps-grid">
-              <div class="hiw-step-card">
+              <a href="#find-vehicle" class="hiw-step-card">
                 <i class="bi bi-qr-code-scan"></i>
                 <strong>Scan QR</strong>
-              </div>
+              </a>
               <a href="{% url 'buy_now' %}" class="hiw-step-card">
                 <i class="bi bi-bag-check"></i>
                 <strong>Buy Now</strong>
@@ -1052,6 +1185,7 @@ if (whatsappSubscriptionForm) {
 
   <!-- Main JS File -->
   <script src="{% landing_asset 'js/main.js' %}" defer></script>
+  <script src="{% landing_asset 'js/find_vehicle.js' %}" defer></script>
 
 </body>
 

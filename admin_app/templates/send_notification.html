@@ -1721,6 +1721,25 @@
       mix-blend-mode: lighten;
     }
 
+    body.notify-app .notify-home-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.45rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    body.notify-app .notify-home-link:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
     .header-title {
       font-size: 0.9rem;
       font-weight: 500;
@@ -4336,6 +4355,7 @@
       {% include 'includes/brand_logo_img.html' %}
     </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
+    <a href="https://sudotag.com/" class="notify-home-link" id="notifyHomeLink">Home</a>
   </header>
 
   <!-- Main Content -->

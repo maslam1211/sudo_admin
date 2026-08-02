@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 DEFAULT_LANDING_BANNER_AD = {
     'link': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
@@ -30,9 +31,11 @@ def _qr_data_uri(payload: str) -> str:
         return ''
 
 
+@ensure_csrf_cookie
 def index(request):
     return render(request, 'index.html', {
         'banner_ads': _landing_banner_ads(request),
+        'public_lookup_url': reverse('public_lookup_vehicle'),
     })
 
 

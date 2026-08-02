@@ -1803,6 +1803,113 @@ def check_id_enabled(request, qr_id):
     except Exception as e:
         return render(request, 'error.html', {'error': str(e)})
 
+
+@ensure_csrf_cookie
+@require_POST
+def public_lookup_vehicle(request):
+    """
+    Public landing helper: plate number or scanned QR text → notify URL.
+    Does not expose owner phone / contact details.
+    """
+    from .public_vehicle_lookup import (
+        extract_qr_id_from_scan,
+        lookup_vehicle_by_plate,
+        notify_url_for_qr,
+        normalize_registration,
+        resolve_qr_for_notify,
+    )
+
+    try:
+        if request.content_type and 'application/json' in request.content_type:
+            payload = json.loads(request.body or b'{}')
+        else:
+            payload = request.POST
+    except (json.JSONDecodeError, TypeError):
+        payload = {}
+
+    if not isinstance(payload, dict):
+        payload = {}
+
+    mode = str(payload.get('mode') or 'plate').strip().lower()
+    try:
+        if mode in ('qr', 'scan', 'qr_scan'):
+            raw = str(payload.get('qr') or payload.get('scan') or payload.get('value') or '')
+            qr_id = extract_qr_id_from_scan(raw)
+            if not qr_id:
+                return JsonResponse(
+                    {
+                        'status': 'error',
+                        'error_type': 'invalid_qr',
+                        'message': 'Could not read a SudoTag QR from that scan. Try again.',
+                    },
+                    status=400,
+                )
+            info = resolve_qr_for_notify(db, qr_id)
+            if not info or not info.get('exists'):
+                return JsonResponse(
+                    {
+                        'status': 'error',
+                        'error_type': 'invalid_qr',
+                        'message': 'This QR code is not valid.',
+                    },
+                    status=404,
+                )
+            return JsonResponse(
+                {
+                    'status': 'success',
+                    'qr_id': qr_id,
+                    'notify_url': notify_url_for_qr(qr_id, request),
+                    'isAssigned': bool(info.get('isAssigned')),
+                }
+            )
+
+        plate = normalize_registration(
+            payload.get('plate') or payload.get('registrationNumber') or payload.get('value') or ''
+        )
+        if len(plate) < 6:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'error_type': 'plate_too_short',
+                    'message': 'Enter the full vehicle registration number (at least 6 characters).',
+                },
+                status=400,
+            )
+        hit = lookup_vehicle_by_plate(db, plate)
+        if not hit:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'error_type': 'not_found',
+                    'message': (
+                        'No activated SudoTag vehicle found for that registration. '
+                        'Check the plate and try again.'
+                    ),
+                },
+                status=404,
+            )
+        return JsonResponse(
+            {
+                'status': 'success',
+                'qr_id': hit['qr_id'],
+                'notify_url': notify_url_for_qr(hit['qr_id'], request),
+                'registrationNumber': hit.get('registrationNumber') or plate,
+                'make': hit.get('make') or '',
+                'model': hit.get('model') or '',
+                'primaryPhotoUrl': hit.get('primaryPhotoUrl') or '',
+            }
+        )
+    except Exception as exc:
+        logger.exception('public_lookup_vehicle failed: %s', exc)
+        return JsonResponse(
+            {
+                'status': 'error',
+                'error_type': 'server_error',
+                'message': 'Lookup failed. Please try again.',
+            },
+            status=500,
+        )
+
 def send_welcome_email_for_id(email, name, password):
     subject = 'Welcome to Sudo - Your Account is Ready!'
     

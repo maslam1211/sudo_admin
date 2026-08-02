@@ -48,6 +48,11 @@ urlpatterns = [
     path('logout/', views.admin_logout, name='admin_logout'),
     path('register-external-user/', views.external_user_registration, name='external_register'),
     path('send-notification/<str:qr_id>/', views.check_id_enabled, name='check_id_enabled'),
+    path(
+        'api/public-lookup-vehicle/',
+        views.public_lookup_vehicle,
+        name='public_lookup_vehicle',
+    ),
     path('activate-id/<str:qr_id>/', views.activate_id, name='activate_id'),
     path(
         'activate-id/<str:qr_id>/otp/send/',
