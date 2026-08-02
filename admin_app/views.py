@@ -2473,12 +2473,19 @@ def send_notification(request, qr_id):
 
                     _when = _dt_sms.now(_tz_sms.utc)
                     _display = _fmt_ist(_when)
-                    # Prefer client reason; append Google Maps link when coords given.
+                    _maps = str(
+                        data.get('googleMapsUrl')
+                        or data.get('google_maps_url')
+                        or ''
+                    ).strip()
+                    # Old MSG91 campaign var — include same maps URL as push when present.
                     sms_text = build_lost_mode_sms_message(
                         reason=(data.get('reason') or '').strip()
                         or 'I spotted this vehicle',
                         latitude=data.get('latitude'),
                         longitude=data.get('longitude'),
+                        maps_url=_maps,
+                        shared_at_display=_display,
                     )
                     sms_result = send_vehicle_issue_sms(
                         digits_10=str(owner_digits),
@@ -2567,19 +2574,46 @@ def send_notification(request, qr_id):
                             or data.get('placeLabel'),
                             'scanned_at': data.get('scanned_at')
                             or data.get('scannedAt'),
+                            'google_maps_url': data.get('googleMapsUrl')
+                            or data.get('google_maps_url')
+                            or data.get('mapsUrl')
+                            or data.get('maps_url'),
                         },
                         photos_raw=[] if live_update else (data.get('photos') or []),
                         upload_photos=not live_update,
                         live_update=live_update,
                     )
-                    if sighting.get('sent'):
-                        from .vehicle_lost_mode import build_lost_mode_sms_message
 
-                        sms_sent_now = False
-                        has_coords = (
-                            data.get('latitude') is not None
-                            and data.get('longitude') is not None
-                        )
+                    from .vehicle_lost_mode import build_lost_mode_sms_message
+
+                    maps_url = (
+                        sighting.get('google_maps_url')
+                        or sighting.get('maps_url')
+                        or ''
+                    )
+                    lat = (
+                        sighting.get('latitude')
+                        if sighting.get('latitude') is not None
+                        else data.get('latitude')
+                    )
+                    lng = (
+                        sighting.get('longitude')
+                        if sighting.get('longitude') is not None
+                        else data.get('longitude')
+                    )
+                    has_coords = lat is not None and lng is not None
+                    if has_coords and not maps_url:
+                        from .vehicle_lost_mode import google_maps_url as _maps_url_fn
+
+                        try:
+                            maps_url = _maps_url_fn(float(lat), float(lng))
+                        except (TypeError, ValueError):
+                            maps_url = ''
+
+                    # After location is saved + maps URL ready, SMS via old MSG91
+                    # campaign. Failures are logged only — never fail the push/sighting.
+                    sms_sent_now = False
+                    if not live_update and has_coords and maps_url:
                         owner_digits = (
                             vehicle_owner_contact_number(vehicle_data, user_data)
                             or effective_contact_number(vehicle_data, user_data)
@@ -2590,18 +2624,15 @@ def send_notification(request, qr_id):
                             )
                             or ''
                         )
-                        # SMS only on the first location share — not on live updates.
-                        if (
-                            not live_update
-                            and has_coords
-                            and owner_digits
-                            and len(str(owner_digits)) == 10
-                        ):
+                        if owner_digits and len(str(owner_digits)) == 10:
                             sms_text = build_lost_mode_sms_message(
                                 reason=(data.get('reason') or '').strip()
                                 or 'I spotted this vehicle',
-                                latitude=data.get('latitude'),
-                                longitude=data.get('longitude'),
+                                latitude=lat,
+                                longitude=lng,
+                                maps_url=maps_url,
+                                shared_at_display=sighting.get('scanned_at_display')
+                                or '',
                             )
                             try:
                                 sms_result = send_vehicle_issue_sms(
@@ -2609,6 +2640,11 @@ def send_notification(request, qr_id):
                                     message=sms_text,
                                 )
                             except Exception as sms_exc:
+                                logger.warning(
+                                    'Lost Mode location SMS exception qr_id=%s err=%s',
+                                    qr_id,
+                                    sms_exc,
+                                )
                                 sms_result = {
                                     'ok': False,
                                     'error': f'exception:{sms_exc}',
@@ -2616,15 +2652,25 @@ def send_notification(request, qr_id):
                             sms_sent_now = bool(sms_result.get('ok'))
                             if sms_sent_now:
                                 logger.info(
-                                    'Lost Mode push+SMS maps sent qr_id=%s to ***%s',
+                                    'Lost Mode location SMS+maps sent qr_id=%s to ***%s maps=%s',
                                     qr_id,
                                     str(owner_digits)[-4:],
+                                    maps_url,
                                 )
-                        maps_url = (
-                            sighting.get('google_maps_url')
-                            or sighting.get('maps_url')
-                            or ''
-                        )
+                            else:
+                                logger.warning(
+                                    'Lost Mode location SMS failed qr_id=%s err=%s api=%s',
+                                    qr_id,
+                                    sms_result.get('error'),
+                                    sms_result.get('api'),
+                                )
+                        else:
+                            logger.warning(
+                                'Lost Mode location SMS skipped — no owner phone qr_id=%s',
+                                qr_id,
+                            )
+
+                    if sighting.get('sent'):
                         msg = sighting.get('notice') or 'Owner notified.'
                         if sms_sent_now and maps_url:
                             msg = (
@@ -2658,67 +2704,14 @@ def send_notification(request, qr_id):
                                 'redirect_home': False,
                             }
                         )
+
                     # Sighting may still be stored when push is unavailable (no FCM).
-                    # SMS the Google Maps pin so the owner can open the location.
                     skip = sighting.get('skipped_reason') or 'send_failed'
                     if sighting.get('attempted') and skip in (
                         'no_token',
                         'push_unavailable',
                     ):
-                        from .vehicle_lost_mode import build_lost_mode_sms_message
-
                         place = sighting.get('place_label') or ''
-                        sms_sent_now = False
-                        owner_digits = (
-                            vehicle_owner_contact_number(vehicle_data, user_data)
-                            or effective_contact_number(vehicle_data, user_data)
-                            or normalize_phone_number(
-                                user_data.get('contactNumber')
-                                or vehicle_data.get('ownerContact')
-                                or ''
-                            )
-                            or ''
-                        )
-                        has_coords = (
-                            data.get('latitude') is not None
-                            and data.get('longitude') is not None
-                        )
-                        if (
-                            not live_update
-                            and has_coords
-                            and owner_digits
-                            and len(str(owner_digits)) == 10
-                        ):
-                            sms_text = build_lost_mode_sms_message(
-                                reason=(data.get('reason') or '').strip()
-                                or 'I spotted this vehicle',
-                                latitude=data.get('latitude'),
-                                longitude=data.get('longitude'),
-                            )
-                            try:
-                                sms_result = send_vehicle_issue_sms(
-                                    digits_10=str(owner_digits),
-                                    message=sms_text,
-                                )
-                            except Exception as sms_exc:
-                                sms_result = {
-                                    'ok': False,
-                                    'error': f'exception:{sms_exc}',
-                                }
-                            sms_sent_now = bool(sms_result.get('ok'))
-                            if sms_sent_now:
-                                logger.info(
-                                    'Lost Mode no-FCM SMS+maps sent qr_id=%s to ***%s',
-                                    qr_id,
-                                    str(owner_digits)[-4:],
-                                )
-                            else:
-                                logger.warning(
-                                    'Lost Mode no-FCM SMS+maps failed qr_id=%s err=%s',
-                                    qr_id,
-                                    sms_result.get('error'),
-                                )
-
                         if sms_sent_now and place:
                             msg = (
                                 f'Owner notified by SMS with map link near {place}.'
@@ -2735,11 +2728,6 @@ def send_notification(request, qr_id):
                                 'Sighting recorded. App notification unavailable — '
                                 'the owner may still get SMS.'
                             )
-                        maps_url = (
-                            sighting.get('google_maps_url')
-                            or sighting.get('maps_url')
-                            or ''
-                        )
                         return JsonResponse(
                             {
                                 'status': 'success',
@@ -2771,6 +2759,9 @@ def send_notification(request, qr_id):
                                 'Could not notify the owner automatically. '
                                 'You can still tip them manually below.'
                             ),
+                            'sms_sent': sms_sent_now,
+                            'maps_url': maps_url,
+                            'googleMapsUrl': maps_url,
                         },
                         status=400,
                     )

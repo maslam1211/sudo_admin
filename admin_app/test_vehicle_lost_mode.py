@@ -173,26 +173,41 @@ class LostModeLocationTests(SimpleTestCase):
         )
 
     def test_lost_mode_sms_includes_google_maps_link(self):
+        maps = 'https://www.google.com/maps?q=11.258753,75.780411'
         msg = build_lost_mode_sms_message(
             reason='I spotted this vehicle',
             latitude=11.258753,
             longitude=75.780411,
+            maps_url=maps,
+            shared_at_display='02 Aug 2026, 04:45 PM IST',
         )
-        self.assertIn('I spotted this vehicle', msg)
         self.assertIn(
-            'https://www.google.com/maps?q=11.258753,75.780411',
+            'A person has shared their location while reporting your vehicle',
             msg,
         )
+        self.assertIn('View Location:', msg)
+        self.assertIn(maps, msg)
+        self.assertIn('Shared at', msg)
         self.assertLessEqual(len(msg), 200)
         self.assertEqual(
             google_maps_url(11.258753, 75.780411),
-            'https://www.google.com/maps?q=11.258753,75.780411',
+            maps,
         )
 
     def test_lost_mode_sms_without_coords_is_plain_tip(self):
         msg = build_lost_mode_sms_message(reason='I spotted this vehicle')
         self.assertEqual(msg, 'I spotted this vehicle')
         self.assertNotIn('google.com/maps', msg)
+
+    def test_lost_mode_sms_uses_same_maps_url_as_push(self):
+        maps = 'https://www.google.com/maps?q=11.258753,75.780411'
+        msg = build_lost_mode_sms_message(
+            latitude=11.258753,
+            longitude=75.780411,
+            maps_url=maps,
+        )
+        self.assertIn(maps, msg)
+        self.assertLessEqual(len(msg), 200)
 
     def test_parse_sighting_sets_google_maps_url(self):
         loc = parse_sighting_location(

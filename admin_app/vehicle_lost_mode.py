@@ -180,26 +180,44 @@ def build_lost_mode_sms_message(
     reason: str = '',
     latitude: Any = None,
     longitude: Any = None,
+    maps_url: str = '',
+    shared_at_display: str = '',
     max_len: int = 200,
 ) -> str:
     """
-    MSG91 campaign ``var`` text (max ~200 chars).
+    MSG91 ``sudotag-vehicle-issue-test`` campaign ``var`` text (max ~200 chars).
 
-    When coords are present, append a Google Maps link so owners without
-    FCM can open the spotter location from SMS alone.
+    When coords / maps URL are present, use a location-share message so the
+    owner gets the same Google Maps pin as the Lost Mode push notification.
     """
-    base = (reason or '').strip() or TIP_REASON
     coords = maps_coordinates(latitude, longitude)
-    if not coords:
-        return base[:max_len]
-    url = google_maps_url(coords[0], coords[1])
-    combined = f'{base} {url}'
-    if len(combined) <= max_len:
-        return combined
-    room = max_len - len(url) - 1
-    if room < 8:
+    url = (maps_url or '').strip()
+    if coords and not url:
+        url = google_maps_url(coords[0], coords[1])
+    if url:
+        # Keep under MSG91 campaign variable limit; template wraps branding.
+        body = (
+            'A person has shared their location while reporting your vehicle. '
+            f'View Location: {url}'
+        )
+        when = (shared_at_display or '').strip()
+        if when:
+            # Prefer a short clock if the full IST label is too long.
+            short_when = when.replace(' IST', '').strip()
+            candidate = f'{body} Shared at {short_when}.'
+            if len(candidate) <= max_len:
+                body = candidate
+        if len(body) <= max_len:
+            return body
+        # Always keep the maps URL; trim the lead-in if needed.
+        prefix = 'Location shared. View: '
+        room = max_len - len(url)
+        if room >= len(prefix):
+            return f'{prefix}{url}'[:max_len]
         return url[:max_len]
-    return f'{base[:room].rstrip()} {url}'
+
+    base = (reason or '').strip() or TIP_REASON
+    return base[:max_len]
 
 
 def build_spotter_location_notification(
@@ -316,7 +334,16 @@ def parse_sighting_location(payload: dict | None) -> dict:
     label = format_place_label(lat, lng, data.get('place_label') or data.get('placeLabel'))
     maps_url = ''
     if lat is not None and lng is not None:
-        maps_url = google_maps_url(lat, lng)
+        client_maps = (
+            str(
+                data.get('google_maps_url')
+                or data.get('googleMapsUrl')
+                or data.get('maps_url')
+                or data.get('mapsUrl')
+                or ''
+            ).strip()
+        )
+        maps_url = client_maps or google_maps_url(lat, lng)
     return {
         'latitude': lat,
         'longitude': lng,
