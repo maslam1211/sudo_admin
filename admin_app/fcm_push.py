@@ -121,14 +121,69 @@ def store_inbox_notification(
 def _is_lost_mode_payload(data: Optional[Dict[str, Any]]) -> bool:
     if not data:
         return False
-    type_val = str(data.get('type') or data.get('notificationType') or '').strip().lower()
+    type_val = str(
+        data.get('type') or data.get('notificationType') or ''
+    ).strip().lower()
+    # Owner toggle confirmation — not a vehicle-found / alarm push.
+    if type_val == 'lost_mode_enabled':
+        return False
+    for key in ('lostModeEnabled', 'lost_mode_enabled'):
+        raw = data.get(key)
+        if raw is True:
+            return False
+        if isinstance(raw, str) and raw.strip().lower() in (
+            '1',
+            'true',
+            'yes',
+            'on',
+        ):
+            return False
     if type_val in ('lost_mode_sighting', 'lost_mode'):
         return True
-    for key in ('lost_mode', 'lostMode', 'lostModeSighting'):
+    for key in ('lostModeSighting', 'lost_mode_sighting'):
         raw = data.get(key)
         if raw is True:
             return True
-        if isinstance(raw, str) and raw.strip().lower() in ('1', 'true', 'yes', 'on'):
+        if isinstance(raw, str) and raw.strip().lower() in (
+            '1',
+            'true',
+            'yes',
+            'on',
+        ):
+            return True
+    lost_on = False
+    for key in ('lost_mode', 'lostMode'):
+        raw = data.get(key)
+        if raw is True:
+            lost_on = True
+            break
+        if isinstance(raw, str) and raw.strip().lower() in (
+            '1',
+            'true',
+            'yes',
+            'on',
+        ):
+            lost_on = True
+            break
+    if not lost_on:
+        return False
+    for key in (
+        'scan_id',
+        'scanId',
+        'mapsUrl',
+        'maps_url',
+        'google_maps_url',
+        'placeLabel',
+        'place_label',
+        'approxLocation',
+        'approx_location',
+        'sighting_time',
+        'sightingTime',
+        'scannedAt',
+        'scanned_at',
+    ):
+        raw = data.get(key)
+        if raw is not None and str(raw).strip():
             return True
     return False
 

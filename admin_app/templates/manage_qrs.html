@@ -451,6 +451,12 @@
                             </td>
                             <td>
                                 {% if qr.vehicle %}
+                                    {% if qr.vehicle.primaryPhotoUrl %}
+                                    <img src="{{ qr.vehicle.primaryPhotoUrl }}"
+                                         alt=""
+                                         loading="lazy"
+                                         style="width:40px;height:40px;object-fit:cover;border-radius:6px;margin-bottom:6px;display:block;">
+                                    {% endif %}
                                     <strong>{{ qr.vehicle.make }} {{ qr.vehicle.model }}</strong><br>
                                     <small>Reg: {{ qr.vehicle.registrationNumber }}</small><br>
                                     <small>Type: {{ qr.vehicle.vehicleType }}</small>

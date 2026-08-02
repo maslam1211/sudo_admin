@@ -27,6 +27,12 @@ urlpatterns = [
     path('download-qr-pdf/', views.download_qr_pdf, name='download_qr_pdf'),
     path('register-user/', views.register_user, name='register_user'),
     path('manage-users/', views.manage_users, name='manage_users'),
+    path('manage-vehicles/', views.manage_vehicles, name='manage_vehicles'),
+    path(
+        'manage-vehicles/<str:vehicle_id>/',
+        views.manage_vehicle_detail,
+        name='manage_vehicle_detail',
+    ),
     path('manage-live-status/', views.manage_live_status, name='manage_live_status'),
     path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
     # Referral management (read / analytics / export — writes via Cloud Functions)

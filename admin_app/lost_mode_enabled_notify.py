@@ -164,7 +164,7 @@ def notify_owner_lost_mode_enabled(
                 type_value=LOST_MODE_ENABLED_INBOX_TYPE,
                 data={
                     'vehicleId': vid,
-                    'lostMode': 'true',
+                    'lostModeEnabled': 'true',
                     'channel': 'sms',
                     'clientSmsSent': 'true',
                     'notificationType': LOST_MODE_ENABLED_INBOX_TYPE,
@@ -257,7 +257,7 @@ def notify_owner_lost_mode_enabled(
             type_value=LOST_MODE_ENABLED_INBOX_TYPE,
             data={
                 'vehicleId': vid,
-                'lostMode': 'true',
+                'lostModeEnabled': 'true',
                 'channel': 'sms',
                 'notificationType': LOST_MODE_ENABLED_INBOX_TYPE,
                 'type': LOST_MODE_ENABLED_INBOX_TYPE,

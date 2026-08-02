@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Vehicles - Admin Panel{% endblock %}
+{% block page_title %}Manage Vehicles <small class="text-muted">(Total: {{ paginator.count }})</small>{% endblock %}
+
+{% block content %}
+<style>
+    .vehicle-thumb {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 8px;
+        background: #e2e8f0;
+    }
+    .vehicle-thumb-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: #e2e8f0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+    }
+</style>
+
+{% if messages %}
+<div class="mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.class %}{{ message.class }}{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+        {% if message.text %}{{ message.text }}{% elif message.message %}{{ message.message }}{% else %}{{ message }}{% endif %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="users-table-wrapper bg-white rounded shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th width="8%">Photo</th>
+                    <th>Registration</th>
+                    <th>Make / Model</th>
+                    <th>Type</th>
+                    <th>Owner</th>
+                    <th width="10%">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle in vehicles %}
+                <tr>
+                    <td>
+                        {% if vehicle.primaryPhotoUrl %}
+                        <img class="vehicle-thumb" src="{{ vehicle.primaryPhotoUrl }}" alt="" loading="lazy">
+                        {% else %}
+                        <span class="vehicle-thumb-placeholder"><i class="fas fa-car"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-semibold">{{ vehicle.registrationNumber|default:"—" }}</td>
+                    <td>{{ vehicle.make|default:"" }} {{ vehicle.model|default:"" }}</td>
+                    <td>{{ vehicle.vehicleType|default:"—" }}</td>
+                    <td>
+                        <div>{{ vehicle.ownerFullName|default:"—" }}</div>
+                        <small class="text-muted">{{ vehicle.ownerContact|default:"" }}</small>
+                    </td>
+                    <td>
+                        <a class="btn btn-sm btn-primary" href="{% url 'manage_vehicle_detail' vehicle.id %}">
+                            Photos
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No vehicles found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if paginator.num_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination">
+        {% if vehicles.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ vehicles.previous_page_number }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ vehicles.number }} of {{ paginator.num_pages }}</span></li>
+        {% if vehicles.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ vehicles.next_page_number }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

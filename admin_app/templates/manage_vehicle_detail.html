@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Vehicle Photos - Admin Panel{% endblock %}
+{% block page_title %}Vehicle Photos{% endblock %}
+
+{% block content %}
+<style>
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 1rem;
+    }
+    .gallery-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+    }
+    .gallery-item img {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        display: block;
+        background: #f1f5f9;
+    }
+    .gallery-actions {
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+</style>
+
+{% if messages %}
+<div class="mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.class %}{{ message.class }}{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+        {% if message.text %}{{ message.text }}{% elif message.message %}{{ message.message }}{% else %}{{ message }}{% endif %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="mb-3">
+    <a href="{% url 'manage_vehicles' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Back to vehicles
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="mb-1">{{ vehicle.registrationNumber|default:"Vehicle" }}</h5>
+        <p class="text-muted mb-0">
+            {{ vehicle.make|default:"" }} {{ vehicle.model|default:"" }}
+            · {{ vehicle.vehicleType|default:"" }}
+            · Owner: {{ vehicle.ownerFullName|default:"—" }}
+        </p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <strong>Gallery</strong>
+        <span class="text-muted small ms-2">{{ vehicle.photoUrls|length }} / {{ max_photos }}</span>
+    </div>
+    <div class="card-body">
+        {% if vehicle.photoUrls %}
+        <div class="gallery-grid mb-3">
+            {% for url in vehicle.photoUrls %}
+            <div class="gallery-item">
+                <a href="{{ url }}" target="_blank" rel="noopener">
+                    <img src="{{ url }}" alt="Vehicle photo" loading="lazy">
+                </a>
+                <div class="gallery-actions">
+                    {% if forloop.first %}
+                    <span class="badge bg-warning text-dark align-self-start">Primary</span>
+                    {% else %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reorder_primary">
+                        <input type="hidden" name="photo_url" value="{{ url }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Set primary</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="replace">
+                        <input type="hidden" name="photo_url" value="{{ url }}">
+                        <input type="file" name="photo" accept="image/*" class="form-control form-control-sm mb-1" required>
+                        <button type="submit" class="btn btn-sm btn-outline-primary w-100">Replace</button>
+                    </form>
+                    <form method="post" onsubmit="return confirm('Delete this photo?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="photo_url" value="{{ url }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No photos uploaded yet. Existing app behaviour uses a type icon placeholder.</p>
+        {% endif %}
+
+        {% if vehicle.photoUrls|length < max_photos %}
+        <form method="post" enctype="multipart/form-data" class="border-top pt-3">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload">
+            <label class="form-label">Upload photos (up to {{ max_photos }} total)</label>
+            <input type="file" name="photos" accept="image/*" multiple class="form-control mb-2" required>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-upload me-1"></i> Upload
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

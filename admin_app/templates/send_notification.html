@@ -131,6 +131,43 @@
       color: var(--sudo-orange);
     }
 
+    body.notify-app .notify-vehicle-gallery {
+      position: relative;
+      margin: 0 0 14px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.35);
+      aspect-ratio: 16 / 10;
+    }
+    body.notify-app .notify-vehicle-gallery__img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    body.notify-app .notify-vehicle-gallery__dots {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 8px;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      z-index: 2;
+    }
+    body.notify-app .notify-vehicle-gallery__dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 0;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.45);
+      cursor: pointer;
+    }
+    body.notify-app .notify-vehicle-gallery__dot.is-active {
+      background: var(--sudo-orange);
+    }
+
     body.notify-app .notify-live-status {
       display: flex;
       flex-direction: column;
@@ -4491,6 +4528,31 @@
     <div id="ownerNotifySection">
     {% if scanner_has_any_channel %}
     <section class="vehicle-info notify-vehicle-card{% if vehicle_lost_mode.is_lost_mode %} notify-vehicle-card--lost{% endif %}" aria-label="Vehicle details">
+      {% if vehicle_data.hasPhotos and vehicle_data.photoUrls %}
+      <div class="notify-vehicle-gallery" aria-label="Vehicle photos">
+        {% for url in vehicle_data.photoUrls %}
+        <img
+          class="notify-vehicle-gallery__img{% if forloop.first %} is-active{% endif %}"
+          src="{{ url }}"
+          alt="Vehicle photo {{ forloop.counter }}"
+          loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+          {% if not forloop.first %}hidden{% endif %}
+        >
+        {% endfor %}
+        {% if vehicle_data.photoUrls|length > 1 %}
+        <div class="notify-vehicle-gallery__dots" role="tablist" aria-label="Photo pages">
+          {% for url in vehicle_data.photoUrls %}
+          <button
+            type="button"
+            class="notify-vehicle-gallery__dot{% if forloop.first %} is-active{% endif %}"
+            data-index="{{ forloop.counter0 }}"
+            aria-label="Show photo {{ forloop.counter }}"
+          ></button>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
       <h2 class="notify-vehicle-name">{% if vehicle_data.display_name %}{{ vehicle_data.display_name }}{% else %}{{ vehicle_data.make }} {{ vehicle_data.model }}{% endif %}</h2>
       {% if vehicle_data.yearOfManufacturing %}
       <p class="notify-vehicle-year">Year of manufacturing: {{ vehicle_data.yearOfManufacturing }}</p>
@@ -10513,6 +10575,43 @@
       }
       return cookieValue;
     }
+  </script>
+  <script>
+    (function () {
+      var gallery = document.querySelector('.notify-vehicle-gallery');
+      if (!gallery) return;
+      var imgs = Array.prototype.slice.call(gallery.querySelectorAll('.notify-vehicle-gallery__img'));
+      var dots = Array.prototype.slice.call(gallery.querySelectorAll('.notify-vehicle-gallery__dot'));
+      if (imgs.length < 2) return;
+      function show(index) {
+        imgs.forEach(function (img, i) {
+          var active = i === index;
+          img.hidden = !active;
+          img.classList.toggle('is-active', active);
+        });
+        dots.forEach(function (dot, i) {
+          dot.classList.toggle('is-active', i === index);
+        });
+      }
+      dots.forEach(function (dot) {
+        dot.addEventListener('click', function () {
+          show(parseInt(dot.getAttribute('data-index'), 10) || 0);
+        });
+      });
+      var startX = 0;
+      gallery.addEventListener('touchstart', function (e) {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        startX = e.changedTouches[0].clientX;
+      }, { passive: true });
+      gallery.addEventListener('touchend', function (e) {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        var dx = e.changedTouches[0].clientX - startX;
+        var current = imgs.findIndex(function (img) { return !img.hidden; });
+        if (current < 0) current = 0;
+        if (dx < -40) show(Math.min(imgs.length - 1, current + 1));
+        if (dx > 40) show(Math.max(0, current - 1));
+      }, { passive: true });
+    })();
   </script>
 </body>
 

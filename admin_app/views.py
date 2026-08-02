@@ -122,8 +122,10 @@ if not firebase_admin._apps:
         "universe_domain": "googleapis.com",
     })
 
-    # Initialize the Firebase app
-    firebase_admin.initialize_app(cred)
+    # Initialize the Firebase app (storageBucket used for vehicle photo uploads)
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'sudotag-57673.firebasestorage.app',
+    })
     
 # Now you can use Firebase as usual
 db = firestore.client()
@@ -1490,6 +1492,154 @@ def manage_users(request):
     })
 
 
+def manage_vehicles(request):
+    """List vehicles with photo thumbnails; open detail for gallery management."""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
+
+    from .vehicle_photos import enrich_vehicle_for_admin
+
+    try:
+        docs = db.collection('vehicles').stream()
+        vehicles = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            data['id'] = doc.id
+            vehicles.append(enrich_vehicle_for_admin(data))
+        vehicles.sort(
+            key=lambda v: str(v.get('registrationNumber') or '').upper()
+        )
+    except Exception as e:
+        messages.error(request, f'Error loading vehicles: {e}')
+        vehicles = []
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(vehicles, 20)
+    try:
+        vehicles_page = paginator.page(page)
+    except PageNotAnInteger:
+        vehicles_page = paginator.page(1)
+    except EmptyPage:
+        vehicles_page = paginator.page(paginator.num_pages)
+
+    return render(request, 'manage_vehicles.html', {
+        'vehicles': vehicles_page,
+        'paginator': paginator,
+        'messages': get_message_list(request),
+    })
+
+
+def manage_vehicle_detail(request, vehicle_id):
+    """Vehicle detail with photo gallery upload / replace / delete."""
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
+
+    from .vehicle_photos import (
+        MAX_VEHICLE_PHOTOS,
+        delete_storage_url,
+        enrich_vehicle_for_admin,
+        parse_photo_urls,
+        set_vehicle_photo_urls,
+        upload_vehicle_photo_bytes,
+    )
+
+    vehicle_ref = db.collection('vehicles').document(vehicle_id)
+    vehicle_doc = vehicle_ref.get()
+    if not vehicle_doc.exists:
+        messages.error(request, 'Vehicle not found')
+        return redirect('manage_vehicles')
+
+    vehicle = enrich_vehicle_for_admin({**(vehicle_doc.to_dict() or {}), 'id': vehicle_id})
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or '').strip()
+        urls = parse_photo_urls(vehicle)
+
+        try:
+            if action == 'upload':
+                files = request.FILES.getlist('photos')
+                if not files:
+                    messages.error(request, 'Please choose at least one image.')
+                else:
+                    remaining = MAX_VEHICLE_PHOTOS - len(urls)
+                    if remaining <= 0:
+                        messages.error(request, f'Maximum of {MAX_VEHICLE_PHOTOS} photos allowed.')
+                    else:
+                        owner_id = str(vehicle.get('ownerId') or '')
+                        for f in files[:remaining]:
+                            content = f.read()
+                            if not content:
+                                continue
+                            ct = getattr(f, 'content_type', None) or 'image/jpeg'
+                            if not str(ct).startswith('image/'):
+                                messages.error(request, 'Only image files are allowed.')
+                                continue
+                            url = upload_vehicle_photo_bytes(
+                                owner_id=owner_id,
+                                vehicle_id=vehicle_id,
+                                content=content,
+                                content_type=ct,
+                            )
+                            urls.append(url)
+                        set_vehicle_photo_urls(db, vehicle_id, urls)
+                        messages.success(request, 'Photos uploaded successfully.')
+
+            elif action == 'delete':
+                target = (request.POST.get('photo_url') or '').strip()
+                if target in urls:
+                    urls = [u for u in urls if u != target]
+                    set_vehicle_photo_urls(db, vehicle_id, urls)
+                    delete_storage_url(target)
+                    messages.success(request, 'Photo deleted.')
+                else:
+                    messages.error(request, 'Photo not found on this vehicle.')
+
+            elif action == 'replace':
+                target = (request.POST.get('photo_url') or '').strip()
+                f = request.FILES.get('photo')
+                if not target or target not in urls or not f:
+                    messages.error(request, 'Choose a photo to replace and a new image.')
+                else:
+                    content = f.read()
+                    ct = getattr(f, 'content_type', None) or 'image/jpeg'
+                    if not content or not str(ct).startswith('image/'):
+                        messages.error(request, 'Invalid image file.')
+                    else:
+                        owner_id = str(vehicle.get('ownerId') or '')
+                        new_url = upload_vehicle_photo_bytes(
+                            owner_id=owner_id,
+                            vehicle_id=vehicle_id,
+                            content=content,
+                            content_type=ct,
+                        )
+                        urls = [new_url if u == target else u for u in urls]
+                        set_vehicle_photo_urls(db, vehicle_id, urls)
+                        delete_storage_url(target)
+                        messages.success(request, 'Photo replaced.')
+
+            elif action == 'reorder_primary':
+                target = (request.POST.get('photo_url') or '').strip()
+                if target in urls:
+                    urls = [target] + [u for u in urls if u != target]
+                    set_vehicle_photo_urls(db, vehicle_id, urls)
+                    messages.success(request, 'Primary photo updated.')
+        except Exception as e:
+            logger.error('Vehicle photo admin error: %s', e)
+            messages.error(request, f'Could not update photos: {e}')
+
+        return redirect('manage_vehicle_detail', vehicle_id=vehicle_id)
+
+    vehicle_doc = vehicle_ref.get()
+    vehicle = enrich_vehicle_for_admin({**(vehicle_doc.to_dict() or {}), 'id': vehicle_id})
+    return render(request, 'manage_vehicle_detail.html', {
+        'vehicle': vehicle,
+        'max_photos': MAX_VEHICLE_PHOTOS,
+        'messages': get_message_list(request),
+    })
+
+
 def manage_live_status(request):
     """Admin monitor: online counts + liveStatus distribution (sampled)."""
     if not request.session.get('admin'):
@@ -2079,7 +2229,9 @@ def activate_id(request, qr_id):
                         'createdAt': firestore.SERVER_TIMESTAMP,
                         'isQrGenerated': True,
                         'qrCodeId': qr_id,
-                        'adminAddedUser': admin_added_user
+                        'adminAddedUser': admin_added_user,
+                        # Additive — empty until owner/admin uploads (Flutter uses same field).
+                        'photoUrls': [],
                     }
                     
                     vehicle_ref = db.collection('vehicles').document(vehicle_id)
@@ -3666,6 +3818,11 @@ def _notify_vehicle_context(vehicle_dict):
     lost = parse_vehicle_lost_mode(
         vehicle_dict if isinstance(vehicle_dict, dict) else {}
     )
+    from .vehicle_photos import parse_photo_urls
+
+    photo_urls = parse_photo_urls(
+        vehicle_dict if isinstance(vehicle_dict, dict) else {}
+    )
     return {
         'make': make,
         'model': model,
@@ -3674,6 +3831,9 @@ def _notify_vehicle_context(vehicle_dict):
         'display_name': line,
         'isLostMode': lost['is_lost_mode'],
         'lostModeEnabledAt': lost['lost_mode_enabled_at'],
+        'photoUrls': photo_urls,
+        'primaryPhotoUrl': photo_urls[0] if photo_urls else None,
+        'hasPhotos': bool(photo_urls),
     }
 
 
@@ -4589,6 +4749,9 @@ def manage_qrs(request):
                         vehicle_cache[qr_data['vehicleID']] = None
                 
                 qr_data['vehicle'] = vehicle_cache[qr_data['vehicleID']]
+                if qr_data['vehicle']:
+                    from .vehicle_photos import enrich_vehicle_for_admin
+                    qr_data['vehicle'] = enrich_vehicle_for_admin(qr_data['vehicle'])
             
             # Apply search filter if provided
             if search_query:
