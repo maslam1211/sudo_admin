@@ -1,5 +1,6 @@
 /**
- * Landing: Scan QR / plate → camera options → notify screen.
+ * Landing: One Scan QR / plate flow.
+ * Active QR → notify; inactive QR → activate; plate → notify when found.
  */
 (function () {
   var card = document.getElementById('findVehicleCard');
@@ -40,6 +41,17 @@
   var tesseractLoader = null;
   var tesseractWorker = null;
   var plateOcrBusy = false;
+  var lookupLoaderAnim = null;
+  var lookupLottiePromise = null;
+  var RESET_KEY = 'sudoFindVehicleReset';
+  var wheelUrl =
+    card.getAttribute('data-wheel-url') ||
+    window.__SUDO_WHEEL_URL ||
+    '/admin/notify-sending-wheel.json';
+  var lottieUrl =
+    card.getAttribute('data-lottie-url') ||
+    window.__SUDO_LOTTIE_URL ||
+    '';
 
   var CAMERA_OPTS = {
     audio: false,
@@ -110,9 +122,150 @@
     return headers;
   }
 
+  function markNeedsReset() {
+    try {
+      sessionStorage.setItem(RESET_KEY, '1');
+    } catch (e) {}
+  }
+
+  function consumeNeedsReset() {
+    try {
+      if (sessionStorage.getItem(RESET_KEY) === '1') {
+        sessionStorage.removeItem(RESET_KEY);
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function ensureLottieApi() {
+    var api = window.lottie || window.bodymovin;
+    if (api) return Promise.resolve(api);
+    if (lookupLottiePromise) return lookupLottiePromise;
+    lookupLottiePromise = new Promise(function (resolve, reject) {
+      var src =
+        lottieUrl ||
+        'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+      var s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = function () {
+        var a = window.lottie || window.bodymovin;
+        if (a) resolve(a);
+        else reject(new Error('lottie missing'));
+      };
+      s.onerror = function () {
+        lookupLottiePromise = null;
+        reject(new Error('lottie failed'));
+      };
+      document.head.appendChild(s);
+    });
+    return lookupLottiePromise;
+  }
+
+  function getLookupLoaderEl() {
+    var el = document.getElementById('findVehicleLookupLoader');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'findVehicleLookupLoader';
+    el.className = 'find-vehicle-lookup-loader';
+    el.setAttribute('hidden', '');
+    el.setAttribute('aria-hidden', 'true');
+    el.setAttribute('aria-busy', 'false');
+    el.setAttribute('role', 'status');
+    el.innerHTML =
+      '<div class="find-vehicle-lookup-loader__inner">' +
+      '<div class="find-vehicle-lookup-loader__lottie" id="findVehicleLookupLottie" aria-hidden="true"></div>' +
+      '<p class="find-vehicle-lookup-loader__text" id="findVehicleLookupText">Finding vehicle…</p>' +
+      '</div>';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function hideLookupLoader() {
+    var el = document.getElementById('findVehicleLookupLoader');
+    if (lookupLoaderAnim) {
+      try {
+        lookupLoaderAnim.destroy();
+      } catch (e) {}
+      lookupLoaderAnim = null;
+    }
+    if (el) {
+      var mount = document.getElementById('findVehicleLookupLottie');
+      if (mount) mount.innerHTML = '';
+      el.hidden = true;
+      el.setAttribute('aria-hidden', 'true');
+      el.setAttribute('aria-busy', 'false');
+    }
+    document.body.classList.remove('find-vehicle-lookup-open');
+  }
+
+  function showLookupLoader(message) {
+    var el = getLookupLoaderEl();
+    var text = document.getElementById('findVehicleLookupText');
+    var mount = document.getElementById('findVehicleLookupLottie');
+    if (text) text.textContent = message || 'Finding vehicle…';
+    el.hidden = false;
+    el.setAttribute('aria-hidden', 'false');
+    el.setAttribute('aria-busy', 'true');
+    document.body.classList.add('find-vehicle-lookup-open');
+
+    if (lookupLoaderAnim) return;
+    ensureLottieApi()
+      .then(function (api) {
+        if (!mount || el.hidden) return;
+        mount.innerHTML = '';
+        lookupLoaderAnim = api.loadAnimation({
+          container: mount,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          path: wheelUrl,
+        });
+      })
+      .catch(function () {
+        /* Text-only fallback — same black overlay still shows */
+      });
+  }
+
+  function selectTab(name) {
+    var mode = name === 'plate' ? 'plate' : 'qr';
+    setStageMode(mode);
+    card.querySelectorAll('.find-vehicle-tab').forEach(function (t) {
+      var on = t.getAttribute('data-tab') === mode;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    card.querySelectorAll('.find-vehicle-panel').forEach(function (panel) {
+      var on = panel.getAttribute('data-panel') === mode;
+      panel.hidden = !on;
+      panel.classList.toggle('is-active', on);
+    });
+  }
+
+  function resetFindVehicleState() {
+    stopCamera();
+    clearSnap();
+    closeSheet();
+    hideLookupLoader();
+    busy = false;
+    plateOcrBusy = false;
+    detecting = false;
+    if (previewWrap) previewWrap.hidden = true;
+    if (captureBtn) captureBtn.hidden = true;
+    if (stopBtn) stopBtn.hidden = true;
+    if (fileInput) fileInput.value = '';
+    if (plateFileInput) plateFileInput.value = '';
+    if (qrInput) qrInput.value = '';
+    if (plateInput) plateInput.value = '';
+    setStatus('');
+    selectTab('qr');
+  }
+
   function lookup(payload) {
     if (busy) return Promise.resolve();
     busy = true;
+    showLookupLoader('Finding vehicle…');
     setStatus('Looking up vehicle…');
     return fetch(lookupUrl, {
       method: 'POST',
@@ -126,14 +279,34 @@
         });
       })
       .then(function (res) {
-        busy = false;
         var data = res.data || {};
-        if (data.status === 'success' && data.notify_url) {
-          setStatus('Opening notify screen…', 'ok');
-          stopCamera();
-          window.location.href = data.notify_url;
-          return;
+        if (data.status === 'success') {
+          var goActivate =
+            data.next === 'activate' ||
+            data.activated === false ||
+            data.isAssigned === false;
+          var target =
+            (goActivate && (data.activate_url || data.redirect_url)) ||
+            data.redirect_url ||
+            data.notify_url ||
+            data.activate_url ||
+            '';
+          if (target) {
+            markNeedsReset();
+            if (goActivate) {
+              setStatus('QR not activated — opening activation…', 'ok');
+              showLookupLoader('Opening activation…');
+            } else {
+              setStatus('Opening notify screen…', 'ok');
+              showLookupLoader('Opening notify…');
+            }
+            stopCamera();
+            window.location.assign(target);
+            return;
+          }
         }
+        busy = false;
+        hideLookupLoader();
         setStatus(
           data.message || 'Could not find that vehicle. Try again.',
           'error'
@@ -141,6 +314,7 @@
       })
       .catch(function () {
         busy = false;
+        hideLookupLoader();
         setStatus('Network error. Please try again.', 'error');
       });
   }
@@ -172,23 +346,33 @@
       return Promise.resolve(window.Tesseract);
     }
     if (tesseractLoader) return tesseractLoader;
-    tesseractLoader = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
-      s.async = true;
-      s.onload = function () {
-        if (window.Tesseract && typeof window.Tesseract.createWorker === 'function') {
-          resolve(window.Tesseract);
-        } else {
-          tesseractLoader = null;
-          reject(new Error('Tesseract missing'));
-        }
-      };
-      s.onerror = function () {
-        tesseractLoader = null;
-        reject(new Error('Tesseract load failed'));
-      };
-      document.head.appendChild(s);
+    function loadFrom(src) {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = function () {
+          if (window.Tesseract && typeof window.Tesseract.createWorker === 'function') {
+            resolve(window.Tesseract);
+          } else {
+            reject(new Error('Tesseract missing'));
+          }
+        };
+        s.onerror = function () {
+          reject(new Error('Tesseract load failed'));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    tesseractLoader = loadFrom(
+      'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'
+    ).catch(function () {
+      return loadFrom(
+        'https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js'
+      );
+    }).catch(function (err) {
+      tesseractLoader = null;
+      throw err;
     });
     return tesseractLoader;
   }
@@ -203,6 +387,7 @@
           .setParameters({
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
             preserve_interword_spaces: '1',
+            tessedit_pageseg_mode: '7',
           })
           .then(function () {
             tesseractWorker = worker;
@@ -240,7 +425,6 @@
   function ocrConfusionVariants(plate) {
     var base = normalizePlateText(plate);
     var out = [base];
-    // Common OCR swaps on plates
     var swaps = [
       [/O/g, '0'],
       [/0/g, 'O'],
@@ -252,11 +436,23 @@
       [/8/g, 'B'],
       [/Z/g, '2'],
       [/2/g, 'Z'],
+      [/G/g, '6'],
+      [/6/g, 'G'],
     ];
     swaps.forEach(function (pair) {
       var v = base.replace(pair[0], pair[1]);
       if (v !== base) out.push(v);
     });
+    // Position-aware: letters in state code, digits in district
+    if (base.length >= 8) {
+      var fixed = base.split('');
+      // positions 2-3 often digits (KL10…)
+      if (fixed[2] === 'O') fixed[2] = '0';
+      if (fixed[3] === 'O') fixed[3] = '0';
+      if (fixed[2] === 'I') fixed[2] = '1';
+      if (fixed[3] === 'I') fixed[3] = '1';
+      out.push(fixed.join(''));
+    }
     return out;
   }
 
@@ -285,8 +481,7 @@
       while ((m = re.exec(src)) !== null) add(m[0]);
     });
 
-    // Sliding window fallback when regex missed (noisy OCR)
-    if (!Object.keys(found).length && compact.length <= 80) {
+    if (!Object.keys(found).length && compact.length >= 7 && compact.length <= 120) {
       for (var len = 12; len >= 7; len--) {
         for (var i = 0; i + len <= compact.length; i++) {
           add(compact.slice(i, i + len));
@@ -299,12 +494,146 @@
     });
   }
 
+  function drawSourceToCanvas(source) {
+    return new Promise(function (resolve, reject) {
+      function fromDrawable(drawable) {
+        var w =
+          drawable.naturalWidth ||
+          drawable.videoWidth ||
+          drawable.width ||
+          0;
+        var h =
+          drawable.naturalHeight ||
+          drawable.videoHeight ||
+          drawable.height ||
+          0;
+        if (!w || !h) {
+          reject(new Error('empty-image'));
+          return;
+        }
+        var c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        var ctx = c.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+          reject(new Error('no-ctx'));
+          return;
+        }
+        ctx.drawImage(drawable, 0, 0, w, h);
+        resolve(c);
+      }
+
+      if (!source) {
+        reject(new Error('no-source'));
+        return;
+      }
+      if (source instanceof HTMLCanvasElement) {
+        resolve(source);
+        return;
+      }
+      if (typeof source === 'string') {
+        var img = new Image();
+        img.onload = function () {
+          fromDrawable(img);
+        };
+        img.onerror = function () {
+          reject(new Error('image'));
+        };
+        img.crossOrigin = 'anonymous';
+        img.src = source;
+        return;
+      }
+      if (
+        (typeof Blob !== 'undefined' && source instanceof Blob) ||
+        (typeof File !== 'undefined' && source instanceof File)
+      ) {
+        if (typeof createImageBitmap === 'function') {
+          createImageBitmap(source)
+            .then(function (bmp) {
+              fromDrawable(bmp);
+              if (bmp.close) {
+                try {
+                  bmp.close();
+                } catch (e) {}
+              }
+            })
+            .catch(function () {
+              var url = URL.createObjectURL(source);
+              var im = new Image();
+              im.onload = function () {
+                URL.revokeObjectURL(url);
+                fromDrawable(im);
+              };
+              im.onerror = function () {
+                URL.revokeObjectURL(url);
+                reject(new Error('image'));
+              };
+              im.src = url;
+            });
+          return;
+        }
+        var url2 = URL.createObjectURL(source);
+        var im2 = new Image();
+        im2.onload = function () {
+          URL.revokeObjectURL(url2);
+          fromDrawable(im2);
+        };
+        im2.onerror = function () {
+          URL.revokeObjectURL(url2);
+          reject(new Error('image'));
+        };
+        im2.src = url2;
+        return;
+      }
+      fromDrawable(source);
+    });
+  }
+
+  function preprocessPlateCanvas(srcCanvas, cropBand) {
+    var w = srcCanvas.width;
+    var h = srcCanvas.height;
+    var sx = 0;
+    var sy = 0;
+    var sw = w;
+    var sh = h;
+    if (cropBand) {
+      // Align with on-screen plate guide (inset ~32% / 8%)
+      sx = Math.floor(w * 0.06);
+      sy = Math.floor(h * 0.28);
+      sw = Math.max(1, Math.floor(w * 0.88));
+      sh = Math.max(1, Math.floor(h * 0.4));
+    }
+    var scale = sw < 700 ? 3 : sw < 1100 ? 2 : 1.5;
+    var dw = Math.max(1, Math.round(sw * scale));
+    var dh = Math.max(1, Math.round(sh * scale));
+    var out = document.createElement('canvas');
+    out.width = dw;
+    out.height = dh;
+    var ctx = out.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return out;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(srcCanvas, sx, sy, sw, sh, 0, 0, dw, dh);
+    var imageData = ctx.getImageData(0, 0, dw, dh);
+    var d = imageData.data;
+    for (var i = 0; i < d.length; i += 4) {
+      var g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+      g = (g - 128) * 1.55 + 128;
+      if (g < 0) g = 0;
+      if (g > 255) g = 255;
+      // Soft binarize helps plate glyphs
+      if (g < 95) g = 0;
+      else if (g > 175) g = 255;
+      d[i] = d[i + 1] = d[i + 2] = g;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return out;
+  }
+
   function applyDetectedPlate(plate, autoLookup) {
     var value = normalizePlateText(plate);
     if (!value) return;
     if (plateInput) {
       plateInput.value = value;
-      plateInput.focus();
       try {
         plateInput.dispatchEvent(new Event('input', { bubbles: true }));
       } catch (e) {}
@@ -312,19 +641,47 @@
     setStatus('Detected plate: ' + value, 'ok');
     if (autoLookup) {
       lookup({ mode: 'plate', plate: value });
+    } else if (plateInput) {
+      plateInput.focus();
     }
   }
 
   function recognizePlateFromSource(source) {
-    return getPlateOcrWorker().then(function (worker) {
-      return worker.recognize(source).then(function (result) {
-        var text = (result && result.data && result.data.text) || '';
-        var candidates = extractPlateCandidates(text);
-        return {
-          text: text,
-          plate: candidates.length ? candidates[0] : '',
-          candidates: candidates,
-        };
+    return drawSourceToCanvas(source).then(function (baseCanvas) {
+      var variants = [
+        preprocessPlateCanvas(baseCanvas, true),
+        preprocessPlateCanvas(baseCanvas, false),
+      ];
+      return getPlateOcrWorker().then(function (worker) {
+        var texts = [];
+        var psms = ['7', '8', '6'];
+        var chain = Promise.resolve();
+        variants.forEach(function (canvas) {
+          psms.forEach(function (psm) {
+            chain = chain.then(function () {
+              return worker
+                .setParameters({
+                  tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                  preserve_interword_spaces: '1',
+                  tessedit_pageseg_mode: psm,
+                })
+                .then(function () {
+                  return worker.recognize(canvas).then(function (result) {
+                    texts.push((result && result.data && result.data.text) || '');
+                  });
+                });
+            });
+          });
+        });
+        return chain.then(function () {
+          var merged = texts.join('\n');
+          var candidates = extractPlateCandidates(merged);
+          return {
+            text: merged,
+            plate: candidates.length ? candidates[0] : '',
+            candidates: candidates,
+          };
+        });
       });
     });
   }
@@ -348,20 +705,9 @@
     if (plateOcrBusy) return;
     plateOcrBusy = true;
     if (previewUrl) showPlatePreviewFromUrl(previewUrl, !!revokePreview);
+    selectTab('plate');
+    showLookupLoader('Reading plate number…');
     setStatus('Reading plate number…');
-
-    // Switch to plate tab UI if needed
-    setStageMode('plate');
-    card.querySelectorAll('.find-vehicle-tab').forEach(function (t) {
-      var on = t.getAttribute('data-tab') === 'plate';
-      t.classList.toggle('is-active', on);
-      t.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    card.querySelectorAll('.find-vehicle-panel').forEach(function (panel) {
-      var on = panel.getAttribute('data-panel') === 'plate';
-      panel.hidden = !on;
-      panel.classList.toggle('is-active', on);
-    });
 
     recognizePlateFromSource(source)
       .then(function (res) {
@@ -370,6 +716,7 @@
           applyDetectedPlate(res.plate, true);
           return;
         }
+        hideLookupLoader();
         setStatus(
           'Could not auto-read the plate. Type the number you see, then tap Find.',
           'error'
@@ -378,6 +725,7 @@
       })
       .catch(function () {
         plateOcrBusy = false;
+        hideLookupLoader();
         setStatus(
           'Plate auto-detect failed. Type the number, then tap Find.',
           'error'
@@ -508,6 +856,7 @@
 
   function handleQrRaw(raw) {
     if (!raw) return;
+    showLookupLoader('Finding vehicle…');
     setStatus('QR detected. Opening notify…', 'ok');
     lookup({ mode: 'qr', qr: String(raw) });
   }
@@ -518,7 +867,7 @@
       sheetTitle.textContent =
         pendingSheetMode === 'plate'
           ? 'Scan number plate'
-          : 'Scan SudoTag QR';
+          : 'Scan QR — notify or activate';
     }
     if (sheet) {
       sheet.hidden = false;
@@ -573,9 +922,12 @@
       return;
     }
 
-    // Warm up jsQR on Safari / browsers without BarcodeDetector
+    // Warm detectors
     if (activeMode === 'qr' && !('BarcodeDetector' in window)) {
       ensureJsQR().catch(function () {});
+    }
+    if (activeMode === 'plate') {
+      getPlateOcrWorker().catch(function () {});
     }
 
     stopCamera();
@@ -615,7 +967,6 @@
       })
       .then(function () {
         if (stopBtn) stopBtn.hidden = false;
-        // Plate always needs Capture; QR Capture is a manual fallback
         if (captureBtn) {
           captureBtn.hidden = false;
           captureBtn.textContent =
@@ -625,7 +976,8 @@
           setStatus('Point at the SudoTag QR…');
           scanTimer = setInterval(tickQrDetect, 500);
         } else {
-          setStatus('Align the number plate in the frame, then tap Capture.');
+          setStatus('Point at the number plate — auto-detecting…');
+          scanTimer = setInterval(tickPlateDetect, 1200);
         }
         // Scroll preview into view on small screens
         if (previewWrap && previewWrap.scrollIntoView) {
@@ -651,6 +1003,42 @@
         if (previewWrap && (!snapImg || snapImg.hidden)) {
           previewWrap.hidden = true;
         }
+      });
+  }
+
+  function tickPlateDetect() {
+    if (detecting || busy || plateOcrBusy || !video || !canvas) return;
+    if (activeMode !== 'plate') return;
+    if (video.readyState < 2) return;
+    var w = video.videoWidth;
+    var h = video.videoHeight;
+    if (!w || !h) return;
+    detecting = true;
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      detecting = false;
+      return;
+    }
+    ctx.drawImage(video, 0, 0, w, h);
+    recognizePlateFromSource(canvas)
+      .then(function (res) {
+        detecting = false;
+        if (!res.plate || busy || plateOcrBusy) return;
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        if (snapImg) {
+          snapImg.src = dataUrl;
+          snapImg.hidden = false;
+        }
+        if (previewWrap) previewWrap.hidden = false;
+        stopCamera();
+        if (previewWrap) previewWrap.hidden = false;
+        if (snapImg) snapImg.hidden = false;
+        applyDetectedPlate(res.plate, true);
+      })
+      .catch(function () {
+        detecting = false;
       });
   }
 
@@ -735,18 +1123,9 @@
 
   function readQrFromFile(file) {
     if (!file) return;
+    showLookupLoader('Reading QR from image…');
     setStatus('Reading QR from image…');
-    setStageMode('qr');
-    card.querySelectorAll('.find-vehicle-tab').forEach(function (t) {
-      var on = t.getAttribute('data-tab') === 'qr';
-      t.classList.toggle('is-active', on);
-      t.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    card.querySelectorAll('.find-vehicle-panel').forEach(function (panel) {
-      var on = panel.getAttribute('data-panel') === 'qr';
-      panel.hidden = !on;
-      panel.classList.toggle('is-active', on);
-    });
+    selectTab('qr');
 
     loadImageFromFile(file)
       .then(function (pack) {
@@ -771,6 +1150,7 @@
       })
       .then(function (raw) {
         if (!raw) {
+          hideLookupLoader();
           setStatus(
             'No QR code found in that image. Try a clearer photo or paste the link.',
             'error'
@@ -782,6 +1162,7 @@
         handleQrRaw(raw);
       })
       .catch(function () {
+        hideLookupLoader();
         setStatus('Could not read that image. Paste the QR link instead.', 'error');
         if (qrInput) qrInput.focus();
       });
@@ -923,7 +1304,24 @@
     });
   }
 
-  window.addEventListener('pagehide', stopCamera);
+  window.addEventListener('pagehide', function () {
+    stopCamera();
+  });
+  window.addEventListener('pageshow', function (event) {
+    // Back/forward cache or return from notify → clear capture/upload state
+    if (event.persisted || consumeNeedsReset()) {
+      resetFindVehicleState();
+    }
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && consumeNeedsReset()) {
+      resetFindVehicleState();
+    }
+  });
+  // Fresh landings from Notify "Home" (#find-vehicle)
+  if (consumeNeedsReset()) {
+    resetFindVehicleState();
+  }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && sheet && !sheet.hidden) closeSheet();
   });

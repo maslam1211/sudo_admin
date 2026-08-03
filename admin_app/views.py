@@ -1812,9 +1812,10 @@ def public_lookup_vehicle(request):
     Does not expose owner phone / contact details.
     """
     from .public_vehicle_lookup import (
+        activate_url_for_qr,
         extract_qr_id_from_scan,
         lookup_vehicle_by_plate,
-        notify_url_for_qr,
+        notify_final_url_for_qr,
         normalize_registration,
         resolve_qr_for_notify,
     )
@@ -1854,12 +1855,36 @@ def public_lookup_vehicle(request):
                     },
                     status=404,
                 )
+
+            is_assigned = bool(info.get('isAssigned'))
+            if not is_assigned:
+                activate_url = activate_url_for_qr(qr_id, request)
+                return JsonResponse(
+                    {
+                        'status': 'success',
+                        'qr_id': qr_id,
+                        'isAssigned': False,
+                        'activated': False,
+                        'next': 'activate',
+                        'activate_url': activate_url,
+                        'redirect_url': activate_url,
+                        # Keep notify_url empty so clients do not open notify for inactive QRs
+                        'notify_url': '',
+                        'message': 'This QR is not activated yet. Opening activation…',
+                    }
+                )
+
+            notify_url = notify_final_url_for_qr(qr_id, request)
             return JsonResponse(
                 {
                     'status': 'success',
                     'qr_id': qr_id,
-                    'notify_url': notify_url_for_qr(qr_id, request),
-                    'isAssigned': bool(info.get('isAssigned')),
+                    'isAssigned': True,
+                    'activated': True,
+                    'next': 'notify',
+                    'notify_url': notify_url,
+                    'redirect_url': notify_url,
+                    'activate_url': '',
                 }
             )
 
@@ -1888,11 +1913,16 @@ def public_lookup_vehicle(request):
                 },
                 status=404,
             )
+        notify_url = notify_final_url_for_qr(hit['qr_id'], request)
         return JsonResponse(
             {
                 'status': 'success',
                 'qr_id': hit['qr_id'],
-                'notify_url': notify_url_for_qr(hit['qr_id'], request),
+                'isAssigned': True,
+                'activated': True,
+                'next': 'notify',
+                'notify_url': notify_url,
+                'redirect_url': notify_url,
                 'registrationNumber': hit.get('registrationNumber') or plate,
                 'make': hit.get('make') or '',
                 'model': hit.get('model') or '',
@@ -1909,6 +1939,7 @@ def public_lookup_vehicle(request):
             },
             status=500,
         )
+
 
 def send_welcome_email_for_id(email, name, password):
     subject = 'Welcome to Sudo - Your Account is Ready!'
@@ -2553,8 +2584,12 @@ def send_notification(request, qr_id):
         qr_ref = db.collection('qrcodes').document(qr_id)
         qr_doc = qr_ref.get()
 
-        if not qr_doc.exists or not qr_doc.to_dict().get('isAssigned', False):
-            return render(request, 'error.html', {'error': 'QR code not assigned!'})
+        if not qr_doc.exists:
+            return render(request, 'invalid_qr.html', {'error': 'Invalid QR Code'})
+
+        if not qr_doc.to_dict().get('isAssigned', False):
+            # Same rule as landing Find vehicle: inactive QR → activate screen
+            return redirect('activate_id', qr_id=qr_id)
 
         qr_data = qr_doc.to_dict()
         

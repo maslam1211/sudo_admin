@@ -1,8 +1,10 @@
 from django.test import SimpleTestCase
 
 from admin_app.public_vehicle_lookup import (
+    activate_url_for_qr,
     extract_qr_id_from_scan,
     normalize_registration,
+    notify_final_url_for_qr,
 )
 
 
@@ -23,5 +25,21 @@ class PublicVehicleLookupHelpersTests(SimpleTestCase):
             ),
             'qr99',
         )
+        self.assertEqual(
+            extract_qr_id_from_scan(
+                'https://sudotag.com/admin/activate-id/plainActivate1/'
+            ),
+            'plainActivate1',
+        )
         self.assertEqual(extract_qr_id_from_scan('plainQrId99'), 'plainQrId99')
         self.assertIsNone(extract_qr_id_from_scan('bad id'))
+
+    def test_activate_and_notify_urls(self):
+        self.assertTrue(
+            activate_url_for_qr('abc').endswith('/admin/activate-id/abc/')
+        )
+        self.assertTrue(
+            notify_final_url_for_qr('abc').endswith(
+                '/admin/send-notification-final/abc/'
+            )
+        )

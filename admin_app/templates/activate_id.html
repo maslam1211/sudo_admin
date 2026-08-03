@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  {% load static custom_filters %}
   <meta charset="UTF-8">
   <title>Activate Vehicle QR Code | SudoTag</title>
   {% include 'includes/qr_flow_head.html' %}
@@ -62,6 +63,79 @@
     .vehicle-mode-block[hidden] {
       display: none !important;
     }
+
+    .plate-ocr-tools {
+      margin-top: 10px;
+    }
+    .plate-ocr-hint {
+      margin: 0 0 8px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.4;
+    }
+    .plate-ocr-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .plate-ocr-btn {
+      appearance: none;
+      border: 1px solid rgba(229, 129, 71, 0.45);
+      background: rgba(229, 129, 71, 0.16);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin: 0;
+    }
+    .plate-ocr-btn--ghost {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.88);
+    }
+    .plate-ocr-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+    .plate-ocr-preview {
+      margin-top: 10px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #111;
+    }
+    .plate-ocr-preview video,
+    .plate-ocr-preview img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      display: block;
+      margin: 0;
+      background: #111;
+    }
+    .plate-ocr-preview__bar {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: #1c1c1c;
+    }
+    .plate-ocr-preview__bar .plate-ocr-btn {
+      flex: 1;
+      justify-content: center;
+    }
+    .plate-ocr-status {
+      margin: 8px 0 0;
+      min-height: 1.1rem;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+    .plate-ocr-status.is-ok { color: #6ddf8c; }
+    .plate-ocr-status.is-error { color: #ff8f7a; }
 
     .phone-input-container {
       display: flex;
@@ -469,6 +543,28 @@
             <div class="form-group">
               <label for="registrationNumber" class="form-label">License Plate Number</label>
               <input type="text" class="form-control" id="registrationNumber" placeholder="Enter license plate number (e.g., KL11AB1234)" required>
+              <div class="plate-ocr-tools" id="plateOcrTools">
+                <p class="plate-ocr-hint">Or scan / upload a plate photo — we auto-fill the number</p>
+                <div class="plate-ocr-actions">
+                  <button type="button" class="btn plate-ocr-btn" id="plateOcrCameraBtn">
+                    <i class="bi bi-camera-fill" aria-hidden="true"></i> Scan plate
+                  </button>
+                  <label class="btn plate-ocr-btn plate-ocr-btn--ghost" for="plateOcrFile">
+                    <i class="bi bi-image" aria-hidden="true"></i> Gallery
+                    <input type="file" id="plateOcrFile" accept="image/*" capture="environment" hidden>
+                  </label>
+                </div>
+                <div class="plate-ocr-preview" id="plateOcrPreview" hidden>
+                  <video id="plateOcrVideo" playsinline muted hidden></video>
+                  <img id="plateOcrSnap" alt="Plate preview" hidden>
+                  <canvas id="plateOcrCanvas" hidden></canvas>
+                  <div class="plate-ocr-preview__bar" id="plateOcrPreviewBar" hidden>
+                    <button type="button" class="btn plate-ocr-btn" id="plateOcrCaptureBtn">Capture</button>
+                    <button type="button" class="btn plate-ocr-btn plate-ocr-btn--ghost" id="plateOcrStopBtn">Stop</button>
+                  </div>
+                </div>
+                <p class="plate-ocr-status" id="plateOcrStatus" role="status" aria-live="polite"></p>
+              </div>
             </div>
 
             <div class="form-group">
@@ -1787,5 +1883,6 @@
       // Toast notifications disabled - using inline error messages instead
     });
   </script>
+  <script src="{% landing_asset 'js/activate_id_plate_ocr.js' %}" defer></script>
 </body>
 </html>

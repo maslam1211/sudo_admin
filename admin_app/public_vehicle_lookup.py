@@ -2,12 +2,12 @@
 Public web lookup: plate / QR → notify screen URL.
 
 Mirrors the mobile search rule: only vehicles with an activated, assigned QR.
+Unassigned QRs are routed to the activate-id screen.
 """
 from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import urlparse
 
 from django.conf import settings
 from google.cloud.firestore_v1 import FieldFilter
@@ -22,13 +22,13 @@ def normalize_registration(raw: Any) -> str:
 
 
 _QR_PATH_RE = re.compile(
-    r'/admin/send-notification(?:-final)?/([A-Za-z0-9_-]+)/?',
+    r'/admin/(?:send-notification(?:-final)?|activate-id)/([A-Za-z0-9_-]+)/?',
     re.IGNORECASE,
 )
 
 
 def extract_qr_id_from_scan(raw: str) -> str | None:
-    """Accept a full notify URL or a bare QR document id."""
+    """Accept a full notify/activate URL or a bare QR document id."""
     text = (raw or '').strip()
     if not text:
         return None
@@ -41,9 +41,8 @@ def extract_qr_id_from_scan(raw: str) -> str | None:
     return None
 
 
-def notify_url_for_qr(qr_id: str, request=None) -> str:
-    qid = (qr_id or '').strip()
-    path = f'/admin/send-notification/{qid}/'
+def _absolute_admin_url(path: str, request=None) -> str:
+    path = '/' + (path or '').lstrip('/')
     if request is not None:
         try:
             return request.build_absolute_uri(path)
@@ -51,6 +50,24 @@ def notify_url_for_qr(qr_id: str, request=None) -> str:
             pass
     base = (getattr(settings, 'BASE_DOMAIN', '') or 'https://sudotag.com').rstrip('/')
     return f'{base}{path}'
+
+
+def notify_url_for_qr(qr_id: str, request=None) -> str:
+    """Entry URL printed on stickers → check_id_enabled → notify or activate."""
+    qid = (qr_id or '').strip()
+    return _absolute_admin_url(f'/admin/send-notification/{qid}/', request)
+
+
+def activate_url_for_qr(qr_id: str, request=None) -> str:
+    """Direct activate-id screen for unassigned QRs."""
+    qid = (qr_id or '').strip()
+    return _absolute_admin_url(f'/admin/activate-id/{qid}/', request)
+
+
+def notify_final_url_for_qr(qr_id: str, request=None) -> str:
+    """Activated notify UI (send-notification-final)."""
+    qid = (qr_id or '').strip()
+    return _absolute_admin_url(f'/admin/send-notification-final/{qid}/', request)
 
 
 def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
@@ -99,7 +116,7 @@ def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
 
 
 def resolve_qr_for_notify(db, qr_id: str) -> dict[str, Any] | None:
-    """Confirm QR exists and is usable for the public notify flow."""
+    """Confirm QR exists and whether it is activated (assigned)."""
     qid = (qr_id or '').strip()
     if not qid:
         return None

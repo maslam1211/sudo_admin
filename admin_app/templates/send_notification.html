@@ -4351,11 +4351,11 @@
   {% csrf_token %}
   <!-- Header -->
   <header class="header sudo-app-header">
-    <a href="https://sudotag.com/" class="brand-logo" aria-label="SudoTag home">
+    <a href="{% url 'index' %}#find-vehicle" class="brand-logo" aria-label="SudoTag home" id="notifyBrandHomeLink">
       {% include 'includes/brand_logo_img.html' %}
     </a>
     <h1 class="header-title" id="pageHeaderTitle">CONTACT VEHICLE OWNER</h1>
-    <a href="https://sudotag.com/" class="notify-home-link" id="notifyHomeLink">Home</a>
+    <a href="{% url 'index' %}#find-vehicle" class="notify-home-link" id="notifyHomeLink">Home</a>
   </header>
 
   <!-- Main Content -->
@@ -5149,7 +5149,7 @@
     const ownerPhone = '{{ owner_phone|default:"" }}';
     const callRegisterUrl = "{% url 'register_call_destination' %}";
     const notifyPageQrId = '{{ qr_id|default:""|escapejs }}';
-    const sudoTagHomeUrl = 'https://sudotag.com/';
+    const sudoTagHomeUrl = "{% url 'index' %}#find-vehicle";
     var SUDO_NOTIFY_TERMINAL_GATE =
       document.body && document.body.getAttribute('data-notify-terminal') === '1';
     const ownerDestinationDigits = "{{ owner_phone_digits|default:'' }}";
@@ -9723,6 +9723,7 @@
       try {
         sessionStorage.removeItem(EMERGENCY_TEL_RETURN_KEY);
         sessionStorage.removeItem(CALL_DIALER_RETURN_KEY);
+        sessionStorage.setItem('sudoFindVehicleReset', '1');
       } catch (e) {}
       window.location.replace(sudoTagHomeUrl);
     }

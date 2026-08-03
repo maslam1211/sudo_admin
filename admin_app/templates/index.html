@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>SudoTag - Report Issues Seamlessly</title>
+  <title>SudoTag - Private QR Contact for Vehicles</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -55,8 +55,10 @@
         <ul>
           <li><a href="#hero" class="active">Home</a></li>
           <li><a href="#about">About</a></li>
+          <li><a href="#features">Features</a></li>
           <li><a href="{% url 'how_it_works' %}">How It Works</a></li>
-          <li><a href="#contact">Contact</a></li>          
+          <li><a href="#find-vehicle">Scan QR</a></li>
+          <li><a href="#contact">Contact</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
@@ -86,14 +88,14 @@
           <div class="col-lg-5 col-xl-5 hero-content-col">
             <div class="hero-content" data-aos="fade-up" data-aos-delay="100">
               <h2>Introducing SudoTag<span>.</span></h2>
-              <p>Revolutionizing issue reporting for a safer community. Scan, report, and resolve—get the app below.</p>
+              <p>Scan a QR or plate to reach the owner privately—without sharing phone numbers.</p>
               <div class="hero-download-block" data-aos="fade-up" data-aos-delay="150">
                 <div class="platform-icons" aria-hidden="true">
                   <span class="platform-icon platform-icon--android"><i class="bi bi-android2"></i></span>
                   <span class="platform-icon platform-icon--ios"><i class="bi bi-apple"></i></span>
                 </div>
                 <div class="hero-cta-row mb-3">
-                  <a class="btn-getstarted" href="#find-vehicle">Scan / Find vehicle</a>
+                  <a class="btn-getstarted" href="#find-vehicle">Scan QR</a>
                 </div>
                 <div class="app-store-buttons justify-content-start">
                   <a class="app-store-btn app-store-btn--android" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
@@ -161,31 +163,31 @@
 
               <div class="hero-scan-viz__card hero-scan-viz__card--1" data-aos="zoom-in" data-aos-delay="350">
                 <i class="bi bi-qr-code"></i>
-                <span>QR-based Reporting</span>
+                <span>Private QR contact</span>
               </div>
               <div class="hero-scan-viz__card hero-scan-viz__card--2" data-aos="zoom-in" data-aos-delay="400">
                 <i class="bi bi-shield-lock"></i>
-                <span>Secure Registration</span>
+                <span>Owner privacy</span>
               </div>
               <div class="hero-scan-viz__card hero-scan-viz__card--3" data-aos="zoom-in" data-aos-delay="450">
-                <i class="bi bi-people"></i>
-                <span>User Interaction</span>
+                <i class="bi bi-geo-alt"></i>
+                <span>Lost Mode</span>
               </div>
               <div class="hero-scan-viz__card hero-scan-viz__card--4" data-aos="zoom-in" data-aos-delay="500">
                 <i class="bi bi-chat-left-text"></i>
-                <span>Notify Other Users</span>
+                <span>Masked channels</span>
               </div>
               <div class="hero-scan-viz__card hero-scan-viz__card--5" data-aos="zoom-in" data-aos-delay="550">
-                <i class="bi bi-clock"></i>
-                <span>Real-Time Updates</span>
+                <i class="bi bi-car-front"></i>
+                <span>Vehicle locker</span>
               </div>
 
               <div class="hero-scan-viz__features-mobile">
-                <div class="hero-scan-viz__feat"><i class="bi bi-qr-code"></i><span>QR-based Reporting</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-shield-lock"></i><span>Secure Registration</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-people"></i><span>User Interaction</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-chat-left-text"></i><span>Notify Other Users</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-clock"></i><span>Real-Time Updates</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-qr-code"></i><span>Private QR contact</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-shield-lock"></i><span>Owner privacy</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-geo-alt"></i><span>Lost Mode</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-chat-left-text"></i><span>Masked channels</span></div>
+                <div class="hero-scan-viz__feat"><i class="bi bi-car-front"></i><span>Vehicle locker</span></div>
               </div>
             </div>
           </div>
@@ -198,21 +200,24 @@
 
     </section><!-- /Hero Section -->
 
-    <!-- Find vehicle: QR scan + plate lookup → notify screen -->
+    <!-- Scan QR / plate: one flow → notify (active) or activate (new tag) -->
     <section id="find-vehicle" class="find-vehicle section">
+      <span id="activate-qr" aria-hidden="true"></span>
       <div class="find-vehicle-bg" aria-hidden="true">
         <span class="find-vehicle-bg__glow"></span>
         <span class="find-vehicle-bg__grid"></span>
       </div>
 
       <div class="container section-title" data-aos="fade-up">
-        <h2>Find vehicle</h2>
-        <p>Scan once. Reach the owner instantly.</p>
+        <h2>Scan QR</h2>
+        <p>One scan for everything — notify an owner or activate a new SudoTag.</p>
       </div>
 
       <div class="container" data-aos="fade-up" data-aos-delay="80">
         <div class="find-vehicle-stage" id="findVehicleCard" data-mode="qr"
-             data-lookup-url="{% url 'public_lookup_vehicle' %}">
+             data-lookup-url="{% url 'public_lookup_vehicle' %}"
+             data-wheel-url="{% url 'notify_sending_wheel_json' %}"
+             data-lottie-url="{% landing_asset 'vendor/lottie/lottie.min.js' %}">
 
           <aside class="find-vehicle-visual" aria-hidden="true">
             <div class="find-vehicle-visual__ring">
@@ -224,13 +229,13 @@
             </div>
             <ul class="find-vehicle-visual__points">
               <li><i class="bi bi-shield-check"></i> Private notify</li>
-              <li><i class="bi bi-lightning-charge"></i> Instant lookup</li>
-              <li><i class="bi bi-telephone"></i> Masked call ready</li>
+              <li><i class="bi bi-phone"></i> Activate new QR</li>
+              <li><i class="bi bi-card-text"></i> Plate lookup</li>
             </ul>
           </aside>
 
           <div class="find-vehicle-console">
-            <div class="find-vehicle-seg" role="tablist" aria-label="Find method">
+            <div class="find-vehicle-seg" role="tablist" aria-label="Scan method">
               <span class="find-vehicle-seg__pill" aria-hidden="true"></span>
               <button type="button" class="find-vehicle-tab is-active" data-tab="qr" role="tab" aria-selected="true">
                 <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
@@ -243,7 +248,7 @@
             </div>
 
             <div class="find-vehicle-panel is-active" data-panel="qr" role="tabpanel">
-              <p class="find-vehicle-help">Scan or upload a SudoTag QR photo — we auto-detect and open notify.</p>
+              <p class="find-vehicle-help">Scan or upload a SudoTag QR — active tags open notify; new tags open activation.</p>
               <div class="find-vehicle-primary">
                 <button type="button" class="find-vehicle-scan-btn" id="findVehicleScanBtn" data-scan-mode="qr">
                   <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
@@ -269,7 +274,7 @@
             </div>
 
             <div class="find-vehicle-panel" data-panel="plate" role="tabpanel" hidden>
-              <p class="find-vehicle-help">Scan or upload the number plate — we auto-read the registration.</p>
+              <p class="find-vehicle-help">Scan or upload the number plate — auto-detect fills the registration.</p>
               <div class="find-vehicle-primary">
                 <button type="button" class="find-vehicle-scan-btn" id="findVehiclePlateScanBtn" data-scan-mode="plate">
                   <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
@@ -405,15 +410,15 @@
           <div class="col-lg-6 order-2 order-lg-1 content">
             <h3>About SudoTag</h3>
             <p class="fst-italic">
-              SudoTag is a QR-based app designed to help users report various issues such as improper parking, unsafe practices, and more. Available on Google Play and the App Store.
+              SudoTag is a smart vehicle identification and private communication platform. Physical QR tags connect scanners to owners—without exposing personal phone numbers.
             </p>
             <ul>
-              <li><i class="bi bi-check2-all"></i> <span>Report issues easily using a QR code scan.</span></li>
-              <li><i class="bi bi-check2-all"></i> <span>Secure registration with personal details for better service.</span></li>
-              <li><i class="bi bi-check2-all"></i> <span>Notify others instantly to resolve issues in real-time.</span></li>
+              <li><i class="bi bi-check2-all"></i> <span>Scan a SudoTag or plate to notify, chat, SMS, or call the owner privately.</span></li>
+              <li><i class="bi bi-check2-all"></i> <span>Owners manage vehicles, documents, family access, Live Status, and Lost Mode in the app.</span></li>
+              <li><i class="bi bi-check2-all"></i> <span>Activate on web or in-app, order tags online, and stay protected with privacy-first channels.</span></li>
             </ul>
             <p>
-              SudoTag provides a simple, effective, and secure way for users to report and resolve issues quickly. With an intuitive interface and real-time notifications, users can make their surroundings safer and more organized.
+              Available on Google Play and the App Store. Use the website to find a vehicle, activate a new QR, or buy a SudoTag—then manage everything from the mobile app.
             </p>
           </div>
         </div>
@@ -437,34 +442,34 @@
           <div class="col-lg-6">
     
             <div class="features-item d-flex ps-0 ps-lg-3 pt-4 pt-lg-0" data-aos="fade-up" data-aos-delay="200">
-              <i class="bi bi-qr-code flex-shrink-0"></i>
+              <i class="bi bi-qr-code-scan flex-shrink-0"></i>
               <div>
-                <h4>QR-Based Issue Reporting</h4>
-                <p>Using SudoTag, you can instantly report issues by scanning a QR code. It's simple, fast, and effective.</p>
+                <h4>Private scan-to-contact</h4>
+                <p>Scan a SudoTag QR or plate on web or in-app to reach the owner—without revealing anyone’s personal number.</p>
               </div>
             </div><!-- End Features Item-->
     
             <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="300">
-              <i class="bi bi-shield-lock flex-shrink-0"></i>
+              <i class="bi bi-person-badge flex-shrink-0"></i>
               <div>
-                <h4>Secure & Safe Registration</h4>
-                <p>Sign up securely with your personal details like name and vehicle number. Your data is always kept safe and protected.</p>
+                <h4>Owner privacy &amp; Live Status</h4>
+                <p>Control push, chat, SMS, and voice channels. Show Available, Busy, Driving, Do Not Disturb, and more.</p>
               </div>
             </div><!-- End Features Item-->
     
             <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="400">
-              <i class="bi bi-gear flex-shrink-0"></i>
+              <i class="bi bi-geo-alt flex-shrink-0"></i>
               <div>
-                <h4>Easy App Integration</h4>
-                <p>Our app integrates seamlessly with your mobile device, allowing you to register, report, and track issues in real-time.</p>
+                <h4>Lost Mode recovery</h4>
+                <p>Enable Lost Mode per vehicle. Community tips and location sharing help you recover faster.</p>
               </div>
             </div><!-- End Features Item-->
     
             <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="500">
-              <i class="bi bi-graph-up flex-shrink-0"></i>
+              <i class="bi bi-telephone-forward flex-shrink-0"></i>
               <div>
-                <h4>Always Up-to-Date</h4>
-                <p>SudoTag keeps the issue-reporting tags updated from the cloud, ensuring that all past reports are accessible and current.</p>
+                <h4>Masked chat, SMS &amp; voice</h4>
+                <p>Communicate through SudoTag channels—chat, templated SMS, and routed voice—with emergency options when needed.</p>
               </div>
             </div><!-- End Features Item-->
     
@@ -475,76 +480,136 @@
 
     </section><!-- /Features Section -->
 
-    <!-- Services Section -->
+    <!-- App Features Section -->
     <section id="services" class="services section">
 
       <!-- Section Title -->
       <div class="container section-title" data-aos="fade-up">
-        <h2>Services</h2>
-        <p>Check out the services we provide with SudoTag</p>
+        <h2>Features</h2>
+        <p>Everything in the SudoTag app &amp; web</p>
       </div><!-- End Section Title -->
     
       <div class="container">
     
-        <div class="row gy-4">
+        <div class="row gy-4 services-feature-grid">
     
           <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
             <div class="service-item position-relative">
               <div class="icon">
                 <i class="bi bi-qr-code"></i>
               </div>
-                <h3>QR Code Reporting</h3>
-              <p>Easily report issues like improper parking by scanning a QR code, simplifying the process for users and authorities alike.</p>
+              <h3>Private QR contact</h3>
+              <p>Anyone can scan your SudoTag to reach you privately—without seeing your phone number.</p>
             </div>
           </div><!-- End Service Item -->
     
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="150">
+            <a href="#find-vehicle" class="service-item position-relative service-item--link">
+              <div class="icon">
+                <i class="bi bi-qr-code-scan"></i>
+              </div>
+              <h3>Scan QR / plate</h3>
+              <p>One scan: notify an active owner, or activate a new SudoTag. Plate lookup works too.</p>
+            </a>
+          </div><!-- End Service Item -->
+    
           <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+            <a href="#find-vehicle" class="service-item position-relative service-item--link">
+              <div class="icon">
+                <i class="bi bi-upc-scan"></i>
+              </div>
+              <h3>Activate SudoTag</h3>
+              <p>Got a new sticker? Same Scan QR flow opens activation when the tag is not linked yet.</p>
+            </a>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="250">
             <div class="service-item position-relative">
               <div class="icon">
-                <i class="bi bi-shield-lock"></i>
+                <i class="bi bi-car-front"></i>
               </div>
-                <h3>Secure User Data</h3>
-              <p>Your personal details and reports are securely stored and protected, ensuring privacy with every action.</p>
+              <h3>Multi-vehicle garage</h3>
+              <p>Add and manage multiple vehicles from one account—cars, bikes, and more.</p>
             </div>
           </div><!-- End Service Item -->
     
           <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
             <div class="service-item position-relative">
               <div class="icon">
-                <i class="bi bi-bell"></i>
+                <i class="bi bi-folder2-open"></i>
               </div>
-                <h3>Instant Notifications</h3>
-              <p>Get real-time notifications on your reports, ensuring you're always informed about the status of the issue you've raised.</p>
+              <h3>Document locker</h3>
+              <p>Store RC, insurance, PUC, and other vehicle docs securely in the app.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="350">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-people"></i>
+              </div>
+              <h3>Family / temp assign</h3>
+              <p>Share access with family or temporarily assign a vehicle when someone else is driving.</p>
             </div>
           </div><!-- End Service Item -->
     
           <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
             <div class="service-item position-relative">
               <div class="icon">
-                <i class="bi bi-clipboard-data"></i>
+                <i class="bi bi-geo-alt"></i>
               </div>
-                <h3>Detailed Reports</h3>
-              <p>Track and view detailed reports of all the issues raised with timestamps and actions taken by authorities.</p>
+              <h3>Lost Mode + tips</h3>
+              <p>Mark a vehicle lost, collect community tips, and get location when someone notifies you.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="450">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-chat-dots"></i>
+              </div>
+              <h3>Chat / SMS / masked call</h3>
+              <p>Talk through masked chat, SMS templates, and routed voice—numbers stay private.</p>
             </div>
           </div><!-- End Service Item -->
     
           <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
             <div class="service-item position-relative">
               <div class="icon">
-                <i class="bi bi-cloud-check"></i>
+                <i class="bi bi-toggle-on"></i>
               </div>
-                <h3>Cloud Syncing</h3>
-              <p>All your reports and data are stored in the cloud, ensuring they're always accessible, no matter where you are.</p>
+              <h3>Live Status + privacy</h3>
+              <p>Set Available, Busy, Driving, or Do Not Disturb. Control which channels reach you.</p>
+            </div>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="550">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="bi bi-stars"></i>
+              </div>
+              <h3>Sudo AI toolkit</h3>
+              <p>Get AI-assisted help for vehicle questions, reminders, and day-to-day ownership tasks.</p>
             </div>
           </div><!-- End Service Item -->
     
           <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+            <a href="{% url 'buy_now' %}" class="service-item position-relative service-item--link">
+              <div class="icon">
+                <i class="bi bi-bag-check"></i>
+              </div>
+              <h3>Order QR tags</h3>
+              <p>Buy official SudoTag QR stickers online and track your order to delivery.</p>
+            </a>
+          </div><!-- End Service Item -->
+    
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="650">
             <div class="service-item position-relative">
               <div class="icon">
-                <i class="bi bi-chat-square-dots"></i>
+                <i class="bi bi-gift"></i>
               </div>
-                <h3>Real-Time Communication</h3>
-              <p>Engage in direct communication with authorities or other users to resolve issues faster, enhancing community safety.</p>
+              <h3>Refer &amp; Earn</h3>
+              <p>Invite friends from the app and earn rewards when they join SudoTag.</p>
             </div>
           </div><!-- End Service Item -->
     
@@ -552,7 +617,7 @@
     
       </div>
 
-    </section><!-- /Services Section -->
+    </section><!-- /App Features Section -->
     
     <!-- Call To Action Section -->
     <section id="call-to-action" class="call-to-action section dark-background">
@@ -564,7 +629,7 @@
           <div class="col-xl-10">
             <div class="text-center cta-inner">
               <h3>Get Started with SudoTag Today</h3>
-              <p>Join our community and help improve public safety with easy, QR-based issue reporting. Secure, quick, and reliable—Sudo makes parking and other issues easier to report and resolve.</p>
+              <p>Order a SudoTag, activate it on web or in-app, and protect your vehicle with private scan-to-contact. Download the app to manage vehicles, Lost Mode, documents, and more.</p>
               <div class="mt-3 mb-3">
                 <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
               </div>
@@ -599,9 +664,9 @@
 
           <div class="col-lg-6">
 
-            <h3 class="fw-bold fs-2 mb-3">Empowering Communities with SudoTag</h3>
+            <h3 class="fw-bold fs-2 mb-3">Private contact for every vehicle</h3>
             <p>
-              SudoTag has revolutionized issue reporting by enabling seamless QR-based solutions for public safety and convenience. Join thousands who rely on SudoTag to keep their spaces organized and safe.
+              SudoTag connects scanners to owners through private QR contact—notify, chat, SMS, and masked calls—while you manage vehicles, documents, and Lost Mode in the app.
             </p>
 
             <div class="row gy-4">
@@ -668,12 +733,12 @@
             <div class="hiw-preview-card">
               <p class="hiw-preview-label">Scan &bull; Connect &bull; Protect</p>
               <h3 class="hiw-preview-title">Smart Vehicle Identification Platform</h3>
-              <p class="hiw-preview-desc">Contact vehicle owners, report parking issues, notify about damage, or reach emergency contacts — all through a single QR code.</p>
+              <p class="hiw-preview-desc">Activate your tag, get private notifications when someone scans, enable Lost Mode when needed, and keep docs and family access in one place.</p>
               <ul class="hiw-preview-list">
-                <li><i class="bi bi-check-circle-fill"></i> Order, activate, or scan in seconds</li>
-                <li><i class="bi bi-check-circle-fill"></i> Masked calling &amp; secure messaging</li>
-                <li><i class="bi bi-check-circle-fill"></i> Push notifications &amp; SMS alerts</li>
-                <li><i class="bi bi-check-circle-fill"></i> Vehicle reminders &amp; order tracking</li>
+                <li><i class="bi bi-check-circle-fill"></i> Activate a SudoTag on web or in-app</li>
+                <li><i class="bi bi-check-circle-fill"></i> Private notify, chat, SMS &amp; masked call</li>
+                <li><i class="bi bi-check-circle-fill"></i> Lost Mode with community tips &amp; location</li>
+                <li><i class="bi bi-check-circle-fill"></i> Document locker &amp; family / temp assign</li>
               </ul>
               <a href="{% url 'how_it_works' %}" class="hiw-preview-cta">
                 Explore Full Guide <i class="bi bi-arrow-right"></i>
@@ -690,10 +755,10 @@
                 <i class="bi bi-bag-check"></i>
                 <strong>Buy Now</strong>
               </a>
-              <div class="hiw-step-card">
-                <i class="bi bi-phone"></i>
-                <strong>Activate via App</strong>
-              </div>
+              <a href="#find-vehicle" class="hiw-step-card">
+                <i class="bi bi-card-text"></i>
+                <strong>Find by plate</strong>
+              </a>
               <div class="hiw-step-card">
                 <i class="bi bi-shield-lock"></i>
                 <strong>Secure Connect</strong>
@@ -841,31 +906,31 @@
           <div class="col">
             <div class="faq-item" data-aos="fade-up" data-aos-delay="100">
               <button class="faq-question">
-                How do I register on the app?
+                How do I activate a SudoTag?
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="faq-answer">
-                <p>To register, simply download the app from the Play Store or App Store, create an account by entering your details like name and vehicle number, and you're all set to start using the service.</p>
+                <p>Use <a href="#find-vehicle">Scan QR</a> on this site (or the app). Scan your new sticker—if it is not activated yet, we open the activation form. Link it to your vehicle and you’re ready for private scan-to-contact.</p>
               </div>
             </div>
     
             <div class="faq-item" data-aos="fade-up" data-aos-delay="200">
               <button class="faq-question">
-                How can I report an issue?
+                Can scanners see my phone number?
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="faq-answer">
-                <p>Once registered, you can easily report issues like improper parking by scanning the QR code on a vehicle through the app. The issue will be logged, and our team will take action.</p>
+                <p>No. Scanners contact you through SudoTag’s private channels—notify, chat, SMS, or masked call—without your personal number being shown.</p>
               </div>
             </div>
     
             <div class="faq-item" data-aos="fade-up" data-aos-delay="300">
               <button class="faq-question">
-                What happens after I report an issue?
+                How do I contact an owner from the website?
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="faq-answer">
-                <p>Once an issue is reported, it is reviewed by our team. They will investigate and take necessary actions to resolve the issue. You will receive updates on the progress and resolution.</p>
+                <p>Use <a href="#find-vehicle">Scan QR</a>: enter a plate or scan a QR. Active tags open notify; new tags open activation—all from the same scan.</p>
               </div>
             </div>
           </div>
@@ -874,31 +939,31 @@
           <div class="col">
             <div class="faq-item" data-aos="fade-up" data-aos-delay="400">
               <button class="faq-question">
-                Is my personal information secure?
+                What is Lost Mode?
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="faq-answer">
-                <p>Yes, we prioritize your privacy. All personal information provided during registration is encrypted and stored securely. We follow strict security protocols to protect your data.</p>
+                <p>Lost Mode marks a vehicle as missing in the app. When someone notifies you, you can receive tips and location to help recover it faster.</p>
               </div>
             </div>
     
             <div class="faq-item" data-aos="fade-up" data-aos-delay="500">
               <button class="faq-question">
-                Can I provide feedback on the service?
+                How do orders / Buy Now work?
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="faq-answer">
-                <p>Absolutely! We encourage users to share feedback through the app. This helps us improve the service and address any concerns you might have.</p>
+                <p>Tap <a href="{% url 'buy_now' %}">Buy Now</a> to order official SudoTag QR stickers. After delivery, activate the tag on web or in the app and start using it.</p>
               </div>
             </div>
     
             <div class="faq-item" data-aos="fade-up" data-aos-delay="600">
               <button class="faq-question">
-                How do I contact customer support?
+                How do I get support?
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="faq-answer">
-                <p>If you need assistance, you can contact customer support directly through the app or email us at <b>sudotagonline@gmail.com</b> We are here to help you!</p>
+                <p>Message us on WhatsApp from the <a href="#contact">Contact</a> section, reach support in the app, or email <b>sudotagonline@gmail.com</b>.</p>
               </div>
             </div>
           </div>
@@ -1040,6 +1105,7 @@ if (contactForm) {
               <li><i class="bi bi-chevron-right"></i> <a href="#hero">Home</a></li>
               <li><i class="bi bi-chevron-right"></i> <a href="#about">About SudoTag</a></li>
               <li><i class="bi bi-chevron-right"></i> <a href="{% url 'how_it_works' %}">How It Works</a></li>
+              <li><i class="bi bi-chevron-right"></i> <a href="#find-vehicle">Scan QR</a></li>
               <li><i class="bi bi-chevron-right"></i> <a href="#faq">FAQ</a></li>
             </ul>
           </div>
@@ -1047,10 +1113,10 @@ if (contactForm) {
           <div class="col-lg-2 col-md-3 footer-links">
             <h4>Our Features</h4>
             <ul>
-              <li><i class="bi bi-chevron-right"></i>QR-based Reporting</li>
-              <li><i class="bi bi-chevron-right"></i>User Verification</li>
-              <li><i class="bi bi-chevron-right"></i>Community Feedback</li>
-              <li><i class="bi bi-chevron-right"></i>Real-time Updates</li>
+              <li><i class="bi bi-chevron-right"></i>Private QR contact</li>
+              <li><i class="bi bi-chevron-right"></i>Lost Mode recovery</li>
+              <li><i class="bi bi-chevron-right"></i>Masked chat / SMS / voice</li>
+              <li><i class="bi bi-chevron-right"></i>Vehicle document locker</li>
             </ul>
           </div>
   
