@@ -5,12 +5,18 @@ from admin_app.public_vehicle_lookup import (
     extract_qr_id_from_scan,
     normalize_registration,
     notify_final_url_for_qr,
+    plate_ocr_variants,
 )
 
 
 class PublicVehicleLookupHelpersTests(SimpleTestCase):
     def test_normalize_registration(self):
         self.assertEqual(normalize_registration('kl-10 ay 2121'), 'KL10AY2121')
+
+    def test_plate_ocr_variants_include_confusion_swaps(self):
+        variants = plate_ocr_variants('KL1OAY2121')
+        self.assertIn('KL1OAY2121', variants)
+        self.assertIn('KL10AY2121', variants)
 
     def test_extract_qr_from_url(self):
         self.assertEqual(

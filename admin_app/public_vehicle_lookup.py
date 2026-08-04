@@ -70,29 +70,58 @@ def notify_final_url_for_qr(qr_id: str, request=None) -> str:
     return _absolute_admin_url(f'/admin/send-notification-final/{qid}/', request)
 
 
-def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
+def plate_ocr_variants(plate_raw: str) -> list[str]:
     """
-    Exact registration match (normalized). Returns first vehicle that has an
-    activated QR (``isQrGenerated`` + ``qrCodeId``), same as the Flutter app search.
+    Normalized plate plus common OCR confusion swaps (O/0, I/1, …).
+    Used when auto-read plates miss an exact Firestore match.
     """
-    plate = normalize_registration(plate_raw)
-    if len(plate) < 6:
-        return None
+    base = normalize_registration(plate_raw)
+    if len(base) < 6:
+        return []
 
-    docs = list(
-        db.collection('vehicles')
-        .where(filter=FieldFilter('registrationNumber', '==', plate))
-        .limit(10)
-        .stream()
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: str) -> None:
+        v = normalize_registration(value)
+        if len(v) < 6 or v in seen:
+            return
+        seen.add(v)
+        ordered.append(v)
+
+    add(base)
+    swaps = (
+        ('O', '0'),
+        ('0', 'O'),
+        ('I', '1'),
+        ('1', 'I'),
+        ('S', '5'),
+        ('5', 'S'),
+        ('B', '8'),
+        ('8', 'B'),
+        ('Z', '2'),
+        ('2', 'Z'),
+        ('G', '6'),
+        ('6', 'G'),
     )
-    if not docs:
-        docs = list(
-            db.collection('vehicles')
-            .where(filter=FieldFilter('vehicle_number', '==', plate))
-            .limit(10)
-            .stream()
-        )
+    for a, b in swaps:
+        if a in base:
+            add(base.replace(a, b))
 
+    # Position-aware: district digits after state code (KL10…)
+    if len(base) >= 8 and base[:2].isalpha():
+        chars = list(base)
+        for idx in (2, 3):
+            if chars[idx] == 'O':
+                chars[idx] = '0'
+            elif chars[idx] == 'I':
+                chars[idx] = '1'
+        add(''.join(chars))
+
+    return ordered[:12]
+
+
+def _vehicle_hit_from_docs(docs, fallback_plate: str) -> dict[str, Any] | None:
     for doc in docs:
         data = doc.to_dict() or {}
         if data.get('isQrGenerated') and str(data.get('qrCodeId') or '').strip():
@@ -107,11 +136,44 @@ def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
             return {
                 'vehicle_id': doc.id,
                 'qr_id': qr_id,
-                'registrationNumber': data.get('registrationNumber') or plate,
+                'registrationNumber': data.get('registrationNumber') or fallback_plate,
                 'make': data.get('make') or '',
                 'model': data.get('model') or '',
                 'primaryPhotoUrl': primary,
             }
+    return None
+
+
+def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
+    """
+    Exact registration match (normalized), then OCR confusion variants.
+    Returns first vehicle that has an activated QR (``isQrGenerated`` + ``qrCodeId``).
+    """
+    variants = plate_ocr_variants(plate_raw)
+    if not variants:
+        return None
+
+    for plate in variants:
+        docs = list(
+            db.collection('vehicles')
+            .where(filter=FieldFilter('registrationNumber', '==', plate))
+            .limit(10)
+            .stream()
+        )
+        hit = _vehicle_hit_from_docs(docs, plate)
+        if hit:
+            return hit
+
+        docs = list(
+            db.collection('vehicles')
+            .where(filter=FieldFilter('vehicle_number', '==', plate))
+            .limit(10)
+            .stream()
+        )
+        hit = _vehicle_hit_from_docs(docs, plate)
+        if hit:
+            return hit
+
     return None
 
 

@@ -3913,6 +3913,17 @@ body.find-vehicle-lookup-open {
   letter-spacing: 0.02em;
   text-align: center;
 }
+.find-vehicle-lookup-loader__fallback {
+  width: min(56px, 16vw);
+  height: min(56px, 16vw);
+  border-radius: 50%;
+  border: 3px solid rgba(229, 129, 71, 0.25);
+  border-top-color: #e58147;
+  animation: find-vehicle-loader-spin 0.8s linear infinite;
+}
+@keyframes find-vehicle-loader-spin {
+  to { transform: rotate(360deg); }
+}
 
 /* Activate QR section — same scanner console language */
 .activate-qr.find-vehicle.section {

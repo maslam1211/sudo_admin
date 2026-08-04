@@ -43,6 +43,11 @@
   var plateOcrBusy = false;
   var lookupLoaderAnim = null;
   var lookupLottiePromise = null;
+  var lookupLoaderToken = 0;
+  var wheelJsonCache = null;
+  var wheelJsonPromise = null;
+  var livePlateCandidate = '';
+  var livePlateHits = 0;
   var RESET_KEY = 'sudoFindVehicleReset';
   var wheelUrl =
     card.getAttribute('data-wheel-url') ||
@@ -163,6 +168,40 @@
     return lookupLottiePromise;
   }
 
+  function fetchWheelJson() {
+    if (wheelJsonCache) return Promise.resolve(wheelJsonCache);
+    if (wheelJsonPromise) return wheelJsonPromise;
+    wheelJsonPromise = fetch(wheelUrl, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('wheel http ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data || typeof data !== 'object') {
+          throw new Error('wheel invalid');
+        }
+        wheelJsonCache = data;
+        return data;
+      })
+      .catch(function (err) {
+        wheelJsonPromise = null;
+        throw err;
+      });
+    return wheelJsonPromise;
+  }
+
+  function showLoaderCssFallback(mount) {
+    if (!mount) return;
+    mount.innerHTML = '';
+    var fb = document.createElement('div');
+    fb.className = 'find-vehicle-lookup-loader__fallback';
+    fb.setAttribute('aria-hidden', 'true');
+    mount.appendChild(fb);
+  }
+
   function getLookupLoaderEl() {
     var el = document.getElementById('findVehicleLookupLoader');
     if (el) return el;
@@ -183,6 +222,7 @@
   }
 
   function hideLookupLoader() {
+    lookupLoaderToken += 1;
     var el = document.getElementById('findVehicleLookupLoader');
     if (lookupLoaderAnim) {
       try {
@@ -204,27 +244,60 @@
     var el = getLookupLoaderEl();
     var text = document.getElementById('findVehicleLookupText');
     var mount = document.getElementById('findVehicleLookupLottie');
+    var token = (lookupLoaderToken += 1);
     if (text) text.textContent = message || 'Finding vehicle…';
     el.hidden = false;
     el.setAttribute('aria-hidden', 'false');
     el.setAttribute('aria-busy', 'true');
     document.body.classList.add('find-vehicle-lookup-open');
 
-    if (lookupLoaderAnim) return;
-    ensureLottieApi()
-      .then(function (api) {
-        if (!mount || el.hidden) return;
+    // Keep existing healthy animation; only (re)start when missing
+    if (lookupLoaderAnim && mount && mount.childNodes.length) {
+      return;
+    }
+
+    if (lookupLoaderAnim) {
+      try {
+        lookupLoaderAnim.destroy();
+      } catch (e) {}
+      lookupLoaderAnim = null;
+    }
+    if (mount) mount.innerHTML = '';
+
+    Promise.all([ensureLottieApi(), fetchWheelJson()])
+      .then(function (pack) {
+        if (token !== lookupLoaderToken || el.hidden || !mount) return;
+        var api = pack[0];
+        var data = pack[1];
         mount.innerHTML = '';
         lookupLoaderAnim = api.loadAnimation({
           container: mount,
           renderer: 'svg',
           loop: true,
           autoplay: true,
-          path: wheelUrl,
+          animationData: data,
         });
       })
       .catch(function () {
-        /* Text-only fallback — same black overlay still shows */
+        if (token !== lookupLoaderToken || el.hidden) return;
+        // path fallback if animationData fetch failed
+        ensureLottieApi()
+          .then(function (api) {
+            if (token !== lookupLoaderToken || el.hidden || !mount) return;
+            if (lookupLoaderAnim) return;
+            mount.innerHTML = '';
+            lookupLoaderAnim = api.loadAnimation({
+              container: mount,
+              renderer: 'svg',
+              loop: true,
+              autoplay: true,
+              path: wheelUrl,
+            });
+          })
+          .catch(function () {
+            if (token !== lookupLoaderToken || el.hidden) return;
+            showLoaderCssFallback(mount);
+          });
       });
   }
 
@@ -251,6 +324,8 @@
     busy = false;
     plateOcrBusy = false;
     detecting = false;
+    livePlateCandidate = '';
+    livePlateHits = 0;
     if (previewWrap) previewWrap.hidden = true;
     if (captureBtn) captureBtn.hidden = true;
     if (stopBtn) stopBtn.hidden = true;
@@ -262,22 +337,57 @@
     selectTab('qr');
   }
 
+  function parseLookupResponse(res) {
+    var ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (ct.indexOf('application/json') >= 0) {
+      return res.json().then(function (data) {
+        return { ok: res.ok, status: res.status, data: data || {} };
+      });
+    }
+    return res.text().then(function () {
+      return {
+        ok: false,
+        status: res.status,
+        data: {
+          status: 'error',
+          message:
+            res.status === 403
+              ? 'Session expired. Refresh the page and try again.'
+              : 'Lookup failed. Please try again.',
+        },
+      };
+    });
+  }
+
+  function navigateWithLoader(target, message) {
+    markNeedsReset();
+    showLookupLoader(message || 'Opening…');
+    stopCamera();
+    // Let the wheel paint before navigation (path/JSON race fix)
+    window.setTimeout(function () {
+      window.location.assign(target);
+    }, 80);
+  }
+
   function lookup(payload) {
     if (busy) return Promise.resolve();
     busy = true;
-    showLookupLoader('Finding vehicle…');
+    showLookupLoader(
+      payload && payload.mode === 'qr'
+        ? 'Checking QR…'
+        : 'Finding vehicle…'
+    );
     setStatus('Looking up vehicle…');
+    // Warm wheel JSON in parallel with API
+    fetchWheelJson().catch(function () {});
+
     return fetch(lookupUrl, {
       method: 'POST',
       credentials: 'same-origin',
       headers: getCookieCsrfHeaders(),
       body: JSON.stringify(payload),
     })
-      .then(function (res) {
-        return res.json().then(function (data) {
-          return { ok: res.ok, data: data || {} };
-        });
-      })
+      .then(parseLookupResponse)
       .then(function (res) {
         var data = res.data || {};
         if (data.status === 'success') {
@@ -292,16 +402,13 @@
             data.activate_url ||
             '';
           if (target) {
-            markNeedsReset();
             if (goActivate) {
               setStatus('QR not activated — opening activation…', 'ok');
-              showLookupLoader('Opening activation…');
+              navigateWithLoader(target, 'Opening activation…');
             } else {
               setStatus('Opening notify screen…', 'ok');
-              showLookupLoader('Opening notify…');
+              navigateWithLoader(target, 'Opening notify…');
             }
-            stopCamera();
-            window.location.assign(target);
             return;
           }
         }
@@ -640,21 +747,27 @@
     }
     setStatus('Detected plate: ' + value, 'ok');
     if (autoLookup) {
+      if (busy) return;
+      showLookupLoader('Finding vehicle…');
       lookup({ mode: 'plate', plate: value });
     } else if (plateInput) {
       plateInput.focus();
     }
   }
 
-  function recognizePlateFromSource(source) {
+  function recognizePlateFromSource(source, opts) {
+    var options = opts || {};
+    var quick = !!options.quick;
     return drawSourceToCanvas(source).then(function (baseCanvas) {
-      var variants = [
-        preprocessPlateCanvas(baseCanvas, true),
-        preprocessPlateCanvas(baseCanvas, false),
-      ];
+      var variants = quick
+        ? [preprocessPlateCanvas(baseCanvas, true)]
+        : [
+            preprocessPlateCanvas(baseCanvas, true),
+            preprocessPlateCanvas(baseCanvas, false),
+          ];
+      var psms = quick ? ['7', '6'] : ['7', '8', '6'];
       return getPlateOcrWorker().then(function (worker) {
         var texts = [];
-        var psms = ['7', '8', '6'];
         var chain = Promise.resolve();
         variants.forEach(function (canvas) {
           psms.forEach(function (psm) {
@@ -702,20 +815,25 @@
   }
 
   function runPlateOcr(source, previewUrl, revokePreview) {
-    if (plateOcrBusy) return;
+    if (plateOcrBusy || busy) return;
     plateOcrBusy = true;
+    livePlateCandidate = '';
+    livePlateHits = 0;
     if (previewUrl) showPlatePreviewFromUrl(previewUrl, !!revokePreview);
     selectTab('plate');
     showLookupLoader('Reading plate number…');
     setStatus('Reading plate number…');
+    fetchWheelJson().catch(function () {});
 
-    recognizePlateFromSource(source)
+    recognizePlateFromSource(source, { quick: false })
       .then(function (res) {
-        plateOcrBusy = false;
         if (res.plate) {
+          // Keep wheel up through lookup → redirect
+          plateOcrBusy = false;
           applyDetectedPlate(res.plate, true);
           return;
         }
+        plateOcrBusy = false;
         hideLookupLoader();
         setStatus(
           'Could not auto-read the plate. Type the number you see, then tap Find.',
@@ -855,9 +973,10 @@
   }
 
   function handleQrRaw(raw) {
-    if (!raw) return;
-    showLookupLoader('Finding vehicle…');
-    setStatus('QR detected. Opening notify…', 'ok');
+    if (!raw || busy) return;
+    stopCamera();
+    showLookupLoader('Checking QR…');
+    setStatus('QR detected…', 'ok');
     lookup({ mode: 'qr', qr: String(raw) });
   }
 
@@ -976,8 +1095,10 @@
           setStatus('Point at the SudoTag QR…');
           scanTimer = setInterval(tickQrDetect, 500);
         } else {
+          livePlateCandidate = '';
+          livePlateHits = 0;
           setStatus('Point at the number plate — auto-detecting…');
-          scanTimer = setInterval(tickPlateDetect, 1200);
+          scanTimer = setInterval(tickPlateDetect, 900);
         }
         // Scroll preview into view on small screens
         if (previewWrap && previewWrap.scrollIntoView) {
@@ -1022,10 +1143,24 @@
       return;
     }
     ctx.drawImage(video, 0, 0, w, h);
-    recognizePlateFromSource(canvas)
+    // Quick pass for live camera — confirm twice before lookup
+    recognizePlateFromSource(canvas, { quick: true })
       .then(function (res) {
         detecting = false;
-        if (!res.plate || busy || plateOcrBusy) return;
+        if (!res.plate || busy || plateOcrBusy || activeMode !== 'plate') return;
+        var plate = normalizePlateText(res.plate);
+        if (!plate) return;
+        if (plate === livePlateCandidate) {
+          livePlateHits += 1;
+        } else {
+          livePlateCandidate = plate;
+          livePlateHits = 1;
+          if (plateInput) plateInput.value = plate;
+          setStatus('Reading plate: ' + plate + '…', 'ok');
+          return;
+        }
+        if (livePlateHits < 2) return;
+
         var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
         if (snapImg) {
           snapImg.src = dataUrl;
@@ -1035,7 +1170,10 @@
         stopCamera();
         if (previewWrap) previewWrap.hidden = false;
         if (snapImg) snapImg.hidden = false;
-        applyDetectedPlate(res.plate, true);
+        livePlateCandidate = '';
+        livePlateHits = 0;
+        showLookupLoader('Finding vehicle…');
+        applyDetectedPlate(plate, true);
       })
       .catch(function () {
         detecting = false;
@@ -1043,7 +1181,8 @@
   }
 
   function tickQrDetect() {
-    if (detecting || busy || !video || !canvas) return;
+    if (detecting || busy || plateOcrBusy || !video || !canvas) return;
+    if (activeMode !== 'qr') return;
     if (video.readyState < 2) return;
     var w = video.videoWidth;
     var h = video.videoHeight;
@@ -1060,7 +1199,7 @@
     detectQrFromCanvas()
       .then(function (raw) {
         detecting = false;
-        if (raw) handleQrRaw(raw);
+        if (raw && !busy) handleQrRaw(raw);
       })
       .catch(function () {
         detecting = false;
@@ -1196,11 +1335,14 @@
       });
       stopCamera();
       clearSnap();
+      livePlateCandidate = '';
+      livePlateHits = 0;
       if (previewWrap) previewWrap.hidden = true;
       setStatus('');
       if (name === 'plate') {
         // Warm OCR worker so gallery upload is faster
         getPlateOcrWorker().catch(function () {});
+        fetchWheelJson().catch(function () {});
       }
     });
   });
@@ -1322,6 +1464,9 @@
   if (consumeNeedsReset()) {
     resetFindVehicleState();
   }
+  // Prefetch wheel JSON so redirect loader animates immediately
+  fetchWheelJson().catch(function () {});
+  ensureLottieApi().catch(function () {});
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && sheet && !sheet.hidden) closeSheet();
   });
