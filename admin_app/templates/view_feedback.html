@@ -7,16 +7,31 @@
 
 {% block content %}
 <style>
+  .fb-toolbar { margin-bottom: 1.25rem; }
+  .fb-toolbar p { margin: 0; color: #6b7280; font-size: 0.92rem; }
   .fb-stat-card { border: none; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
   .fb-stat-label { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6b7280; }
-  .fb-stat-value { font-size: 1.6rem; font-weight: 800; color: #111827; }
+  .fb-stat-value { font-size: 1.55rem; font-weight: 800; color: #111827; line-height: 1.2; }
+  .fb-stat-value.is-pending { color: #d97706; }
+  .fb-stat-value.is-approved { color: #059669; }
+  .fb-stat-value.is-rejected { color: #dc2626; }
   .fb-stars { color: #f59e0b; letter-spacing: 1px; white-space: nowrap; }
-  .fb-badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: .35rem .7rem; }
+  .fb-badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: .35rem .75rem; display: inline-block; }
   .fb-badge-pending { background: #fef3c7; color: #92400e; }
   .fb-badge-approved { background: #d1fae5; color: #065f46; }
   .fb-badge-rejected { background: #fee2e2; color: #991b1b; }
-  .fb-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e5e7eb; }
-  .fb-msg { max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #e5e7eb; flex-shrink: 0; }
+  .fb-msg { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb-actions { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .fb-actions .btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.35rem 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fb-filter-card .form-label { margin-bottom: 0.35rem; }
   .fb-toast {
     position: fixed; right: 20px; bottom: 20px; z-index: 1080;
     min-width: 260px; padding: 12px 16px; border-radius: 10px; color: #fff;
@@ -25,15 +40,16 @@
   .fb-toast.show { display: block; }
   .fb-toast.ok { background: #059669; }
   .fb-toast.err { background: #dc2626; }
+  @media (max-width: 767px) {
+    .fb-msg { max-width: 160px; }
+    .fb-actions { justify-content: flex-start; }
+  }
 </style>
 
 {% csrf_token %}
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-  <div>
-    <h5 class="mb-0 fw-bold">Feedback Management</h5>
-    <small class="text-muted">Review, approve, and publish customer feedback to the website</small>
-  </div>
+<div class="fb-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <p>Review, approve, and publish customer feedback to the website.</p>
   <div class="d-flex gap-2">
     <button type="button" class="btn btn-primary" id="fbCreateBtn">
       <i class="fas fa-plus me-1"></i> Add Feedback
@@ -46,45 +62,45 @@
 
 <div class="row g-3 mb-4">
   <div class="col-xl col-md-4 col-6">
-    <div class="card fb-stat-card h-100"><div class="card-body">
+    <div class="card fb-stat-card h-100"><div class="card-body py-3">
       <div class="fb-stat-label">Total</div>
       <div class="fb-stat-value">{{ total_feedback }}</div>
     </div></div>
   </div>
   <div class="col-xl col-md-4 col-6">
-    <div class="card fb-stat-card h-100"><div class="card-body">
-      <div class="fb-stat-label text-warning">Pending</div>
-      <div class="fb-stat-value">{{ pending_feedback }}</div>
+    <div class="card fb-stat-card h-100"><div class="card-body py-3">
+      <div class="fb-stat-label">Pending</div>
+      <div class="fb-stat-value is-pending">{{ pending_feedback }}</div>
     </div></div>
   </div>
   <div class="col-xl col-md-4 col-6">
-    <div class="card fb-stat-card h-100"><div class="card-body">
-      <div class="fb-stat-label text-success">Approved</div>
-      <div class="fb-stat-value">{{ approved_feedback }}</div>
+    <div class="card fb-stat-card h-100"><div class="card-body py-3">
+      <div class="fb-stat-label">Approved</div>
+      <div class="fb-stat-value is-approved">{{ approved_feedback }}</div>
     </div></div>
   </div>
   <div class="col-xl col-md-4 col-6">
-    <div class="card fb-stat-card h-100"><div class="card-body">
-      <div class="fb-stat-label text-danger">Rejected</div>
-      <div class="fb-stat-value">{{ rejected_feedback }}</div>
+    <div class="card fb-stat-card h-100"><div class="card-body py-3">
+      <div class="fb-stat-label">Rejected</div>
+      <div class="fb-stat-value is-rejected">{{ rejected_feedback }}</div>
     </div></div>
   </div>
   <div class="col-xl col-md-4 col-6">
-    <div class="card fb-stat-card h-100"><div class="card-body">
+    <div class="card fb-stat-card h-100"><div class="card-body py-3">
       <div class="fb-stat-label">Average Rating</div>
       <div class="fb-stat-value">{{ average_rating }}/5</div>
     </div></div>
   </div>
 </div>
 
-<div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4 fb-filter-card">
   <div class="card-body">
-    <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-4">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-lg-5 col-md-6">
         <label class="form-label small fw-semibold">Search by name</label>
         <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Customer name">
       </div>
-      <div class="col-md-3">
+      <div class="col-lg-2 col-md-3 col-6">
         <label class="form-label small fw-semibold">Status</label>
         <select name="status" class="form-select">
           <option value="">All statuses</option>
@@ -93,7 +109,7 @@
           <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-lg-2 col-md-3 col-6">
         <label class="form-label small fw-semibold">Rating</label>
         <select name="rating" class="form-select">
           <option value="">All ratings</option>
@@ -102,21 +118,23 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-2 d-grid">
-        <button class="btn btn-dark" type="submit"><i class="fas fa-filter me-1"></i> Filter</button>
+      <div class="col-lg-3 col-md-12">
+        <button class="btn btn-dark w-100 w-lg-auto px-4" type="submit">
+          <i class="fas fa-filter me-1"></i> Filter
+        </button>
       </div>
     </form>
   </div>
 </div>
 
 <div class="card shadow-sm">
-  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+  <div class="card-header bg-white py-3">
     <h6 class="mb-0 fw-bold">Feedback List <span class="text-muted fw-normal">(latest first)</span></h6>
   </div>
   <div class="card-body">
     {% if feedback_list %}
     <div class="table-responsive">
-      <table class="table align-middle">
+      <table class="table align-middle mb-0">
         <thead>
           <tr>
             <th>Customer</th>
@@ -155,16 +173,18 @@
             <td>
               <span class="fb-badge fb-badge-{{ fb.status }}">{{ fb.status|title }}</span>
             </td>
-            <td class="text-end text-nowrap">
-              <button type="button" class="btn btn-sm btn-outline-secondary fb-view" data-id="{{ fb.id }}" title="View"><i class="fas fa-eye"></i></button>
-              <button type="button" class="btn btn-sm btn-outline-primary fb-edit" data-id="{{ fb.id }}" title="Edit"><i class="fas fa-edit"></i></button>
-              {% if fb.status != 'approved' %}
-              <button type="button" class="btn btn-sm btn-success fb-approve" data-id="{{ fb.id }}" title="Approve"><i class="fas fa-check"></i></button>
-              {% endif %}
-              {% if fb.status != 'rejected' %}
-              <button type="button" class="btn btn-sm btn-warning fb-reject" data-id="{{ fb.id }}" title="Reject"><i class="fas fa-ban"></i></button>
-              {% endif %}
-              <button type="button" class="btn btn-sm btn-outline-danger fb-delete" data-id="{{ fb.id }}" title="Delete"><i class="fas fa-trash"></i></button>
+            <td class="text-end">
+              <div class="fb-actions">
+                <button type="button" class="btn btn-outline-secondary fb-view" data-id="{{ fb.id }}" title="View"><i class="fas fa-eye"></i></button>
+                <button type="button" class="btn btn-outline-primary fb-edit" data-id="{{ fb.id }}" title="Edit"><i class="fas fa-pen"></i></button>
+                {% if fb.status != 'approved' %}
+                <button type="button" class="btn btn-success fb-approve" data-id="{{ fb.id }}" title="Approve"><i class="fas fa-check"></i></button>
+                {% endif %}
+                {% if fb.status != 'rejected' %}
+                <button type="button" class="btn btn-outline-warning fb-reject" data-id="{{ fb.id }}" title="Reject"><i class="fas fa-ban"></i></button>
+                {% endif %}
+                <button type="button" class="btn btn-outline-danger fb-delete" data-id="{{ fb.id }}" title="Delete"><i class="fas fa-trash"></i></button>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -197,7 +217,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Feedback Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="fbViewBody"></div>
     </div>
@@ -211,7 +231,7 @@
       <form id="fbEditForm" enctype="multipart/form-data">
         <div class="modal-header">
           <h5 class="modal-title" id="fbEditTitle">Add Feedback</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="id" id="fbId">
@@ -262,15 +282,27 @@
 </div>
 
 <div class="fb-toast" id="fbToast"></div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 (function () {
+  if (typeof bootstrap === 'undefined') {
+    console.error('Bootstrap is required for Feedback Management');
+    return;
+  }
+
   const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
   const toastEl = document.getElementById('fbToast');
-  const editModal = new bootstrap.Modal(document.getElementById('fbEditModal'));
-  const viewModal = new bootstrap.Modal(document.getElementById('fbViewModal'));
+  const editModalEl = document.getElementById('fbEditModal');
+  const viewModalEl = document.getElementById('fbViewModal');
+  if (!editModalEl || !viewModalEl) return;
+
+  const editModal = new bootstrap.Modal(editModalEl);
+  const viewModal = new bootstrap.Modal(viewModalEl);
 
   function toast(msg, ok) {
+    if (!toastEl) return;
     toastEl.textContent = msg;
     toastEl.className = 'fb-toast show ' + (ok ? 'ok' : 'err');
     setTimeout(() => toastEl.classList.remove('show'), 3200);
@@ -280,88 +312,155 @@
     const body = new URLSearchParams({ id, status });
     return fetch('{% url "feedback_set_status" %}', {
       method: 'POST',
-      headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+      headers: {
+        'X-CSRFToken': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
       body,
-    }).then(r => r.json());
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    });
   }
 
   async function loadDetail(id) {
-    const res = await fetch(`/admin/feedback-detail/${id}/`);
+    const res = await fetch(`/admin/feedback-detail/${id}/`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
     return res.json();
   }
 
-  document.getElementById('fbCreateBtn').addEventListener('click', () => {
+  document.getElementById('fbCreateBtn')?.addEventListener('click', () => {
     document.getElementById('fbEditTitle').textContent = 'Add Feedback';
     document.getElementById('fbEditForm').reset();
     document.getElementById('fbId').value = '';
     editModal.show();
   });
 
-  document.querySelectorAll('.fb-approve').forEach(btn => {
+  document.querySelectorAll('.fb-approve').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('Approve this feedback and show it on the website?')) return;
-      const data = await setStatus(btn.dataset.id, 'approved');
-      if (data.success) { toast('Feedback approved', true); location.reload(); }
-      else toast(data.error || 'Failed', false);
+      try {
+        const data = await setStatus(btn.dataset.id, 'approved');
+        if (data.success) {
+          toast('Feedback approved', true);
+          location.reload();
+        } else {
+          toast(data.error || 'Failed', false);
+        }
+      } catch (err) {
+        toast(err.message || 'Failed', false);
+      }
     });
   });
 
-  document.querySelectorAll('.fb-reject').forEach(btn => {
+  document.querySelectorAll('.fb-reject').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('Reject this feedback?')) return;
-      const data = await setStatus(btn.dataset.id, 'rejected');
-      if (data.success) { toast('Feedback rejected', true); location.reload(); }
-      else toast(data.error || 'Failed', false);
+      try {
+        const data = await setStatus(btn.dataset.id, 'rejected');
+        if (data.success) {
+          toast('Feedback rejected', true);
+          location.reload();
+        } else {
+          toast(data.error || 'Failed', false);
+        }
+      } catch (err) {
+        toast(err.message || 'Failed', false);
+      }
     });
   });
 
-  document.querySelectorAll('.fb-delete').forEach(btn => {
+  document.querySelectorAll('.fb-delete').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (!confirm('Permanently delete this feedback from Firestore?')) return;
       window.location.href = `/admin/delete-feedback/${btn.dataset.id}/`;
     });
   });
 
-  document.querySelectorAll('.fb-view').forEach(btn => {
+  document.querySelectorAll('.fb-view').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const data = await loadDetail(btn.dataset.id);
-      if (!data.success) return toast(data.error || 'Not found', false);
-      const f = data.feedback;
-      const stars = '★'.repeat(f.rating || 0) + '☆'.repeat(5 - (f.rating || 0));
-      document.getElementById('fbViewBody').innerHTML = `
-        <div class="d-flex align-items-center gap-3 mb-3">
-          ${f.profileImage ? `<img src="${f.profileImage}" class="fb-avatar" style="width:56px;height:56px">` : ''}
-          <div>
-            <div class="fw-bold fs-5">${f.name || ''}</div>
-            <div class="text-warning">${stars}</div>
-            <small class="text-muted">${f.createdAt || ''} · ${f.status || ''}</small>
-          </div>
-        </div>
-        <p class="mb-0" style="white-space:pre-wrap">${f.feedback || ''}</p>
-        ${f.email ? `<hr><small class="text-muted">${f.email}</small>` : ''}
-      `;
-      viewModal.show();
+      try {
+        const data = await loadDetail(btn.dataset.id);
+        if (!data.success) return toast(data.error || 'Not found', false);
+        const f = data.feedback;
+        const stars = '★'.repeat(f.rating || 0) + '☆'.repeat(5 - (f.rating || 0));
+        const wrap = document.createElement('div');
+
+        const head = document.createElement('div');
+        head.className = 'd-flex align-items-center gap-3 mb-3';
+        if (f.profileImage) {
+          const img = document.createElement('img');
+          img.src = f.profileImage;
+          img.alt = '';
+          img.className = 'fb-avatar';
+          img.style.width = '56px';
+          img.style.height = '56px';
+          head.appendChild(img);
+        }
+        const meta = document.createElement('div');
+        const nameEl = document.createElement('div');
+        nameEl.className = 'fw-bold fs-5';
+        nameEl.textContent = f.name || '';
+        const starEl = document.createElement('div');
+        starEl.className = 'text-warning';
+        starEl.textContent = stars;
+        const sub = document.createElement('small');
+        sub.className = 'text-muted';
+        sub.textContent = `${f.createdAt || ''} · ${f.status || ''}`;
+        meta.appendChild(nameEl);
+        meta.appendChild(starEl);
+        meta.appendChild(sub);
+        head.appendChild(meta);
+        wrap.appendChild(head);
+
+        const msg = document.createElement('p');
+        msg.className = 'mb-0';
+        msg.style.whiteSpace = 'pre-wrap';
+        msg.textContent = f.feedback || '';
+        wrap.appendChild(msg);
+
+        if (f.email) {
+          wrap.appendChild(document.createElement('hr'));
+          const email = document.createElement('small');
+          email.className = 'text-muted';
+          email.textContent = f.email;
+          wrap.appendChild(email);
+        }
+
+        const body = document.getElementById('fbViewBody');
+        body.innerHTML = '';
+        body.appendChild(wrap);
+        viewModal.show();
+      } catch (err) {
+        toast('Could not load feedback', false);
+      }
     });
   });
 
-  document.querySelectorAll('.fb-edit').forEach(btn => {
+  document.querySelectorAll('.fb-edit').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const data = await loadDetail(btn.dataset.id);
-      if (!data.success) return toast(data.error || 'Not found', false);
-      const f = data.feedback;
-      document.getElementById('fbEditTitle').textContent = 'Edit Feedback';
-      document.getElementById('fbId').value = f.id || '';
-      document.getElementById('fbName').value = f.name || '';
-      document.getElementById('fbEmail').value = f.email || '';
-      document.getElementById('fbRating').value = String(f.rating || 5);
-      document.getElementById('fbStatus').value = f.status || 'pending';
-      document.getElementById('fbText').value = f.feedback || '';
-      document.getElementById('fbImage').value = '';
-      editModal.show();
+      try {
+        const data = await loadDetail(btn.dataset.id);
+        if (!data.success) return toast(data.error || 'Not found', false);
+        const f = data.feedback;
+        document.getElementById('fbEditTitle').textContent = 'Edit Feedback';
+        document.getElementById('fbId').value = f.id || '';
+        document.getElementById('fbName').value = f.name || '';
+        document.getElementById('fbEmail').value = f.email || '';
+        document.getElementById('fbRating').value = String(f.rating || 5);
+        document.getElementById('fbStatus').value = f.status || 'pending';
+        document.getElementById('fbText').value = f.feedback || '';
+        document.getElementById('fbImage').value = '';
+        editModal.show();
+      } catch (err) {
+        toast('Could not load feedback', false);
+      }
     });
   });
 
-  document.getElementById('fbEditForm').addEventListener('submit', async (e) => {
+  document.getElementById('fbEditForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const saveBtn = document.getElementById('fbSaveBtn');
     saveBtn.disabled = true;
@@ -369,7 +468,10 @@
       const formData = new FormData(e.target);
       const res = await fetch('{% url "feedback_save" %}', {
         method: 'POST',
-        headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+        headers: {
+          'X-CSRFToken': csrf,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
         body: formData,
       });
       const data = await res.json();
