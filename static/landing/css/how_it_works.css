@@ -23,6 +23,10 @@
   overflow-x: hidden;
 }
 
+.hiw-page .main {
+  color: var(--cl-ink);
+}
+
 .hiw-page h1,
 .hiw-page h2,
 .hiw-page h3,
@@ -231,6 +235,7 @@
   position: relative;
   z-index: 1;
   padding: 64px 0 40px;
+  color: var(--cl-ink);
 }
 
 .cl-steps__head {
@@ -244,6 +249,7 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0 0 10px;
+  color: var(--cl-ink);
 }
 
 .cl-steps__head p {
@@ -334,6 +340,7 @@
   padding: 22px 22px;
   border-radius: var(--cl-radius);
   background: var(--cl-card);
+  color: var(--cl-ink);
   border: 1px solid rgba(20, 20, 20, 0.06);
   box-shadow: 0 10px 28px rgba(20, 20, 20, 0.05);
   transition: transform 0.3s var(--cl-ease), box-shadow 0.3s var(--cl-ease),
@@ -366,6 +373,7 @@
   letter-spacing: -0.02em;
   margin: 0 0 6px;
   line-height: 1.25;
+  color: var(--cl-ink);
 }
 
 .cl-row__text p {
@@ -386,7 +394,8 @@
   gap: 8px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(20, 20, 20, 0.05);
+  background: rgba(20, 20, 20, 0.06);
+  color: var(--cl-ink);
   font-size: 0.85rem;
   font-weight: 700;
   white-space: nowrap;
@@ -460,6 +469,7 @@
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(229, 129, 71, 0.14), rgba(20, 20, 20, 0.04));
   border: 1px solid rgba(229, 129, 71, 0.25);
+  color: var(--cl-ink);
 }
 
 .cl-alert i {
@@ -471,6 +481,7 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 700;
+  color: var(--cl-ink);
 }
 
 .cl-alert span {
@@ -491,6 +502,15 @@
   min-height: 40px;
   padding: 8px 12px;
   font-size: 12px;
+  color: var(--cl-ink) !important;
+  background: rgba(20, 20, 20, 0.05);
+  border: 1px solid rgba(20, 20, 20, 0.14);
+}
+
+.cl-store-row .app-store-btn:hover {
+  background: var(--cl-orange);
+  border-color: var(--cl-orange);
+  color: #0c0c0c !important;
 }
 
 /* Activate QR — App + Mobile web */
@@ -514,6 +534,7 @@
 
 .cl-activate__card {
   background: var(--cl-card);
+  color: var(--cl-ink);
   border: 1px solid rgba(20, 20, 20, 0.07);
   border-radius: var(--cl-radius);
   padding: 28px 24px;
@@ -563,6 +584,11 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
+  color: var(--cl-ink);
+}
+
+.cl-activate__card--web h3 {
+  color: #fff;
 }
 
 .cl-activate__lead {
@@ -605,6 +631,7 @@
 
 .cl-activate__steps strong {
   display: block;
+  color: inherit;
   font-size: 0.95rem;
   font-weight: 700;
   margin-bottom: 2px;
@@ -713,6 +740,7 @@
   z-index: 1;
   padding: 20px 0 90px;
   text-align: center;
+  color: var(--cl-ink);
 }
 
 .cl-cta__inner {
@@ -725,6 +753,7 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0 0 10px;
+  color: var(--cl-orange);
 }
 
 .cl-cta p {
@@ -1213,122 +1242,102 @@ body.hiw-aos-fallback [data-aos] {
     font-size: 0.88rem;
   }
 }
-/* Premium Buy Now header button — beats main.css .btn-getstarted */
+/* Buy Now — same UI as landing page */
+.hiw-page .header .btn-buy-now,
 .hiw-page .header a.btn-getstarted.btn-buy-now,
 .hiw-page .header a.btn-getstarted.btn-buy-now:focus {
+  appearance: none;
+  -webkit-appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-left: 20px;
-  padding: 11px 24px;
-  min-height: 44px;
+  margin: 0 0 0 30px;
   border: 2px solid #E58147;
+  background: linear-gradient(135deg, #f09355 0%, #E58147 45%, #d4733a 100%) !important;
+  color: #151515 !important;
   border-radius: 999px !important;
-  background: linear-gradient(135deg, #ffb07a 0%, #E58147 48%, #d4733a 100%) !important;
-  color: #0c0c0c !important;
-  font-family: var(--cl-display);
   font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: none;
-  line-height: 1;
+  font-size: 14px;
+  padding: 11px 24px;
+  line-height: 1.2;
   text-decoration: none;
+  cursor: pointer;
   box-shadow:
-    0 10px 28px rgba(229, 129, 71, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 8px 28px rgba(229, 129, 71, 0.45),
+    0 0 0 0 rgba(229, 129, 71, 0.35);
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s var(--cl-ease), box-shadow 0.3s ease, filter 0.3s ease;
-  animation: hiwBuyPulse 2.6s ease-in-out infinite;
+  transition: transform 0.3s var(--cl-ease, ease), box-shadow 0.3s ease,
+    filter 0.3s ease;
+  animation: buyNowPulse 2.8s ease-in-out infinite;
 }
 
-.hiw-page .header a.btn-getstarted.btn-buy-now::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.35) 50%,
-    transparent 70%
-  );
-  transform: translateX(-120%);
-  transition: transform 0.6s var(--cl-ease);
-  pointer-events: none;
-}
-
-.hiw-page .header a.btn-getstarted.btn-buy-now:hover,
-.hiw-page .header a.btn-getstarted.btn-buy-now:focus:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.06);
-  color: #0c0c0c !important;
-  background: linear-gradient(135deg, #ffc49a 0%, #f09355 45%, #E58147 100%) !important;
-  border-color: #f09355;
-  box-shadow: 0 14px 36px rgba(229, 129, 71, 0.6);
-  animation: none;
-}
-
-.hiw-page .header a.btn-getstarted.btn-buy-now:hover::before {
-  transform: translateX(120%);
-}
-
-.hiw-page .header a.btn-getstarted.btn-buy-now:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
-}
-
-.hiw-page .header a.btn-getstarted.btn-buy-now i {
+.hiw-page .header .btn-buy-now i {
   font-size: 1.05em;
   line-height: 1;
 }
 
-@keyframes hiwBuyPulse {
+.hiw-page .header .btn-buy-now:hover,
+.hiw-page .header a.btn-getstarted.btn-buy-now:hover,
+.hiw-page .header a.btn-getstarted.btn-buy-now:focus:hover {
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.05);
+  color: #151515 !important;
+  background: linear-gradient(135deg, #ffb07a 0%, #f09355 40%, #E58147 100%) !important;
+  border-color: #f09355;
+  box-shadow: 0 14px 36px rgba(229, 129, 71, 0.55);
+  animation: none;
+}
+
+.hiw-page .header .btn-buy-now:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+@keyframes buyNowPulse {
   0%, 100% {
     box-shadow:
-      0 10px 28px rgba(229, 129, 71, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 8px 28px rgba(229, 129, 71, 0.4),
       0 0 0 0 rgba(229, 129, 71, 0.35);
   }
   50% {
     box-shadow:
-      0 12px 32px rgba(229, 129, 71, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      0 0 0 8px rgba(229, 129, 71, 0);
+      0 10px 32px rgba(229, 129, 71, 0.5),
+      0 0 0 10px rgba(229, 129, 71, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hiw-page .header a.btn-getstarted.btn-buy-now {
+  .hiw-page .header .btn-buy-now {
     animation: none !important;
-  }
-  .hiw-page .header a.btn-getstarted.btn-buy-now::before {
-    display: none;
   }
 }
 
 @media (max-width: 1199px) {
+  .hiw-page .header .btn-buy-now,
   .hiw-page .header a.btn-getstarted.btn-buy-now {
     margin: 0 40px 0 0;
-    padding: 9px 16px;
+    gap: 6px;
+    padding: 8px 14px;
     font-size: 12px;
-    min-height: 40px;
     animation: none;
   }
 }
 
+@media (max-width: 768px) {
+  .hiw-page .header .btn-buy-now i {
+    display: none;
+  }
+}
+
 @media (max-width: 575px) {
+  .hiw-page .header .btn-buy-now,
   .hiw-page .header a.btn-getstarted.btn-buy-now {
     padding: 8px 14px;
     font-size: 12px;
     margin-right: 36px;
-  }
-
-  .hiw-page .header a.btn-getstarted.btn-buy-now i {
-    display: none;
-  }
-
-  .hiw-page .header a.btn-getstarted.btn-buy-now i.bi-arrow-right {
-    display: none;
   }
 }

@@ -559,6 +559,73 @@ section,
   text-align: left;
 }
 
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-color, #E58147);
+  background: rgba(229, 129, 71, 0.14);
+  border: 1px solid rgba(229, 129, 71, 0.32);
+}
+
+.hero-content-col .hero p.hero-lead {
+  margin: 0.85rem 0 0;
+  max-width: 14ch;
+  font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+  line-height: 1.2;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.96);
+  letter-spacing: -0.03em;
+}
+
+.hero-lead-accent {
+  color: var(--accent-color, #E58147);
+}
+
+.hero-content-col .hero p.hero-support {
+  margin: 0.9rem 0 0;
+  max-width: 34ch;
+  font-size: clamp(0.98rem, 2vw, 1.1rem);
+  line-height: 1.55;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-proof {
+  list-style: none;
+  margin: 1.15rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.hero-proof li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.hero-proof li i {
+  color: var(--accent-color, #E58147);
+  font-size: 13px;
+}
+
 .hero-content-col .hero p {
   font-size: clamp(1.05rem, 2.5vw, 1.35rem);
   line-height: 1.65;
@@ -2944,6 +3011,19 @@ a.hiw-step-card:focus {
     margin-right: auto;
   }
 
+  .hero-eyebrow {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-content-col .hero p.hero-lead {
+    max-width: 12ch;
+  }
+
+  .hero-proof {
+    justify-content: center;
+  }
+
   .hero-download-block .app-store-buttons,
   .hero-download-block .platform-icons {
     justify-content: center !important;
@@ -3088,6 +3168,15 @@ a.hiw-step-card:focus {
   .hero-content-col .hero p {
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .hero-eyebrow {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-proof {
+    justify-content: center;
   }
 
   .hero-download-block,
