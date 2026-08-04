@@ -166,6 +166,13 @@ section,
     flex-shrink: 0;
   }
 
+  .header .btn-buy-now {
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    animation: none;
+  }
+
   .header .logo {
     min-width: 0;
     flex: 1 1 auto;
@@ -221,6 +228,10 @@ section,
     padding: 6px 12px;
     font-size: 11px;
     margin-right: 36px;
+  }
+
+  .header .btn-buy-now i {
+    display: none;
   }
 }
 
@@ -280,6 +291,96 @@ section,
   background: #fff;
   color: #151515;
   border-color: #fff;
+}
+
+/* Premium Buy Now — header, hero, CTA */
+.btn-buy-now,
+.header .btn-buy-now,
+.hero-cta-row .btn-buy-now,
+.cta-actions .btn-buy-now {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  border: 2px solid #E58147;
+  background: linear-gradient(135deg, #f09355 0%, #E58147 45%, #d4733a 100%);
+  color: #151515 !important;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  font-size: 14px;
+  padding: 11px 24px;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow:
+    0 8px 28px rgba(229, 129, 71, 0.45),
+    0 0 0 0 rgba(229, 129, 71, 0.35);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--st-ease, ease), box-shadow 0.3s ease,
+    filter 0.3s ease;
+  animation: buyNowPulse 2.8s ease-in-out infinite;
+}
+
+.btn-buy-now i {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.btn-buy-now:hover,
+.header .btn-buy-now:hover,
+.hero-cta-row .btn-buy-now:hover,
+.cta-actions .btn-buy-now:hover {
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.05);
+  color: #151515 !important;
+  background: linear-gradient(135deg, #ffb07a 0%, #f09355 40%, #E58147 100%);
+  border-color: #f09355;
+  box-shadow: 0 14px 36px rgba(229, 129, 71, 0.55);
+  animation: none;
+}
+
+.btn-buy-now:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.btn-buy-now--lg {
+  font-size: 16px;
+  padding: 14px 32px;
+  min-height: 52px;
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes buyNowPulse {
+  0%, 100% {
+    box-shadow:
+      0 8px 28px rgba(229, 129, 71, 0.4),
+      0 0 0 0 rgba(229, 129, 71, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 10px 32px rgba(229, 129, 71, 0.5),
+      0 0 0 10px rgba(229, 129, 71, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-buy-now {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 1199px) {
@@ -3024,6 +3125,11 @@ a.hiw-step-card:focus {
     max-width: 280px;
     text-align: center;
     justify-content: center;
+  }
+
+  .cta-actions .btn-getstarted {
+    width: 100%;
+    max-width: 300px;
   }
 
   .hero-download-block .app-store-buttons {

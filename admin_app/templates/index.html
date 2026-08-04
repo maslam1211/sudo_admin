@@ -63,7 +63,10 @@
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
 
-      <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
+      <a class="btn-getstarted btn-buy-now" href="{% url 'buy_now' %}">
+        <i class="bi bi-bag-check-fill" aria-hidden="true"></i>
+        <span>Buy Now</span>
+      </a>
 
     </div>
   </header>
@@ -95,7 +98,10 @@
                   <span class="platform-icon platform-icon--ios"><i class="bi bi-apple"></i></span>
                 </div>
                 <div class="hero-cta-row mb-3">
-                  <a class="btn-getstarted" href="#find-vehicle">Scan QR</a>
+                  <a class="btn-getstarted" href="#find-vehicle">
+                    <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
+                    <span>Scan QR</span>
+                  </a>
                 </div>
                 <div class="app-store-buttons justify-content-start">
                   <a class="app-store-btn app-store-btn--android" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
@@ -630,8 +636,15 @@
             <div class="text-center cta-inner">
               <h3>Get Started with SudoTag Today</h3>
               <p>Order a SudoTag, activate it on web or in-app, and protect your vehicle with private scan-to-contact. Download the app to manage vehicles, Lost Mode, documents, and more.</p>
-              <div class="mt-3 mb-3">
-                <a class="btn-getstarted" href="{% url 'buy_now' %}">Buy Now</a>
+              <div class="cta-actions mt-3 mb-3">
+                <a class="btn-getstarted btn-buy-now btn-buy-now--lg" href="{% url 'buy_now' %}">
+                  <i class="bi bi-bag-check-fill" aria-hidden="true"></i>
+                  <span>Buy Your SudoTag</span>
+                </a>
+                <a class="btn-getstarted btn-getstarted--outline" href="#find-vehicle">
+                  <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
+                  <span>Scan QR</span>
+                </a>
               </div>
               <div class="app-store-buttons justify-content-center mt-3">
                 <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
