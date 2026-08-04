@@ -2,380 +2,390 @@
 {% load static %}
 {% load custom_filters %}
 
-{% block title %}View Feedback - Admin Panel{% endblock %}
-{% block page_title %}User Feedback{% endblock %}
+{% block title %}Feedback Management - Admin Panel{% endblock %}
+{% block page_title %}Feedback Management{% endblock %}
 
 {% block content %}
 <style>
-    .feedback-card {
-        border: none;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        border-radius: 0.75rem;
-        margin-bottom: 1rem;
-        transition: all 0.3s ease;
-    }
-    .feedback-card:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-    .rating-stars {
-        color: #fbbf24;
-        font-size: 1.25rem;
-    }
-    @media (max-width: 768px) {
-        .feedback-card {
-            margin-bottom: 1rem;
-        }
-    }
+  .fb-stat-card { border: none; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .fb-stat-label { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6b7280; }
+  .fb-stat-value { font-size: 1.6rem; font-weight: 800; color: #111827; }
+  .fb-stars { color: #f59e0b; letter-spacing: 1px; white-space: nowrap; }
+  .fb-badge { font-size: .75rem; font-weight: 700; border-radius: 999px; padding: .35rem .7rem; }
+  .fb-badge-pending { background: #fef3c7; color: #92400e; }
+  .fb-badge-approved { background: #d1fae5; color: #065f46; }
+  .fb-badge-rejected { background: #fee2e2; color: #991b1b; }
+  .fb-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e5e7eb; }
+  .fb-msg { max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb-toast {
+    position: fixed; right: 20px; bottom: 20px; z-index: 1080;
+    min-width: 260px; padding: 12px 16px; border-radius: 10px; color: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2); display: none;
+  }
+  .fb-toast.show { display: block; }
+  .fb-toast.ok { background: #059669; }
+  .fb-toast.err { background: #dc2626; }
 </style>
 
-<div class="d-flex justify-content-end mb-4 flex-wrap gap-2">
-        <div class="d-flex">
-            <button class="btn btn-danger me-2" id="bulkDeleteBtn" style="display: none;">
-                <i class="fas fa-trash me-1"></i> Delete Selected
-            </button>
-            <a href="{% url 'view_feedback' %}" class="btn btn-primary">
-                <i class="fas fa-sync-alt me-1"></i> Refresh
-            </a>
-        </div>
-    </div>
+{% csrf_token %}
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Feedback
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_feedback }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h5 class="mb-0 fw-bold">Feedback Management</h5>
+    <small class="text-muted">Review, approve, and publish customer feedback to the website</small>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-primary" id="fbCreateBtn">
+      <i class="fas fa-plus me-1"></i> Add Feedback
+    </button>
+    <a href="{% url 'view_feedback' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-sync-alt me-1"></i> Refresh
+    </a>
+  </div>
+</div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Average Rating
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ average_rating }}/5</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-star fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="row g-3 mb-4">
+  <div class="col-xl col-md-4 col-6">
+    <div class="card fb-stat-card h-100"><div class="card-body">
+      <div class="fb-stat-label">Total</div>
+      <div class="fb-stat-value">{{ total_feedback }}</div>
+    </div></div>
+  </div>
+  <div class="col-xl col-md-4 col-6">
+    <div class="card fb-stat-card h-100"><div class="card-body">
+      <div class="fb-stat-label text-warning">Pending</div>
+      <div class="fb-stat-value">{{ pending_feedback }}</div>
+    </div></div>
+  </div>
+  <div class="col-xl col-md-4 col-6">
+    <div class="card fb-stat-card h-100"><div class="card-body">
+      <div class="fb-stat-label text-success">Approved</div>
+      <div class="fb-stat-value">{{ approved_feedback }}</div>
+    </div></div>
+  </div>
+  <div class="col-xl col-md-4 col-6">
+    <div class="card fb-stat-card h-100"><div class="card-body">
+      <div class="fb-stat-label text-danger">Rejected</div>
+      <div class="fb-stat-value">{{ rejected_feedback }}</div>
+    </div></div>
+  </div>
+  <div class="col-xl col-md-4 col-6">
+    <div class="card fb-stat-card h-100"><div class="card-body">
+      <div class="fb-stat-label">Average Rating</div>
+      <div class="fb-stat-value">{{ average_rating }}/5</div>
+    </div></div>
+  </div>
+</div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                5-Star Ratings
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ rating_counts.5 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-thumbs-up fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Search by name</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Customer name">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Status</label>
+        <select name="status" class="form-select">
+          <option value="">All statuses</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+          <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Rating</label>
+        <select name="rating" class="form-select">
+          <option value="">All ratings</option>
+          {% for r in "54321" %}
+          <option value="{{ r }}" {% if rating_filter == r %}selected{% endif %}>{{ r }} stars</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-dark" type="submit"><i class="fas fa-filter me-1"></i> Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                1-Star Ratings
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ rating_counts.1 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-thumbs-down fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Feedback List -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">All Feedback Submissions</h6>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="selectAll">
-                <label class="form-check-label" for="selectAll">
-                    Select All
-                </label>
-            </div>
-        </div>
-        <div class="card-body">
-            {% if feedback_list %}
-                <div class="table-responsive">
-                    <table class="table table-bordered" id="feedbackTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th width="5%">Select</th>
-                                <th width="10%">Rating</th>
-                                <th width="15%">User</th>
-                                <th width="20%">Feedback</th>
-                                <th width="15%">Vehicle</th>
-                                <th width="15%">Timestamp</th>
-                                <th width="10%">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for feedback in feedback_list %}
-                            <tr class="feedback-card">
-                                <td>
-                                    <input type="checkbox" class="feedback-checkbox" value="{{ feedback.id }}">
-                                </td>
-                                <td>
-                                    <span class="badge badge-rating p-2">
-                                        {{ feedback.rating }}/5
-                                        <span class="rating-stars">
-                                            {% for i in "12345" %}
-                                                {% if forloop.counter <= feedback.rating %}
-                                                    <i class="fas fa-star text-warning"></i>
-                                                {% else %}
-                                                    <i class="far fa-star text-warning"></i>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </span>
-                                    </span>
-                                </td>
-                                <td>
-                                    <strong>{{ feedback.name|default:"Anonymous" }}</strong>
-                                    {% if feedback.email %}
-                                        <br><small class="text-muted">{{ feedback.email }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="feedback-text">
-                                        {{ feedback.feedback|truncatewords:20 }}
-                                        {% if feedback.feedback|wordcount > 20 %}
-                                            <a href="#" class="text-primary read-more" data-fulltext="{{ feedback.feedback }}">Read more</a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    {{ feedback.vehicle|default:"Not specified" }}
-                                    {% if feedback.notification_method %}
-                                        <br><small class="text-muted">Via {{ feedback.notification_method }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ feedback.timestamp|to_ist|date:"d M Y g:i A" }}</small>
-                                </td>
-                                <td>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-info view-feedback" data-feedback="{{ feedback|safe }}">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <a href="{% url 'delete_feedback' feedback.id %}" class="btn btn-sm btn-danger" 
-                                           onclick="return confirm('Are you sure you want to delete this feedback?')">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                {% if paginator.num_pages > 1 %}
-                <nav aria-label="Feedback pagination">
-                    <ul class="pagination justify-content-center">
-                        {% if feedback_list.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1">First</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ feedback_list.previous_page_number }}">Previous</a>
-                            </li>
-                        {% endif %}
-
-                        {% for num in paginator.page_range %}
-                            {% if feedback_list.number == num %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ num }}</span>
-                                </li>
-                            {% elif num > feedback_list.number|add:'-3' and num < feedback_list.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-
-                        {% if feedback_list.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ feedback_list.next_page_number }}">Next</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ paginator.num_pages }}">Last</a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+<div class="card shadow-sm">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0 fw-bold">Feedback List <span class="text-muted fw-normal">(latest first)</span></h6>
+  </div>
+  <div class="card-body">
+    {% if feedback_list %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Rating</th>
+            <th>Feedback</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fb in feedback_list %}
+          <tr data-id="{{ fb.id }}">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                {% if fb.profileImage %}
+                <img src="{{ fb.profileImage }}" alt="" class="fb-avatar">
+                {% else %}
+                <div class="fb-avatar d-flex align-items-center justify-content-center"><i class="fas fa-user text-muted"></i></div>
                 {% endif %}
-
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-comments-slash"></i>
-                    <h4>No Feedback Yet</h4>
-                    <p>No user feedback has been submitted yet.</p>
+                <div>
+                  <div class="fw-semibold">{{ fb.name }}</div>
+                  {% if fb.email %}<small class="text-muted">{{ fb.email }}</small>{% endif %}
                 </div>
-            {% endif %}
-        </div>
+              </div>
+            </td>
+            <td>
+              <span class="fb-stars">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= fb.rating %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}
+                {% endfor %}
+              </span>
+            </td>
+            <td><div class="fb-msg" title="{{ fb.feedback }}">{{ fb.feedback }}</div></td>
+            <td><small>{{ fb.createdAt|default:"—" }}</small></td>
+            <td>
+              <span class="fb-badge fb-badge-{{ fb.status }}">{{ fb.status|title }}</span>
+            </td>
+            <td class="text-end text-nowrap">
+              <button type="button" class="btn btn-sm btn-outline-secondary fb-view" data-id="{{ fb.id }}" title="View"><i class="fas fa-eye"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-primary fb-edit" data-id="{{ fb.id }}" title="Edit"><i class="fas fa-edit"></i></button>
+              {% if fb.status != 'approved' %}
+              <button type="button" class="btn btn-sm btn-success fb-approve" data-id="{{ fb.id }}" title="Approve"><i class="fas fa-check"></i></button>
+              {% endif %}
+              {% if fb.status != 'rejected' %}
+              <button type="button" class="btn btn-sm btn-warning fb-reject" data-id="{{ fb.id }}" title="Reject"><i class="fas fa-ban"></i></button>
+              {% endif %}
+              <button type="button" class="btn btn-sm btn-outline-danger fb-delete" data-id="{{ fb.id }}" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+
+    {% if paginator.num_pages > 1 %}
+    <nav class="mt-3">
+      <ul class="pagination justify-content-center mb-0">
+        {% if feedback_list.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ feedback_list.previous_page_number }}&q={{ q }}&status={{ status_filter }}&rating={{ rating_filter }}">Prev</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ feedback_list.number }} of {{ paginator.num_pages }}</span></li>
+        {% if feedback_list.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ feedback_list.next_page_number }}&q={{ q }}&status={{ status_filter }}&rating={{ rating_filter }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="text-center text-muted py-5">No feedback found for this filter.</div>
+    {% endif %}
+  </div>
 </div>
 
-<!-- View Feedback Modal -->
-<div class="modal fade" id="viewFeedbackModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Feedback Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="feedbackDetails">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+<!-- View modal -->
+<div class="modal fade" id="fbViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Feedback Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="fbViewBody"></div>
     </div>
+  </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- Create / Edit modal -->
+<div class="modal fade" id="fbEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <form id="fbEditForm" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title" id="fbEditTitle">Add Feedback</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" id="fbId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Customer Name *</label>
+              <input type="text" class="form-control" name="name" id="fbName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" id="fbEmail">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Rating *</label>
+              <select class="form-select" name="rating" id="fbRating" required>
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status" id="fbStatus">
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Profile Image</label>
+              <input type="file" class="form-control" name="profileImage" id="fbImage" accept="image/*">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Feedback *</label>
+              <textarea class="form-control" name="feedback" id="fbText" rows="4" required></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="fbSaveBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="fb-toast" id="fbToast"></div>
+
 <script>
-$(document).ready(function() {
-    // Select All functionality
-    $('#selectAll').change(function() {
-        $('.feedback-checkbox').prop('checked', this.checked);
-        toggleBulkDeleteButton();
-    });
+(function () {
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  const toastEl = document.getElementById('fbToast');
+  const editModal = new bootstrap.Modal(document.getElementById('fbEditModal'));
+  const viewModal = new bootstrap.Modal(document.getElementById('fbViewModal'));
 
-    // Individual checkbox change
-    $('.feedback-checkbox').change(function() {
-        if (!this.checked) {
-            $('#selectAll').prop('checked', false);
-        }
-        toggleBulkDeleteButton();
-    });
+  function toast(msg, ok) {
+    toastEl.textContent = msg;
+    toastEl.className = 'fb-toast show ' + (ok ? 'ok' : 'err');
+    setTimeout(() => toastEl.classList.remove('show'), 3200);
+  }
 
-    // Toggle bulk delete button
-    function toggleBulkDeleteButton() {
-        const checkedCount = $('.feedback-checkbox:checked').length;
-        if (checkedCount > 0) {
-            $('#bulkDeleteBtn').show().text(`Delete Selected (${checkedCount})`);
-        } else {
-            $('#bulkDeleteBtn').hide();
-        }
+  function setStatus(id, status) {
+    const body = new URLSearchParams({ id, status });
+    return fetch('{% url "feedback_set_status" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+      body,
+    }).then(r => r.json());
+  }
+
+  async function loadDetail(id) {
+    const res = await fetch(`/admin/feedback-detail/${id}/`);
+    return res.json();
+  }
+
+  document.getElementById('fbCreateBtn').addEventListener('click', () => {
+    document.getElementById('fbEditTitle').textContent = 'Add Feedback';
+    document.getElementById('fbEditForm').reset();
+    document.getElementById('fbId').value = '';
+    editModal.show();
+  });
+
+  document.querySelectorAll('.fb-approve').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Approve this feedback and show it on the website?')) return;
+      const data = await setStatus(btn.dataset.id, 'approved');
+      if (data.success) { toast('Feedback approved', true); location.reload(); }
+      else toast(data.error || 'Failed', false);
+    });
+  });
+
+  document.querySelectorAll('.fb-reject').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Reject this feedback?')) return;
+      const data = await setStatus(btn.dataset.id, 'rejected');
+      if (data.success) { toast('Feedback rejected', true); location.reload(); }
+      else toast(data.error || 'Failed', false);
+    });
+  });
+
+  document.querySelectorAll('.fb-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Permanently delete this feedback from Firestore?')) return;
+      window.location.href = `/admin/delete-feedback/${btn.dataset.id}/`;
+    });
+  });
+
+  document.querySelectorAll('.fb-view').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const data = await loadDetail(btn.dataset.id);
+      if (!data.success) return toast(data.error || 'Not found', false);
+      const f = data.feedback;
+      const stars = '★'.repeat(f.rating || 0) + '☆'.repeat(5 - (f.rating || 0));
+      document.getElementById('fbViewBody').innerHTML = `
+        <div class="d-flex align-items-center gap-3 mb-3">
+          ${f.profileImage ? `<img src="${f.profileImage}" class="fb-avatar" style="width:56px;height:56px">` : ''}
+          <div>
+            <div class="fw-bold fs-5">${f.name || ''}</div>
+            <div class="text-warning">${stars}</div>
+            <small class="text-muted">${f.createdAt || ''} · ${f.status || ''}</small>
+          </div>
+        </div>
+        <p class="mb-0" style="white-space:pre-wrap">${f.feedback || ''}</p>
+        ${f.email ? `<hr><small class="text-muted">${f.email}</small>` : ''}
+      `;
+      viewModal.show();
+    });
+  });
+
+  document.querySelectorAll('.fb-edit').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const data = await loadDetail(btn.dataset.id);
+      if (!data.success) return toast(data.error || 'Not found', false);
+      const f = data.feedback;
+      document.getElementById('fbEditTitle').textContent = 'Edit Feedback';
+      document.getElementById('fbId').value = f.id || '';
+      document.getElementById('fbName').value = f.name || '';
+      document.getElementById('fbEmail').value = f.email || '';
+      document.getElementById('fbRating').value = String(f.rating || 5);
+      document.getElementById('fbStatus').value = f.status || 'pending';
+      document.getElementById('fbText').value = f.feedback || '';
+      document.getElementById('fbImage').value = '';
+      editModal.show();
+    });
+  });
+
+  document.getElementById('fbEditForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const saveBtn = document.getElementById('fbSaveBtn');
+    saveBtn.disabled = true;
+    try {
+      const formData = new FormData(e.target);
+      const res = await fetch('{% url "feedback_save" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(data.message || 'Saved', true);
+        editModal.hide();
+        location.reload();
+      } else {
+        toast(data.error || 'Save failed', false);
+      }
+    } catch (err) {
+      toast('Save failed', false);
+    } finally {
+      saveBtn.disabled = false;
     }
-
-    // Bulk delete functionality
-    $('#bulkDeleteBtn').click(function() {
-        const selectedIds = $('.feedback-checkbox:checked').map(function() {
-            return this.value;
-        }).get();
-
-        if (selectedIds.length === 0) {
-            alert('Please select feedback to delete.');
-            return;
-        }
-
-        if (confirm(`Are you sure you want to delete ${selectedIds.length} feedback entries?`)) {
-            // Create a form and submit
-            const form = $('<form>').attr({
-                method: 'POST',
-                action: '{% url "bulk_delete_feedback" %}'
-            });
-            
-            form.append('{% csrf_token %}');
-            selectedIds.forEach(id => {
-                form.append($('<input>').attr({
-                    type: 'hidden',
-                    name: 'feedback_ids[]',
-                    value: id
-                }));
-            });
-            
-            $('body').append(form);
-            form.submit();
-        }
-    });
-
-    // View feedback details
-    $('.view-feedback').click(function() {
-        const feedback = $(this).data('feedback');
-        let detailsHtml = `
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Name:</strong> ${feedback.name || 'Anonymous'}
-                </div>
-                <div class="col-md-6">
-                    <strong>Email:</strong> ${feedback.email || 'Not provided'}
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <strong>Rating:</strong> 
-                    <span class="badge bg-warning text-dark">${feedback.rating}/5</span>
-                </div>
-                <div class="col-md-6">
-                    <strong>Vehicle:</strong> ${feedback.vehicle || 'Not specified'}
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <strong>Notification Method:</strong> ${feedback.notification_method || 'Not specified'}
-                </div>
-                <div class="col-md-6">
-                    <strong>Submitted:</strong> ${feedback.timestamp}
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-12">
-                    <strong>Feedback:</strong>
-                    <div class="border p-3 mt-2 rounded bg-light">
-                        ${feedback.feedback || 'No feedback provided'}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('#feedbackDetails').html(detailsHtml);
-        $('#viewFeedbackModal').modal('show');
-    });
-
-    // Read more functionality
-    $('.read-more').click(function(e) {
-        e.preventDefault();
-        const fullText = $(this).data('fulltext');
-        $(this).closest('.feedback-text').html(fullText);
-    });
-});
+  });
+})();
 </script>
 {% endblock %}

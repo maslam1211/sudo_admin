@@ -1,0 +1,23 @@
+# Firestore security rules (deploy in Firebase Console → Firestore → Rules)
+#
+# This project primarily uses the Firebase Admin SDK from Django, so server
+# writes bypass these rules. Keep client access locked down.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /feedbacks/{id} {
+      // Public read of approved testimonials only (if you ever use client SDK).
+      allow read: if resource.data.isApproved == true
+                  && resource.data.status == 'approved';
+
+      // No client writes — submissions go through Django /admin/submit-feedback/.
+      allow write: if false;
+    }
+
+    // Legacy collection (read-only for approved if migrated fields exist).
+    match /feedback/{id} {
+      allow read, write: if false;
+    }
+  }
+}

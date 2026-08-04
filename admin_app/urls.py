@@ -109,11 +109,13 @@ urlpatterns = [
     # Feedback URLs
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
+    path('api/approved-feedbacks/', views.approved_feedbacks_api, name='approved_feedbacks_api'),
     path('view-feedback/', views.view_feedback, name='view_feedback'),
     path('delete-feedback/<str:feedback_id>/', views.delete_feedback, name='delete_feedback'),
     path('bulk-delete-feedback/', views.bulk_delete_feedback, name='bulk_delete_feedback'),
-    path('feedback/', views.feedback_page, name='feedback_page'),
-    path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
+    path('feedback-set-status/', views.feedback_set_status, name='feedback_set_status'),
+    path('feedback-save/', views.feedback_save, name='feedback_save'),
+    path('feedback-detail/<str:feedback_id>/', views.feedback_detail_api, name='feedback_detail_api'),
 
     # Archive (deletion webhook + unified UI + CSV export)
     path('api/archive-deleted-user/', views.archive_deleted_user_webhook, name='archive_deleted_user_webhook'),

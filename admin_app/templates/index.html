@@ -86,8 +86,8 @@
       </div>
       <div class="hero-accent-line" aria-hidden="true"></div>
 
-      <div class="container hero-container">
-        <div class="row align-items-center hero-main-row g-4 g-lg-5">
+      <div class="container-fluid container-xl hero-container">
+        <div class="row align-items-center hero-main-row g-4 g-xl-5">
           <div class="col-lg-5 col-xl-5 hero-content-col">
             <div class="hero-content" data-aos="fade-up" data-aos-delay="100">
               <p class="hero-eyebrow">Privacy-first vehicle contact</p>
@@ -790,32 +790,42 @@
 
     </section><!-- End How It Works Section -->
 
-    <!-- Testimonials Section -->
-    <section id="testimonials" class="testimonials section dark-background">
+    <!-- Testimonials / Feedback Section -->
+    <section id="testimonials" class="testimonials section dark-background"
+      data-feedback-api="{{ approved_feedbacks_api_url }}"
+      data-submit-url="{{ submit_feedback_url }}"
+      data-default-avatar="{% landing_asset 'img/testimonials/testimonials-1.jpg' %}">
 
-      <img src="{% landing_asset 'img/testimonials-bg.jpg' %}" class="testimonials-bg" alt="Background for Testimonials">
+      <img src="{% landing_asset 'img/testimonials-bg.jpg' %}" class="testimonials-bg" alt="">
 
       <div class="container" data-aos="fade-up" data-aos-delay="100">
+        <div class="section-title section-title--light text-center mb-4">
+          <h2>Feedback</h2>
+          <p>What SudoTag customers are saying</p>
+        </div>
 
-        <div class="swiper init-swiper">
+        <div id="feedback-loading" class="feedback-state" hidden>
+          <div class="feedback-skeleton" aria-hidden="true"></div>
+          <p>Loading feedback…</p>
+        </div>
+        <div id="feedback-empty" class="feedback-state" {% if approved_feedbacks %}hidden{% endif %}>
+          <p>No feedback available yet.</p>
+        </div>
+        <div id="feedback-error" class="feedback-state" hidden>
+          <p>Unable to load feedback right now. Please try again later.</p>
+        </div>
+
+        <div class="swiper" id="feedback-swiper" {% if not approved_feedbacks %}hidden{% endif %}>
           <script type="application/json" class="swiper-config">
             {
               "loop": true,
               "speed": 600,
-              "autoplay": {
-                "delay": 5000
-              },
+              "autoplay": { "delay": 5000 },
               "slidesPerView": 1,
               "spaceBetween": 20,
               "breakpoints": {
-                "768": {
-                  "slidesPerView": 1,
-                  "spaceBetween": 24
-                },
-                "1200": {
-                  "slidesPerView": "auto",
-                  "spaceBetween": 30
-                }
+                "768": { "slidesPerView": 1, "spaceBetween": 24 },
+                "1200": { "slidesPerView": "auto", "spaceBetween": 30 }
               },
               "pagination": {
                 "el": ".swiper-pagination",
@@ -824,92 +834,73 @@
               }
             }
           </script>
-          <div class="swiper-wrapper">
-
+          <div class="swiper-wrapper" id="feedback-slides">
+            {% for fb in approved_feedbacks %}
             <div class="swiper-slide">
               <div class="testimonial-item">
-                <img src="{% landing_asset 'img/testimonials/testimonials-1.jpg' %}" class="testimonial-img" alt="User Testimonial 1">
-                <h3>Arjun Nair</h3>
-                <h4>Community Volunteer</h4>
-                <div class="stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                {% if fb.profileImage %}
+                <img src="{{ fb.profileImage }}" class="testimonial-img" alt="{{ fb.name }}" loading="lazy">
+                {% else %}
+                <img src="{% landing_asset 'img/testimonials/testimonials-1.jpg' %}" class="testimonial-img" alt="{{ fb.name }}" loading="lazy">
+                {% endif %}
+                <h3>{{ fb.name }}</h3>
+                {% if fb.createdAt %}<h4>{{ fb.createdAt }}</h4>{% endif %}
+                <div class="stars" aria-label="{{ fb.rating }} out of 5 stars">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= fb.rating %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
+                  {% endfor %}
                 </div>
                 <p>
                   <i class="bi bi-quote quote-icon-left"></i>
-                  <span>SudoTag is a game-changer for our community! Reporting parking violations is now so much easier and more efficient.</span>
+                  <span>{{ fb.feedback }}</span>
                   <i class="bi bi-quote quote-icon-right"></i>
                 </p>
               </div>
-            </div><!-- End testimonial item -->
-
-            <div class="swiper-slide">
-              <div class="testimonial-item">
-                <img src="{% landing_asset 'img/testimonials/testimonials-2.jpg' %}" class="testimonial-img" alt="User Testimonial 2">
-                <h3>Neha Sharma</h3>
-                <h4>Resident</h4>
-                <div class="stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                </div>
-                <p>
-                  <i class="bi bi-quote quote-icon-left"></i>
-                  <span>Using SudoTag has made me feel more empowered to address issues in my neighborhood. It's simple and effective!</span>
-                  <i class="bi bi-quote quote-icon-right"></i>
-                </p>
-              </div>
-            </div><!-- End testimonial item -->
-
-            <div class="swiper-slide">
-              <div class="testimonial-item">
-                <img src="{% landing_asset 'img/testimonials/testimonials-3.jpg' %}" class="testimonial-img" alt="User Testimonial 3">
-                <h3>Vikram Rao</h3>
-                <h4>Local Business Owner</h4>
-                <div class="stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                </div>
-                <p>
-                  <i class="bi bi-quote quote-icon-left"></i>
-                  <span>SudoTag has helped us maintain order outside our store by addressing improper parking instantly. A brilliant app!</span>
-                  <i class="bi bi-quote quote-icon-right"></i>
-                </p>
-              </div>
-            </div><!-- End testimonial item -->
-
-            <div class="swiper-slide">
-              <div class="testimonial-item">
-                <img src="{% landing_asset 'img/testimonials/testimonials-4.jpg' %}" class="testimonial-img" alt="User Testimonial 4">
-                <h3>Anjali Menon</h3>
-                <h4>Tech Enthusiast</h4>
-                <div class="stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                </div>
-                <p>
-                  <i class="bi bi-quote quote-icon-left"></i>
-                  <span>The QR-based approach is innovative! SudoTag stands out in its ability to streamline reporting processes.</span>
-                  <i class="bi bi-quote quote-icon-right"></i>
-                </p>
-              </div>
-            </div><!-- End testimonial item -->
-
-            <div class="swiper-slide">
-              <div class="testimonial-item">
-                <img src="{% landing_asset 'img/testimonials/testimonials-5.jpg' %}" class="testimonial-img" alt="User Testimonial 5">
-                <h3>Ramesh Iyer</h3>
-                <h4>City Official</h4>
-                <div class="stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                </div>
-                <p>
-                  <i class="bi bi-quote quote-icon-left"></i>
-                  <span>SudoTag has proven invaluable in addressing public concerns quickly and effectively. Highly recommend it!</span>
-                  <i class="bi bi-quote quote-icon-right"></i>
-                </p>
-              </div>
-            </div><!-- End testimonial item -->
-
+            </div>
+            {% endfor %}
           </div>
           <div class="swiper-pagination"></div>
         </div>
 
+        <!-- Submit feedback form -->
+        <div class="feedback-form-wrap" data-aos="fade-up" data-aos-delay="150">
+          <h3 class="feedback-form-title">Share your feedback</h3>
+          <p class="feedback-form-lead">Your review is submitted for approval before it appears here.</p>
+          <form id="landing-feedback-form" class="feedback-form" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="fb-name" class="form-label">Name *</label>
+                <input type="text" id="fb-name" name="name" class="form-control" required maxlength="80" placeholder="Your name" autocomplete="name">
+              </div>
+              <div class="col-md-6">
+                <label for="fb-email" class="form-label">Email (optional)</label>
+                <input type="email" id="fb-email" name="email" class="form-control" maxlength="120" placeholder="you@email.com" autocomplete="email">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Rating *</label>
+                <div class="feedback-rating" role="radiogroup" aria-label="Rating">
+                  {% for i in "12345" %}
+                  <button type="button" class="feedback-star" data-value="{{ i }}" aria-label="{{ i }} stars"><i class="bi bi-star"></i></button>
+                  {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="fb-rating" value="" required>
+              </div>
+              <div class="col-12">
+                <label for="fb-message" class="form-label">Feedback *</label>
+                <textarea id="fb-message" name="feedback" class="form-control" rows="4" required maxlength="1000" placeholder="Tell us about your SudoTag experience"></textarea>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn-getstarted feedback-submit-btn" id="fb-submit-btn">
+                  <span>Submit Feedback</span>
+                </button>
+              </div>
+              <div class="col-12">
+                <div id="fb-form-alert" class="feedback-alert" hidden role="status"></div>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
 
     </section><!-- /Testimonials Section -->
@@ -1274,6 +1265,7 @@ if (whatsappSubscriptionForm) {
   <!-- Main JS File -->
   <script src="{% landing_asset 'js/main.js' %}" defer></script>
   <script src="{% landing_asset 'js/find_vehicle.js' %}" defer></script>
+  <script src="{% landing_asset 'js/feedback.js' %}" defer></script>
 
 </body>
 

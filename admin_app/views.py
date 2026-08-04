@@ -6831,71 +6831,97 @@ def feedback_page(request):
 
 @csrf_exempt
 def submit_feedback(request):
-    """Handle feedback submission"""
-    if request.method == 'POST':
-        try:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                # AJAX request
-                data = json.loads(request.body)
-            else:
-                # Form submission
-                data = request.POST
-            
-            # Validate required fields
-            if not data.get('rating'):
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'Please provide a rating'
-                })
-            
-            # Prepare feedback data
-            feedback_data = {
-                'name': data.get('name', '').strip(),
-                'email': data.get('email', '').strip(),
-                'vehicle': data.get('vehicle', ''),
-                'rating': int(data.get('rating', 0)),
-                'feedback': data.get('feedback', '').strip(),
-                'notification_method': data.get('notification_method', ''),
-                'timestamp': now()  # Use Django's timezone-aware now()
-            }
-            
-            # Send email
-            email_sent = send_feedback_email(feedback_data)
-            
-            # Also save to Firestore for record keeping
+    """Public feedback submission → Firestore `feedbacks` (pending until approved)."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        if request.content_type and 'application/json' in request.content_type:
+            data = json.loads(request.body.decode('utf-8') or '{}')
+        elif request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.body:
             try:
-                feedback_id = str(uuid.uuid4())
-                db.collection('feedback').document(feedback_id).set({
-                    **feedback_data,
-                    'id': feedback_id,
-                    'timestamp': firestore.SERVER_TIMESTAMP
-                })
-            except Exception as e:
-                logger.error(f"Failed to save feedback to Firestore: {str(e)}")
-                # Continue even if Firestore save fails
-            
-            if email_sent:
-                return JsonResponse({
-                    'status': 'success', 
-                    'message': 'Thank you for your feedback! We appreciate your input.'
-                })
-            else:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'Failed to send feedback. Please try again.'
-                })
-                
-        except Exception as e:
-            logger.error(f"Error in submit_feedback: {str(e)}")
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'An error occurred. Please try again.'
+                data = json.loads(request.body.decode('utf-8') or '{}')
+            except json.JSONDecodeError:
+                data = request.POST
+        else:
+            data = request.POST
+
+        name = (data.get('name') or '').strip()
+        email = (data.get('email') or '').strip()
+        feedback_text = (data.get('feedback') or '').strip()
+        try:
+            rating = int(data.get('rating') or 0)
+        except (TypeError, ValueError):
+            rating = 0
+
+        if not name:
+            return JsonResponse({'status': 'error', 'message': 'Name is required'})
+        if rating < 1 or rating > 5:
+            return JsonResponse({'status': 'error', 'message': 'Please provide a rating from 1 to 5'})
+        if not feedback_text:
+            return JsonResponse({'status': 'error', 'message': 'Feedback message is required'})
+
+        from admin_app.feedback_service import create_feedback
+
+        create_feedback(
+            name=name,
+            email=email,
+            rating=rating,
+            feedback=feedback_text,
+            status='pending',
+            is_approved=False,
+        )
+
+        # Best-effort admin email (do not fail the user if email fails).
+        try:
+            send_feedback_email({
+                'name': name,
+                'email': email or 'Not provided',
+                'vehicle': data.get('vehicle', ''),
+                'rating': rating,
+                'feedback': feedback_text,
+                'notification_method': data.get('notification_method', 'website'),
             })
-    
-    return JsonResponse({
-        'status': 'error', 
-        'message': 'Invalid request method'
-    })
+        except Exception as mail_err:
+            logger.error('Feedback email failed: %s', mail_err)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': (
+                'Thank you! Your feedback has been submitted successfully '
+                'and will be reviewed.'
+            ),
+        })
+    except Exception as e:
+        logger.error('Error in submit_feedback: %s', e)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred. Please try again.',
+        }, status=500)
+
+
+def approved_feedbacks_api(request):
+    """Public JSON of approved feedbacks for the landing page carousel."""
+    try:
+        from admin_app.feedback_service import list_approved_feedbacks
+        items = list_approved_feedbacks(limit=40)
+        payload = [{
+            'id': i['id'],
+            'name': i['name'],
+            'rating': i['rating'],
+            'feedback': i['feedback'],
+            'createdAt': i.get('createdAt') or '',
+            'profileImage': i.get('profileImage') or '',
+        } for i in items]
+        return JsonResponse({'status': 'success', 'feedbacks': payload})
+    except Exception as e:
+        logger.error('approved_feedbacks_api error: %s', e)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Unable to load feedback right now.',
+            'feedbacks': [],
+        }, status=500)
+
 
 def send_feedback_email(feedback_data):
     """Send feedback email to admin"""
@@ -6947,119 +6973,207 @@ def send_feedback_email(feedback_data):
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 def view_feedback(request):
-    """View all feedback submissions"""
+    """Feedback Management dashboard + searchable list."""
     if not request.session.get('admin'):
         messages.error(request, 'Admin access required')
         return redirect('admin_login')
-    
+
+    from admin_app.feedback_service import compute_stats, list_all_feedbacks
+
     try:
-        # Get all feedback from Firestore
-        feedback_ref = db.collection('feedback')
-        feedback_docs = feedback_ref.stream()
-        
-        feedback_list = []
-        for doc in feedback_docs:
-            feedback_data = doc.to_dict()
-            feedback_data['id'] = doc.id
-            
-            # Convert Firestore timestamp to readable format
-            if hasattr(feedback_data.get('timestamp'), 'strftime'):
-                # Convert to IST and format
-                ist = pytz.timezone('Asia/Kolkata')
-                if feedback_data['timestamp'].tzinfo:
-                    dt = feedback_data['timestamp'].astimezone(ist)
-                else:
-                    dt = ist.localize(feedback_data['timestamp'])
-                feedback_data['timestamp'] = dt.strftime("%A, %B %d, %Y - %I:%M %p")
-            elif isinstance(feedback_data.get('timestamp'), str):
-                # Already a string
-                pass
-            else:
-                feedback_data['timestamp'] = 'Unknown date'
-            
-            feedback_list.append(feedback_data)
-        
-        # Sort by timestamp (newest first)
-        feedback_list.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        
-        # Calculate statistics
-        total_feedback = len(feedback_list)
-        average_rating = sum(fb.get('rating', 0) for fb in feedback_list) / total_feedback if total_feedback > 0 else 0
-        rating_counts = {i: 0 for i in range(1, 6)}
-        for fb in feedback_list:
-            rating = fb.get('rating', 0)
-            if 1 <= rating <= 5:
-                rating_counts[rating] += 1
-        
+        feedback_list = list_all_feedbacks()
+        stats = compute_stats(feedback_list)
     except Exception as e:
         messages.error(request, f'Error loading feedback: {str(e)}')
         feedback_list = []
-        total_feedback = 0
-        average_rating = 0
-        rating_counts = {i: 0 for i in range(1, 6)}
-    
-    # Pagination
+        stats = {
+            'total': 0, 'pending': 0, 'approved': 0, 'rejected': 0, 'average_rating': 0,
+        }
+
+    q = (request.GET.get('q') or '').strip().lower()
+    status_filter = (request.GET.get('status') or '').strip().lower()
+    rating_filter = (request.GET.get('rating') or '').strip()
+
+    filtered = feedback_list
+    if q:
+        filtered = [f for f in filtered if q in (f.get('name') or '').lower()]
+    if status_filter in ('pending', 'approved', 'rejected'):
+        filtered = [f for f in filtered if f.get('status') == status_filter]
+    if rating_filter.isdigit():
+        rating_val = int(rating_filter)
+        filtered = [f for f in filtered if f.get('rating') == rating_val]
+
     page = request.GET.get('page', 1)
-    items_per_page = 10
-    
-    paginator = Paginator(feedback_list, items_per_page)
-    
+    paginator = Paginator(filtered, 12)
     try:
         feedback_page = paginator.page(page)
     except PageNotAnInteger:
         feedback_page = paginator.page(1)
     except EmptyPage:
         feedback_page = paginator.page(paginator.num_pages)
-    
-    context = {
+
+    return render(request, 'view_feedback.html', {
         'feedback_list': feedback_page,
-        'total_feedback': total_feedback,
-        'average_rating': round(average_rating, 1),
-        'rating_counts': rating_counts,
+        'total_feedback': stats['total'],
+        'pending_feedback': stats['pending'],
+        'approved_feedback': stats['approved'],
+        'rejected_feedback': stats['rejected'],
+        'average_rating': stats['average_rating'],
         'paginator': paginator,
-    }
-    
-    return render(request, 'view_feedback.html', context)
+        'q': request.GET.get('q') or '',
+        'status_filter': status_filter,
+        'rating_filter': rating_filter,
+    })
+
 
 def delete_feedback(request, feedback_id):
     """Delete a specific feedback entry"""
     if not request.session.get('admin'):
         messages.error(request, 'Admin access required')
         return redirect('admin_login')
-    
+
     try:
-        db.collection('feedback').document(feedback_id).delete()
+        from admin_app.feedback_service import delete_feedback_doc
+        delete_feedback_doc(feedback_id)
         messages.success(request, 'Feedback deleted successfully')
     except Exception as e:
         messages.error(request, f'Error deleting feedback: {str(e)}')
-    
+
     return redirect('view_feedback')
+
 
 @csrf_exempt
 def bulk_delete_feedback(request):
     """Bulk delete feedback entries"""
     if not request.session.get('admin'):
         return JsonResponse({'success': False, 'error': 'Admin access required'})
-    
+
     if request.method == 'POST':
         try:
+            from admin_app.feedback_service import delete_feedback_doc
             feedback_ids = request.POST.getlist('feedback_ids[]')
             deleted_count = 0
-            
             for feedback_id in feedback_ids:
                 try:
-                    db.collection('feedback').document(feedback_id).delete()
+                    delete_feedback_doc(feedback_id)
                     deleted_count += 1
                 except Exception as e:
-                    logger.error(f"Error deleting feedback {feedback_id}: {str(e)}")
-            
+                    logger.error('Error deleting feedback %s: %s', feedback_id, e)
             messages.success(request, f'Successfully deleted {deleted_count} feedback entries')
             return JsonResponse({'success': True, 'deleted_count': deleted_count})
-            
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
-    
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def feedback_set_status(request):
+    """Approve or reject feedback (admin AJAX)."""
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
+
+    try:
+        from admin_app.feedback_service import STATUS_APPROVED, STATUS_REJECTED, update_feedback
+        payload = request.POST
+        if request.content_type and 'application/json' in request.content_type:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        feedback_id = (payload.get('id') or '').strip()
+        status = (payload.get('status') or '').strip().lower()
+        if not feedback_id or status not in (STATUS_APPROVED, STATUS_REJECTED, 'pending'):
+            return JsonResponse({'success': False, 'error': 'Invalid id or status'})
+        update_feedback(feedback_id, {
+            'status': status,
+            'isApproved': status == STATUS_APPROVED,
+        })
+        return JsonResponse({'success': True, 'status': status})
+    except Exception as e:
+        logger.error('feedback_set_status error: %s', e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def feedback_save(request):
+    """Create or update feedback (admin). Supports optional profile image upload."""
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
+
+    try:
+        from admin_app.feedback_service import (
+            STATUS_APPROVED,
+            create_feedback,
+            update_feedback,
+            upload_profile_image,
+        )
+        feedback_id = (request.POST.get('id') or '').strip()
+        name = (request.POST.get('name') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        feedback_text = (request.POST.get('feedback') or '').strip()
+        status = (request.POST.get('status') or 'pending').strip().lower()
+        try:
+            rating = int(request.POST.get('rating') or 0)
+        except (TypeError, ValueError):
+            rating = 0
+
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'})
+        if rating < 1 or rating > 5:
+            return JsonResponse({'success': False, 'error': 'Rating must be 1–5'})
+        if not feedback_text:
+            return JsonResponse({'success': False, 'error': 'Feedback is required'})
+        if status not in ('pending', 'approved', 'rejected'):
+            status = 'pending'
+
+        profile_image = ''
+        image_file = request.FILES.get('profileImage')
+        if image_file:
+            profile_image = upload_profile_image(image_file)
+
+        fields = {
+            'name': name,
+            'email': email,
+            'rating': rating,
+            'feedback': feedback_text,
+            'status': status,
+            'isApproved': status == STATUS_APPROVED,
+        }
+        if profile_image:
+            fields['profileImage'] = profile_image
+
+        if feedback_id:
+            update_feedback(feedback_id, fields)
+            return JsonResponse({'success': True, 'id': feedback_id, 'message': 'Feedback updated'})
+
+        new_id = create_feedback(
+            name=name,
+            email=email,
+            rating=rating,
+            feedback=feedback_text,
+            status=status,
+            is_approved=status == STATUS_APPROVED,
+            profile_image=profile_image,
+        )
+        return JsonResponse({'success': True, 'id': new_id, 'message': 'Feedback created'})
+    except Exception as e:
+        logger.error('feedback_save error: %s', e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def feedback_detail_api(request, feedback_id):
+    """Admin: get one feedback document as JSON."""
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'}, status=403)
+    try:
+        from admin_app.feedback_service import get_feedback
+        item = get_feedback(feedback_id)
+        if not item:
+            return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
+        item.pop('_created_raw', None)
+        return JsonResponse({'success': True, 'feedback': item})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 def validate_api_key(request):

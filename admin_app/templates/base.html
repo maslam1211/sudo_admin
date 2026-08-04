@@ -510,9 +510,9 @@
             <div class="sidebar-divider"></div>
 
             <div class="sidebar-menu-item">
-                <a href="{% url 'view_feedback' %}" class="sidebar-menu-link {% if request.path == '/view-feedback/' or request.path == '/admin/view-feedback/' %}active{% endif %}">
+                <a href="{% url 'view_feedback' %}" class="sidebar-menu-link {% if '/view-feedback/' in request.path or '/feedback-save/' in request.path or '/admin/view-feedback/' in request.path %}active{% endif %}">
                     <i class="fas fa-comments"></i>
-                    <span>Feedback</span>
+                    <span>Feedback Management</span>
                 </a>
             </div>
 

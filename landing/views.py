@@ -33,9 +33,21 @@ def _qr_data_uri(payload: str) -> str:
 
 @ensure_csrf_cookie
 def index(request):
+    approved_feedbacks = []
+    try:
+        from admin_app.feedback_service import list_approved_feedbacks
+        approved_feedbacks = list_approved_feedbacks(limit=40)
+        for item in approved_feedbacks:
+            item.pop('_created_raw', None)
+    except Exception:
+        approved_feedbacks = []
+
     return render(request, 'index.html', {
         'banner_ads': _landing_banner_ads(request),
         'public_lookup_url': reverse('public_lookup_vehicle'),
+        'approved_feedbacks': approved_feedbacks,
+        'submit_feedback_url': reverse('submit_feedback'),
+        'approved_feedbacks_api_url': reverse('approved_feedbacks_api'),
     })
 
 
