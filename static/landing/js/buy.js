@@ -106,7 +106,7 @@
     var input = form.querySelector('input[name="selectedItem"]');
     return {
       key: (input && input.value) || cfg.productKey || 'sticker',
-      price: Number(cfg.productPrice || (input && input.getAttribute('data-price')) || 300),
+      price: Number(cfg.productPrice || (input && input.getAttribute('data-price')) || 199),
       name: cfg.productName || (input && input.getAttribute('data-name')) || 'SudoTag QR',
     };
   }

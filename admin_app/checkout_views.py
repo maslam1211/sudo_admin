@@ -29,7 +29,7 @@ QR_PRODUCTS = {
     'sticker': {
         'key': 'sticker',
         'name': 'SudoTag QR',
-        'price': 300.0,
+        'price': 199.0,
         'description': (
             'Official windshield QR tag — scan to contact the vehicle owner '
             'securely for parking, alerts, and emergencies.'
