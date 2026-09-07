@@ -5,6 +5,73 @@
 <head>
   <meta charset="UTF-8">
   <title>Contact Vehicle Owner | SudoTag</title>
+  <style id="notify-page-loading-critical">
+    html.notify-page-loading,
+    html.notify-page-loading body {
+      overflow: hidden !important;
+      background: #000 !important;
+    }
+    html.notify-page-loading body > *:not(#notifyPageLoadingOverlay):not(script) {
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #notifyPageLoadingOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483645;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: #000;
+      transition: opacity 0.38s ease, visibility 0.38s ease;
+    }
+    #notifyPageLoadingOverlay.is-hiding {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .notify-page-loading-inner {
+      width: min(112px, 28vw);
+      height: min(112px, 28vw);
+      max-width: 100%;
+      max-height: 100%;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notify-page-loading-lottie-mount {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notify-page-loading-lottie-mount svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .notify-page-loading-css-fallback {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.16);
+      border-top-color: #E58147;
+      animation: notify-page-loading-spin 0.7s linear infinite;
+      box-sizing: border-box;
+    }
+    @keyframes notify-page-loading-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <link rel="preload" href="{% url 'notify_sending_wheel_json' %}" as="fetch" crossorigin>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    document.documentElement.classList.add('notify-page-loading');
+  </script>
   {% include 'includes/qr_flow_head.html' %}
 
   <!-- Fonts -->
@@ -4344,10 +4411,88 @@
       font-weight: 600;
       color: rgba(255, 255, 255, 0.42);
     }
+
+    body.notify-app .notify-dock-btn.is-sending,
+    body.notify-app .notify-channel-pick-btn.is-sending {
+      opacity: 0.88;
+      cursor: wait;
+      pointer-events: none;
+    }
+
+    body.notify-app .notify-dock-btn.is-sending .btn-text::before,
+    body.notify-app .notify-channel-pick-btn.is-sending .notify-channel-box-title::before {
+      content: '';
+      display: inline-block;
+      width: 0.85rem;
+      height: 0.85rem;
+      margin-right: 0.45rem;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      border-top-color: rgba(255, 255, 255, 0.92);
+      border-radius: 50%;
+      vertical-align: -0.1rem;
+      animation: customSmsSendSpin 0.7s linear infinite;
+    }
   </style>
 </head>
 
 <body class="notify-app sudo-mobile-flow{% if vehicle_lost_mode.is_lost_mode %} lost-mode-active{% endif %}" data-notify-terminal="{% if scanner_notify_show_terminal_sheet %}1{% else %}0{% endif %}"{% if vehicle_lost_mode.is_lost_mode %} data-lost-mode="1"{% endif %}>
+  <div id="notifyPageLoadingOverlay" role="status" aria-live="polite" aria-busy="true" aria-label="Loading page">
+    <div class="notify-page-loading-inner">
+      <div id="notifyPageLoadingLottieMount" class="notify-page-loading-lottie-mount" aria-hidden="true"></div>
+    </div>
+  </div>
+  <script>
+    (function initNotifyPageLoadingWheel() {
+      var mount = document.getElementById('notifyPageLoadingLottieMount');
+      if (!mount) return;
+      var wheelUrl = "{% url 'notify_sending_wheel_json' %}";
+
+      function showNotifyPageLoadingFallback() {
+        if (mount.querySelector('.notify-page-loading-css-fallback')) return;
+        mount.innerHTML = '';
+        var fb = document.createElement('div');
+        fb.className = 'notify-page-loading-css-fallback';
+        fb.setAttribute('aria-hidden', 'true');
+        mount.appendChild(fb);
+      }
+
+      function startNotifyPageLoadingWheel(LottieApi) {
+        try {
+          window.notifyPageLoadingAnim = LottieApi.loadAnimation({
+            container: mount,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: wheelUrl
+          });
+        } catch (e) {
+          showNotifyPageLoadingFallback();
+        }
+      }
+
+      function loadNotifyPageLoadingLottieLib(cb) {
+        var existing = window.lottie || window.bodymovin;
+        if (existing) {
+          cb(existing);
+          return;
+        }
+        var attempts = 0;
+        var timer = window.setInterval(function () {
+          var L = window.lottie || window.bodymovin;
+          attempts += 1;
+          if (L) {
+            window.clearInterval(timer);
+            cb(L);
+          } else if (attempts > 120) {
+            window.clearInterval(timer);
+            showNotifyPageLoadingFallback();
+          }
+        }, 50);
+      }
+
+      loadNotifyPageLoadingLottieLib(startNotifyPageLoadingWheel);
+    })();
+  </script>
   {% csrf_token %}
   <!-- Header -->
   <header class="header sudo-app-header">
@@ -4725,7 +4870,7 @@
       <div class="sms-composer-status" id="smsComposerStatus" hidden role="status" aria-live="polite"></div>
       <button type="button" class="custom-sms-send-btn" id="customSmsSendBtn" disabled aria-disabled="true">
         <i class="bi bi-send-fill" aria-hidden="true"></i>
-        <span class="custom-sms-send-btn__label">Send</span>
+        <span class="custom-sms-send-btn__label">Send Notification</span>
       </button>
       <p class="custom-sms-send-hint" id="customSmsSendHint">Type a message to enable Send. Other contact options stay paused until you send or cancel.</p>
     </div>
@@ -5476,6 +5621,9 @@
     var composerChannel = null;
     /** True while a send started from #customSmsSendBtn is in flight. */
     var customSmsSendInFlight = false;
+    /** Blocks duplicate notification POSTs across all send entry points. */
+    var notifySendInFlight = false;
+    var notifyActiveSendButton = null;
     /** Latched for the current request so success handlers can clear the composer safely. */
     var lastSendFromCustomSmsComposer = false;
     var smsComposerSentCloseTimer = null;
@@ -5896,7 +6044,7 @@
 
     function composerSendLabel(channel, sending) {
       if (sending) return 'Sending…';
-      return channel === 'push' ? 'Send push' : 'Send SMS';
+      return 'Send Notification';
     }
 
     function applyComposerChannelUi(channel) {
@@ -5966,7 +6114,8 @@
         !!smsComposerOpen &&
         isCustomSmsMessageValid() &&
         channelReady &&
-        !customSmsSendInFlight;
+        !customSmsSendInFlight &&
+        !notifySendInFlight;
       customSmsSendBtn.disabled = !canSend;
       customSmsSendBtn.setAttribute('aria-disabled', canSend ? 'false' : 'true');
       customSmsSendBtn.classList.toggle('is-sending', !!customSmsSendInFlight);
@@ -6181,7 +6330,7 @@
     }
 
     function sendCustomSmsFromComposer() {
-      if (customSmsSendInFlight) return;
+      if (customSmsSendInFlight || notifySendInFlight) return;
       if (!smsComposerOpen) return;
       if (!assertNotifySheetAllowsPost()) return;
       if (!ensureContactTargetSelected()) return;
@@ -7963,6 +8112,95 @@
     }
 
     // Initialize the page
+    (function initNotifyPageLoading() {
+      var dismissed = false;
+      var domReady = false;
+      var pageLoaded = document.readyState === 'complete';
+      var startedAt = Date.now();
+      var MIN_MS = 420;
+
+      function tryDismissNotifyPageLoading() {
+        if (dismissed) return;
+        if (!domReady || !pageLoaded) return;
+        var elapsed = Date.now() - startedAt;
+        if (elapsed < MIN_MS) {
+          window.setTimeout(tryDismissNotifyPageLoading, MIN_MS - elapsed + 20);
+          return;
+        }
+        dismissed = true;
+        document.documentElement.classList.remove('notify-page-loading');
+        if (window.notifyPageLoadingAnim) {
+          try {
+            window.notifyPageLoadingAnim.destroy();
+          } catch (e) {}
+          window.notifyPageLoadingAnim = null;
+        }
+        var overlay = document.getElementById('notifyPageLoadingOverlay');
+        if (overlay) {
+          overlay.classList.add('is-hiding');
+          overlay.setAttribute('aria-busy', 'false');
+          window.setTimeout(function () {
+            if (overlay && overlay.parentNode) overlay.remove();
+          }, 420);
+        }
+      }
+
+      window.markNotifyPageDomReady = function () {
+        domReady = true;
+        tryDismissNotifyPageLoading();
+      };
+
+      if (!pageLoaded) {
+        window.addEventListener('load', function () {
+          pageLoaded = true;
+          tryDismissNotifyPageLoading();
+        });
+      }
+
+      window.setTimeout(function () {
+        pageLoaded = true;
+        domReady = true;
+        tryDismissNotifyPageLoading();
+      }, 9000);
+    })();
+
+    function setActiveSendButtonUi(btn, sending) {
+      if (!btn) return;
+      if (sending) {
+        btn.classList.add('is-sending');
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        var textEl =
+          btn.querySelector('.btn-text') ||
+          btn.querySelector('.custom-sms-send-btn__label') ||
+          btn.querySelector('.notify-channel-box-title');
+        if (textEl) {
+          if (!textEl.dataset.notifyPrevLabel) {
+            textEl.dataset.notifyPrevLabel = textEl.textContent;
+          }
+          textEl.textContent = 'Sending…';
+        }
+        return;
+      }
+      btn.classList.remove('is-sending');
+      var restoreEl =
+        btn.querySelector('.btn-text') ||
+        btn.querySelector('.custom-sms-send-btn__label') ||
+        btn.querySelector('.notify-channel-box-title');
+      if (restoreEl && restoreEl.dataset.notifyPrevLabel) {
+        restoreEl.textContent = restoreEl.dataset.notifyPrevLabel;
+        delete restoreEl.dataset.notifyPrevLabel;
+      }
+      if (btn === customSmsSendBtn) {
+        syncCustomSmsSendButton();
+        return;
+      }
+      if (!btn.classList.contains('sms-compose-locked') && !btn.classList.contains('notify-voice-cool-blocked')) {
+        btn.disabled = false;
+        btn.setAttribute('aria-disabled', 'false');
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       resetUiAfterEmergencyDialerReturn();
 
@@ -8309,6 +8547,10 @@
       } catch (e) {}
       if (!SUDO_NOTIFY_TERMINAL_GATE && !notifySessionTerminalActive) {
         startNotifyLiveStatusPoll();
+      }
+
+      if (typeof window.markNotifyPageDomReady === 'function') {
+        window.markNotifyPageDomReady();
       }
     });
 
@@ -10010,6 +10252,10 @@
 
     // Function to send notification to server
     function sendNotification(message) {
+      if (notifySendInFlight) {
+        return;
+      }
+
       if (!ensureContactTargetSelected()) {
         return;
       }
@@ -10043,8 +10289,10 @@
       }
 
       var activeButton = getActiveButton();
+      notifySendInFlight = true;
+      notifyActiveSendButton = activeButton;
       if (activeButton) {
-        activeButton.disabled = true;
+        setActiveSendButtonUi(activeButton, true);
       }
       setNotifyDockSending(true);
 
@@ -10299,14 +10547,14 @@
         })
         .finally(() => {
           setNotifyDockSending(false);
+          var activeBtn = notifyActiveSendButton;
+          notifySendInFlight = false;
+          notifyActiveSendButton = null;
           var wasCustomSms = lastSendFromCustomSmsComposer;
           customSmsSendInFlight = false;
           lastSendFromCustomSmsComposer = false;
-          var btnDone = getActiveButton();
-          if (btnDone && btnDone !== customSmsSendBtn) {
-            if (!btnDone.classList.contains('sms-compose-locked')) {
-              btnDone.disabled = false;
-            }
+          if (activeBtn) {
+            setActiveSendButtonUi(activeBtn, false);
           }
           // Failure: keep composer open with typed text; stay locked until send/cancel.
           // Success keeps composer open with Sent, then closes via timer.
