@@ -32,7 +32,29 @@
       visibility: hidden;
       pointer-events: none;
     }
-    .notify-page-loading-spinner {
+    .notify-page-loading-inner {
+      width: min(112px, 28vw);
+      height: min(112px, 28vw);
+      max-width: 100%;
+      max-height: 100%;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notify-page-loading-lottie-mount {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notify-page-loading-lottie-mount svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .notify-page-loading-css-fallback {
       width: 48px;
       height: 48px;
       border-radius: 50%;
@@ -41,19 +63,12 @@
       animation: notify-page-loading-spin 0.7s linear infinite;
       box-sizing: border-box;
     }
-    .notify-page-loading-label {
-      margin: 0;
-      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.62);
-    }
     @keyframes notify-page-loading-spin {
       to { transform: rotate(360deg); }
     }
   </style>
+  <link rel="preload" href="{% url 'notify_sending_wheel_json' %}" as="fetch" crossorigin>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
   <script>
     document.documentElement.classList.add('notify-page-loading');
     (function initNotifyPageLoadingEarly() {
@@ -73,6 +88,12 @@
         }
         dismissed = true;
         document.documentElement.classList.remove('notify-page-loading');
+        if (window.notifyPageLoadingAnim) {
+          try {
+            window.notifyPageLoadingAnim.destroy();
+          } catch (e) {}
+          window.notifyPageLoadingAnim = null;
+        }
         var overlay = document.getElementById('notifyPageLoadingOverlay');
         if (overlay) {
           overlay.classList.add('is-hiding');
@@ -4467,9 +4488,62 @@
 
 <body class="notify-app sudo-mobile-flow{% if vehicle_lost_mode.is_lost_mode %} lost-mode-active{% endif %}" data-notify-terminal="{% if scanner_notify_show_terminal_sheet %}1{% else %}0{% endif %}"{% if vehicle_lost_mode.is_lost_mode %} data-lost-mode="1"{% endif %}>
   <div id="notifyPageLoadingOverlay" role="status" aria-live="polite" aria-busy="true" aria-label="Loading page">
-    <div class="notify-page-loading-spinner" aria-hidden="true"></div>
-    <p class="notify-page-loading-label">Loading…</p>
+    <div class="notify-page-loading-inner">
+      <div id="notifyPageLoadingLottieMount" class="notify-page-loading-lottie-mount" aria-hidden="true"></div>
+    </div>
   </div>
+  <script>
+    (function initNotifyPageLoadingWheel() {
+      var mount = document.getElementById('notifyPageLoadingLottieMount');
+      if (!mount) return;
+      var wheelUrl = "{% url 'notify_sending_wheel_json' %}";
+
+      function showNotifyPageLoadingFallback() {
+        if (mount.querySelector('.notify-page-loading-css-fallback')) return;
+        mount.innerHTML = '';
+        var fb = document.createElement('div');
+        fb.className = 'notify-page-loading-css-fallback';
+        fb.setAttribute('aria-hidden', 'true');
+        mount.appendChild(fb);
+      }
+
+      function startNotifyPageLoadingWheel(LottieApi) {
+        try {
+          window.notifyPageLoadingAnim = LottieApi.loadAnimation({
+            container: mount,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: wheelUrl
+          });
+        } catch (e) {
+          showNotifyPageLoadingFallback();
+        }
+      }
+
+      function loadNotifyPageLoadingLottieLib(cb) {
+        var existing = window.lottie || window.bodymovin;
+        if (existing) {
+          cb(existing);
+          return;
+        }
+        var attempts = 0;
+        var timer = window.setInterval(function () {
+          var L = window.lottie || window.bodymovin;
+          attempts += 1;
+          if (L) {
+            window.clearInterval(timer);
+            cb(L);
+          } else if (attempts > 120) {
+            window.clearInterval(timer);
+            showNotifyPageLoadingFallback();
+          }
+        }, 50);
+      }
+
+      loadNotifyPageLoadingLottieLib(startNotifyPageLoadingWheel);
+    })();
+  </script>
   {% csrf_token %}
   <!-- Header -->
   <header class="header sudo-app-header">
