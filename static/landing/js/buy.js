@@ -12,6 +12,11 @@
   var stickyBar = document.getElementById('buy-sticky');
   var busy = false;
   var paymentSettled = false;
+  var appliedCoupon = null;
+  var couponApplyBtn = document.getElementById('coupon-apply-btn');
+  var couponInput = document.getElementById('couponCode');
+  var couponHint = document.getElementById('coupon-hint');
+  var discountRow = document.getElementById('summary-discount-row');
 
   /* —— Fullscreen wheel.json Lottie loader —— */
   var loaderOverlay = document.getElementById('checkout-loader');
@@ -115,8 +120,16 @@
     var product = productMeta();
     var qty = Math.max(1, Math.min(20, parseInt(qtyInput.value, 10) || 1));
     qtyInput.value = String(qty);
-    var subtotal = product.price * qty;
     var shipping = Number(cfg.shipping != null ? cfg.shipping : 49);
+    var subtotal = product.price * qty;
+    var discount = 0;
+
+    if (appliedCoupon && appliedCoupon.quantity === qty) {
+      subtotal = Number(appliedCoupon.subtotal);
+      discount = Number(appliedCoupon.discount || 0);
+      shipping = Number(appliedCoupon.shipping != null ? appliedCoupon.shipping : shipping);
+    }
+
     var total = subtotal + shipping;
 
     var setText = function (id, value) {
@@ -125,13 +138,86 @@
     };
 
     setText('summary-product', product.name);
-    setText('summary-unit', money(product.price));
+    setText('summary-unit', money(appliedCoupon ? appliedCoupon.effectiveUnitPrice : product.price));
     setText('summary-qty', String(qty));
-    setText('summary-subtotal', money(subtotal));
+    setText('summary-subtotal', money(subtotal + discount));
     setText('summary-shipping', money(shipping));
+    if (discountRow) {
+      if (discount > 0) {
+        discountRow.hidden = false;
+        setText('summary-discount', '−' + money(discount).replace(/^₹/, '₹'));
+      } else {
+        discountRow.hidden = true;
+        setText('summary-discount', '−₹0.00');
+      }
+    }
     setText('summary-total', money(total));
     setText('hero-total', money(total));
     setText('sticky-total', money(total));
+  }
+
+  function setCouponHint(message, kind) {
+    if (!couponHint) return;
+    couponHint.hidden = !message;
+    couponHint.textContent = message || '';
+    couponHint.classList.toggle('is-error', kind === 'error');
+    couponHint.classList.toggle('is-success', kind === 'success');
+  }
+
+  function clearAppliedCoupon() {
+    appliedCoupon = null;
+    setCouponHint('', '');
+    updateSummary();
+  }
+
+  async function applyCouponCode() {
+    if (!couponInput) return;
+    var code = String(couponInput.value || '').trim();
+    if (!code) {
+      clearAppliedCoupon();
+      setCouponHint('Enter a coupon code to apply a discount.', 'error');
+      return;
+    }
+
+    var qty = Math.max(1, Math.min(20, parseInt(qtyInput.value, 10) || 1));
+    if (!cfg.validateCouponUrl) {
+      setCouponHint('Coupon validation is unavailable.', 'error');
+      return;
+    }
+
+    if (couponApplyBtn) {
+      couponApplyBtn.disabled = true;
+      couponApplyBtn.textContent = 'Applying…';
+    }
+    setCouponHint('Checking coupon…', '');
+
+    try {
+      var res = await postJson(cfg.validateCouponUrl, {
+        couponCode: code,
+        quantity: qty,
+      });
+      if (!res.success || !res.coupon) {
+        throw new Error(res.error || 'Invalid coupon code.');
+      }
+      appliedCoupon = res.coupon;
+      couponInput.value = res.coupon.code || code;
+      setCouponHint(res.coupon.message || res.coupon.label || 'Coupon applied.', 'success');
+      var err = form.querySelector('.field-error[data-for="couponCode"]');
+      if (err) {
+        err.hidden = true;
+        err.textContent = '';
+      }
+      updateSummary();
+    } catch (err) {
+      appliedCoupon = null;
+      setCouponHint(err.message || 'Invalid coupon code.', 'error');
+      updateSummary();
+    } finally {
+      if (couponApplyBtn) {
+        couponApplyBtn.disabled = false;
+        couponApplyBtn.textContent = 'Apply';
+      }
+    }
   }
 
   function setStatus(message, kind) {
@@ -252,6 +338,7 @@
       vehicleNumber: fieldValue('vehicleNumber').trim(),
       selectedItem: product.key,
       quantity: parseInt(qtyInput.value, 10) || 1,
+      couponCode: appliedCoupon ? (appliedCoupon.code || fieldValue('couponCode').trim()) : fieldValue('couponCode').trim(),
     };
   }
 
@@ -396,8 +483,29 @@
       updateSummary();
     });
   });
-  qtyInput.addEventListener('change', updateSummary);
-  qtyInput.addEventListener('input', updateSummary);
+  qtyInput.addEventListener('change', function () {
+    if (appliedCoupon) clearAppliedCoupon();
+    updateSummary();
+  });
+  qtyInput.addEventListener('input', function () {
+    if (appliedCoupon) clearAppliedCoupon();
+    updateSummary();
+  });
+
+  if (couponApplyBtn) {
+    couponApplyBtn.addEventListener('click', applyCouponCode);
+  }
+  if (couponInput) {
+    couponInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCouponCode();
+      }
+    });
+    couponInput.addEventListener('input', function () {
+      if (appliedCoupon) clearAppliedCoupon();
+    });
+  }
 
   /* Smooth jump to checkout */
   var jump = document.getElementById('buy-now-jump');
@@ -655,6 +763,11 @@
         clearErrors();
         Object.keys(err.payload.fields).forEach(function (key) {
           showFieldError(key, err.payload.fields[key]);
+          if (key === 'couponCode') {
+            appliedCoupon = null;
+            setCouponHint(err.payload.fields[key], 'error');
+            updateSummary();
+          }
         });
         setStatus(err.message || 'Please fix the highlighted fields.', 'error');
         setBusy(false);

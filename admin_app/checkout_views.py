@@ -21,6 +21,13 @@ from .razorpay_service import (
     get_razorpay_credentials,
     verify_razorpay_payment,
 )
+from .checkout_coupon_service import (
+    DEFAULT_SHIPPING_CHARGE,
+    DEFAULT_STICKER_PRICE,
+    get_checkout_settings,
+    increment_coupon_use,
+    validate_coupon_for_checkout,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +44,17 @@ QR_PRODUCTS = {
     },
 }
 DEFAULT_PRODUCT_KEY = 'sticker'
-SHIPPING_CHARGE = 49.0
+SHIPPING_CHARGE = DEFAULT_SHIPPING_CHARGE
+
+
+def _checkout_pricing(db=None):
+    """Load sticker price + shipping from Firestore admin settings."""
+    if db is None:
+        db = _get_db()
+    settings = get_checkout_settings(db)
+    product = dict(QR_PRODUCTS[DEFAULT_PRODUCT_KEY])
+    product['price'] = settings['stickerUnitPrice']
+    return product, settings['shippingCharge']
 
 # Prefer letter-leading names (mirrors mobile ValidationUtils.validateName)
 NAME_LETTER_RE = re.compile(r"^[^\W\d_]([^\W\d_]|[\s'.-]){1,49}$", re.UNICODE)
@@ -115,12 +132,42 @@ def _validate_checkout_payload(data: dict):
     if quantity < 1 or quantity > 20:
         errors['quantity'] = 'Quantity must be between 1 and 20'
 
+    coupon_code = (data.get('couponCode') or data.get('coupon') or '').strip()
+
     if errors:
         return None, errors
 
-    product = QR_PRODUCTS[product_key]
-    subtotal = product['price'] * quantity
-    total = subtotal + SHIPPING_CHARGE
+    db = _get_db()
+    product, shipping_charge = _checkout_pricing(db)
+    unit_price = float(product['price'])
+    subtotal_before = round(unit_price * quantity, 2)
+    subtotal = subtotal_before
+    coupon_discount = 0.0
+    coupon_meta = None
+
+    if coupon_code:
+        coupon_result = validate_coupon_for_checkout(
+            db,
+            code=coupon_code,
+            quantity=quantity,
+            unit_price=unit_price,
+        )
+        if not coupon_result.get('ok'):
+            errors['couponCode'] = coupon_result.get('message') or 'Invalid coupon code.'
+            return None, errors
+        subtotal = float(coupon_result['subtotal'])
+        coupon_discount = float(coupon_result['discount'])
+        subtotal_before = float(coupon_result['subtotalBefore'])
+        coupon_meta = {
+            'code': coupon_result['code'],
+            'label': coupon_result.get('label') or '',
+            'discountType': coupon_result['discountType'],
+            'discountValue': coupon_result['discountValue'],
+            'discount': coupon_discount,
+            'subtotalBefore': subtotal_before,
+        }
+
+    total = round(subtotal + shipping_charge, 2)
     post_office = (data.get('postOffice') or '').strip()
     landmark = (data.get('landmark') or '').strip() or None
     country = (data.get('country') or 'India').strip() or 'India'
@@ -134,9 +181,13 @@ def _validate_checkout_payload(data: dict):
         'selectedItem': product_key,
         'selectedItemName': product['name'],
         'quantity': quantity,
-        'unitPrice': product['price'],
+        'unitPrice': unit_price,
         'subtotal': subtotal,
-        'shipping': SHIPPING_CHARGE,
+        'subtotalBeforeDiscount': subtotal_before,
+        'couponDiscount': coupon_discount,
+        'couponCode': (coupon_meta or {}).get('code') or '',
+        'coupon': coupon_meta,
+        'shipping': shipping_charge,
         'amount': total,
         'vehicleCategory': vehicle_category,
         'vehicleNumber': vehicle_number,
@@ -166,17 +217,18 @@ def buy_now(request):
     except RuntimeError:
         key_id = ''
 
-    product = QR_PRODUCTS[DEFAULT_PRODUCT_KEY]
+    product, shipping_charge = _checkout_pricing()
     return render(
         request,
         'buy.html',
         {
             'product': product,
-            'shipping_charge': SHIPPING_CHARGE,
-            'unit_total': product['price'] + SHIPPING_CHARGE,
+            'shipping_charge': shipping_charge,
+            'unit_total': product['price'] + shipping_charge,
             'razorpay_key_id': key_id,
             'create_order_url': reverse('checkout_create_order'),
             'verify_payment_url': reverse('checkout_verify_payment'),
+            'validate_coupon_url': reverse('checkout_validate_coupon'),
             'success_url': reverse('buy_success'),
             'failure_url': reverse('buy_failure'),
             'cancelled_url': reverse('buy_cancelled'),
@@ -300,7 +352,13 @@ def checkout_create_order(request):
         'channel': 'web',
         'shippingCharge': cleaned['shipping'],
         'unitPrice': cleaned['unitPrice'],
+        'subtotal': cleaned['subtotal'],
+        'subtotalBeforeDiscount': cleaned.get('subtotalBeforeDiscount'),
+        'couponDiscount': cleaned.get('couponDiscount') or 0,
     }
+    if cleaned.get('couponCode'):
+        order_doc['couponCode'] = cleaned['couponCode']
+        order_doc['coupon'] = cleaned.get('coupon') or {}
     if cleaned['email']:
         order_doc['email'] = cleaned['email']
 
@@ -345,6 +403,9 @@ def checkout_create_order(request):
             'quantity': cleaned['quantity'],
         },
         'shipping': cleaned['shipping'],
+        'subtotal': cleaned['subtotal'],
+        'discount': cleaned.get('couponDiscount') or 0,
+        'couponCode': cleaned.get('couponCode') or '',
     })
 
 
@@ -435,6 +496,9 @@ def checkout_verify_payment(request):
                 update_payload['razorpaySignature'] = razorpay_signature
             order_ref.update(update_payload)
             order_doc = {**(order_doc or {}), **update_payload}
+            coupon_code = (order_doc or {}).get('couponCode') or ''
+            if coupon_code:
+                increment_coupon_use(db, coupon_code)
         else:
             logger.warning(
                 'No order found for paymentOrderId=%s firestoreId=%s',

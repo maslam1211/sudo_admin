@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}Web Checkout Coupons - Admin Panel{% endblock %}
+{% block page_title %}Web Checkout & Coupons{% endblock %}
+
+{% block content %}
+<style>
+  .cc-grid { display: grid; gap: 1.25rem; margin-bottom: 1.5rem; }
+  @media (min-width: 992px) {
+    .cc-grid { grid-template-columns: 360px 1fr; align-items: start; }
+  }
+  .cc-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    padding: 1.25rem;
+  }
+  .cc-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+  .cc-card p.lead { font-size: 0.85rem; color: #64748b; margin-bottom: 1rem; }
+  .cc-field { margin-bottom: 0.85rem; }
+  .cc-field label { font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem; }
+  .cc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+  .cc-badge { display: inline-flex; align-items: center; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+  .cc-badge.on { background: #dcfce7; color: #166534; }
+  .cc-badge.off { background: #fee2e2; color: #991b1b; }
+  .cc-table-wrap { overflow-x: auto; }
+  .cc-msg { font-size: 0.85rem; margin-top: 0.5rem; }
+  .cc-msg.ok { color: #166534; }
+  .cc-msg.err { color: #b91c1c; }
+</style>
+
+<div class="cc-grid">
+  <section class="cc-card">
+    <h3>Store pricing</h3>
+    <p class="lead">Default prices on the public <strong>/buy/</strong> page (before coupons).</p>
+    <form id="settings-form">
+      <div class="cc-field">
+        <label for="stickerUnitPrice">Sticker unit price (₹)</label>
+        <input type="number" class="form-control" id="stickerUnitPrice" min="0" step="1"
+               value="{{ settings.stickerUnitPrice|floatformat:0 }}" required>
+      </div>
+      <div class="cc-field">
+        <label for="shippingCharge">Shipping charge (₹)</label>
+        <input type="number" class="form-control" id="shippingCharge" min="0" step="1"
+               value="{{ settings.shippingCharge|floatformat:0 }}" required>
+      </div>
+      <div class="cc-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Save pricing</button>
+      </div>
+      <p class="cc-msg" id="settings-msg" hidden></p>
+    </form>
+  </section>
+
+  <section class="cc-card">
+    <h3 id="coupon-form-title">Add coupon</h3>
+    <p class="lead">Coupon codes adjust checkout price on the website. Codes are case-insensitive.</p>
+    <form id="coupon-form">
+      <input type="hidden" id="coupon-edit-mode" value="0">
+      <div class="row g-2">
+        <div class="col-md-4 cc-field">
+          <label for="couponCode">Code *</label>
+          <input type="text" class="form-control text-uppercase" id="couponCode" maxlength="32"
+                 placeholder="e.g. SUDO199" required pattern="[A-Za-z0-9_-]{3,32}">
+        </div>
+        <div class="col-md-8 cc-field">
+          <label for="couponLabel">Label (shown to customer)</label>
+          <input type="text" class="form-control" id="couponLabel" maxlength="80"
+                 placeholder="e.g. Launch offer — ₹199 sticker">
+        </div>
+        <div class="col-md-4 cc-field">
+          <label for="discountType">Discount type *</label>
+          <select class="form-select" id="discountType" required>
+            <option value="unit_price">Set unit price (₹)</option>
+            <option value="fixed">Fixed amount off subtotal (₹)</option>
+            <option value="percent">Percent off subtotal (%)</option>
+          </select>
+        </div>
+        <div class="col-md-4 cc-field">
+          <label for="discountValue">Value *</label>
+          <input type="number" class="form-control" id="discountValue" min="0" step="0.01" required>
+        </div>
+        <div class="col-md-4 cc-field">
+          <label for="minQuantity">Min quantity</label>
+          <input type="number" class="form-control" id="minQuantity" min="1" value="1">
+        </div>
+        <div class="col-md-4 cc-field">
+          <label for="maxUses">Max uses <span class="text-muted">(optional)</span></label>
+          <input type="number" class="form-control" id="maxUses" min="1" placeholder="Unlimited">
+        </div>
+        <div class="col-md-4 cc-field">
+          <label for="expiresAt">Expires at <span class="text-muted">(optional, UTC)</span></label>
+          <input type="datetime-local" class="form-control" id="expiresAt">
+        </div>
+        <div class="col-md-4 cc-field d-flex align-items-end">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="couponActive" checked>
+            <label class="form-check-label" for="couponActive">Active</label>
+          </div>
+        </div>
+      </div>
+      <div class="cc-actions">
+        <button type="submit" class="btn btn-success btn-sm" id="coupon-save-btn">Save coupon</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="coupon-reset-btn" hidden>Cancel edit</button>
+      </div>
+      <p class="cc-msg" id="coupon-msg" hidden></p>
+    </form>
+  </section>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <strong>Active coupon codes</strong>
+    <span class="text-muted small">{{ coupons|length }} total</span>
+  </div>
+  <div class="card-body cc-table-wrap">
+    {% if coupons %}
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Discount</th>
+          <th>Status</th>
+          <th>Uses</th>
+          <th>Expires</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in coupons %}
+        <tr>
+          <td><code>{{ c.code }}</code>{% if c.label %}<br><small class="text-muted">{{ c.label }}</small>{% endif %}</td>
+          <td>{{ c.discountLabel }}</td>
+          <td>
+            {% if c.active %}
+            <span class="cc-badge on">Active</span>
+            {% else %}
+            <span class="cc-badge off">Inactive</span>
+            {% endif %}
+          </td>
+          <td>{{ c.usedCount }}{% if c.maxUses %} / {{ c.maxUses }}{% endif %}</td>
+          <td>{% if c.expiresDisplay %}{{ c.expiresDisplay }}{% else %}—{% endif %}</td>
+          <td class="text-end text-nowrap">
+            <button type="button" class="btn btn-outline-primary btn-sm cc-edit-btn"
+                    data-code="{{ c.code }}"
+                    data-label="{{ c.label|default:''|escape }}"
+                    data-type="{{ c.discountType }}"
+                    data-value="{{ c.discountValue }}"
+                    data-min="{{ c.minQuantity }}"
+                    data-max="{{ c.maxUses|default:'' }}"
+                    data-active="{% if c.active %}1{% else %}0{% endif %}">Edit</button>
+            <button type="button" class="btn btn-outline-danger btn-sm cc-delete-btn"
+                    data-code="{{ c.code }}">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted mb-0">No coupons yet. Create one above — e.g. code <code>SUDO199</code> with type <strong>Set unit price</strong> and value <strong>199</strong>.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  var settingsForm = document.getElementById('settings-form');
+  var couponForm = document.getElementById('coupon-form');
+  var settingsMsg = document.getElementById('settings-msg');
+  var couponMsg = document.getElementById('coupon-msg');
+  var resetBtn = document.getElementById('coupon-reset-btn');
+  var formTitle = document.getElementById('coupon-form-title');
+  var codeInput = document.getElementById('couponCode');
+
+  function showMsg(el, text, ok) {
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || '';
+    el.className = 'cc-msg ' + (ok ? 'ok' : 'err');
+  }
+
+  async function postJson(url, body) {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body || {}),
+    });
+    var data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  }
+
+  function resetCouponForm() {
+    couponForm.reset();
+    document.getElementById('couponActive').checked = true;
+    document.getElementById('minQuantity').value = '1';
+    document.getElementById('coupon-edit-mode').value = '0';
+    codeInput.readOnly = false;
+    resetBtn.hidden = true;
+    formTitle.textContent = 'Add coupon';
+    showMsg(couponMsg, '', true);
+  }
+
+  settingsForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    showMsg(settingsMsg, 'Saving…', true);
+    try {
+      await postJson("{% url 'checkout_settings_save' %}", {
+        stickerUnitPrice: Number(document.getElementById('stickerUnitPrice').value),
+        shippingCharge: Number(document.getElementById('shippingCharge').value),
+      });
+      showMsg(settingsMsg, 'Pricing saved.', true);
+    } catch (err) {
+      showMsg(settingsMsg, err.message || 'Save failed', false);
+    }
+  });
+
+  couponForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var expiresRaw = document.getElementById('expiresAt').value;
+    var payload = {
+      code: codeInput.value.trim(),
+      label: document.getElementById('couponLabel').value.trim(),
+      discountType: document.getElementById('discountType').value,
+      discountValue: Number(document.getElementById('discountValue').value),
+      minQuantity: Number(document.getElementById('minQuantity').value || 1),
+      maxUses: document.getElementById('maxUses').value.trim(),
+      expiresAt: expiresRaw ? new Date(expiresRaw).toISOString() : '',
+      active: document.getElementById('couponActive').checked,
+    };
+    showMsg(couponMsg, 'Saving…', true);
+    try {
+      await postJson("{% url 'checkout_coupon_save' %}", payload);
+      showMsg(couponMsg, 'Coupon saved. Reloading…', true);
+      window.setTimeout(function () { window.location.reload(); }, 600);
+    } catch (err) {
+      showMsg(couponMsg, err.message || 'Save failed', false);
+    }
+  });
+
+  resetBtn.addEventListener('click', resetCouponForm);
+
+  document.querySelectorAll('.cc-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('coupon-edit-mode').value = '1';
+      codeInput.value = btn.getAttribute('data-code') || '';
+      codeInput.readOnly = true;
+      document.getElementById('couponLabel').value = btn.getAttribute('data-label') || '';
+      document.getElementById('discountType').value = btn.getAttribute('data-type') || 'unit_price';
+      document.getElementById('discountValue').value = btn.getAttribute('data-value') || '';
+      document.getElementById('minQuantity').value = btn.getAttribute('data-min') || '1';
+      document.getElementById('maxUses').value = btn.getAttribute('data-max') || '';
+      document.getElementById('couponActive').checked = btn.getAttribute('data-active') === '1';
+      document.getElementById('expiresAt').value = '';
+      formTitle.textContent = 'Edit coupon — ' + (btn.getAttribute('data-code') || '');
+      resetBtn.hidden = false;
+      showMsg(couponMsg, '', true);
+      window.scrollTo({ top: couponForm.offsetTop - 80, behavior: 'smooth' });
+    });
+  });
+
+  document.querySelectorAll('.cc-delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      var code = btn.getAttribute('data-code');
+      if (!code || !window.confirm('Delete coupon ' + code + '?')) return;
+      try {
+        await postJson("{% url 'checkout_coupon_delete' %}", { code: code });
+        window.location.reload();
+      } catch (err) {
+        alert(err.message || 'Delete failed');
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

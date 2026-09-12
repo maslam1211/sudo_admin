@@ -200,6 +200,20 @@
                 <span>Shipping</span>
                 <span id="summary-shipping">₹{{ shipping_charge|floatformat:2 }}</span>
               </div>
+              <div class="summary-row summary-row--coupon" id="summary-discount-row" hidden>
+                <span>Coupon discount</span>
+                <span id="summary-discount">−₹0.00</span>
+              </div>
+              <div class="coupon-box">
+                <label for="couponCode" class="coupon-box__label">Coupon code</label>
+                <div class="coupon-box__row">
+                  <input type="text" id="couponCode" name="couponCode" class="coupon-box__input"
+                         placeholder="Enter code" autocomplete="off" spellcheck="false" maxlength="32">
+                  <button type="button" class="coupon-box__apply" id="coupon-apply-btn">Apply</button>
+                </div>
+                <p class="coupon-box__hint" id="coupon-hint" hidden></p>
+                <p class="field-error" data-for="couponCode" hidden></p>
+              </div>
               <div class="summary-total">
                 <span>Total</span>
                 <span id="summary-total">₹0.00</span>
@@ -257,6 +271,7 @@
     window.SUDO_CHECKOUT = {
       createOrderUrl: "{{ create_order_url|escapejs }}",
       verifyPaymentUrl: "{{ verify_payment_url|escapejs }}",
+      validateCouponUrl: "{{ validate_coupon_url|escapejs }}",
       successUrl: "{{ success_url|escapejs }}",
       failureUrl: "{{ failure_url|escapejs }}",
       cancelledUrl: "{{ cancelled_url|escapejs }}",

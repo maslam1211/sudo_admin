@@ -3,6 +3,7 @@ from django.views.generic import RedirectView
 
 from . import views
 from . import checkout_views
+from . import checkout_coupon_views
 from . import referral_views
 
 urlpatterns = [
@@ -106,6 +107,11 @@ urlpatterns = [
     # Website Buy Now / Razorpay checkout (mirrors mobile createOrder + verifyPayment)
     path('api/checkout/create-order/', checkout_views.checkout_create_order, name='checkout_create_order'),
     path('api/checkout/verify-payment/', checkout_views.checkout_verify_payment, name='checkout_verify_payment'),
+    path('api/checkout/validate-coupon/', checkout_coupon_views.checkout_validate_coupon, name='checkout_validate_coupon'),
+    path('manage-checkout-coupons/', checkout_coupon_views.manage_checkout_coupons, name='manage_checkout_coupons'),
+    path('manage-checkout-coupons/settings/save/', checkout_coupon_views.checkout_settings_save, name='checkout_settings_save'),
+    path('manage-checkout-coupons/coupon/save/', checkout_coupon_views.checkout_coupon_save, name='checkout_coupon_save'),
+    path('manage-checkout-coupons/coupon/delete/', checkout_coupon_views.checkout_coupon_delete, name='checkout_coupon_delete'),
     # Feedback URLs
     path('feedback/', views.feedback_page, name='feedback_page'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
