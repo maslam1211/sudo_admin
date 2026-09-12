@@ -545,6 +545,57 @@
   font-size: 0.85rem;
 }
 
+.summary-unit-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.summary-unit-suffix {
+  color: var(--buy-muted);
+  font-size: 0.78rem;
+}
+
+.summary-price-was {
+  text-decoration: line-through;
+  color: rgba(247, 247, 247, 0.42);
+}
+
+.summary-price-now.is-discounted {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.summary-unit-wrap.is-discounted .summary-unit-suffix {
+  color: rgba(52, 211, 153, 0.75);
+}
+
+.summary-row--muted span:last-child {
+  text-decoration: line-through;
+  opacity: 0.72;
+}
+
+.summary-row--coupon-code span:last-child {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.summary-coupon-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+.summary-card.is-coupon-applied {
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.28), 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.coupon-box--summary {
+  margin: 0.85rem 0 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--buy-border);
+}
+
 .summary-row,
 .summary-total {
   display: flex;

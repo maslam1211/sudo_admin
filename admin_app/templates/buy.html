@@ -195,12 +195,21 @@
                 <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="" width="56" height="56" loading="lazy" decoding="async">
                 <div>
                   <strong id="summary-product">{{ product.name }}</strong>
-                  <span id="summary-unit">₹{{ product.price|floatformat:0 }}</span>
+                  <span class="summary-unit-wrap" id="summary-unit-wrap">
+                    <span class="summary-price-was" id="summary-unit-was" hidden aria-hidden="true"></span>
+                    <span class="summary-price-now" id="summary-unit">₹{{ product.price|floatformat:0 }}</span>
+                    <span class="summary-unit-suffix"> / unit</span>
+                  </span>
                 </div>
               </div>
+              <div class="summary-rows summary-rows--live" id="summary-rows" aria-live="polite" aria-atomic="true">
               <div class="summary-row">
                 <span>Quantity</span>
                 <span id="summary-qty">1</span>
+              </div>
+              <div class="summary-row summary-row--muted" id="summary-list-subtotal-row" hidden>
+                <span>Price before coupon</span>
+                <span id="summary-list-subtotal">₹{{ product.price|floatformat:2 }}</span>
               </div>
               <div class="summary-row">
                 <span>Subtotal</span>
@@ -214,9 +223,24 @@
                 <span>Coupon discount</span>
                 <span id="summary-discount">−₹0.00</span>
               </div>
+              <div class="summary-row summary-row--coupon-code" id="summary-coupon-applied-row" hidden>
+                <span>Coupon applied</span>
+                <span id="summary-coupon-code" class="summary-coupon-code"></span>
+              </div>
+              </div>
+              <div class="coupon-box coupon-box--summary">
+                <label for="couponCodeSummary" class="coupon-box__label">Coupon code</label>
+                <div class="coupon-box__row">
+                  <input type="text" id="couponCodeSummary" class="coupon-box__input"
+                         placeholder="Enter code" autocomplete="off" spellcheck="false" maxlength="32"
+                         aria-describedby="coupon-hint-summary">
+                  <button type="button" class="coupon-box__apply" id="coupon-apply-btn-summary">Apply</button>
+                </div>
+                <p class="coupon-box__hint" id="coupon-hint-summary" hidden></p>
+              </div>
               <div class="summary-total summary-total--live" id="summary-total-wrap">
                 <span>Total</span>
-                <span id="summary-total">₹0.00</span>
+                <span id="summary-total">₹{{ unit_total|floatformat:2 }}</span>
               </div>
               <button type="submit" class="buy-pay-btn" id="pay-btn">
                 <span class="buy-pay-btn__label">Buy Now</span>
@@ -235,7 +259,7 @@
   <div class="buy-sticky" id="buy-sticky" hidden>
     <div class="buy-sticky__price">
       <span>Total</span>
-      <strong id="sticky-total">₹0.00</strong>
+      <strong id="sticky-total">₹{{ unit_total|floatformat:2 }}</strong>
     </div>
     <button type="submit" form="checkout-form" class="buy-pay-btn buy-pay-btn--compact" id="sticky-pay-btn">
       Buy Now

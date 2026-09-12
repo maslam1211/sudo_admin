@@ -16,6 +16,9 @@
   var couponApplyBtn = document.getElementById('coupon-apply-btn');
   var couponInput = document.getElementById('couponCode');
   var couponHint = document.getElementById('coupon-hint');
+  var couponApplyBtnSummary = document.getElementById('coupon-apply-btn-summary');
+  var couponInputSummary = document.getElementById('couponCodeSummary');
+  var couponHintSummary = document.getElementById('coupon-hint-summary');
   var discountRow = document.getElementById('summary-discount-row');
 
   /* —— Fullscreen wheel.json Lottie loader —— */
@@ -107,6 +110,32 @@
     return '₹' + Number(n).toFixed(2);
   }
 
+  function activeCouponInput() {
+    if (couponInputSummary && document.activeElement === couponInputSummary) {
+      return couponInputSummary;
+    }
+    if (couponInputSummary && couponInputSummary.value.trim()) {
+      return couponInputSummary;
+    }
+    return couponInput || couponInputSummary;
+  }
+
+  function syncCouponFields(fromInput) {
+    var value = fromInput ? String(fromInput.value || '') : '';
+    if (couponInput && couponInput !== fromInput) couponInput.value = value;
+    if (couponInputSummary && couponInputSummary !== fromInput) {
+      couponInputSummary.value = value;
+    }
+  }
+
+  function getCouponCodeValue() {
+    var primary = activeCouponInput();
+    var code = primary ? String(primary.value || '').trim() : '';
+    if (!code && couponInput) code = String(couponInput.value || '').trim();
+    if (!code && couponInputSummary) code = String(couponInputSummary.value || '').trim();
+    return code;
+  }
+
   function productMeta() {
     var input = form.querySelector('input[name="selectedItem"]');
     return {
@@ -147,7 +176,13 @@
     var heroWas = document.getElementById('hero-unit-price-was');
     var heroUnit = document.getElementById('hero-unit-price');
     var totalWrap = document.getElementById('summary-total-wrap');
+    var summaryCard = document.querySelector('.summary-card');
     var heroHint = document.querySelector('.product-total-hint');
+    var summaryUnitWas = document.getElementById('summary-unit-was');
+    var summaryUnitNow = document.getElementById('summary-unit');
+    var summaryUnitWrap = document.getElementById('summary-unit-wrap');
+    var listSubtotalRow = document.getElementById('summary-list-subtotal-row');
+    var couponAppliedRow = document.getElementById('summary-coupon-applied-row');
 
     if (heroUnit) {
       heroUnit.textContent = discount > 0 ? moneyWhole(unitPrice) : moneyWhole(listUnit);
@@ -164,17 +199,50 @@
         heroWas.textContent = '';
       }
     }
+    if (summaryUnitNow) {
+      summaryUnitNow.textContent = discount > 0 ? moneyWhole(unitPrice) : moneyWhole(listUnit);
+      summaryUnitNow.classList.toggle('is-discounted', discount > 0);
+    }
+    if (summaryUnitWas) {
+      if (discount > 0) {
+        summaryUnitWas.hidden = false;
+        summaryUnitWas.setAttribute('aria-hidden', 'false');
+        summaryUnitWas.textContent = moneyWhole(listUnit);
+      } else {
+        summaryUnitWas.hidden = true;
+        summaryUnitWas.setAttribute('aria-hidden', 'true');
+        summaryUnitWas.textContent = '';
+      }
+    }
+    if (summaryUnitWrap) {
+      summaryUnitWrap.classList.toggle('is-discounted', discount > 0);
+    }
+    if (listSubtotalRow) {
+      listSubtotalRow.hidden = !(discount > 0);
+      setText('summary-list-subtotal', money(listUnit * qty));
+    }
+    if (couponAppliedRow) {
+      if (discount > 0 && appliedCoupon && appliedCoupon.code) {
+        couponAppliedRow.hidden = false;
+        setText('summary-coupon-code', String(appliedCoupon.code));
+      } else {
+        couponAppliedRow.hidden = true;
+        setText('summary-coupon-code', '');
+      }
+    }
     if (heroHint) {
       heroHint.classList.toggle('is-coupon-applied', discount > 0);
     }
     if (totalWrap) {
       totalWrap.classList.toggle('is-coupon-applied', discount > 0);
     }
+    if (summaryCard) {
+      summaryCard.classList.toggle('is-coupon-applied', discount > 0);
+    }
 
     setText('summary-product', product.name);
-    setText('summary-unit', discount > 0 ? moneyWhole(unitPrice) : moneyWhole(listUnit));
     setText('summary-qty', String(qty));
-    setText('summary-subtotal', money(subtotal + discount));
+    setText('summary-subtotal', money(subtotal));
     setText('summary-shipping', money(shipping));
     if (discountRow) {
       if (discount > 0) {
@@ -191,11 +259,21 @@
   }
 
   function setCouponHint(message, kind) {
-    if (!couponHint) return;
-    couponHint.hidden = !message;
-    couponHint.textContent = message || '';
-    couponHint.classList.toggle('is-error', kind === 'error');
-    couponHint.classList.toggle('is-success', kind === 'success');
+    [couponHint, couponHintSummary].forEach(function (el) {
+      if (!el) return;
+      el.hidden = !message;
+      el.textContent = message || '';
+      el.classList.toggle('is-error', kind === 'error');
+      el.classList.toggle('is-success', kind === 'success');
+    });
+  }
+
+  function setCouponButtonsBusy(isBusy) {
+    [couponApplyBtn, couponApplyBtnSummary].forEach(function (btn) {
+      if (!btn) return;
+      btn.disabled = !!isBusy;
+      btn.textContent = isBusy ? 'Applying…' : 'Apply';
+    });
   }
 
   function clearAppliedCoupon() {
@@ -206,8 +284,9 @@
 
   async function applyCouponCode(options) {
     options = options || {};
-    if (!couponInput) return;
-    var code = String(couponInput.value || '').trim();
+    if (!couponInput && !couponInputSummary) return;
+    var code = getCouponCodeValue();
+    syncCouponFields(activeCouponInput());
     if (!code) {
       clearAppliedCoupon();
       if (!options.silent) {
@@ -222,11 +301,8 @@
       return;
     }
 
-    if (couponApplyBtn && !options.silent) {
-      couponApplyBtn.disabled = true;
-      couponApplyBtn.textContent = 'Applying…';
-    }
     if (!options.silent) {
+      setCouponButtonsBusy(true);
       setCouponHint('Checking coupon…', '');
     }
 
@@ -239,8 +315,10 @@
         throw new Error(res.error || 'Invalid coupon code.');
       }
       appliedCoupon = res.coupon;
-      couponInput.value = res.coupon.code || code;
-      setCouponHint(res.coupon.message || res.coupon.label || 'Coupon applied — price updated.', 'success');
+      syncCouponFields(activeCouponInput());
+      if (couponInput) couponInput.value = res.coupon.code || code;
+      if (couponInputSummary) couponInputSummary.value = res.coupon.code || code;
+      setCouponHint(res.coupon.message || res.coupon.label || 'Coupon applied — order summary updated.', 'success');
       var err = form.querySelector('.field-error[data-for="couponCode"]');
       if (err) {
         err.hidden = true;
@@ -252,19 +330,35 @@
       setCouponHint(err.message || 'Invalid coupon code.', 'error');
       updateSummary();
     } finally {
-      if (couponApplyBtn && !options.silent) {
-        couponApplyBtn.disabled = false;
-        couponApplyBtn.textContent = 'Apply';
+      if (!options.silent) {
+        setCouponButtonsBusy(false);
       }
     }
   }
 
   function onQuantityChanged() {
-    if (couponInput && couponInput.value.trim()) {
+    if (getCouponCodeValue()) {
       applyCouponCode({ silent: true });
       return;
     }
-    clearAppliedCoupon();
+    updateSummary();
+  }
+
+  function bindCouponInput(inputEl) {
+    if (!inputEl) return;
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        syncCouponFields(inputEl);
+        applyCouponCode();
+      }
+    });
+    inputEl.addEventListener('input', function () {
+      syncCouponFields(inputEl);
+      if (!getCouponCodeValue()) {
+        clearAppliedCoupon();
+      }
+    });
   }
 
   function setStatus(message, kind) {
@@ -385,7 +479,7 @@
       vehicleNumber: fieldValue('vehicleNumber').trim(),
       selectedItem: product.key,
       quantity: parseInt(qtyInput.value, 10) || 1,
-      couponCode: appliedCoupon ? (appliedCoupon.code || fieldValue('couponCode').trim()) : fieldValue('couponCode').trim(),
+      couponCode: appliedCoupon ? (appliedCoupon.code || getCouponCodeValue()) : getCouponCodeValue(),
     };
   }
 
@@ -527,28 +621,26 @@
       var delta = parseInt(btn.getAttribute('data-qty'), 10) || 0;
       var next = (parseInt(qtyInput.value, 10) || 1) + delta;
       qtyInput.value = String(Math.max(1, Math.min(20, next)));
-      updateSummary();
+      onQuantityChanged();
     });
   });
   qtyInput.addEventListener('change', onQuantityChanged);
   qtyInput.addEventListener('input', onQuantityChanged);
 
   if (couponApplyBtn) {
-    couponApplyBtn.addEventListener('click', applyCouponCode);
-  }
-  if (couponInput) {
-    couponInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyCouponCode();
-      }
-    });
-    couponInput.addEventListener('input', function () {
-      if (!couponInput.value.trim()) {
-        clearAppliedCoupon();
-      }
+    couponApplyBtn.addEventListener('click', function () {
+      syncCouponFields(couponInput);
+      applyCouponCode();
     });
   }
+  if (couponApplyBtnSummary) {
+    couponApplyBtnSummary.addEventListener('click', function () {
+      syncCouponFields(couponInputSummary);
+      applyCouponCode();
+    });
+  }
+  bindCouponInput(couponInput);
+  bindCouponInput(couponInputSummary);
 
   /* Smooth jump to checkout */
   var jump = document.getElementById('buy-now-jump');
