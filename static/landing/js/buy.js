@@ -116,17 +116,24 @@
     };
   }
 
+  function moneyWhole(n) {
+    return '₹' + Math.round(Number(n)).toLocaleString('en-IN');
+  }
+
   function updateSummary() {
     var product = productMeta();
     var qty = Math.max(1, Math.min(20, parseInt(qtyInput.value, 10) || 1));
     qtyInput.value = String(qty);
     var shipping = Number(cfg.shipping != null ? cfg.shipping : 49);
-    var subtotal = product.price * qty;
+    var listUnit = product.price;
+    var unitPrice = listUnit;
+    var subtotal = listUnit * qty;
     var discount = 0;
 
-    if (appliedCoupon && appliedCoupon.quantity === qty) {
+    if (appliedCoupon && Number(appliedCoupon.quantity) === qty) {
       subtotal = Number(appliedCoupon.subtotal);
       discount = Number(appliedCoupon.discount || 0);
+      unitPrice = Number(appliedCoupon.effectiveUnitPrice || listUnit);
       shipping = Number(appliedCoupon.shipping != null ? appliedCoupon.shipping : shipping);
     }
 
@@ -137,15 +144,42 @@
       if (el) el.textContent = value;
     };
 
+    var heroWas = document.getElementById('hero-unit-price-was');
+    var heroUnit = document.getElementById('hero-unit-price');
+    var totalWrap = document.getElementById('summary-total-wrap');
+    var heroHint = document.querySelector('.product-total-hint');
+
+    if (heroUnit) {
+      heroUnit.textContent = discount > 0 ? moneyWhole(unitPrice) : moneyWhole(listUnit);
+      heroUnit.classList.toggle('is-discounted', discount > 0);
+    }
+    if (heroWas) {
+      if (discount > 0) {
+        heroWas.hidden = false;
+        heroWas.setAttribute('aria-hidden', 'false');
+        heroWas.textContent = moneyWhole(listUnit);
+      } else {
+        heroWas.hidden = true;
+        heroWas.setAttribute('aria-hidden', 'true');
+        heroWas.textContent = '';
+      }
+    }
+    if (heroHint) {
+      heroHint.classList.toggle('is-coupon-applied', discount > 0);
+    }
+    if (totalWrap) {
+      totalWrap.classList.toggle('is-coupon-applied', discount > 0);
+    }
+
     setText('summary-product', product.name);
-    setText('summary-unit', money(appliedCoupon ? appliedCoupon.effectiveUnitPrice : product.price));
+    setText('summary-unit', discount > 0 ? moneyWhole(unitPrice) : moneyWhole(listUnit));
     setText('summary-qty', String(qty));
     setText('summary-subtotal', money(subtotal + discount));
     setText('summary-shipping', money(shipping));
     if (discountRow) {
       if (discount > 0) {
         discountRow.hidden = false;
-        setText('summary-discount', '−' + money(discount).replace(/^₹/, '₹'));
+        setText('summary-discount', '−' + money(discount));
       } else {
         discountRow.hidden = true;
         setText('summary-discount', '−₹0.00');
@@ -170,12 +204,15 @@
     updateSummary();
   }
 
-  async function applyCouponCode() {
+  async function applyCouponCode(options) {
+    options = options || {};
     if (!couponInput) return;
     var code = String(couponInput.value || '').trim();
     if (!code) {
       clearAppliedCoupon();
-      setCouponHint('Enter a coupon code to apply a discount.', 'error');
+      if (!options.silent) {
+        setCouponHint('Enter a coupon code to apply a discount.', 'error');
+      }
       return;
     }
 
@@ -185,11 +222,13 @@
       return;
     }
 
-    if (couponApplyBtn) {
+    if (couponApplyBtn && !options.silent) {
       couponApplyBtn.disabled = true;
       couponApplyBtn.textContent = 'Applying…';
     }
-    setCouponHint('Checking coupon…', '');
+    if (!options.silent) {
+      setCouponHint('Checking coupon…', '');
+    }
 
     try {
       var res = await postJson(cfg.validateCouponUrl, {
@@ -201,7 +240,7 @@
       }
       appliedCoupon = res.coupon;
       couponInput.value = res.coupon.code || code;
-      setCouponHint(res.coupon.message || res.coupon.label || 'Coupon applied.', 'success');
+      setCouponHint(res.coupon.message || res.coupon.label || 'Coupon applied — price updated.', 'success');
       var err = form.querySelector('.field-error[data-for="couponCode"]');
       if (err) {
         err.hidden = true;
@@ -213,11 +252,19 @@
       setCouponHint(err.message || 'Invalid coupon code.', 'error');
       updateSummary();
     } finally {
-      if (couponApplyBtn) {
+      if (couponApplyBtn && !options.silent) {
         couponApplyBtn.disabled = false;
         couponApplyBtn.textContent = 'Apply';
       }
     }
+  }
+
+  function onQuantityChanged() {
+    if (couponInput && couponInput.value.trim()) {
+      applyCouponCode({ silent: true });
+      return;
+    }
+    clearAppliedCoupon();
   }
 
   function setStatus(message, kind) {
@@ -483,14 +530,8 @@
       updateSummary();
     });
   });
-  qtyInput.addEventListener('change', function () {
-    if (appliedCoupon) clearAppliedCoupon();
-    updateSummary();
-  });
-  qtyInput.addEventListener('input', function () {
-    if (appliedCoupon) clearAppliedCoupon();
-    updateSummary();
-  });
+  qtyInput.addEventListener('change', onQuantityChanged);
+  qtyInput.addEventListener('input', onQuantityChanged);
 
   if (couponApplyBtn) {
     couponApplyBtn.addEventListener('click', applyCouponCode);
@@ -503,7 +544,9 @@
       }
     });
     couponInput.addEventListener('input', function () {
-      if (appliedCoupon) clearAppliedCoupon();
+      if (!couponInput.value.trim()) {
+        clearAppliedCoupon();
+      }
     });
   }
 

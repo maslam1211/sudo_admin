@@ -56,12 +56,11 @@
 
           <div class="product-price-block">
             <div class="product-price">
-              <span class="product-price__amount">₹{{ product.price|floatformat:0 }}</span>
-              {% if shipping_charge %}
-              <span class="product-price__note">+ ₹{{ shipping_charge|floatformat:0 }} shipping</span>
-              {% else %}
-              <span class="product-price__note">Free shipping</span>
-              {% endif %}
+              <span class="product-price__was" id="hero-unit-price-was" hidden aria-hidden="true"></span>
+              <span class="product-price__amount" id="hero-unit-price">₹{{ product.price|floatformat:0 }}</span>
+              <span class="product-price__note" id="hero-shipping-note">
+                {% if shipping_charge %}+ ₹{{ shipping_charge|floatformat:0 }} shipping{% else %}Free shipping{% endif %}
+              </span>
             </div>
             <ul class="product-badges" aria-label="Product highlights">
               <li><i class="bi bi-shield-check"></i> Weather-ready sticker</li>
@@ -83,6 +82,17 @@
               <span>Buy Now</span>
               <i class="bi bi-arrow-down"></i>
             </a>
+          </div>
+
+          <div class="coupon-box coupon-box--hero">
+            <label for="couponCode" class="coupon-box__label">Have a coupon code?</label>
+            <div class="coupon-box__row">
+              <input type="text" id="couponCode" name="couponCode" class="coupon-box__input"
+                     placeholder="Enter code" autocomplete="off" spellcheck="false" maxlength="32">
+              <button type="button" class="coupon-box__apply" id="coupon-apply-btn">Apply</button>
+            </div>
+            <p class="coupon-box__hint" id="coupon-hint" hidden></p>
+            <p class="field-error" data-for="couponCode" hidden></p>
           </div>
 
           <p class="product-total-hint">
@@ -204,17 +214,7 @@
                 <span>Coupon discount</span>
                 <span id="summary-discount">−₹0.00</span>
               </div>
-              <div class="coupon-box">
-                <label for="couponCode" class="coupon-box__label">Coupon code</label>
-                <div class="coupon-box__row">
-                  <input type="text" id="couponCode" name="couponCode" class="coupon-box__input"
-                         placeholder="Enter code" autocomplete="off" spellcheck="false" maxlength="32">
-                  <button type="button" class="coupon-box__apply" id="coupon-apply-btn">Apply</button>
-                </div>
-                <p class="coupon-box__hint" id="coupon-hint" hidden></p>
-                <p class="field-error" data-for="couponCode" hidden></p>
-              </div>
-              <div class="summary-total">
+              <div class="summary-total summary-total--live" id="summary-total-wrap">
                 <span>Total</span>
                 <span id="summary-total">₹0.00</span>
               </div>
