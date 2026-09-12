@@ -1781,23 +1781,14 @@ def check_id_enabled(request, qr_id):
         if not qr_doc.exists:
             return render(request, 'invalid_qr.html', {'error': 'Invalid QR Code'})
         
-        qr_data = qr_doc.to_dict()
+        qr_data = qr_doc.to_dict() or {}
         
+        # Assigned stickers always open the notify UI. Do not gate on enableIdCheck
+        # here — send_notification handles missing owner data, and requiring
+        # enableIdCheck caused activate_id ↔ send_notification redirect loops.
         if qr_data.get('isAssigned', False):
-            # Get the associated vehicle
-            vehicle_ref = db.collection('vehicles').document(qr_data['vehicleID'])
-            vehicle_doc = vehicle_ref.get()
-            
-            if vehicle_doc.exists:
-                vehicle_data = vehicle_doc.to_dict()
-                # Get the user data
-                user_ref = db.collection('users').document(vehicle_data['ownerId'])
-                user_doc = user_ref.get()
-                
-                if user_doc.exists and user_doc.to_dict().get('enableIdCheck', False):
-                    return redirect('send_notification', qr_id=qr_id)
-            
-        # If QR not assigned or user not enabled, redirect to activation
+            return redirect('send_notification', qr_id=qr_id)
+
         return redirect('activate_id', qr_id=qr_id)
             
     except Exception as e:
@@ -2640,11 +2631,15 @@ def send_notification(request, qr_id):
                 return JsonResponse({'status': 'success'})
         
         # Owner's Firestore uid (same as users/{uid} document id). Scanner prefs use this id.
-        user_ref = db.collection('users').document(vehicle_data['ownerId'])
+        owner_id = vehicle_data.get('ownerId')
+        if not owner_id:
+            return render(request, 'error.html', {'error': 'Vehicle owner not found.'})
+
+        user_ref = db.collection('users').document(owner_id)
         user_doc = user_ref.get()
         
-        if not user_doc.exists or not (user_doc.to_dict() or {}).get('enableIdCheck', False):
-            return redirect('activate_id', qr_id=qr_id)
+        if not user_doc.exists:
+            return render(request, 'error.html', {'error': 'Vehicle owner not found.'})
         
         user_data = merge_user_scanner_subdocuments(
             db, user_ref, user_doc.to_dict() or {}
