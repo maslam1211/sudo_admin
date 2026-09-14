@@ -15,7 +15,7 @@ COUPONS_COLLECTION = 'web_coupons'
 SETTINGS_COLLECTION = 'web_checkout_settings'
 SETTINGS_DOC_ID = 'default'
 
-DEFAULT_STICKER_PRICE = 349.0
+DEFAULT_STICKER_PRICE = 300.0
 DEFAULT_SHIPPING_CHARGE = 49.0
 
 DISCOUNT_TYPES = ('unit_price', 'fixed', 'percent')
