@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Set Product Price - Admin Panel{% endblock %}
+{% block page_title %}Set Product Price{% endblock %}
+
+{% block content %}
+<style>
+  .pp-wrap { max-width: 720px; }
+  .pp-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    padding: 1.5rem;
+  }
+  .pp-current {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  @media (max-width: 640px) {
+    .pp-current { grid-template-columns: 1fr; }
+  }
+  .pp-stat {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.65rem;
+    padding: 0.85rem 1rem;
+  }
+  .pp-stat .lbl { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+  .pp-stat .val { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem; }
+  .pp-field { margin-bottom: 1rem; }
+  .pp-field label { font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.3rem; }
+  .pp-help { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+  .pp-preview {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.65rem;
+    padding: 0.9rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: #1e3a8a;
+  }
+  .pp-preview strong { color: #1e40af; }
+  .pp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+</style>
+
+<div class="pp-wrap">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} mb-3" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="pp-card">
+    <h3 class="h5 fw-bold mb-1">SudoTag QR — list price</h3>
+    <p class="text-muted mb-3">Set the default product price shown on the public <strong>/buy/</strong> page. Coupons can still lower this at checkout; they do not change this list price.</p>
+
+    <div class="pp-current">
+      <div class="pp-stat">
+        <div class="lbl">Current price</div>
+        <div class="val">₹{{ settings.stickerUnitPrice|floatformat:0 }}</div>
+      </div>
+      <div class="pp-stat">
+        <div class="lbl">Shipping</div>
+        <div class="val">₹{{ settings.shippingCharge|floatformat:0 }}</div>
+      </div>
+      <div class="pp-stat">
+        <div class="lbl">Total (qty 1)</div>
+        <div class="val">₹{{ qty1_total|floatformat:0 }}</div>
+      </div>
+    </div>
+
+    <form method="post" id="product-price-form">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6 pp-field">
+          <label for="stickerUnitPrice">Product price (₹) *</label>
+          <input type="number" class="form-control" id="stickerUnitPrice" name="stickerUnitPrice"
+                 min="0" step="1" required
+                 value="{{ settings.stickerUnitPrice|floatformat:0 }}">
+          <p class="pp-help">Unit price per sticker before any coupon.</p>
+        </div>
+        <div class="col-md-6 pp-field">
+          <label for="shippingCharge">Shipping charge (₹) *</label>
+          <input type="number" class="form-control" id="shippingCharge" name="shippingCharge"
+                 min="0" step="1" required
+                 value="{{ settings.shippingCharge|floatformat:0 }}">
+          <p class="pp-help">Added once per order, not per sticker.</p>
+        </div>
+      </div>
+
+      <div class="pp-preview" id="price-preview">
+        Preview: <strong id="preview-text">₹{{ settings.stickerUnitPrice|floatformat:0 }}</strong> + shipping
+        <strong>₹{{ settings.shippingCharge|floatformat:0 }}</strong> = <strong id="preview-total">₹{{ qty1_total|floatformat:0 }}</strong> for 1 sticker.
+      </div>
+
+      <div class="pp-actions">
+        <button type="submit" class="btn btn-primary">Set product price</button>
+        <a href="{% url 'manage_checkout_coupons' %}" class="btn btn-outline-secondary">Manage coupons</a>
+        <a href="{% url 'buy_now' %}" class="btn btn-outline-primary" target="_blank" rel="noopener">View /buy/</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var priceEl = document.getElementById('stickerUnitPrice');
+  var shipEl = document.getElementById('shippingCharge');
+  var previewText = document.getElementById('preview-text');
+  var previewTotal = document.getElementById('preview-total');
+
+  function rupee(n) {
+    if (!isFinite(n) || n < 0) n = 0;
+    return '₹' + Math.round(n);
+  }
+
+  function updatePreview() {
+    var price = Number(priceEl.value);
+    var ship = Number(shipEl.value);
+    if (!isFinite(price)) price = 0;
+    if (!isFinite(ship)) ship = 0;
+    previewText.textContent = rupee(price);
+    previewTotal.textContent = rupee(price + ship);
+  }
+
+  priceEl.addEventListener('input', updatePreview);
+  shipEl.addEventListener('input', updatePreview);
+})();
+</script>
+{% endblock %}

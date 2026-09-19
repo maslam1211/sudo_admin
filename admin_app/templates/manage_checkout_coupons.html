@@ -6,9 +6,6 @@
 {% block content %}
 <style>
   .cc-grid { display: grid; gap: 1.25rem; margin-bottom: 1.5rem; }
-  @media (min-width: 992px) {
-    .cc-grid { grid-template-columns: 360px 1fr; align-items: start; }
-  }
   .cc-card {
     background: #fff;
     border: 1px solid #e5e7eb;
@@ -30,31 +27,18 @@
   .cc-msg.err { color: #b91c1c; }
 </style>
 
+<div class="alert alert-light border mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <div>
+    <strong>List price:</strong> ₹{{ settings.stickerUnitPrice|floatformat:0 }}
+    <span class="text-muted">+ shipping ₹{{ settings.shippingCharge|floatformat:0 }}</span>
+  </div>
+  <a href="{% url 'manage_product_price' %}" class="btn btn-outline-primary btn-sm">Set product price</a>
+</div>
+
 <div class="cc-grid">
   <section class="cc-card">
-    <h3>Store pricing</h3>
-    <p class="lead">Default prices on the public <strong>/buy/</strong> page (before coupons).</p>
-    <form id="settings-form">
-      <div class="cc-field">
-        <label for="stickerUnitPrice">Sticker unit price (₹)</label>
-        <input type="number" class="form-control" id="stickerUnitPrice" min="0" step="1"
-               value="{{ settings.stickerUnitPrice|floatformat:0 }}" required>
-      </div>
-      <div class="cc-field">
-        <label for="shippingCharge">Shipping charge (₹)</label>
-        <input type="number" class="form-control" id="shippingCharge" min="0" step="1"
-               value="{{ settings.shippingCharge|floatformat:0 }}" required>
-      </div>
-      <div class="cc-actions">
-        <button type="submit" class="btn btn-primary btn-sm">Save pricing</button>
-      </div>
-      <p class="cc-msg" id="settings-msg" hidden></p>
-    </form>
-  </section>
-
-  <section class="cc-card">
     <h3 id="coupon-form-title">Add coupon</h3>
-    <p class="lead">Coupon codes adjust checkout price on the website. Codes are case-insensitive.</p>
+    <p class="lead">Coupon codes change the checkout price for customers who enter a code. They do not change the list price. Codes are case-insensitive.</p>
     <form id="coupon-form">
       <input type="hidden" id="coupon-edit-mode" value="0">
       <div class="row g-2">
@@ -71,7 +55,7 @@
         <div class="col-md-4 cc-field">
           <label for="discountType">Discount type *</label>
           <select class="form-select" id="discountType" required>
-            <option value="unit_price">Set unit price (₹)</option>
+            <option value="unit_price">Sell at this unit price (₹)</option>
             <option value="fixed">Fixed amount off subtotal (₹)</option>
             <option value="percent">Percent off subtotal (%)</option>
           </select>
@@ -157,20 +141,19 @@
       </tbody>
     </table>
     {% else %}
-    <p class="text-muted mb-0">No coupons yet. Create one above — e.g. code <code>SUDO199</code> with type <strong>Set unit price</strong> and value <strong>199</strong>.</p>
+    <p class="text-muted mb-0">No coupons yet. Create one above — e.g. code <code>SUDO199</code> with type <strong>Sell at this unit price</strong> and value <strong>199</strong>.</p>
     {% endif %}
   </div>
 </div>
 
 <script>
 (function () {
-  var settingsForm = document.getElementById('settings-form');
   var couponForm = document.getElementById('coupon-form');
-  var settingsMsg = document.getElementById('settings-msg');
   var couponMsg = document.getElementById('coupon-msg');
   var resetBtn = document.getElementById('coupon-reset-btn');
   var formTitle = document.getElementById('coupon-form-title');
   var codeInput = document.getElementById('couponCode');
+  var csrfToken = '{{ csrf_token }}';
 
   function showMsg(el, text, ok) {
     if (!el) return;
@@ -182,7 +165,11 @@
   async function postJson(url, body) {
     var res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
       credentials: 'same-origin',
       body: JSON.stringify(body || {}),
     });
@@ -202,20 +189,6 @@
     formTitle.textContent = 'Add coupon';
     showMsg(couponMsg, '', true);
   }
-
-  settingsForm.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    showMsg(settingsMsg, 'Saving…', true);
-    try {
-      await postJson("{% url 'checkout_settings_save' %}", {
-        stickerUnitPrice: Number(document.getElementById('stickerUnitPrice').value),
-        shippingCharge: Number(document.getElementById('shippingCharge').value),
-      });
-      showMsg(settingsMsg, 'Pricing saved.', true);
-    } catch (err) {
-      showMsg(settingsMsg, err.message || 'Save failed', false);
-    }
-  });
 
   couponForm.addEventListener('submit', async function (e) {
     e.preventDefault();

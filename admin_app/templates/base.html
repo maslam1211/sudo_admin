@@ -473,6 +473,13 @@
             </div>
 
             <div class="sidebar-menu-item">
+                <a href="{% url 'manage_product_price' %}" class="sidebar-menu-link {% if '/manage-product-price/' in request.path or '/admin/manage-product-price/' in request.path %}active{% endif %}">
+                    <i class="fas fa-rupee-sign"></i>
+                    <span>Product Price</span>
+                </a>
+            </div>
+
+            <div class="sidebar-menu-item">
                 <a href="{% url 'manage_checkout_coupons' %}" class="sidebar-menu-link {% if '/manage-checkout-coupons/' in request.path or '/admin/manage-checkout-coupons/' in request.path %}active{% endif %}">
                     <i class="fas fa-tags"></i>
                     <span>Web Coupons</span>

@@ -108,6 +108,7 @@ urlpatterns = [
     path('api/checkout/create-order/', checkout_views.checkout_create_order, name='checkout_create_order'),
     path('api/checkout/verify-payment/', checkout_views.checkout_verify_payment, name='checkout_verify_payment'),
     path('api/checkout/validate-coupon/', checkout_coupon_views.checkout_validate_coupon, name='checkout_validate_coupon'),
+    path('manage-product-price/', checkout_coupon_views.manage_product_price, name='manage_product_price'),
     path('manage-checkout-coupons/', checkout_coupon_views.manage_checkout_coupons, name='manage_checkout_coupons'),
     path('manage-checkout-coupons/settings/save/', checkout_coupon_views.checkout_settings_save, name='checkout_settings_save'),
     path('manage-checkout-coupons/coupon/save/', checkout_coupon_views.checkout_coupon_save, name='checkout_coupon_save'),

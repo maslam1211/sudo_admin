@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .checkout_coupon_service import (
     DEFAULT_SHIPPING_CHARGE,
@@ -62,6 +62,54 @@ def _format_coupon_for_template(row: dict) -> dict:
         'maxUses': row.get('maxUses'),
         'minQuantity': int(row.get('minQuantity') or 1),
     }
+
+
+@require_http_methods(['GET', 'POST'])
+def manage_product_price(request):
+    """Admin: set the default /buy/ product price and shipping (not coupons)."""
+    gate = _require_admin(request)
+    if gate:
+        return gate
+
+    db = _get_db()
+    if request.method == 'POST':
+        try:
+            sticker = float(request.POST.get('stickerUnitPrice'))
+            shipping = float(request.POST.get('shippingCharge'))
+        except (TypeError, ValueError):
+            messages.error(request, 'Enter valid numbers for price and shipping.')
+        else:
+            if sticker < 0 or shipping < 0:
+                messages.error(request, 'Price and shipping cannot be negative.')
+            else:
+                try:
+                    save_checkout_settings(
+                        db,
+                        sticker_unit_price=sticker,
+                        shipping_charge=shipping,
+                    )
+                    messages.success(
+                        request,
+                        f'Product price set to ₹{sticker:.0f}. Shipping ₹{shipping:.0f}. '
+                        'This is now the default on /buy/ (before coupons).',
+                    )
+                    return redirect('manage_product_price')
+                except Exception as exc:
+                    logger.exception('manage_product_price save failed: %s', exc)
+                    messages.error(request, f'Could not save product price: {exc}')
+
+    settings = get_checkout_settings(db)
+    qty1_total = round(settings['stickerUnitPrice'] + settings['shippingCharge'], 2)
+    return render(
+        request,
+        'manage_product_price.html',
+        {
+            'settings': settings,
+            'qty1_total': qty1_total,
+            'default_sticker_price': DEFAULT_STICKER_PRICE,
+            'default_shipping': DEFAULT_SHIPPING_CHARGE,
+        },
+    )
 
 
 @require_GET
