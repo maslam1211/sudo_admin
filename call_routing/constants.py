@@ -8,3 +8,6 @@ CALL_ROUTE_INTENT_TTL_SEC = 300
 
 # JSON error when ``from`` is not a valid 10-digit Indian mobile.
 CALL_ROUTE_INVALID_FROM = 'Enter a valid mobile number.'
+
+# JSON error when the page omits ``from`` and COMPANY_PHONE_NUMBER is missing or not 10 digits.
+CALL_ROUTE_COMPANY_NUMBER_MISSING = 'Company phone number is not configured.'

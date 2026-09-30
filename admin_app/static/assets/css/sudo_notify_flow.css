@@ -911,6 +911,14 @@ body.notify-app .notify-phone-row {
   gap: 8px;
 }
 
+/* Caller mobile is not collected. Author display rules must not un-hide it. */
+body.notify-app #notifyDockPhoneBlock > label[for="callerPhoneInput"],
+body.notify-app #notifyDockPhoneBlock .notify-phone-row,
+body.notify-app #callerPhoneInput,
+body.notify-app #privacyPhoneNotice {
+  display: none !important;
+}
+
 body.notify-app .notify-phone-prefix {
   flex: 0 0 auto;
   display: inline-flex;

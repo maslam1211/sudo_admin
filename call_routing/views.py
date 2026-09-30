@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 from admin_app.models import CallRouteIntent
 
 from .constants import (
+    CALL_ROUTE_COMPANY_NUMBER_MISSING,
     CALL_ROUTE_INTENT_TTL_SEC,
     CALL_ROUTE_INVALID_FROM,
     CALL_ROUTING_EXPECTED_DID,
@@ -34,6 +35,41 @@ def _call_route_norm10(value):
     if len(digits) != 10 or not digits.isdigit():
         return ''
     return digits
+
+
+def _configured_company_caller_key():
+    """10-digit COMPANY_PHONE_NUMBER, or '' when unset or invalid."""
+    raw = getattr(settings, 'COMPANY_PHONE_NUMBER', '') or ''
+    return _call_route_norm10(raw)
+
+
+def _fresh_call_route_intent(key):
+    """
+    Non-expired CallRouteIntent for this caller key.
+    Deletes the row when it is past the TTL.
+    """
+    if len(key) != 10:
+        return None
+    intent = CallRouteIntent.objects.filter(caller_key=key).first()
+    if not intent:
+        return None
+    age_sec = (now() - intent.created_at).total_seconds()
+    if age_sec <= CALL_ROUTE_INTENT_TTL_SEC:
+        logger.info(
+            'call_route webhook lookup caller_key=%s destination=%s age_sec=%.0f',
+            key,
+            intent.destination.strip(),
+            age_sec,
+        )
+        return intent
+    intent.delete()
+    logger.warning(
+        'call_route webhook expired caller_key=%s age_sec=%.0f ttl=%s',
+        key,
+        age_sec,
+        CALL_ROUTE_INTENT_TTL_SEC,
+    )
+    return None
 
 
 def _call_route_parse_json(request):
@@ -74,16 +110,27 @@ def register_call_destination(request):
     if body is None:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    phone = str(body.get('from') or '').strip()
+    phone_raw = body.get('from')
+    explicit_from = str(phone_raw or '').strip() != ''
+    phone = str(phone_raw or '').strip()
     destination = str(body.get('destination') or '').strip()
     qr_id = str(body.get('qr_id') or body.get('qrId') or '').strip()
-    if not phone or not destination:
-        return JsonResponse({'error': 'from and destination required'}, status=400)
+    if not explicit_from:
+        phone = str(getattr(settings, 'COMPANY_PHONE_NUMBER', '') or '').strip()
+        if not phone:
+            return JsonResponse({'error': CALL_ROUTE_COMPANY_NUMBER_MISSING}, status=500)
+    if not destination:
+        return JsonResponse(
+            {'error': 'from and destination required' if explicit_from else 'destination required'},
+            status=400,
+        )
 
     key = _call_route_norm10(phone)
     dest_key = _call_route_norm10(destination)
     if len(key) != 10:
-        return JsonResponse({'error': CALL_ROUTE_INVALID_FROM}, status=400)
+        if explicit_from:
+            return JsonResponse({'error': CALL_ROUTE_INVALID_FROM}, status=400)
+        return JsonResponse({'error': CALL_ROUTE_COMPANY_NUMBER_MISSING}, status=500)
 
     try:
         # Lazy import: Firebase Admin is initialized in admin_app.views
@@ -175,32 +222,25 @@ def api_call_webhook(request):
     if len(key) != 10:
         return JsonResponse({'error': CALL_ROUTE_INVALID_FROM}, status=400)
 
-    destination = ''
-    intent = CallRouteIntent.objects.filter(caller_key=key).first()
-    if intent:
-        age_sec = (now() - intent.created_at).total_seconds()
-        if age_sec <= CALL_ROUTE_INTENT_TTL_SEC:
-            destination = intent.destination.strip()
-            logger.info(
-                'call_route webhook lookup caller_key=%s destination=%s age_sec=%.0f',
-                key,
-                destination,
-                age_sec,
-            )
-        else:
-            intent.delete()
-            logger.warning(
-                'call_route webhook expired caller_key=%s age_sec=%.0f ttl=%s',
-                key,
-                age_sec,
-                CALL_ROUTE_INTENT_TTL_SEC,
-            )
-    else:
+    intent = _fresh_call_route_intent(key)
+    if intent is None:
+        company_key = _configured_company_caller_key()
+        if company_key and company_key != key:
+            intent = _fresh_call_route_intent(company_key)
+            if intent is not None:
+                logger.info(
+                    'call_route webhook company fallback caller_key=%s',
+                    company_key,
+                )
+    if intent is None:
         logger.warning(
             'call_route webhook miss caller_key=%s from_raw=%s — register POST /admin/api/call/register first',
             key,
             caller,
         )
+        destination = ''
+    else:
+        destination = intent.destination.strip()
 
     if not destination:
         return JsonResponse({'error': 'No destination'}, status=400)

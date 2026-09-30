@@ -306,6 +306,10 @@ DELETION_WEBHOOK_SECRET = "QWERTY123"
 # Rotate by changing this value and updating your PBX + curl if exposed.
 CALL_ROUTING_API_KEY = 'SudoTag4455'
 
+# Caller identity for the Contact Owner voice bridge when the page does not send a mobile number.
+# Set COMPANY_PHONE_NUMBER in the environment to override.
+COMPANY_PHONE_NUMBER = os.getenv('COMPANY_PHONE_NUMBER', '7907965255')
+
 # Ad image uploads (also set nginx client_max_body_size on production)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024

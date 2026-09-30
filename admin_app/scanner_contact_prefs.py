@@ -884,7 +884,18 @@ def send_scanner_voice_call_attempt_push(db, qr_id, destination_10, caller_10):
         if len(cd) == 11 and cd.startswith('0'):
             cd = cd[1:]
         if len(cd) >= 4:
-            body = f'{body} Caller number ends in {cd[-4:]}.'
+            from django.conf import settings
+
+            company_digits = ''.join(
+                c for c in str(getattr(settings, 'COMPANY_PHONE_NUMBER', '') or '') if c.isdigit()
+            )
+            if len(company_digits) >= 12 and company_digits.startswith('91'):
+                company_digits = company_digits[2:]
+            if len(company_digits) == 11 and company_digits.startswith('0'):
+                company_digits = company_digits[1:]
+            # The configured business number is not the finder's handset; don't surface it.
+            if cd != company_digits:
+                body = f'{body} Caller number ends in {cd[-4:]}.'
 
         fcm_data = {
             'vehicleId': str(vehicle_id),

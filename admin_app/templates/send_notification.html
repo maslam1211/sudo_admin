@@ -1569,6 +1569,14 @@
       gap: 8px;
     }
 
+    /* Caller mobile is not collected. Author display rules must not un-hide it. */
+    body.notify-app #notifyDockPhoneBlock > label[for="callerPhoneInput"],
+    body.notify-app #notifyDockPhoneBlock .notify-phone-row,
+    body.notify-app #callerPhoneInput,
+    body.notify-app #privacyPhoneNotice {
+      display: none !important;
+    }
+
     body.notify-app .notify-phone-prefix {
       flex: 0 0 auto;
       display: inline-flex;
@@ -4931,7 +4939,7 @@
     <section class="notify-reasons-panel notify-emergency-call-panel" id="notifyEmergencyCallPanel" hidden>
       <h2 class="notify-emergency-call-title" id="notifyEmergencyCallPanelTitle">Emergency call</h2>
       <p class="notify-emergency-call-lead" id="notifyEmergencyCallPanelLead">
-        Enter your 10-digit mobile number, then slide right to call the emergency contact on file.
+        Slide right to call the emergency contact on file.
       </p>
       <!-- Phone (#notifyDockPhoneBlock) moved here via JS -->
       <div class="notify-emergency-swipe-slot">
@@ -5029,14 +5037,15 @@
           <p class="notify-field-error" id="callFlowPlateError" role="alert"></p>
         </div>
         <div class="notify-dock-field notify-dock-phone" id="notifyDockPhoneBlock">
-          <label class="notify-field-label" for="callerPhoneInput">Your mobile number</label>
-          <div class="notify-phone-row">
+          <label class="notify-field-label" for="callerPhoneInput" hidden>Your mobile number</label>
+          <div class="notify-phone-row" hidden>
             <span class="notify-phone-prefix" aria-hidden="true">+91</span>
             <input type="tel" inputmode="numeric" class="notify-field-input" id="callerPhoneInput" maxlength="10"
-              placeholder="10-digit mobile" autocomplete="tel-national" aria-label="Your 10-digit mobile number">
+              placeholder="10-digit mobile" autocomplete="off" aria-label="Your 10-digit mobile number"
+              tabindex="-1" hidden disabled>
           </div>
           <p class="notify-field-error" id="callRouteError" role="alert"></p>
-          <aside class="privacy-phone-notice" id="privacyPhoneNotice" aria-label="Privacy notice">
+          <aside class="privacy-phone-notice" id="privacyPhoneNotice" aria-label="Privacy notice" hidden>
             <span class="privacy-phone-notice__icon" aria-hidden="true">🔒</span>
             <div class="privacy-phone-notice__body">
               <p class="privacy-phone-notice__text" lang="en">
@@ -5498,7 +5507,7 @@
       ? ('Call ' + ownerContactDisplayName + ' via SudoTag gateway')
       : 'Call via your phone (fastest)';
     var NOTIFY_EMERGENCY_PANEL_LEAD_DEFAULT =
-      'Enter your 10-digit mobile number, then slide right to call the emergency contact on file.';
+      'Slide right to call the emergency contact on file.';
     var NOTIFY_CALL_PREPARE_DIAL_DELAY_MS = 420;
     /** Legacy short celebrate hold — messaging no longer redirects via this path. */
     var NOTIFY_SUCCESS_HOLD_MS = 5200;
@@ -5645,8 +5654,8 @@
     const callFlowDialogInner = document.getElementById('callFlowDialogInner');
     var NOTIFY_SWIPE_CALL_LABEL_DEFAULT = 'Slide to call';
     var NOTIFY_SWIPE_CALL_LABEL_EMERGENCY = 'Slide to call emergency';
-    var NOTIFY_SWIPE_LABEL_NEED_PHONE = 'Enter your mobile number, then slide';
-    var NOTIFY_SWIPE_LABEL_NEED_PHONE_EMERGENCY = 'Enter your mobile number, then slide';
+    var NOTIFY_SWIPE_LABEL_NEED_PHONE = 'Slide to call';
+    var NOTIFY_SWIPE_LABEL_NEED_PHONE_EMERGENCY = 'Slide to call emergency';
     const smsBtnLabel = document.getElementById('smsBtnLabel');
     const ownerNotifySection = document.getElementById('ownerNotifySection');
     const pageHeaderTitle = document.getElementById('pageHeaderTitle');
@@ -5885,15 +5894,14 @@
     }
 
     function callerPhoneDigitsReady() {
-      if (!callerPhoneInput) return false;
-      return !!normalizeIndianMobile(callerPhoneInput.value);
+      // Caller mobile is no longer collected; the server uses COMPANY_PHONE_NUMBER.
+      return true;
     }
 
     function hintCallerPhoneForSwipe() {
       if (callerPhoneDigitsReady()) return;
       if (callRouteError) {
-        callRouteError.textContent =
-          'Enter a valid 10-digit Indian mobile number before sliding to call.';
+        callRouteError.textContent = 'Could not start the call. Try again.';
       }
       if (callerPhoneInput) {
         callerPhoneInput.focus();
@@ -6495,7 +6503,7 @@
             phaseHint.hidden = false;
             phaseHint.textContent =
               emergencyContactConfirmed && dockChannels.call
-                ? 'Enter your mobile number below, then slide to call.'
+                ? 'Slide to call the emergency contact.'
                 : 'Verify this vehicle above to enable an emergency voice call.';
           }
         }
@@ -6620,7 +6628,7 @@
             'Choose what’s happening — then tap SMS or push to compose, or Voice to call.';
         } else {
           phaseHint.textContent =
-            'Tap SMS or push to compose a message, or Voice to enter your number and slide to call.';
+            'Tap SMS or push to compose a message, or Voice to call.';
         }
       }
 
@@ -6675,7 +6683,7 @@
 
     function syncPrivacyPhoneNotice() {
       if (!privacyPhoneNotice) return;
-      privacyPhoneNotice.hidden = contactMode !== 'owner';
+      privacyPhoneNotice.hidden = true;
     }
 
     if (privacyMainContinueBtn && privacyMainDialog) {
@@ -6927,8 +6935,6 @@
         if (contactMode === 'emergency' && !isEmergencyPlateGateSatisfied()) {
           var plateEl = document.getElementById('callFlowPlateInput');
           if (plateEl) plateEl.focus();
-        } else if (callerPhoneInput) {
-          callerPhoneInput.focus();
         }
       }, 200);
     }
@@ -6986,13 +6992,13 @@
       if (stepLine) {
         if (hasEmergencyContact && contactMode === 'emergency') {
           stepLine.textContent =
-            'After verification above, enter your mobile number, then slide right to call emergency contact.';
+            'After verification above, the call starts. Slide right if you need to place it again.';
         } else if (vehicleLostMode) {
           stepLine.textContent =
             'This vehicle is reported missing — tip the owner via SMS or push · Voice opens when you choose it.';
         } else {
           stepLine.textContent =
-            'Tap SMS or push to compose a message · Voice opens your number when you choose it.';
+            'Tap SMS or push to compose a message · Voice places the call when you choose it.';
         }
       }
 
@@ -8314,7 +8320,6 @@
         !isNotifyDockBlocked()
       ) {
         requestAnimationFrame(function () {
-          if (callerPhoneInput) callerPhoneInput.focus();
           var ep = document.getElementById('notifyEmergencyCallPanel');
           if (ep && !ep.hidden) ep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
@@ -8353,8 +8358,8 @@
         }
         closeEmergencyGateModal();
         syncContactModeUi();
+        if (callPrepareBtn) callPrepareBtn.click();
         requestAnimationFrame(function () {
-          if (callerPhoneInput) callerPhoneInput.focus();
           var ep = document.getElementById('notifyEmergencyCallPanel');
           if (ep && !ep.hidden) ep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
@@ -8465,11 +8470,11 @@
           selectedOwnerChannel = 'call';
           selectedMethod = 'call';
           syncNotifyDockChannels();
+          if (callPrepareBtn) callPrepareBtn.click();
           requestAnimationFrame(function () {
             if (typeof window.updateNotifyDockPadding === 'function') {
               window.updateNotifyDockPadding();
             }
-            if (callerPhoneInput) callerPhoneInput.focus();
           });
         });
       }
@@ -8572,11 +8577,11 @@
           return;
         }
         syncNotifyDockChannels();
+        if (callPrepareBtn) callPrepareBtn.click();
         requestAnimationFrame(function () {
           if (typeof window.updateNotifyDockPadding === 'function') {
             window.updateNotifyDockPadding();
           }
-          if (callerPhoneInput) callerPhoneInput.focus();
           var epPanel = document.getElementById('notifyEmergencyCallPanel');
           if (epPanel && !epPanel.hidden) {
             epPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -8599,7 +8604,6 @@
         if (typeof window.updateNotifyDockPadding === 'function') {
           window.updateNotifyDockPadding();
         }
-        if (callerPhoneInput) callerPhoneInput.focus();
         var dockScroll = document.getElementById('notifyActionDock');
         if (dockScroll) dockScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
@@ -8784,23 +8788,13 @@
       });
     }
 
-    if (callPrepareBtn && callerPhoneInput) {
+    if (callPrepareBtn) {
       callPrepareBtn.addEventListener('click', function () {
         clearCallRouteError();
         clearCallFlowPlateError();
 
         function runCallRegisterBridge() {
           if (!assertNotifySheetAllowsPost()) {
-            abortSwipeCallPrep();
-            return;
-          }
-          var fromDigits = normalizeIndianMobile(callerPhoneInput.value);
-          if (!fromDigits) {
-            callPrepareBtn.disabled = false;
-            if (callRouteError) {
-              callRouteError.textContent =
-                'Enter a valid 10-digit Indian mobile number.';
-            }
             abortSwipeCallPrep();
             return;
           }
@@ -8831,7 +8825,6 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              from: fromDigits,
               destination: destDigits,
               qr_id: notifyPageQrId
             })
@@ -8936,15 +8929,6 @@
           }
         }
 
-        var fromEarly = normalizeIndianMobile(callerPhoneInput.value);
-        if (!fromEarly) {
-          if (callRouteError) {
-            callRouteError.textContent =
-              'Enter a valid 10-digit Indian mobile number.';
-          }
-          abortSwipeCallPrep();
-          return;
-        }
         var destEarly = getActiveDestinationDigits();
         if (!destEarly || destEarly.length !== 10) {
           if (callRouteError) {
