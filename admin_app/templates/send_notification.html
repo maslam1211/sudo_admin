@@ -8358,7 +8358,6 @@
         }
         closeEmergencyGateModal();
         syncContactModeUi();
-        if (callPrepareBtn) callPrepareBtn.click();
         requestAnimationFrame(function () {
           var ep = document.getElementById('notifyEmergencyCallPanel');
           if (ep && !ep.hidden) ep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -8470,7 +8469,6 @@
           selectedOwnerChannel = 'call';
           selectedMethod = 'call';
           syncNotifyDockChannels();
-          if (callPrepareBtn) callPrepareBtn.click();
           requestAnimationFrame(function () {
             if (typeof window.updateNotifyDockPadding === 'function') {
               window.updateNotifyDockPadding();
@@ -8577,7 +8575,6 @@
           return;
         }
         syncNotifyDockChannels();
-        if (callPrepareBtn) callPrepareBtn.click();
         requestAnimationFrame(function () {
           if (typeof window.updateNotifyDockPadding === 'function') {
             window.updateNotifyDockPadding();
