@@ -3366,6 +3366,12 @@
       display: none !important;
     }
 
+    body.notify-app a.notify-swipe-call-track {
+      text-decoration: none;
+      color: #fff;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body.notify-app .notify-swipe-call-track {
       position: relative;
       width: 100%;
@@ -4944,23 +4950,22 @@
       <!-- Phone (#notifyDockPhoneBlock) moved here via JS -->
       <div class="notify-emergency-swipe-slot">
         <div class="notify-swipe-call-wrap notify-swipe-call-wrap--emergency" id="notifyEmergencySwipeCallWrap" hidden>
-          <div
+          <a
             class="notify-swipe-call-track"
             id="notifyEmergencySwipeCallTrack"
-            role="group"
+            href="tel:+91{{ call_route_did }}"
             aria-labelledby="notifyEmergencySwipeCallLabel"
           >
             <span class="notify-swipe-call-fill" id="notifyEmergencySwipeCallFill" aria-hidden="true"></span>
             <span class="notify-swipe-call-label" id="notifyEmergencySwipeCallLabel">Slide to call emergency</span>
-            <button
-              type="button"
+            <span
               class="notify-swipe-call-thumb"
               id="notifyEmergencySwipeCallThumb"
-              aria-label="Slide right to call emergency contact"
+              aria-hidden="true"
             >
               <i class="bi bi-telephone-fill" aria-hidden="true"></i>
-            </button>
-          </div>
+            </span>
+          </a>
         </div>
       </div>
     </section>
@@ -5059,23 +5064,22 @@
           {% if call_register_ready or emergency_call_ready %}
           <div class="notify-dock-swipe-slot notify-dock-swipe-slot--owner">
             <div class="notify-swipe-call-wrap" id="notifySwipeCallWrap" hidden>
-              <div
+              <a
                 class="notify-swipe-call-track"
                 id="notifySwipeCallTrack"
-                role="group"
+                href="tel:+91{{ call_route_did }}"
                 aria-labelledby="notifySwipeCallLabel"
               >
                 <span class="notify-swipe-call-fill" id="notifySwipeCallFill" aria-hidden="true"></span>
                 <span class="notify-swipe-call-label" id="notifySwipeCallLabel">Slide to call</span>
-                <button
-                  type="button"
+                <span
                   class="notify-swipe-call-thumb"
                   id="notifySwipeCallThumb"
-                  aria-label="Slide right to place voice call"
+                  aria-hidden="true"
                 >
                   <i class="bi bi-telephone-fill" aria-hidden="true"></i>
-                </button>
-              </div>
+                </span>
+              </a>
             </div>
           </div>
           {% endif %}
@@ -5790,7 +5794,8 @@
       startOffset: 0,
       maxOffset: 0,
       pointerId: null,
-      key: 'owner'
+      key: 'owner',
+      dragged: false
     };
 
     function swipeMaxOffsetFor(inst) {
@@ -6000,9 +6005,7 @@
         resetSwipeInst(inst, true);
         return;
       }
-      if (!inst.track.classList.contains('is-sending') && callPrepareBtn) {
-        callPrepareBtn.click();
-      }
+      inst.track.dataset.slideComplete = '1';
     }
 
     function bindSwipeInst(key) {
@@ -6019,6 +6022,7 @@
           return;
         }
         notifySwipeDrag.active = true;
+        notifySwipeDrag.dragged = false;
         notifySwipeDrag.key = key;
         notifySwipeDrag.pointerId = e.pointerId;
         notifySwipeDrag.startX = e.clientX;
@@ -6038,6 +6042,9 @@
           return;
         }
         applySwipeOffset(notifySwipeDrag.startOffset + (e.clientX - notifySwipeDrag.startX), inst);
+        if (Math.abs(e.clientX - notifySwipeDrag.startX) > 10) {
+          notifySwipeDrag.dragged = true;
+        }
       });
 
       function onPointerUp(e) {
@@ -6067,6 +6074,38 @@
 
       inst.thumb.addEventListener('pointerup', onPointerUp);
       inst.thumb.addEventListener('pointercancel', onPointerUp);
+
+      inst.track.addEventListener('click', function (e) {
+        var finished = inst.track.dataset.slideComplete === '1';
+        var dragged = notifySwipeDrag.dragged && notifySwipeDrag.key === key;
+        notifySwipeDrag.dragged = false;
+        delete inst.track.dataset.slideComplete;
+        if (inst.track.classList.contains('is-blocked') || (dragged && !finished)) {
+          e.preventDefault();
+          if (!finished) resetSwipeInst(inst, true);
+          return;
+        }
+        if (contactMode === 'emergency' && !validateEmergencyPlateLocalSync()) {
+          e.preventDefault();
+          resetSwipeInst(inst, true);
+          return;
+        }
+        if (typeof assertVoiceCooldownAllowsDial === 'function' && !assertVoiceCooldownAllowsDial()) {
+          e.preventDefault();
+          resetSwipeInst(inst, true);
+          return;
+        }
+        if (callPrepareBtn) {
+          callPrepareBtn.dataset.dialerHandled = '1';
+          try {
+            sessionStorage.setItem(CALL_DIALER_RETURN_KEY, '1');
+            if (contactMode === 'emergency') {
+              sessionStorage.setItem(EMERGENCY_TEL_RETURN_KEY, '1');
+            }
+          } catch (err) {}
+          callPrepareBtn.click();
+        }
+      });
     }
 
     function initNotifySwipeCall() {
@@ -8841,22 +8880,6 @@
                 if (dockEl) {
                   dockEl.classList.remove('notify-dock-sending', 'notify-dock-sending-instant-msg');
                 }
-                var d = String(callRouteDidRaw || '').replace(/\D/g, '');
-                if (d.length >= 12 && d.startsWith('91')) d = d.slice(2);
-                if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
-                var telUri = d.length === 10 ? 'tel:+91' + d : 'tel:+' + d;
-                try {
-                  sessionStorage.setItem(CALL_DIALER_RETURN_KEY, '1');
-                  if (contactMode === 'emergency') {
-                    sessionStorage.setItem(EMERGENCY_TEL_RETURN_KEY, '1');
-                  }
-                } catch (e) {}
-                if (callFlowModal) {
-                  setCallFlowDialogEmergencyVisual(false);
-                  callFlowModal.style.display = 'none';
-                }
-                // Open the system dialer only. Stay on Contact Owner; soft idle wrap-up
-                // handles leaving later (user may cancel dialer and keep contacting).
                 armNotifySessionTimeout(result.data || {});
                 setNotifyDockSending(false);
                 setNotifySwipeCallSending(false);
@@ -8864,9 +8887,6 @@
                   resetNotifySwipeCall(true);
                 }
                 syncNotifyDockChannels();
-                window.setTimeout(function () {
-                  window.location.href = telUri;
-                }, NOTIFY_CALL_PREPARE_DIAL_DELAY_MS);
                 return;
               }
               if (result.status === 410) {
