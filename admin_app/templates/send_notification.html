@@ -1326,6 +1326,7 @@
       align-items: center;
       gap: 14px;
       text-align: left;
+      text-decoration: none;
       cursor: pointer;
       font-family: var(--sudo-font, 'Poppins', sans-serif);
       color: var(--text-white, #fff);
@@ -3378,13 +3379,13 @@
       height: 56px;
       border-radius: 999px;
       overflow: hidden;
-      touch-action: none;
       user-select: none;
       -webkit-user-select: none;
       background: linear-gradient(90deg, #1565c0 0%, #1e88e5 55%, #42a5f5 100%);
       box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.1) inset,
         0 8px 24px rgba(21, 101, 192, 0.35);
+      touch-action: manipulation;
     }
 
     body.notify-app.flow-emergency .notify-swipe-call-track {
@@ -3495,7 +3496,7 @@
       z-index: 2;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
       transition: box-shadow 0.15s ease, transform 0.05s linear;
-      touch-action: none;
+      touch-action: manipulation;
     }
 
     body.notify-app.flow-emergency .notify-swipe-call-thumb {
@@ -4399,6 +4400,7 @@
       font-size: 0.94rem;
       font-weight: 600;
       color: var(--text-white, #fff);
+      text-decoration: none;
       background-color: var(--secondary-gray, #282828);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
@@ -4847,7 +4849,8 @@
     <div id="notifyOwnerReasonsInner">
     {% if call_register_ready or emergency_call_ready %}
     <div class="notify-priority-voice-wrap">
-      <button type="button" class="notify-priority-voice-btn" id="notifyPriorityVoiceBtn"
+      <a class="notify-priority-voice-btn" id="notifyPriorityVoiceBtn"
+        href="tel:+91{{ call_route_did }}"
         aria-label="Voice call — recommended fastest option">
         <span class="notify-priority-voice-icon" aria-hidden="true">
           <i class="bi bi-telephone-fill"></i>
@@ -4856,7 +4859,7 @@
           <span class="notify-priority-voice-title">Voice call</span>
           <span class="notify-priority-voice-sub" id="notifyPriorityVoiceSub">{% if has_active_family_assignment %}Currently using this vehicle — reach {{ owner_contact_display_name|default:"Family member" }}{% else %}Recommended · fastest way to reach them{% endif %}</span>
         </span>
-      </button>
+      </a>
     </div>
     {% endif %}
     <div class="question-section">
@@ -4983,13 +4986,13 @@
           <p class="notify-owner-channel-pick-label" id="notifyOwnerChannelPickLabel">{% if vehicle_lost_mode.is_lost_mode %}{{ vehicle_lost_mode.tip_cta_sub }}{% else %}How do you want to reach them?{% endif %}</p>
           <div class="notify-channel-cards-list">
             {% if call_register_capable %}
-            <button type="button" class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" id="pickMethodCall" data-channel="call"{% if not call_register_ready %} disabled aria-disabled="true"{% endif %}>
+            <a class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" id="pickMethodCall" data-channel="call" href="tel:+91{{ call_route_did }}"{% if not call_register_ready %} aria-disabled="true"{% endif %}>
               <i class="bi bi-telephone-fill" aria-hidden="true"></i>
               <span class="notify-channel-box-text">
                 <span class="notify-channel-box-title">Voice call{% if not call_register_ready %} <span class="notify-channel-unavailable" id="pickMethodCallPaused">(paused)</span>{% endif %}</span>
                 <span class="notify-channel-box-sub" id="notifyPickMethodCallSub">{% if has_active_family_assignment %}Call {{ owner_contact_display_name|default:"Family member" }} via SudoTag gateway{% else %}Call via your phone (fastest){% endif %}</span>
               </span>
-            </button>
+            </a>
             {% else %}
             <button type="button" class="notify-channel-box notify-channel-box--call notify-channel-pick-btn" disabled aria-disabled="true">
               <i class="bi bi-telephone-fill" aria-hidden="true"></i>
@@ -6076,13 +6079,8 @@
       inst.thumb.addEventListener('pointercancel', onPointerUp);
 
       inst.track.addEventListener('click', function (e) {
-        var finished = inst.track.dataset.slideComplete === '1';
-        var dragged = notifySwipeDrag.dragged && notifySwipeDrag.key === key;
-        notifySwipeDrag.dragged = false;
-        delete inst.track.dataset.slideComplete;
-        if (inst.track.classList.contains('is-blocked') || (dragged && !finished)) {
+        if (inst.track.classList.contains('is-blocked')) {
           e.preventDefault();
-          if (!finished) resetSwipeInst(inst, true);
           return;
         }
         if (contactMode === 'emergency' && !validateEmergencyPlateLocalSync()) {
@@ -8485,29 +8483,51 @@
       function bindOwnerMethodPick(btnId, channel) {
         var el = document.getElementById(btnId);
         if (!el) return;
-        el.addEventListener('click', function () {
-          if (contactMode !== 'owner') return;
-          if (el.disabled) {
+        el.addEventListener('click', function (e) {
+          if (contactMode !== 'owner') {
+            if (channel === 'call') e.preventDefault();
+            return;
+          }
+          if (el.disabled || el.getAttribute('aria-disabled') === 'true') {
+            e.preventDefault();
             showToast('This contact option is paused for the owner\'s current status.', 'info');
             return;
           }
           if (smsComposeLockActive) {
+            e.preventDefault();
             showToast('Finish or clear your message first', 'error');
             return;
           }
           if (channel === 'sms') {
+            e.preventDefault();
             if (!ensureContactTargetSelected()) return;
             openSmsComposer('sms');
             return;
           }
           if (channel === 'push') {
+            e.preventDefault();
             if (!ensureContactTargetSelected()) return;
             openSmsComposer('push');
+            return;
+          }
+          if (!ensureContactTargetSelected()) {
+            e.preventDefault();
+            return;
+          }
+          if (typeof assertVoiceCooldownAllowsDial === 'function' && !assertVoiceCooldownAllowsDial()) {
+            e.preventDefault();
             return;
           }
           selectedOwnerChannel = 'call';
           selectedMethod = 'call';
           syncNotifyDockChannels();
+          if (callPrepareBtn) {
+            callPrepareBtn.dataset.dialerHandled = '1';
+            try {
+              sessionStorage.setItem(CALL_DIALER_RETURN_KEY, '1');
+            } catch (err) {}
+            callPrepareBtn.click();
+          }
           requestAnimationFrame(function () {
             if (typeof window.updateNotifyDockPadding === 'function') {
               window.updateNotifyDockPadding();
@@ -8521,12 +8541,50 @@
 
       var notifyPriorityVoiceBtn = document.getElementById('notifyPriorityVoiceBtn');
       if (notifyPriorityVoiceBtn) {
-        notifyPriorityVoiceBtn.addEventListener('click', function () {
+        notifyPriorityVoiceBtn.addEventListener('click', function (e) {
           if (smsComposeLockActive) {
+            e.preventDefault();
             showToast('Finish or clear your message first', 'error');
             return;
           }
-          triggerNotifyPriorityVoice();
+          if (!assertNotifySheetAllowsPost()) {
+            e.preventDefault();
+            return;
+          }
+          if (!ensureContactTargetSelected()) {
+            e.preventDefault();
+            return;
+          }
+          if (contactMode === 'emergency' && !emergencyContactConfirmed) {
+            e.preventDefault();
+            showToast('Complete emergency verification (plate check) above first.', 'info');
+            return;
+          }
+          if (typeof assertVoiceCooldownAllowsDial === 'function' && !assertVoiceCooldownAllowsDial()) {
+            e.preventDefault();
+            return;
+          }
+          if (contactMode !== 'emergency') {
+            var pick = document.getElementById('pickMethodCall');
+            if (!pick || pick.disabled || pick.getAttribute('aria-disabled') === 'true') {
+              e.preventDefault();
+              showToast('Voice calling isn’t available for this page right now.', 'error');
+              return;
+            }
+            selectedOwnerChannel = 'call';
+            selectedMethod = 'call';
+            syncNotifyDockChannels();
+          }
+          if (callPrepareBtn) {
+            callPrepareBtn.dataset.dialerHandled = '1';
+            try {
+              sessionStorage.setItem(CALL_DIALER_RETURN_KEY, '1');
+              if (contactMode === 'emergency') {
+                sessionStorage.setItem(EMERGENCY_TEL_RETURN_KEY, '1');
+              }
+            } catch (err) {}
+            callPrepareBtn.click();
+          }
         });
       }
 
