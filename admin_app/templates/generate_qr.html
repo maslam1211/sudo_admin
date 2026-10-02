@@ -186,9 +186,17 @@
         .card-body-custom {
             padding: 1.5rem;
         }
-        .qr-type-card {
-            padding: 1rem;
-        }
+    .qr-type-card {
+        border: 1px solid #d1d5db;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        cursor: pointer;
+        background: #fff;
+    }
+    .qr-type-card:has(input:checked) {
+        border-color: #0d6efd;
+        background: #f8fbff;
+    }
     }
 </style>
 
@@ -238,8 +246,26 @@
                 
                 <form method="POST">
                     {% csrf_token %}
-                    <input type="hidden" name="qr_type" value="user">
-                    
+                    <div class="mb-4">
+                        <label class="form-label">QR section</label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="qr-type-card d-block mb-0">
+                                    <input type="radio" name="qr_type" id="user_qr" value="user" checked>
+                                    <span class="d-block fw-semibold mt-2">Vehicle sticker</span>
+                                    <small class="text-muted">Scan opens the vehicle contact screen.</small>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="qr-type-card d-block mb-0">
+                                    <input type="radio" name="qr_type" id="multipurpose_qr" value="multipurpose">
+                                    <span class="d-block fw-semibold mt-2">Multipurpose</span>
+                                    <small class="text-muted">Inactive until it is scanned and activated. No details are collected here.</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="userFields">
                         <div class="mb-4">
                             <label for="count" class="form-label">
@@ -253,15 +279,13 @@
                         </div>
                     </div>
 
-                    <div id="externalFields" style="display: none;">
+                    <div id="multipurposeFields" style="display: none;">
                         <div class="mb-4">
-                            <label for="external_count" class="form-label">
+                            <label for="mp_count" class="form-label">
                                 <i class="fas fa-hashtag me-2"></i>Number of QR Codes
                             </label>
-                            <div class="input-group-custom">
-                                <input type="number" id="external_count" name="external_count" class="form-control" min="1" max="100" value="1" placeholder="Enter number of QR codes to generate">
-                                <i class="fas fa-qrcode input-icon"></i>
-                            </div>
+                            <input type="number" id="mp_count" name="mp_count" class="form-control" min="1" max="100" value="1">
+                            <small class="text-muted">Only the QR ID is created. Type is Multipurpose QR, and it stays inactive until someone scans it.</small>
                         </div>
                     </div>
 
@@ -284,6 +308,9 @@
                 <div>
                     <h4 class="mb-1"><i class="fas fa-check-circle me-2 text-success"></i>Generated QR Codes</h4>
                     <p class="mb-0">Successfully generated {{ qr_data|length }} QR code{{ qr_data|length|pluralize }}</p>
+                    {% if qr_data.0.type == 'multipurpose' %}
+                    <a href="{% url 'manage_multipurpose_qrs' %}" class="small">View them under Multipurpose QR</a>
+                    {% endif %}
                 </div>
                 <a href="{% url 'download_qr_pdf' %}" class="btn btn-primary btn-sm">
                     <i class="fas fa-file-pdf me-2"></i>Download PDF
@@ -298,7 +325,9 @@
                     <div class="card-header">
                         <h6 class="mb-0 text-center">
                             {% if qr.type == 'user' %}
-                            <i class="fas fa-user me-2"></i>User QR Code
+                            <i class="fas fa-car me-2"></i>Vehicle QR
+                            {% elif qr.type == 'multipurpose' %}
+                            <i class="fas fa-qrcode me-2"></i>Multipurpose QR
                             {% else %}
                             <i class="fas fa-link me-2"></i>External Registration
                             {% endif %}
@@ -306,10 +335,13 @@
                     </div>
                     <div class="card-body d-flex flex-column align-items-center">
                         <img src="data:image/png;base64,{{ qr.qr_code_base64 }}" alt="QR Code" class="img-fluid mb-3">
-                        {% if qr.type == 'user' %}
+                        {% if qr.type == 'user' or qr.type == 'multipurpose' %}
                         <div class="qr-id-display text-center w-100">
                             <strong>QR ID:</strong>
                             <span>{{ qr.qrId }}</span>
+                            {% if qr.title %}
+                            <div class="small text-muted mt-1">{{ qr.title }}</div>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>
@@ -477,29 +509,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const userQrRadio = document.getElementById('user_qr');
-    const externalQrRadio = document.getElementById('external_qr');
+    const multipurposeQrRadio = document.getElementById('multipurpose_qr');
     const userFields = document.getElementById('userFields');
-    const externalFields = document.getElementById('externalFields');
+    const multipurposeFields = document.getElementById('multipurposeFields');
 
     if (!userQrRadio || !userFields) {
         return;
     }
 
     function toggleFields() {
-        if (userQrRadio.checked) {
-            userFields.style.display = 'block';
-            externalFields.style.display = 'none';
-        } else {
-            userFields.style.display = 'none';
-            externalFields.style.display = 'block';
+        const multipurpose = multipurposeQrRadio && multipurposeQrRadio.checked;
+        userFields.style.display = multipurpose ? 'none' : 'block';
+        if (multipurposeFields) {
+            multipurposeFields.style.display = multipurpose ? 'block' : 'none';
         }
+        const countInput = document.getElementById('count');
+        const mpCountInput = document.getElementById('mp_count');
+        if (countInput) countInput.required = !multipurpose;
+        if (mpCountInput) mpCountInput.required = !!multipurpose;
     }
 
     userQrRadio.addEventListener('change', toggleFields);
-    if (externalQrRadio) {
-        externalQrRadio.addEventListener('change', toggleFields);
+    if (multipurposeQrRadio) {
+        multipurposeQrRadio.addEventListener('change', toggleFields);
     }
-    toggleFields(); // Initialize
+    toggleFields();
 });
 
 </script>

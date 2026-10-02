@@ -323,6 +323,67 @@ def _trim_and_resize_qr_for_sticker(qr_img, qr_size):
     return bw.convert("RGB")
 
 
+def _multipurpose_template_path():
+    return os.path.join(settings.BASE_DIR, 'admin_app', 'static', 'images', 'multipurpose_qr.png')
+
+
+def _white_slot_on_template(template_img):
+    """Bounding box of the white scan area, found by flood-fill from the center."""
+    im = template_img.convert('RGB')
+    width, height = im.size
+    pixels = im.load()
+    start = (width // 2, height // 2)
+
+    def is_white(x, y):
+        r, g, b = pixels[x, y]
+        return r > 245 and g > 245 and b > 245
+
+    if not is_white(*start):
+        side = int(min(width, height) * 0.46)
+        return (
+            (width - side) // 2,
+            (height - side) // 2,
+            (width + side) // 2,
+            (height + side) // 2,
+        )
+
+    seen = set()
+    stack = [start]
+    min_x = max_x = start[0]
+    min_y = max_y = start[1]
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in seen or x < 0 or y < 0 or x >= width or y >= height or not is_white(x, y):
+            continue
+        seen.add((x, y))
+        if x < min_x:
+            min_x = x
+        if x > max_x:
+            max_x = x
+        if y < min_y:
+            min_y = y
+        if y > max_y:
+            max_y = y
+        stack.extend(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
+    return min_x, min_y, max_x, max_y
+
+
+def _compose_multipurpose_qr(qr_img):
+    """Paste the QR into the white frame on the multipurpose sticker."""
+    template = PILImage.open(_multipurpose_template_path()).convert('RGB')
+    left, top, right, bottom = _white_slot_on_template(template)
+    slot_w = right - left + 1
+    slot_h = bottom - top + 1
+    pad = max(8, int(min(slot_w, slot_h) * 0.06))
+    edge = max(1, min(slot_w, slot_h) - pad * 2)
+    qr_x = left + (slot_w - edge) // 2
+    qr_y = top + (slot_h - edge) // 2
+    placed = _trim_and_resize_qr_for_sticker(qr_img, (edge, edge))
+    final_img = template.copy()
+    final_img.paste(placed, (qr_x, qr_y))
+    return final_img
+
+
 def custom_404(request, exception):
     """
     Custom 404 handler that returns appropriate error responses.
@@ -639,7 +700,11 @@ def dashboard(request):
     # Users count - sample approach for speed
     try:
         users_sample = list(db.collection('users').limit(1000).stream())
-        users_count = sum(1 for doc in users_sample if doc.to_dict().get('emailAddress') != ADMIN_EMAIL)
+        users_count = sum(
+            1 for doc in users_sample
+            if (doc.to_dict() or {}).get('emailAddress') != ADMIN_EMAIL
+            and (doc.to_dict() or {}).get('purpose') != MULTIPURPOSE_CALL_BRIDGE_PURPOSE
+        )
         # If we got less than 1000, we have exact count
         if len(users_sample) < 1000:
             # Exact count
@@ -767,11 +832,17 @@ def dashboard(request):
         qr_ref = db.collection('qrcodes')
         # Get active count
         active_qr_docs = list(qr_ref.where(filter=FieldFilter('isAssigned', '==', True)).limit(1000).stream())
-        active_qr = len(active_qr_docs)
+        active_qr = sum(
+            1 for doc in active_qr_docs
+            if (doc.to_dict() or {}).get('purpose') != MULTIPURPOSE_CALL_BRIDGE_PURPOSE
+        )
         
         # Get total count
         total_qr_docs = list(qr_ref.limit(1000).stream())
-        total_qr = len(total_qr_docs)
+        total_qr = sum(
+            1 for doc in total_qr_docs
+            if (doc.to_dict() or {}).get('purpose') != MULTIPURPOSE_CALL_BRIDGE_PURPOSE
+        )
         
         inactive_qr = total_qr - active_qr
     except:
@@ -779,9 +850,33 @@ def dashboard(request):
         active_qr = 0
         inactive_qr = 0
     
+    try:
+        from .fleet_service import count_active_fleets
+        active_fleets = count_active_fleets(db)
+    except Exception:
+        active_fleets = 0
+
+    try:
+        mp_docs = list(db.collection('multipurpose_qrs').limit(1000).stream())
+        mp_total = 0
+        mp_active = 0
+        for doc in mp_docs:
+            data = doc.to_dict() or {}
+            if data.get('purpose') not in (None, 'multipurpose'):
+                continue
+            mp_total += 1
+            if data.get('isAssigned') is True:
+                mp_active += 1
+        mp_inactive = mp_total - mp_active
+    except Exception:
+        mp_total = 0
+        mp_active = 0
+        mp_inactive = 0
+
     context = {
         'total_users': users_count,
         'total_orders': total_orders_count,
+        'active_fleets': active_fleets,
         'today_orders': today_orders_count,
         'week_orders': week_orders_count,
         'status_counts': status_counts,
@@ -790,6 +885,23 @@ def dashboard(request):
         'total_qr': total_qr,
         'active_qr': active_qr,
         'inactive_qr': inactive_qr,
+        'mp_total': mp_total,
+        'mp_active': mp_active,
+        'mp_inactive': mp_inactive,
+        'qr_dashboard': {
+            'vehicle': {
+                'total': total_qr,
+                'active': active_qr,
+                'inactive': inactive_qr,
+                'href': reverse('manage_qrs'),
+            },
+            'multipurpose': {
+                'total': mp_total,
+                'active': mp_active,
+                'inactive': mp_inactive,
+                'href': reverse('manage_multipurpose_qrs'),
+            },
+        },
         'STATUS_MAPPING': STATUS_MAPPING,
         'all_orders': recent_orders,
     }
@@ -803,6 +915,9 @@ def dashboard(request):
         'total_qr': total_qr,
         'active_qr': active_qr,
         'inactive_qr': inactive_qr,
+        'mp_total': mp_total,
+        'mp_active': mp_active,
+        'mp_inactive': mp_inactive,
         'STATUS_MAPPING': STATUS_MAPPING,
     }
     cache.set(cache_key, cache_stats, 120)
@@ -1067,6 +1182,61 @@ def generate_qr(request):
                     request,
                     error=f'Failed to save QR codes to Firestore: {str(e)}',
                 ))
+
+        elif qr_type == 'multipurpose':
+            try:
+                count = int(request.POST.get('mp_count', 1))
+            except (TypeError, ValueError):
+                count = 1
+            count = max(1, min(count, 100))
+            template_path = _multipurpose_template_path()
+            if not os.path.exists(template_path):
+                return render(request, 'generate_qr.html', _generate_qr_page_context(
+                    request,
+                    error='Multipurpose QR template image is missing.',
+                ))
+            batch = db.batch()
+            for _ in range(count):
+                try:
+                    qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
+                    scan_url = f"{base_domain}/admin/mp/{qr_id}/"
+                    qr = qrcode.QRCode(
+                        version=3,
+                        error_correction=qrcode.constants.ERROR_CORRECT_H,
+                        box_size=12,
+                        border=2,
+                    )
+                    qr.add_data(scan_url)
+                    qr.make(fit=True)
+                    qr_img = qr.make_image(fill_color="black", back_color="white")
+                    final_img = _compose_multipurpose_qr(qr_img)
+                    buffer = BytesIO()
+                    final_img.save(buffer, format="PNG")
+                    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                    qr_doc_ref = db.collection('multipurpose_qrs').document(qr_id)
+                    batch.set(qr_doc_ref, {
+                        'qrType': 'Multipurpose QR',
+                        'purpose': 'multipurpose',
+                        'isAssigned': False,
+                        'createdBy': 'admin',
+                        'createdDateTime': now(),
+                        'qrId': qr_id,
+                        'scanUrl': scan_url,
+                    })
+                    qr_data.append({
+                        'type': 'multipurpose',
+                        'qrId': qr_id,
+                        'qr_code_base64': qr_code_base64,
+                    })
+                except Exception as e:
+                    qr_data.append({'error': f'Failed to generate QR: {str(e)}'})
+            try:
+                batch.commit()
+            except Exception as e:
+                return render(request, 'generate_qr.html', _generate_qr_page_context(
+                    request,
+                    error=f'Failed to save multipurpose QR codes: {str(e)}',
+                ))
         
         else:
             # External QR generation
@@ -1267,6 +1437,21 @@ def download_qr_pdf(request):
         if i > 0:
             c.showPage()
         img_bytes = base64.b64decode(qr['qr_code_base64'])
+        if qr.get('type') == 'multipurpose':
+            side = mm_to_pt(80)
+            c.setPageSize((side, side))
+            c.drawImage(
+                ImageReader(BytesIO(img_bytes)),
+                0,
+                0,
+                width=side,
+                height=side,
+                preserveAspectRatio=True,
+                anchor='c',
+                mask='auto',
+            )
+            continue
+        c.setPageSize((page_w_pt, page_h_pt))
         # Stretch sticker to full 10 cm × 5 cm page — no margins or white borders.
         c.drawImage(
             ImageReader(BytesIO(img_bytes)),
@@ -1441,6 +1626,8 @@ def manage_users(request):
             user_data = doc.to_dict() or {}
             if user_data.get('emailAddress') == ADMIN_EMAIL:
                 continue
+            if user_data.get('purpose') == MULTIPURPOSE_CALL_BRIDGE_PURPOSE:
+                continue
                 
             user_data['doc_id'] = doc.id
             users.append(user_data)
@@ -1505,6 +1692,8 @@ def manage_vehicles(request):
         vehicles = []
         for doc in docs:
             data = doc.to_dict() or {}
+            if data.get('purpose') == MULTIPURPOSE_CALL_BRIDGE_PURPOSE:
+                continue
             data['id'] = doc.id
             vehicles.append(enrich_vehicle_for_admin(data))
         vehicles.sort(
@@ -1793,6 +1982,594 @@ def check_id_enabled(request, qr_id):
             
     except Exception as e:
         return render(request, 'error.html', {'error': str(e)})
+
+
+MULTIPURPOSE_QR_TYPE = 'Multipurpose QR'
+
+MULTIPURPOSE_CATEGORIES = (
+    {
+        'id': 'personal',
+        'label': 'Personal',
+        'title_field': 'fullName',
+        'fields': (
+            {'key': 'fullName', 'label': 'Full name', 'required': True},
+            {'key': 'contactNumber', 'label': 'Mobile number', 'required': True, 'kind': 'phone'},
+            {'key': 'city', 'label': 'City', 'required': True},
+            {'key': 'emailAddress', 'label': 'Email', 'required': True, 'kind': 'email'},
+            {'key': 'note', 'label': 'Message shown after scan', 'required': True, 'kind': 'text'},
+        ),
+    },
+    {
+        'id': 'business',
+        'label': 'Business',
+        'title_field': 'businessName',
+        'fields': (
+            {'key': 'businessName', 'label': 'Business name', 'required': True},
+            {'key': 'fullName', 'label': 'Contact person', 'required': True},
+            {'key': 'contactNumber', 'label': 'Mobile number', 'required': True, 'kind': 'phone'},
+            {'key': 'city', 'label': 'City', 'required': True},
+            {'key': 'emailAddress', 'label': 'Email', 'required': True, 'kind': 'email'},
+            {'key': 'address', 'label': 'Address', 'required': True},
+            {'key': 'note', 'label': 'Message shown after scan', 'required': True, 'kind': 'text'},
+        ),
+    },
+    {
+        'id': 'home',
+        'label': 'Home',
+        'title_field': 'placeName',
+        'fields': (
+            {'key': 'placeName', 'label': 'Place name', 'required': True},
+            {'key': 'fullName', 'label': 'Contact person', 'required': True},
+            {'key': 'contactNumber', 'label': 'Mobile number', 'required': True, 'kind': 'phone'},
+            {'key': 'city', 'label': 'City', 'required': True},
+            {'key': 'emailAddress', 'label': 'Email', 'required': True, 'kind': 'email'},
+            {'key': 'note', 'label': 'Message shown after scan', 'required': True, 'kind': 'text'},
+        ),
+    },
+    {
+        'id': 'pet',
+        'label': 'Pet',
+        'title_field': 'petName',
+        'fields': (
+            {'key': 'petName', 'label': 'Pet name', 'required': True},
+            {'key': 'fullName', 'label': 'Owner name', 'required': True},
+            {'key': 'contactNumber', 'label': 'Mobile number', 'required': True, 'kind': 'phone'},
+            {'key': 'city', 'label': 'City', 'required': True},
+            {'key': 'emailAddress', 'label': 'Email', 'required': True, 'kind': 'email'},
+            {'key': 'note', 'label': 'Message shown after scan', 'required': True, 'kind': 'text'},
+        ),
+    },
+    {
+        'id': 'item',
+        'label': 'Item',
+        'title_field': 'itemName',
+        'fields': (
+            {'key': 'itemName', 'label': 'Item name', 'required': True},
+            {'key': 'fullName', 'label': 'Owner name', 'required': True},
+            {'key': 'contactNumber', 'label': 'Mobile number', 'required': True, 'kind': 'phone'},
+            {'key': 'city', 'label': 'City', 'required': True},
+            {'key': 'emailAddress', 'label': 'Email', 'required': True, 'kind': 'email'},
+            {'key': 'note', 'label': 'Message shown after scan', 'required': True, 'kind': 'text'},
+        ),
+    },
+)
+
+
+def _multipurpose_category(category_id):
+    wanted = str(category_id or '').strip().lower()
+    for category in MULTIPURPOSE_CATEGORIES:
+        if category['id'] == wanted:
+            return category
+    return None
+
+
+def _multipurpose_document(qr_id):
+    try:
+        snap = db.collection('multipurpose_qrs').document(qr_id).get()
+    except Exception:
+        return None
+    if snap is None or not snap.exists:
+        return None
+    data = snap.to_dict() or {}
+    if data.get('purpose') != 'multipurpose':
+        return None
+    return snap
+
+
+def _multipurpose_unassigned_guard(qr_id):
+    snap = _multipurpose_document(qr_id)
+    if snap is None:
+        return None, JsonResponse({'status': 'error', 'message': 'Invalid QR Code'}, status=404)
+    if (snap.to_dict() or {}).get('isAssigned'):
+        return None, JsonResponse({
+            'status': 'error',
+            'message': 'This QR code is already activated.',
+        }, status=400)
+    return snap, None
+
+
+@ensure_csrf_cookie
+@require_POST
+def multipurpose_otp_send(request, qr_id):
+    _, err_resp = _multipurpose_unassigned_guard(qr_id)
+    if err_resp:
+        return err_resp
+    phone_e164, err_resp = _activate_id_otp_phone_from_request(request)
+    if err_resp:
+        return err_resp
+    try:
+        send_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('multipurpose OTP send failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('multipurpose OTP send request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+    clear_activate_phone_verified(request, qr_id)
+    return JsonResponse({'status': 'success', 'message': 'OTP sent to your mobile number.'})
+
+
+@ensure_csrf_cookie
+@require_POST
+def multipurpose_otp_resend(request, qr_id):
+    _, err_resp = _multipurpose_unassigned_guard(qr_id)
+    if err_resp:
+        return err_resp
+    phone_e164, err_resp = _activate_id_otp_phone_from_request(request)
+    if err_resp:
+        return err_resp
+    try:
+        resend_otp(phone_e164)
+    except Msg91OtpError as exc:
+        logger.warning('multipurpose OTP resend failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('multipurpose OTP resend request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+    clear_activate_phone_verified(request, qr_id)
+    return JsonResponse({'status': 'success', 'message': 'OTP resent to your mobile number.'})
+
+
+@ensure_csrf_cookie
+@require_POST
+def multipurpose_otp_verify(request, qr_id):
+    _, err_resp = _multipurpose_unassigned_guard(qr_id)
+    if err_resp:
+        return err_resp
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+    phone_raw = data.get('phone') or data.get('contactNumber') or ''
+    otp = str(data.get('otp') or '').strip()
+    if not otp:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Enter the verification code.',
+            'errors': {'otp': 'This field is required'},
+        }, status=400)
+    err, phone_e164 = phone_to_msg91_e164(phone_raw)
+    if err:
+        return JsonResponse({
+            'status': 'error',
+            'message': err,
+            'errors': {'contactNumber': err},
+        }, status=400)
+    try:
+        verify_otp(phone_e164, otp)
+    except Msg91OtpError as exc:
+        logger.warning('multipurpose OTP verify failed: %s', exc)
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
+    except requests.RequestException:
+        logger.exception('multipurpose OTP verify request failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not reach OTP service. Please try again.',
+        }, status=502)
+    mark_activate_phone_verified(request, qr_id, phone_e164)
+    return JsonResponse({'status': 'success', 'message': 'Mobile number verified.'})
+
+
+def _activate_multipurpose_owner(request, qr_id, snap):
+    try:
+        data = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+    if not isinstance(data, dict):
+        data = {}
+
+    errors = {}
+    category = _multipurpose_category(data.get('category'))
+    if category is None:
+        errors['category'] = 'Choose what this QR is for'
+    else:
+        for field in category['fields']:
+            value = str(data.get(field['key']) or '').strip()
+            if field['key'] == 'note':
+                if len(value) < 2:
+                    errors['note'] = 'Enter the message people will see after scanning'
+                else:
+                    data['note'] = value[:500]
+                continue
+            if field.get('required') and not value:
+                errors[field['key']] = 'This field is required'
+            elif value:
+                data[field['key']] = value
+    if data.get('emailAddress'):
+        from django.core.exceptions import ValidationError
+        from django.core.validators import validate_email
+        try:
+            validate_email(data['emailAddress'])
+        except ValidationError:
+            errors['emailAddress'] = 'Enter a valid email address'
+    cn_err, cn_canon = activate_id_normalize_contact(data.get('contactNumber', ''))
+    if cn_err:
+        errors['contactNumber'] = cn_err
+    else:
+        data['contactNumber'] = cn_canon
+        if not is_activate_phone_verified(request, qr_id, cn_canon):
+            errors['contactNumber'] = (
+                'Please verify your mobile number with the OTP sent to your phone.'
+            )
+    if category is not None:
+        title_value = str(data.get(category['title_field']) or '').strip()
+        if len(title_value) < 2:
+            errors[category['title_field']] = 'Enter at least 2 characters'
+    if errors:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Please correct the errors',
+            'errors': errors,
+        }, status=400)
+
+    auth_user = None
+    is_new_user = False
+    try:
+        user_query = db.collection('users').where(
+            filter=FieldFilter('emailAddress', '==', data['emailAddress'])
+        ).limit(1).get()
+        user_exists_in_firestore = len(user_query) > 0
+        try:
+            auth.get_user_by_email(data['emailAddress'])
+            user_exists_in_auth = True
+        except auth.UserNotFoundError:
+            user_exists_in_auth = False
+        except Exception:
+            user_exists_in_auth = False
+
+        if user_exists_in_auth and user_exists_in_firestore:
+            user_doc = user_query[0]
+            user_data = user_doc.to_dict() or {}
+            user_id = user_doc.id
+            stored_digits = normalize_phone_number(user_data.get('contactNumber', ''))
+            submitted_digits = normalize_phone_number(data.get('contactNumber', ''))
+            if stored_digits and submitted_digits and stored_digits != submitted_digits:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'This email is already registered',
+                    'errors': {
+                        'emailAddress': (
+                            'This email is already registered. Enter the mobile number linked to this account.'
+                        ),
+                    },
+                }, status=400)
+        elif user_exists_in_auth and not user_exists_in_firestore:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Account exists but data is incomplete. Please contact support.',
+                'errors': {'emailAddress': 'Account issue detected'},
+            }, status=400)
+        elif not user_exists_in_auth and user_exists_in_firestore:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Account data mismatch. Please contact support.',
+                'errors': {'emailAddress': 'Account issue detected'},
+            }, status=400)
+        else:
+            password = generate_random_password(12)
+            try:
+                auth_user, password, is_new_user = create_or_update_firebase_user(
+                    email=data['emailAddress'],
+                    full_name=data['fullName'],
+                    password=password,
+                )
+            except Exception as exc:
+                logger.exception('Multipurpose Firebase Auth user creation failed')
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Failed to create account: {exc}',
+                }, status=500)
+            user_id = auth_user.uid
+            db.collection('users').document(user_id).set({
+                'id': user_id,
+                'fullName': data.get('fullName'),
+                'contactNumber': data.get('contactNumber'),
+                'city': data.get('city'),
+                'emailAddress': data.get('emailAddress'),
+                'enableIdCheck': True,
+                'createdAt': firestore.SERVER_TIMESTAMP,
+                'profilePicture': 'default_profile.png',
+                'roleId': 0,
+                'mustChangePassword': False,
+                'fcmToken': '',
+                'adminAddedUser': False,
+            })
+            try:
+                send_welcome_email_for_id(
+                    email=data['emailAddress'],
+                    name=data['fullName'],
+                    password=password,
+                )
+            except Exception as mail_exc:
+                logger.warning(
+                    'Welcome email failed for %s: %s',
+                    data['emailAddress'],
+                    mail_exc,
+                )
+
+        digits = normalize_phone_number(data.get('contactNumber'))
+        title_key = category['title_field']
+        title = str(data.get(title_key) or '').strip()[:80]
+        note = str(data.get('note') or '').strip()[:500]
+        details = {}
+        for field in category['fields']:
+            key = field['key']
+            if key in ('contactNumber', 'note'):
+                continue
+            value = str(data.get(key) or '').strip()
+            if value:
+                details[key] = value[:200]
+        update = {
+            'qrType': MULTIPURPOSE_QR_TYPE,
+            'purpose': 'multipurpose',
+            'category': category['id'],
+            'categoryLabel': category['label'],
+            'title': title,
+            'isAssigned': True,
+            'userID': user_id,
+            'contactNumber': digits,
+            'ownerFullName': str(data.get('fullName') or '').strip()[:80],
+            'details': details,
+            'assignedAt': firestore.SERVER_TIMESTAMP,
+            'note': note,
+        }
+        snap.reference.update(update)
+        try:
+            sync_multipurpose_voice_bridge(qr_id, {**data, **update})
+        except Exception:
+            logger.exception('multipurpose voice bridge sync failed')
+        clear_activate_phone_verified(request, qr_id)
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Multipurpose QR activated.',
+            'redirect_url': reverse('multipurpose_qr_scan', args=[qr_id]),
+            'is_new_user': is_new_user,
+        })
+    except Exception as exc:
+        logger.exception('multipurpose activation failed')
+        if auth_user is not None and is_new_user:
+            try:
+                auth.delete_user(auth_user.uid)
+            except Exception:
+                logger.warning('Failed to cleanup multipurpose auth user', exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Activation failed: {exc}',
+        }, status=500)
+
+
+MULTIPURPOSE_CALL_BRIDGE_PURPOSE = 'multipurpose_call_bridge'
+
+
+def _multipurpose_voice_bridge_id(qr_id):
+    return f'mpvoice_{qr_id}'
+
+
+def sync_multipurpose_voice_bridge(qr_id, mp_data):
+    """
+    Live call register only accepts qrcodes/{id} linked to a vehicle whose
+    owner number matches the destination. Keep a private bridge so a
+    multipurpose contactNumber can be dialed through that same gateway.
+    """
+    phone = normalize_phone_number((mp_data or {}).get('contactNumber'))
+    qr_id = str(qr_id or '').strip()
+    if not phone or not qr_id:
+        return
+    bridge_id = _multipurpose_voice_bridge_id(qr_id)
+    name = str(
+        (mp_data or {}).get('ownerFullName')
+        or (mp_data or {}).get('title')
+        or 'Multipurpose'
+    ).strip()[:80]
+    db.collection('users').document(bridge_id).set({
+        'fullName': name,
+        'contactNumber': phone,
+        'purpose': MULTIPURPOSE_CALL_BRIDGE_PURPOSE,
+    }, merge=True)
+    db.collection('vehicles').document(bridge_id).set({
+        'ownerId': bridge_id,
+        'ownerContact': phone,
+        'qrCodeId': qr_id,
+        'purpose': MULTIPURPOSE_CALL_BRIDGE_PURPOSE,
+    }, merge=True)
+    db.collection('qrcodes').document(qr_id).set({
+        'isAssigned': True,
+        'vehicleID': bridge_id,
+        'userID': bridge_id,
+        'qrId': qr_id,
+        'purpose': MULTIPURPOSE_CALL_BRIDGE_PURPOSE,
+        'qrType': 'Multipurpose QR',
+    }, merge=True)
+
+
+def clear_multipurpose_voice_bridge(qr_id, delete=False):
+    qr_id = str(qr_id or '').strip()
+    if not qr_id:
+        return
+    bridge_id = _multipurpose_voice_bridge_id(qr_id)
+    qr_ref = db.collection('qrcodes').document(qr_id)
+    try:
+        snap = qr_ref.get()
+    except Exception:
+        snap = None
+    if snap is not None and snap.exists:
+        data = snap.to_dict() or {}
+        if data.get('purpose') == MULTIPURPOSE_CALL_BRIDGE_PURPOSE:
+            if delete:
+                qr_ref.delete()
+            else:
+                qr_ref.update({'isAssigned': False})
+    if delete:
+        db.collection('vehicles').document(bridge_id).delete()
+        db.collection('users').document(bridge_id).delete()
+
+
+@ensure_csrf_cookie
+def multipurpose_qr_scan(request, qr_id):
+    """Scan page for multipurpose QRs. Unassigned codes activate here first."""
+    snap = _multipurpose_document(qr_id)
+    if snap is None:
+        return render(request, 'multipurpose_scan.html', {'missing': True})
+    data = snap.to_dict() or {}
+    if not data.get('isAssigned'):
+        if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            fresh, err_resp = _multipurpose_unassigned_guard(qr_id)
+            if err_resp:
+                return err_resp
+            return _activate_multipurpose_owner(request, qr_id, fresh)
+        return render(request, 'multipurpose_activate.html', {
+            'qr_id': qr_id,
+            'title': 'Multipurpose QR',
+            'categories': MULTIPURPOSE_CATEGORIES,
+        })
+    try:
+        sync_multipurpose_voice_bridge(qr_id, data)
+    except Exception:
+        logger.exception('multipurpose voice bridge sync failed')
+    return render(request, 'multipurpose_scan.html', {
+        'missing': False,
+        'title': data.get('title') or 'SudoTag',
+        'note': data.get('note') or '',
+        'qr_id': qr_id,
+        'can_contact': bool(normalize_phone_number(data.get('contactNumber'))),
+        'call_did': CALL_ROUTING_EXPECTED_DID,
+        'call_destination': normalize_phone_number(data.get('contactNumber')) or '',
+        'register_url': reverse('register_call_destination'),
+        'contact_url': f'/admin/mp/{qr_id}/contact/',
+    })
+
+
+@csrf_exempt
+@require_POST
+def multipurpose_qr_contact(request, qr_id):
+    """SMS or push for a multipurpose QR. Does not use the vehicle notify flow."""
+    try:
+        snap = db.collection('multipurpose_qrs').document(qr_id).get()
+    except Exception:
+        snap = None
+    data = snap.to_dict() if snap is not None and snap.exists else None
+    if not data or data.get('purpose') != 'multipurpose' or not data.get('isAssigned'):
+        return JsonResponse({'status': 'error', 'message': 'This QR is not a multipurpose code.'}, status=404)
+    digits = normalize_phone_number(data.get('contactNumber'))
+    if not digits:
+        return JsonResponse(
+            {'status': 'error', 'message': 'No contact number is saved on this QR.'},
+            status=400,
+        )
+    try:
+        body = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    method = str(body.get('method') or '').strip().lower()
+    message = str(body.get('message') or data.get('note') or '').strip()
+    if not message:
+        message = f"Someone scanned your SudoTag: {data.get('title') or 'Multipurpose QR'}"
+    message = message[:200]
+    if method == 'sms':
+        from .msg91_vehicle_sms import send_vehicle_issue_sms
+        result = send_vehicle_issue_sms(digits_10=digits, message=message)
+        if not result.get('ok'):
+            return JsonResponse(
+                {'status': 'error', 'message': 'Message could not be sent. Try again.'},
+                status=502,
+            )
+        return JsonResponse({'status': 'ok', 'message': 'Message sent.'})
+    if method == 'push':
+        user_doc = None
+        try:
+            matches = list(
+                db.collection('users')
+                .where('contactNumber', 'in', [digits, '+91' + digits])
+                .limit(1)
+                .stream()
+            )
+            user_doc = matches[0] if matches else None
+        except Exception:
+            user_doc = None
+        if user_doc is None:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'message': 'No SudoTag app account uses this mobile, so push cannot be delivered.',
+                },
+                status=400,
+            )
+        user_data = user_doc.to_dict() or {}
+        tokens = []
+        seen = set()
+        user_token = str(user_data.get('fcmToken') or '').strip()
+        if user_token:
+            tokens.append(user_token)
+            seen.add(user_token)
+        try:
+            vehicle_snaps = (
+                db.collection('vehicles')
+                .where('ownerId', '==', user_doc.id)
+                .limit(8)
+                .stream()
+            )
+            for vehicle_snap in vehicle_snaps:
+                vehicle_token = str((vehicle_snap.to_dict() or {}).get('fcmToken') or '').strip()
+                if vehicle_token and vehicle_token not in seen:
+                    seen.add(vehicle_token)
+                    tokens.append(vehicle_token)
+        except Exception:
+            logger.warning('multipurpose push vehicle token lookup failed', exc_info=True)
+        if not tokens:
+            return JsonResponse(
+                {'status': 'error', 'message': 'This account has no app notification token yet.'},
+                status=400,
+            )
+        from .fcm_push import send_push_to_tokens
+        title = str(data.get('title') or 'SudoTag')[:80]
+        push_result = send_push_to_tokens(
+            db,
+            user_id=user_doc.id,
+            tokens=tokens,
+            title=title,
+            body=message,
+            data={
+                'qrId': str(qr_id),
+                'notificationType': 'multipurpose_alert',
+                'type': 'multipurpose_alert',
+            },
+            store_inbox=True,
+        )
+        if not push_result.get('success_count'):
+            return JsonResponse(
+                {'status': 'error', 'message': 'Push notification could not be delivered.'},
+                status=502,
+            )
+        return JsonResponse({'status': 'ok', 'message': 'Push notification sent.'})
+    return JsonResponse({'status': 'error', 'message': 'Choose message or push.'}, status=400)
 
 
 @ensure_csrf_cookie
@@ -4842,6 +5619,8 @@ def manage_qrs(request):
         
         for doc in qr_docs:
             qr_data = doc.to_dict() or {}
+            if qr_data.get('purpose') == MULTIPURPOSE_CALL_BRIDGE_PURPOSE:
+                continue
             qr_data['doc_id'] = doc.id
             
             # OPTIMIZED: Only generate QR code image if we'll display it (lazy loading)
@@ -5609,6 +6388,10 @@ def assign_qr(request):
 
     db = firestore.client()
     
+    if request.method == 'POST' and request.POST.get('qr_kind') == 'multipurpose':
+        from .multipurpose_admin import assign_multipurpose_from_assign_page
+        return assign_multipurpose_from_assign_page(request)
+
     if request.method == 'POST':
         try:
             qr_id = request.POST.get('qr_id')
@@ -5704,6 +6487,7 @@ def assign_qr(request):
         
         # Get users with vehicles but no QR assigned
         users_with_vehicles = []
+        mp_users = []
         users_query = db.collection('users')
         
         # If user search is provided, filter users
@@ -5742,10 +6526,28 @@ def assign_qr(request):
             if user_vehicles:
                 user_data['vehicles'] = user_vehicles
                 users_with_vehicles.append(user_data)
+            if len(mp_users) < 200:
+                mp_users.append({
+                    'id': user.id,
+                    'name': str(user_data.get('fullName') or ''),
+                    'email': str(user_data.get('emailAddress') or ''),
+                    'phone': normalize_phone_number(user_data.get('contactNumber')) or '',
+                    'city': str(user_data.get('city') or ''),
+                })
+
+        try:
+            from .multipurpose_admin import inactive_multipurpose_rows
+            mp_qrs = inactive_multipurpose_rows()
+        except Exception:
+            mp_qrs = []
         
         context = {
             'unassigned_qrs': qr_list,
             'users_with_vehicles': users_with_vehicles,
+            'mp_qrs': mp_qrs,
+            'mp_users': mp_users,
+            'mp_categories': MULTIPURPOSE_CATEGORIES,
+            'qr_kind': request.GET.get('qr_kind') or 'vehicle',
             'search_qr': search_qr,
             'search_user': search_user,
             'messages': get_message_list(request)
@@ -5758,6 +6560,10 @@ def assign_qr(request):
         return render(request, 'assign_qr.html', {
             'unassigned_qrs': [],
             'users_with_vehicles': [],
+            'mp_qrs': [],
+            'mp_users': [],
+            'mp_categories': MULTIPURPOSE_CATEGORIES,
+            'qr_kind': request.GET.get('qr_kind') or 'vehicle',
             'search_qr': '',
             'search_user': '',
             'messages': get_message_list(request)
@@ -5809,7 +6615,9 @@ def search_users(request):
         
         users = []
         for user in users_ref:
-            user_data = user.to_dict()
+            user_data = user.to_dict() or {}
+            if user_data.get('purpose') == MULTIPURPOSE_CALL_BRIDGE_PURPOSE:
+                continue
             user_data['id'] = user.id
             
             # Apply search filter

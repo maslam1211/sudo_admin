@@ -5,6 +5,13 @@ from . import views
 from . import checkout_views
 from . import checkout_coupon_views
 from . import referral_views
+from . import fleet_views
+from .multipurpose_admin import (
+    assign_multipurpose_qr,
+    delete_multipurpose_qr,
+    manage_multipurpose_qr,
+    manage_multipurpose_qrs,
+)
 
 urlpatterns = [
     # /admin/ with no extra path — otherwise 404; login view sends to PIN gate if needed
@@ -42,6 +49,9 @@ urlpatterns = [
     path('referrals/export/', referral_views.export_referrals_csv, name='export_referrals_csv'),
     path('referrals/<str:referral_id>/', referral_views.referral_detail, name='referral_detail'),
     path('referrers/<str:user_id>/', referral_views.referrer_history, name='referrer_history'),
+    path('fleets/', fleet_views.manage_fleets, name='manage_fleets'),
+    path('fleets/export/', fleet_views.export_fleets_csv, name='export_fleets_csv'),
+    path('fleets/<str:fleet_id>/', fleet_views.manage_fleet_detail, name='manage_fleet_detail'),
     path('view-orders/', views.view_orders, name='view_orders'),
     path('view-payments/', views.view_payments, name='view_payments'),
     path('update_order_status/', views.update_order_status, name='update_order_status'),
@@ -49,6 +59,11 @@ urlpatterns = [
     path('logout/', views.admin_logout, name='admin_logout'),
     path('register-external-user/', views.external_user_registration, name='external_register'),
     path('send-notification/<str:qr_id>/', views.check_id_enabled, name='check_id_enabled'),
+    path('mp/<str:qr_id>/', views.multipurpose_qr_scan, name='multipurpose_qr_scan'),
+    path('mp/<str:qr_id>/contact/', views.multipurpose_qr_contact, name='multipurpose_qr_contact'),
+    path('mp/<str:qr_id>/otp/send/', views.multipurpose_otp_send, name='multipurpose_otp_send'),
+    path('mp/<str:qr_id>/otp/resend/', views.multipurpose_otp_resend, name='multipurpose_otp_resend'),
+    path('mp/<str:qr_id>/otp/verify/', views.multipurpose_otp_verify, name='multipurpose_otp_verify'),
     path(
         'api/public-lookup-vehicle/',
         views.public_lookup_vehicle,
@@ -79,11 +94,23 @@ urlpatterns = [
     path('send-feedback/', views.send_feedback, name='send_feedback'),
     path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),
     path('manage-qrs/', views.manage_qrs, name='manage_qrs'),
+    path('manage-multipurpose-qrs/', manage_multipurpose_qrs, name='manage_multipurpose_qrs'),
+    path(
+        'manage-multipurpose-qrs/<str:qr_id>/',
+        manage_multipurpose_qr,
+        name='manage_multipurpose_qr',
+    ),
+    path(
+        'manage-multipurpose-qrs/<str:qr_id>/delete/',
+        delete_multipurpose_qr,
+        name='delete_multipurpose_qr',
+    ),
     path('manage-qrs/delete/<str:qr_id>/', views.delete_qr_code, name='delete_qr_code'),
     path('manage-qrs/bulk-delete/', views.bulk_delete_qr_codes, name='bulk_delete_qr_codes'),
     path('regenerate-qr/<str:qr_id>/', views.regenerate_qr, name='regenerate_qr'),
     # Add these new routes for QR assignment
     path('assign-qr/', views.assign_qr, name='assign_qr'),
+    path('assign-multipurpose-qr/', assign_multipurpose_qr, name='assign_multipurpose_qr'),
     path('get-user-vehicles/<str:user_id>/', views.get_user_vehicles, name='get_user_vehicles'),
     path('search-qr-codes/', views.search_qr_codes, name='search_qr_codes'),
     path('search-users/', views.search_users, name='search_users'),

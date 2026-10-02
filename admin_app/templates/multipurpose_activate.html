@@ -1,0 +1,428 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Activate {{ title }} | SudoTag</title>
+  {% include 'includes/qr_flow_head.html' %}
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="{% sudo_mobile_flow_css_url %}" rel="stylesheet">
+  <style>
+    body.mp-flow { background: #111; }
+    .mp-shell {
+      width: min(440px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      background: #1c1c1c;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+    .mp-shell .form-label { display: block; }
+    .mp-shell .form-control,
+    .mp-shell textarea.form-control {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .mp-shell .form-group { margin-bottom: 16px; }
+    .mp-hero-name {
+      margin: 0;
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .mp-hero-note {
+      margin: 8px 0 0;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .mp-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .mp-category {
+      border: 1.5px solid rgba(255,255,255,0.16);
+      background: transparent;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: inherit;
+      font-weight: 600;
+    }
+    .mp-category.is-selected {
+      border-color: #e58147;
+      background: rgba(229, 129, 71, 0.16);
+      color: #fff;
+    }
+    .mp-prefix {
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      border-radius: 14px;
+      background: #1c1c1c;
+      border: 1.5px solid #333;
+      font-weight: 700;
+    }
+    .mp-phone-row .form-control { flex: 1; min-width: 0; }
+    .form-control.is-verified { border-color: #4caf50; }
+    .mp-error { min-height: 0; margin: 6px 0 0; color: #ffb4a0; font-size: 0.78rem; }
+    .mp-error:empty { display: none; }
+    .mp-otp {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .mp-otp input {
+      width: 52px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.35rem;
+      font-weight: 700;
+      border-radius: 14px;
+      border: 1.5px solid #333;
+      background: #1c1c1c;
+      color: #fff;
+    }
+    .mp-otp input:focus { outline: none; border-color: #e58147; }
+    .mp-otp-actions { display: flex; gap: 8px; }
+    .mp-otp-actions .mp-mini {
+      flex: 1;
+      min-height: 46px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      background: transparent;
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+    }
+    .mp-send {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(229, 129, 71, 0.7);
+      background: rgba(229, 129, 71, 0.12);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+    }
+    .mp-status.is-ok { color: #a8e6b0; }
+    .mp-verified {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      color: #a8e6b0;
+      background: rgba(76, 175, 80, 0.12);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      font-weight: 600;
+    }
+    .mp-activate {
+      width: 100%;
+      min-height: 56px;
+      margin-top: 8px;
+      border: 0;
+      border-radius: 14px;
+      background: #e58147;
+      color: #1c1c1c;
+      font: inherit;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .mp-activate:disabled { opacity: 0.55; }
+    .mp-shell .sudo-app-main { padding-bottom: 28px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="mp-flow sudo-mobile-flow">
+  {% include 'includes/multipurpose_open_app.html' %}
+  <div class="mp-shell">
+    <header class="app-header sudo-app-header">
+      <a href="/" class="brand-logo" aria-label="SudoTag home">
+        {% include 'includes/brand_logo_img.html' %}
+      </a>
+      <h1 class="header-title">Activate multipurpose QR</h1>
+    </header>
+    <main class="app-main sudo-app-main">
+      <section class="vehicle-info">
+        <p class="vehicle-model">Inactive QR</p>
+        <h2 class="mp-hero-name">Multipurpose QR</h2>
+        <p class="mp-hero-note">Choose what this code is for, then enter the details for that category.</p>
+      </section>
+      <section class="content-card">
+        <div class="card-header-block">
+          <p class="card-title">Activate</p>
+          <p class="card-subtitle">Details are collected only now, when this QR is scanned.</p>
+        </div>
+        {% csrf_token %}
+        <form id="mpActivateForm">
+          <section class="form-section">
+            <h3 class="section-label"><i class="bi bi-grid"></i> Category</h3>
+            <div class="mp-categories" id="mpCategories">
+              {% for category in categories %}
+              <button type="button" class="mp-category" data-category="{{ category.id }}">{{ category.label }}</button>
+              {% endfor %}
+            </div>
+            <p class="mp-error" id="err-category"></p>
+            <div id="mpDynamicFields"></div>
+            <button type="submit" class="mp-activate" id="activateBtn">Activate QR</button>
+            <p class="mp-status" id="formStatus"></p>
+          </section>
+        </form>
+      </section>
+    </main>
+  </div>
+  {{ categories|json_script:"mpCategoryData" }}
+  <script>
+    (function () {
+      var OTP_SEND = "{% url 'multipurpose_otp_send' qr_id %}";
+      var OTP_RESEND = "{% url 'multipurpose_otp_resend' qr_id %}";
+      var OTP_VERIFY = "{% url 'multipurpose_otp_verify' qr_id %}";
+      var categories = JSON.parse(document.getElementById('mpCategoryData').textContent);
+      var selected = categories[0];
+      var verifiedPhone = '';
+      var timer = null;
+      var formStatus = document.getElementById('formStatus');
+      var fieldsRoot = document.getElementById('mpDynamicFields');
+
+      function csrf() {
+        var el = document.querySelector('[name=csrfmiddlewaretoken]');
+        return el ? el.value : '';
+      }
+      function post(url, body) {
+        return fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf(),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(body)
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            if (!response.ok) throw data;
+            return data;
+          });
+        });
+      }
+      function fieldHtml(field) {
+        if (field.kind === 'phone') {
+          return '<div class="form-group"><label class="form-label" for="contactNumber">Mobile number</label>'
+            + '<input class="form-control" id="contactNumber" type="tel" inputmode="tel" maxlength="14" value="+91 " autocomplete="tel" placeholder="+91 10-digit mobile">'
+            + '<p class="mp-error" id="err-contactNumber"></p>'
+            + '<div id="phoneVerifyActions"><button type="button" class="mp-send" id="sendOtpBtn">Send OTP</button></div>'
+            + '<p class="mp-verified" id="phoneVerifiedBadge" hidden><i class="bi bi-check-circle-fill"></i> Mobile verified</p>'
+            + '<div id="phoneOtpPanel" hidden><p class="mp-status" id="otpSentTo"></p><div class="mp-otp" id="otpDigits">'
+            + '<input type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 1">'
+            + '<input type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 2">'
+            + '<input type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 3">'
+            + '<input type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 4"></div>'
+            + '<div class="mp-otp-actions"><button type="button" class="mp-mini" id="verifyOtpBtn">Verify</button>'
+            + '<button type="button" class="mp-mini" id="resendOtpBtn">Resend</button></div>'
+            + '<p class="mp-status" id="resendTimer" hidden></p></div><p class="mp-status" id="otpStatus"></p></div>';
+        }
+        var inputType = field.kind === 'email' ? 'email' : 'text';
+        var tag = field.kind === 'text'
+          ? '<textarea class="form-control" id="' + field.key + '" rows="3" maxlength="500" placeholder="People will see this after they scan"></textarea>'
+          : '<input class="form-control" id="' + field.key + '" type="' + inputType + '">';
+        return '<div class="form-group"><label class="form-label" for="' + field.key + '">' + field.label
+          + (field.required ? '' : ' (optional)') + '</label>' + tag
+          + '<p class="mp-error" id="err-' + field.key + '"></p></div>';
+      }
+      function wireOtp(previousValue) {
+        var phone = document.getElementById('contactNumber');
+        var sendBtn = document.getElementById('sendOtpBtn');
+        var verifyBtn = document.getElementById('verifyOtpBtn');
+        var resendBtn = document.getElementById('resendOtpBtn');
+        var panel = document.getElementById('phoneOtpPanel');
+        var actions = document.getElementById('phoneVerifyActions');
+        var badge = document.getElementById('phoneVerifiedBadge');
+        var statusEl = document.getElementById('otpStatus');
+        var digitInputs = Array.prototype.slice.call(document.querySelectorAll('#otpDigits input'));
+        var prefix = '+91 ';
+        function phoneDigits() {
+          var raw = phone.value || '';
+          var body = raw.indexOf('+91') === 0 ? raw.slice(3) : raw;
+          return body.replace(/\D/g, '').slice(0, 10);
+        }
+        function formatPhone() {
+          if (phone.readOnly) return;
+          var next = prefix + phoneDigits();
+          if (phone.value !== next) phone.value = next;
+          if (phone.selectionStart != null && phone.selectionStart < prefix.length) {
+            phone.setSelectionRange(phone.value.length, phone.value.length);
+          }
+        }
+        if (verifiedPhone && phone) {
+          phone.value = prefix + verifiedPhone;
+          phone.readOnly = true;
+          phone.classList.add('is-verified');
+          actions.hidden = true;
+          badge.hidden = false;
+        } else {
+          if (previousValue) phone.value = previousValue;
+          formatPhone();
+          phone.addEventListener('input', formatPhone);
+          phone.addEventListener('keydown', function (event) {
+            if ((event.key === 'Backspace' || event.key === 'Delete') && phone.selectionStart <= prefix.length) {
+              event.preventDefault();
+            }
+          });
+          phone.addEventListener('focus', function () {
+            if (phone.selectionStart < prefix.length) {
+              phone.setSelectionRange(phone.value.length, phone.value.length);
+            }
+          });
+        }
+        function setStatus(text, ok) {
+          statusEl.textContent = text || '';
+          statusEl.classList.toggle('is-ok', !!ok);
+        }
+        digitInputs.forEach(function (input, index) {
+          input.addEventListener('input', function () {
+            input.value = (input.value || '').replace(/\D/g, '').slice(0, 1);
+            if (input.value && digitInputs[index + 1]) digitInputs[index + 1].focus();
+          });
+        });
+        function startResend() {
+          var left = 60;
+          resendBtn.disabled = true;
+          var line = document.getElementById('resendTimer');
+          line.hidden = false;
+          line.textContent = 'Resend in ' + left + 's';
+          clearInterval(timer);
+          timer = setInterval(function () {
+            left -= 1;
+            if (left <= 0) {
+              clearInterval(timer);
+              line.hidden = true;
+              resendBtn.disabled = false;
+              return;
+            }
+            line.textContent = 'Resend in ' + left + 's';
+          }, 1000);
+        }
+        function sendOtp(isResend) {
+          var value = phoneDigits();
+          formatPhone();
+          if (!/^\d{10}$/.test(value)) {
+            document.getElementById('err-contactNumber').textContent = 'Enter a valid 10-digit mobile number';
+            return;
+          }
+          var btn = isResend ? resendBtn : sendBtn;
+          btn.disabled = true;
+          setStatus(isResend ? 'Resending code…' : 'Sending code…', false);
+          post(isResend ? OTP_RESEND : OTP_SEND, { phone: value }).then(function () {
+            verifiedPhone = '';
+            phone.readOnly = false;
+            phone.classList.remove('is-verified');
+            panel.hidden = false;
+            actions.hidden = true;
+            badge.hidden = true;
+            document.getElementById('otpSentTo').textContent = 'Code sent to +91 ' + value.slice(0, 5) + '***' + value.slice(-2);
+            setStatus('Enter the 4-digit code from your SMS.', true);
+            digitInputs[0].focus();
+            startResend();
+          }).catch(function (err) {
+            setStatus((err && err.message) || 'Could not send OTP.', false);
+          }).finally(function () { btn.disabled = false; });
+        }
+        sendBtn.addEventListener('click', function () { sendOtp(false); });
+        resendBtn.addEventListener('click', function () { if (!resendBtn.disabled) sendOtp(true); });
+        verifyBtn.addEventListener('click', function () {
+          var value = phoneDigits();
+          var code = digitInputs.map(function (input) { return input.value || ''; }).join('');
+          if (code.length < 4) {
+            setStatus('Enter the 4-digit code from your SMS.', false);
+            return;
+          }
+          verifyBtn.disabled = true;
+          post(OTP_VERIFY, { phone: value, otp: code }).then(function () {
+            verifiedPhone = value;
+            phone.value = prefix + value;
+            phone.readOnly = true;
+            phone.classList.add('is-verified');
+            panel.hidden = true;
+            badge.hidden = false;
+            setStatus('', false);
+          }).catch(function (err) {
+            setStatus((err && err.message) || 'Incorrect code.', false);
+          }).finally(function () { verifyBtn.disabled = false; });
+        });
+      }
+      function renderFields() {
+        var kept = {};
+        fieldsRoot.querySelectorAll('input, textarea').forEach(function (input) {
+          if (input.id && input.id !== 'otpDigits') kept[input.id] = input.value;
+        });
+        fieldsRoot.innerHTML = selected.fields.map(fieldHtml).join('');
+        selected.fields.forEach(function (field) {
+          var input = document.getElementById(field.key);
+          if (input && kept[field.key] && field.kind !== 'phone') input.value = kept[field.key];
+        });
+        wireOtp(kept.contactNumber || '');
+      }
+      document.querySelectorAll('.mp-category').forEach(function (button) {
+        button.addEventListener('click', function () {
+          selected = categories.filter(function (item) { return item.id === button.getAttribute('data-category'); })[0];
+          document.querySelectorAll('.mp-category').forEach(function (item) {
+            item.classList.toggle('is-selected', item === button);
+          });
+          document.getElementById('err-category').textContent = '';
+          renderFields();
+        });
+      });
+      document.querySelector('.mp-category').classList.add('is-selected');
+      renderFields();
+      document.getElementById('mpActivateForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        fieldsRoot.querySelectorAll('.mp-error').forEach(function (el) { el.textContent = ''; });
+        document.getElementById('err-category').textContent = '';
+        var phone = document.getElementById('contactNumber');
+        var typedRaw = phone ? (phone.value || '') : '';
+        var typedBody = typedRaw.indexOf('+91') === 0 ? typedRaw.slice(3) : typedRaw;
+        var typed = typedBody.replace(/\D/g, '').slice(0, 10);
+        if (!verifiedPhone || typed !== verifiedPhone) {
+          document.getElementById('err-contactNumber').textContent = 'Verify your mobile number first.';
+          return;
+        }
+        var payload = { category: selected.id, contactNumber: verifiedPhone };
+        var missing = false;
+        selected.fields.forEach(function (field) {
+          if (field.kind === 'phone') return;
+          var input = document.getElementById(field.key);
+          var value = input ? input.value.trim() : '';
+          payload[field.key] = value;
+          if (field.required && value.length < 2) {
+            var err = document.getElementById('err-' + field.key);
+            if (err) err.textContent = field.key === 'note'
+              ? 'Enter the message people will see after scanning'
+              : 'This field is required';
+            missing = true;
+          }
+        });
+        if (missing) return;
+        var button = document.getElementById('activateBtn');
+        button.disabled = true;
+        formStatus.textContent = 'Activating…';
+        post(window.location.pathname, payload).then(function (data) {
+          formStatus.textContent = data.message || 'Activated.';
+          window.location.href = data.redirect_url || window.location.pathname;
+        }).catch(function (err) {
+          var errors = (err && err.errors) || {};
+          Object.keys(errors).forEach(function (key) {
+            var el = document.getElementById('err-' + key);
+            if (el) el.textContent = errors[key];
+          });
+          formStatus.textContent = (err && err.message) || 'Activation failed.';
+          button.disabled = false;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

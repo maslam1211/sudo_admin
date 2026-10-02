@@ -112,6 +112,12 @@ class CompanyNumberCallFlowTests(TestCase):
         self.assertEqual(response.json()['error'], 'Voice calling is paused for this vehicle.')
         self.assertFalse(CallRouteIntent.objects.exists())
 
+    def test_webhook_accepts_did_with_country_code(self):
+        CallRouteIntent.objects.create(caller_key=COMPANY, destination=OWNER)
+        response = self._webhook(FINDER, did='918049649451')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['destination'], OWNER)
+
     def test_webhook_uses_company_intent_for_handset_cli(self):
         CallRouteIntent.objects.create(caller_key=COMPANY, destination=OWNER)
         response = self._webhook(FINDER)

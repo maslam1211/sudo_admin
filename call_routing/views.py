@@ -3,6 +3,8 @@
 import json
 import logging
 import secrets
+import urllib.error
+import urllib.request
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -103,6 +105,78 @@ def _reject_bad_call_routing_api_key(request):
     return None
 
 
+def _vehicle_scan_destination(db, qr_id, target):
+    """Owner or emergency number for a vehicle sticker when the page omits destination."""
+    try:
+        qr_doc = db.collection('qrcodes').document(qr_id).get()
+    except Exception:
+        return ''
+    if not qr_doc.exists:
+        return ''
+    qr_data = qr_doc.to_dict() or {}
+    if not qr_data.get('isAssigned'):
+        return ''
+    vehicle_id = qr_data.get('vehicleID')
+    if not vehicle_id:
+        return ''
+    try:
+        vehicle_doc = db.collection('vehicles').document(vehicle_id).get()
+    except Exception:
+        return ''
+    if not vehicle_doc.exists:
+        return ''
+    vehicle_data = vehicle_doc.to_dict() or {}
+    owner_id = vehicle_data.get('ownerId')
+    if not owner_id:
+        return ''
+    try:
+        user_doc = db.collection('users').document(owner_id).get()
+    except Exception:
+        return ''
+    if not user_doc.exists:
+        return ''
+    user_data = user_doc.to_dict() or {}
+    if target == 'emergency':
+        from admin_app.scanner_contact_prefs import normalize_phone_digits
+        return normalize_phone_digits(user_data.get('defaultEmergencyContact', '')) or ''
+    from admin_app.family_assignment import effective_contact_number
+    return effective_contact_number(vehicle_data, user_data) or ''
+
+
+def _mirror_multipurpose_register_to_live_gateway(request, destination, qr_id):
+    """
+    The phone line asks sudotag.com for the destination. A register stored only
+    on this machine never reaches that lookup. Forward the same payload when
+    this request is not already on the live host.
+    Returns (status, body) or None when no forward is needed.
+    """
+    host = (request.get_host() or '').split(':')[0].lower()
+    if host in ('sudotag.com', 'www.sudotag.com'):
+        return None
+    live = str(getattr(settings, 'BASE_DOMAIN', 'https://sudotag.com') or '').rstrip('/')
+    if not live:
+        return None
+    payload = json.dumps({
+        'destination': destination,
+        'qr_id': qr_id,
+        'target': 'owner',
+    }).encode('utf-8')
+    req = urllib.request.Request(
+        f'{live}/admin/api/call/register',
+        data=payload,
+        headers={'Content-Type': 'application/json'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            return resp.status, resp.read().decode('utf-8', errors='replace')
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read().decode('utf-8', errors='replace')
+    except Exception as exc:
+        logger.warning('call_route live gateway mirror failed: %s', exc)
+        return 502, json.dumps({'error': 'Call gateway unavailable'})
+
+
 @csrf_exempt
 @require_POST
 def register_call_destination(request):
@@ -119,14 +193,8 @@ def register_call_destination(request):
         phone = str(getattr(settings, 'COMPANY_PHONE_NUMBER', '') or '').strip()
         if not phone:
             return JsonResponse({'error': CALL_ROUTE_COMPANY_NUMBER_MISSING}, status=500)
-    if not destination:
-        return JsonResponse(
-            {'error': 'from and destination required' if explicit_from else 'destination required'},
-            status=400,
-        )
 
     key = _call_route_norm10(phone)
-    dest_key = _call_route_norm10(destination)
     if len(key) != 10:
         if explicit_from:
             return JsonResponse({'error': CALL_ROUTE_INVALID_FROM}, status=400)
@@ -149,11 +217,41 @@ def register_call_destination(request):
         logger.exception('call_route register deps: %s', exc)
         return JsonResponse({'error': 'Server misconfigured'}, status=500)
 
+    mp_data = None
+    if qr_id:
+        try:
+            mp_snap = db.collection('multipurpose_qrs').document(qr_id).get()
+            loaded = mp_snap.to_dict() if mp_snap.exists else None
+        except Exception:
+            loaded = None
+        if (
+            loaded
+            and loaded.get('purpose') == 'multipurpose'
+            and loaded.get('isAssigned')
+        ):
+            mp_data = loaded
+    if not destination and mp_data:
+        destination = str(mp_data.get('contactNumber') or '').strip()
+    if not destination and qr_id and not mp_data:
+        destination = _vehicle_scan_destination(
+            db,
+            qr_id,
+            str(body.get('target') or 'owner').strip().lower(),
+        )
+    if not destination:
+        return JsonResponse(
+            {'error': 'from and destination required' if explicit_from else 'destination required'},
+            status=400,
+        )
+    dest_key = _call_route_norm10(destination)
+    if len(dest_key) != 10:
+        return JsonResponse({'error': 'Invalid destination'}, status=400)
+
     block = voice_register_maybe_block(request, qr_id, key)
     if block is not None:
         return block
 
-    if qr_id and is_notify_sheet_done(request, qr_id):
+    if qr_id and not mp_data and is_notify_sheet_done(request, qr_id):
         return JsonResponse(
             {
                 'status': 'error',
@@ -165,12 +263,55 @@ def register_call_destination(request):
             status=410,
         )
 
-    policy_err = validate_scanner_call_for_qr(db, qr_id, dest_key)
+    if mp_data:
+        stored = _call_route_norm10(mp_data.get('contactNumber'))
+        if not stored or stored != dest_key:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'error': 'This multipurpose QR has no matching contact number.',
+                    'message': 'This multipurpose QR has no matching contact number.',
+                },
+                status=400,
+            )
+        policy_err = None
+        try:
+            from admin_app.views import sync_multipurpose_voice_bridge
+            sync_multipurpose_voice_bridge(qr_id, mp_data)
+        except Exception:
+            logger.exception('call_route multipurpose voice bridge sync failed')
+    else:
+        policy_err = validate_scanner_call_for_qr(db, qr_id, dest_key)
     if policy_err:
         return JsonResponse(
             {'status': 'error', 'error': policy_err, 'message': policy_err},
             status=400,
         )
+
+    if mp_data:
+        mirrored = _mirror_multipurpose_register_to_live_gateway(request, dest_key, qr_id)
+        if mirrored is not None:
+            status_code, raw = mirrored
+            if status_code < 200 or status_code >= 300:
+                logger.warning(
+                    'call_route live gateway rejected multipurpose qr_id=%s status=%s body=%s',
+                    qr_id,
+                    status_code,
+                    raw[:300],
+                )
+                try:
+                    parsed = json.loads(raw or '{}')
+                except json.JSONDecodeError:
+                    parsed = {}
+                message = (
+                    parsed.get('message')
+                    or parsed.get('error')
+                    or 'Could not register the call.'
+                )
+                return JsonResponse(
+                    {'status': 'error', 'error': message, 'message': message},
+                    status=400 if status_code < 500 else 502,
+                )
 
     CallRouteIntent.objects.update_or_create(
         caller_key=key,
@@ -178,7 +319,8 @@ def register_call_destination(request):
     )
     logger.info('call_route register stored caller_key=%s destination=%s', key, destination)
     try:
-        send_scanner_voice_call_attempt_push(db, qr_id, dest_key, key)
+        if not mp_data:
+            send_scanner_voice_call_attempt_push(db, qr_id, dest_key, key)
     except Exception as exc:
         logger.warning('call_route register owner push alert failed: %s', exc)
     try:
@@ -215,7 +357,8 @@ def api_call_webhook(request):
     caller = str(body.get('from') or '').strip()
     if not caller:
         return JsonResponse({'error': 'Missing from'}, status=400)
-    if did != CALL_ROUTING_EXPECTED_DID:
+    if _call_route_norm10(did) != _call_route_norm10(CALL_ROUTING_EXPECTED_DID):
+        logger.warning('call_route webhook invalid did=%r expected=%s', did, CALL_ROUTING_EXPECTED_DID)
         return JsonResponse({'error': 'Invalid did'}, status=400)
 
     key = _call_route_norm10(caller)

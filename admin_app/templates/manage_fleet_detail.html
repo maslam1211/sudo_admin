@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ fleet.name }} - Fleet{% endblock %}
+{% block page_title %}{{ fleet.name|default:"Fleet" }}{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<p><a href="{% url 'manage_fleets' %}">&larr; All fleets</a></p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Subscription</h5>
+                <p class="mb-1"><strong>Status:</strong>
+                    {% if fleet.statusLabel == 'Active' %}
+                    <span class="badge bg-success">Active</span>
+                    {% elif fleet.statusLabel == 'Trialing' %}
+                    <span class="badge bg-info text-dark">Trialing</span>
+                    {% elif fleet.statusLabel == 'Expired' %}
+                    <span class="badge bg-warning text-dark">Expired</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ fleet.statusLabel }}</span>
+                    {% endif %}
+                </p>
+                <p class="mb-1"><strong>Plan:</strong> {{ fleet.planName }} ({{ fleet.billingCycle }}) · ₹{{ fleet.priceRupees|intcomma }}</p>
+                <p class="mb-1"><strong>Limits:</strong> {{ fleet.vehicleLimit }} vehicles · {{ fleet.driverLimit }} drivers</p>
+                <p class="mb-1"><strong>Owner:</strong> <code>{{ fleet.ownerId }}</code></p>
+                <p class="mb-1"><strong>Expires:</strong>
+                    {% if fleet.expiresAt %}{{ fleet.expiresAt|date:"d M Y H:i" }} UTC{% else %}—{% endif %}
+                </p>
+                <p class="mb-1"><strong>Razorpay payment:</strong> <code>{{ fleet.razorpayPaymentId|default:"—" }}</code></p>
+                <p class="mb-3"><strong>Razorpay order:</strong> <code>{{ fleet.razorpayOrderId|default:"—" }}</code></p>
+                <form method="post" class="row g-2 align-items-end">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="activate">
+                    <div class="col-md-4">
+                        <label class="form-label">Plan</label>
+                        <select name="planId" class="form-select">
+                            {% for pid, meta in plans.items %}
+                            <option value="{{ pid }}" {% if fleet.planId == pid %}selected{% endif %}>{{ meta.name }} — ₹{{ meta.monthly|intcomma }}/mo · ₹{{ meta.yearly|intcomma }}/yr · {{ meta.vehicleLimit }} vehicles</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cycle</label>
+                        <select name="billingCycle" class="form-select">
+                            <option value="monthly" {% if fleet.billingCycle == 'monthly' %}selected{% endif %}>Monthly (30 days)</option>
+                            <option value="yearly" {% if fleet.billingCycle == 'yearly' %}selected{% endif %}>Yearly (365 days)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" type="submit">Activate / extend</button>
+                    </div>
+                </form>
+                <form method="post" class="mt-2" onsubmit="return confirm('Cancel this fleet subscription? Drivers will lose shift routing in the app.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="cancel">
+                    <button class="btn btn-outline-danger btn-sm" type="submit">Cancel subscription</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Company</h5>
+                <p class="mb-1"><strong>GSTIN:</strong> {{ fleet.gstin|default:"—" }}</p>
+                <p class="mb-0"><strong>City:</strong> {{ fleet.city|default:"—" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="mb-3">Drivers ({{ drivers|length }})</h5>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for driver in drivers %}
+                    <tr>
+                        <td>{{ driver.name }}</td>
+                        <td>{{ driver.contactNumber }}</td>
+                        <td>{{ driver.note|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-muted">No drivers added yet. The owner adds drivers in the app.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="mb-3">Vehicles on shift ({{ assigned_vehicles|length }})</h5>
+        <p class="text-muted small">QR voice and SMS follow these assignment fields. This page does not change them.</p>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Registration</th>
+                        <th>Driver</th>
+                        <th>Phone</th>
+                        <th>Until</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in assigned_vehicles %}
+                    <tr>
+                        <td>{{ vehicle.registrationNumber|default:"—" }}</td>
+                        <td>{{ vehicle.assignedFamilyMemberName|default:"—" }}</td>
+                        <td>{{ vehicle.assignedFamilyMemberContact|default:"—" }}</td>
+                        <td>{% if vehicle.assignedUntil %}{{ vehicle.assignedUntil|date:"d M Y H:i" }}{% else %}Open{% endif %}</td>
+                        <td><a href="{% url 'manage_vehicle_detail' vehicle.id %}">Open</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-muted">No vehicle is currently assigned to these drivers.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

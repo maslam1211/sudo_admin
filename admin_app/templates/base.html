@@ -442,14 +442,14 @@
             </div>
 
             <div class="sidebar-menu-item">
-                <a href="{% url 'manage_qrs' %}" class="sidebar-menu-link {% if request.path == '/manage-qrs/' or request.path == '/admin/manage-qrs/' %}active{% endif %}">
+                <a href="{% url 'manage_qrs' %}" class="sidebar-menu-link {% if request.path == '/manage-qrs/' or request.path == '/admin/manage-qrs/' or '/manage-multipurpose-qrs/' in request.path %}active{% endif %}">
                     <i class="fas fa-qrcode"></i>
                     <span>QR Codes</span>
                 </a>
             </div>
 
             <div class="sidebar-menu-item">
-                <a href="{% url 'assign_qr' %}" class="sidebar-menu-link {% if request.path == '/assign-qr/' or request.path == '/admin/assign-qr/' %}active{% endif %}">
+                <a href="{% url 'assign_qr' %}" class="sidebar-menu-link {% if request.path == '/assign-qr/' or request.path == '/admin/assign-qr/' or '/assign-multipurpose-qr/' in request.path %}active{% endif %}">
                     <i class="fas fa-link"></i>
                     <span>Assign QR</span>
                 </a>
@@ -518,6 +518,12 @@
                 <a href="{% url 'manage_referrals' %}" class="sidebar-menu-link {% if '/referrals/' in request.path or '/referrers/' in request.path or '/admin/referrals/' in request.path or '/admin/referrers/' in request.path %}active{% endif %}">
                     <i class="fas fa-share-alt"></i>
                     <span>Referrals</span>
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
+                <a href="{% url 'manage_fleets' %}" class="sidebar-menu-link {% if '/fleets/' in request.path or '/admin/fleets/' in request.path %}active{% endif %}">
+                    <i class="fas fa-truck"></i>
+                    <span>SudoTag Fleet</span>
                 </a>
             </div>
 

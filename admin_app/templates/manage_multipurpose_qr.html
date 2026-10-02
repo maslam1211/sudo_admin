@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ row.id }} - Multipurpose QR{% endblock %}
+{% block page_title %}Multipurpose QR{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<p><a href="{% url 'manage_multipurpose_qrs' %}">&larr; All multipurpose QR</a></p>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                    <h5 class="mb-0">Usage</h5>
+                    {% if row.assigned %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+                <p class="mb-1"><strong>QR ID:</strong> <code>{{ row.id }}</code></p>
+                <p class="mb-1"><strong>Type:</strong> {{ row.qr_type }}</p>
+                <p class="mb-1"><strong>Category:</strong> {{ row.category_label|default:"—" }}</p>
+                <p class="mb-1"><strong>Title:</strong> {{ row.title|default:"—" }}</p>
+                <p class="mb-1"><strong>Message:</strong> {{ row.note|default:"—" }}</p>
+                <p class="mb-1"><strong>Owner:</strong> {{ row.owner|default:"—" }}</p>
+                <p class="mb-1"><strong>Mobile:</strong> {{ row.contact|default:"—" }}</p>
+                <p class="mb-1"><strong>Account:</strong>
+                    {% if user %}
+                    {{ user.name|default:"—" }} · {{ user.email|default:"—" }}
+                    <span class="text-muted">(<code>{{ user.id }}</code>)</span>
+                    {% elif row.user_id %}
+                    <code>{{ row.user_id }}</code>
+                    {% else %}
+                    —
+                    {% endif %}
+                </p>
+                <p class="mb-1"><strong>Created:</strong> {{ row.created|default:"—" }}</p>
+                <p class="mb-1"><strong>Activated:</strong> {{ row.assigned_at|default:"—" }}</p>
+                <p class="mb-0"><strong>Scan URL:</strong>
+                    {% if row.scan_url %}
+                    <a href="{{ row.scan_url }}" target="_blank" rel="noopener">{{ row.scan_url }}</a>
+                    {% else %}—{% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if row.assigned %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Update usage</h5>
+                <form method="post" id="mpUsageForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save">
+                    <div class="mb-3">
+                        <label class="form-label" for="mpCategory">Category</label>
+                        <select class="form-select" name="category" id="mpCategory">
+                            <option value="" {% if not values.category %}selected{% endif %}>Choose category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if values.category == category.id %}selected{% endif %}>{{ category.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% for category in categories %}
+                    <div class="mp-fields" data-category="{{ category.id }}" {% if values.category != category.id %}hidden{% endif %}>
+                        {% for field in category.fields %}
+                        <div class="mb-3">
+                            <label class="form-label" for="field-{{ category.id }}-{{ field.key }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+                            {% if field.kind == 'text' %}
+                            <textarea class="form-control" id="field-{{ category.id }}-{{ field.key }}" name="{{ field.key }}" rows="3" {% if values.category != category.id %}disabled{% endif %}></textarea>
+                            {% else %}
+                            <input class="form-control" id="field-{{ category.id }}-{{ field.key }}" name="{{ field.key }}" {% if values.category != category.id %}disabled{% endif %}>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button class="btn btn-primary" type="submit">Save usage</button>
+                </form>
+                <form method="post" class="mt-3" onsubmit="return confirm('Mark this QR inactive? The next scan will ask the finder to activate it again.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="deactivate">
+                    <button class="btn btn-outline-danger" type="submit">Mark inactive</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-2">Inactive</h5>
+                <p class="text-muted">This code has no active owner. Assign it to an account here, or leave it so the next scan opens activation.</p>
+                <a class="btn btn-primary me-2" href="{% url 'assign_qr' %}?qr_kind=multipurpose&qr_id={{ row.id }}">Assign this QR</a>
+                <form method="post" action="{% url 'delete_multipurpose_qr' row.id %}" onsubmit="return confirm('Delete this unused multipurpose QR?');">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-danger" type="submit">Delete QR</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="mb-3">Sticker</h5>
+                {% if qr_png %}
+                <img src="data:image/png;base64,{{ qr_png }}" alt="Multipurpose QR {{ row.id }}" class="img-fluid mb-3" style="max-width: 280px;">
+                <div>
+                    <a class="btn btn-outline-primary btn-sm" download="multipurpose-{{ row.id }}.png" href="data:image/png;base64,{{ qr_png }}">Download</a>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">QR image is unavailable.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ values|json_script:"mpValues" }}
+<script>
+(function () {
+    var values = JSON.parse(document.getElementById('mpValues').textContent);
+    document.querySelectorAll('.mp-fields input, .mp-fields textarea').forEach(function (input) {
+        if (values[input.name]) input.value = values[input.name];
+    });
+    var select = document.getElementById('mpCategory');
+    if (!select) return;
+    function show(categoryId) {
+        document.querySelectorAll('.mp-fields').forEach(function (group) {
+            var on = group.getAttribute('data-category') === categoryId;
+            group.hidden = !on;
+            group.querySelectorAll('input, textarea').forEach(function (input) {
+                input.disabled = !on;
+            });
+        });
+    }
+    show(select.value);
+    select.addEventListener('change', function () { show(select.value); });
+})();
+</script>
+{% endblock %}
