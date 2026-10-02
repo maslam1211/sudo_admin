@@ -73,13 +73,17 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-muted small mb-1">QR Codes</div>
-                        <div class="h3 mb-0 fw-bold">{{ total_qr }}</div>
+                        <label class="text-muted small mb-1" for="dashQrKind">QR Codes</label>
+                        <select class="form-select form-select-sm mb-2" id="dashQrKind">
+                            <option value="vehicle">Vehicle QR</option>
+                            <option value="multipurpose">Multipurpose QR</option>
+                        </select>
+                        <div class="h3 mb-0 fw-bold" id="dashQrTotal">{{ total_qr }}</div>
                         <div class="small text-muted mt-1">
-                            <span class="text-success">{{ active_qr }} Active</span> / 
-                            <span class="text-muted">{{ inactive_qr }} Inactive</span>
+                            <span class="text-success"><span id="dashQrActive">{{ active_qr }}</span> Active</span> /
+                            <span class="text-muted"><span id="dashQrInactive">{{ inactive_qr }}</span> Inactive</span>
                         </div>
-                        <a href="{% url 'manage_qrs' %}" class="text-decoration-none small text-warning mt-2 d-inline-block">
+                        <a href="{% url 'manage_qrs' %}" id="dashQrLink" class="text-decoration-none small text-warning mt-2 d-inline-block">
                             View Details <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
@@ -91,6 +95,43 @@
         </div>
     </div>
 </div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card primary h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small mb-1">Active fleets</div>
+                        <div class="h3 mb-0 fw-bold">{{ active_fleets|default:0 }}</div>
+                        <a href="{% url 'manage_fleets' %}?status=active" class="text-decoration-none small text-primary mt-2 d-inline-block">
+                            SudoTag Fleet <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ qr_dashboard|json_script:"dashQrStats" }}
+<script>
+(function () {
+    var stats = JSON.parse(document.getElementById('dashQrStats').textContent);
+    var kind = document.getElementById('dashQrKind');
+    function show(value) {
+        var row = stats[value] || stats.vehicle;
+        document.getElementById('dashQrTotal').textContent = row.total;
+        document.getElementById('dashQrActive').textContent = row.active;
+        document.getElementById('dashQrInactive').textContent = row.inactive;
+        document.getElementById('dashQrLink').href = row.href;
+    }
+    kind.addEventListener('change', function () { show(kind.value); });
+})();
+</script>
 
 <!-- Today's Stats -->
 <div class="row g-4 mb-4">

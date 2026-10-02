@@ -8893,17 +8893,6 @@
             return;
           }
           var destDigits = getActiveDestinationDigits();
-          if (!destDigits || destDigits.length !== 10) {
-            callPrepareBtn.disabled = false;
-            if (callRouteError) {
-              callRouteError.textContent =
-                contactMode === 'emergency'
-                  ? 'Emergency number unavailable.'
-                  : 'Owner number unavailable.';
-            }
-            abortSwipeCallPrep();
-            return;
-          }
 
           selectedMethod = 'call';
           if (!assertVoiceCooldownAllowsDial()) {
@@ -8920,8 +8909,10 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               destination: destDigits,
-              qr_id: notifyPageQrId
-            })
+              qr_id: notifyPageQrId,
+              target: contactMode === 'emergency' ? 'emergency' : 'owner'
+            }),
+            keepalive: true
           })
             .then(function (response) {
               return response.json().then(function (data) {

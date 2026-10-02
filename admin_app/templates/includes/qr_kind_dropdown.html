@@ -1,0 +1,10 @@
+<label class="form-label" for="qrListKind">QR type</label>
+<select class="form-select" id="qrListKind">
+    <option value="{% url 'manage_qrs' %}" {% if '/manage-multipurpose-qrs/' not in request.path %}selected{% endif %}>Vehicle QR</option>
+    <option value="{% url 'manage_multipurpose_qrs' %}" {% if '/manage-multipurpose-qrs/' in request.path %}selected{% endif %}>Multipurpose QR</option>
+</select>
+<script>
+document.getElementById('qrListKind').addEventListener('change', function () {
+    if (this.value) window.location.href = this.value;
+});
+</script>

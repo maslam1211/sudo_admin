@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}SudoTag Fleet - Admin{% endblock %}
+{% block page_title %}SudoTag Fleet{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <p class="text-muted mb-0">Paid fleet subscriptions. Activate or extend a plan here after an offline GST payment. Customers subscribe from the app under Me → SudoTag Fleet.</p>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-success">{{ active_count }} active</span>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'export_fleets_csv' %}?status={{ status }}&search={{ search }}">Export CSV</a>
+    </div>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+    <div class="col-md-5">
+        <input class="form-control" name="search" value="{{ search }}" placeholder="Search name, GSTIN, owner id">
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" name="status">
+            <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive / expired</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" type="submit">Filter</button>
+    </div>
+</form>
+
+<div class="bg-white rounded shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Fleet</th>
+                    <th>Owner</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Expires</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fleet in fleets %}
+                <tr>
+                    <td>
+                        <div class="fw-semibold">{{ fleet.name|default:"—" }}</div>
+                        <small class="text-muted">{{ fleet.gstin|default:"" }}</small>
+                    </td>
+                    <td class="font-monospace small">{{ fleet.ownerId|default:"—" }}</td>
+                    <td>
+                        {{ fleet.planName }} · {{ fleet.billingCycle|default:"monthly" }}
+                        <div class="small text-muted">₹{{ fleet.priceRupees|intcomma }}</div>
+                    </td>
+                    <td>
+                        {% if fleet.statusLabel == 'Active' %}
+                        <span class="badge bg-success">Active</span>
+                        {% elif fleet.statusLabel == 'Trialing' %}
+                        <span class="badge bg-info text-dark">Trialing</span>
+                        {% elif fleet.statusLabel == 'Expired' %}
+                        <span class="badge bg-warning text-dark">Expired</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ fleet.statusLabel }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if fleet.expiresAt %}{{ fleet.expiresAt|date:"d M Y" }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <a class="btn btn-sm btn-primary" href="{% url 'manage_fleet_detail' fleet.id %}">Open</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No fleets yet. Customers subscribe from the SudoTag app → Me → SudoTag Fleet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if paginator.num_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination">
+        {% if fleets.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ fleets.previous_page_number }}&status={{ status }}&search={{ search }}">Prev</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ fleets.number }} / {{ paginator.num_pages }}</span></li>
+        {% if fleets.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ fleets.next_page_number }}&status={{ status }}&search={{ search }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

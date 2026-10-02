@@ -144,11 +144,19 @@
         <div class="col-lg-8">
             <div class="assign-qr-card">
                 <div class="card-header-custom">
-                    <h5><i class="fas fa-link me-2"></i>Assign QR Code to User Vehicle</h5>
+                    <h5><i class="fas fa-link me-2"></i>Assign QR Code</h5>
                 </div>
                 <div class="card-body-custom">
-                    <form method="POST" id="assignQrForm">
+                    <form method="POST" id="assignQrForm" data-kind="{{ qr_kind|default:'vehicle' }}">
                         {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="qr_kind" class="form-label">QR type *</label>
+                            <select class="form-select" id="qr_kind" name="qr_kind">
+                                <option value="vehicle" {% if qr_kind != 'multipurpose' %}selected{% endif %}>Vehicle QR</option>
+                                <option value="multipurpose" {% if qr_kind == 'multipurpose' %}selected{% endif %}>Multipurpose QR</option>
+                            </select>
+                        </div>
                         
                         <!-- QR Code Selection with Search -->
                         <div class="mb-4">
@@ -182,7 +190,7 @@
                         <div class="mb-4">
                             <label for="user_id" class="form-label">Select User *</label>
                             <div class="input-group">
-                                <select class="form-select" id="user_id" name="user_id" required onchange="loadUserVehicles(this.value)">
+                                <select class="form-select" id="user_id" name="user_id" required onchange="onUserChosen(this.value)">
                                     <option value="">Choose a User...</option>
                                     {% for user in users_with_vehicles %}
                                     <option value="{{ user.id }}" data-full-id="{{ user.id }}">
@@ -204,12 +212,38 @@
                         </div>
 
                         <!-- Vehicle Selection -->
-                        <div class="mb-4">
+                        <div class="mb-4" id="vehicleFields">
                             <label for="vehicle_id" class="form-label">Select Vehicle *</label>
                             <select class="form-select" id="vehicle_id" name="vehicle_id" required disabled>
                                 <option value="">First select a user...</option>
                             </select>
                             <div class="form-text">Vehicles belonging to the selected user that don't have QR codes</div>
+                        </div>
+
+                        <div id="mpFields" hidden>
+                            <div class="mb-4">
+                                <label class="form-label" for="mpCategory">Category *</label>
+                                <select class="form-select" name="category" id="mpCategory">
+                                    <option value="">Choose category</option>
+                                    {% for category in mp_categories %}
+                                    <option value="{{ category.id }}">{{ category.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% for category in mp_categories %}
+                            <div class="mp-fields" data-category="{{ category.id }}" hidden>
+                                {% for field in category.fields %}
+                                <div class="mb-3">
+                                    <label class="form-label" for="field-{{ category.id }}-{{ field.key }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+                                    {% if field.kind == 'text' %}
+                                    <textarea class="form-control" id="field-{{ category.id }}-{{ field.key }}" name="{{ field.key }}" rows="3" disabled></textarea>
+                                    {% else %}
+                                    <input class="form-control" id="field-{{ category.id }}-{{ field.key }}" name="{{ field.key }}" disabled>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endfor %}
                         </div>
 
                         <!-- Preview Section -->
@@ -230,7 +264,7 @@
                                         <div class="mt-1" id="previewUser"></div>
                                     </div>
                                     <div class="col-md-4">
-                                        <strong class="text-primary d-block mb-2">Vehicle:</strong>
+                                        <strong class="text-primary d-block mb-2" id="previewThirdLabel">Vehicle:</strong>
                                         <div class="mt-1" id="previewVehicle"></div>
                                     </div>
                                 </div>
@@ -257,6 +291,7 @@
                 <div class="info-card-body">
                     <h6 class="mb-3" style="color: #0d6efd; font-weight: 600;">How it works:</h6>
                     <ul class="list-unstyled mb-4">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Vehicle QR or Multipurpose QR</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an unassigned QR code</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose a user with vehicles</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select the target vehicle</li>
@@ -290,6 +325,25 @@
         </div>
     </div>
 </div>
+
+<template id="mpQrOptions">
+    <option value="">Choose a QR Code...</option>
+    {% for qr in mp_qrs %}
+    <option value="{{ qr.id }}">{{ qr.id }}{% if qr.created %} ({{ qr.created }}){% endif %}</option>
+    {% empty %}
+    <option value="">No inactive multipurpose QR codes</option>
+    {% endfor %}
+</template>
+<template id="mpUserOptions">
+    <option value="">Choose a User...</option>
+    {% for user in mp_users %}
+    <option value="{{ user.id }}" data-name="{{ user.name }}" data-phone="{{ user.phone }}" data-email="{{ user.email }}" data-city="{{ user.city }}">
+        {{ user.name|default:"Unnamed" }} ({{ user.email|default:"no email" }})
+    </option>
+    {% empty %}
+    <option value="">No users found</option>
+    {% endfor %}
+</template>
 
 <!-- QR Search Modal -->
 <div class="modal fade" id="qrSearchModal" tabindex="-1">
@@ -379,6 +433,21 @@ document.getElementById('liveUserSearch').addEventListener('input', function(e) 
 });
 
 function searchQrCodes(searchTerm) {
+    if (currentKind() === 'multipurpose') {
+        const resultsContainer = document.getElementById('qrSearchResults');
+        const term = searchTerm.toLowerCase();
+        const holder = document.createElement('div');
+        holder.innerHTML = mpQrHtml;
+        let html = '';
+        holder.querySelectorAll('option').forEach(function (opt) {
+            if (!opt.value) return;
+            const label = (opt.textContent || '').toLowerCase();
+            if (!opt.value.toLowerCase().includes(term) && !label.includes(term)) return;
+            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectQrCode('${opt.value}')"><h6 class="mb-1">${opt.value}</h6></button>`;
+        });
+        resultsContainer.innerHTML = html || '<div class="text-center text-muted p-3">No QR codes found</div>';
+        return;
+    }
     fetch(`/admin/search-qr-codes/?q=${encodeURIComponent(searchTerm)}`)
         .then(response => response.json())
         .then(data => {
@@ -455,6 +524,68 @@ function searchUsers(searchTerm) {
         });
 }
 
+const vehicleQrHtml = document.getElementById('qr_id').innerHTML;
+const vehicleUserHtml = document.getElementById('user_id').innerHTML;
+const mpQrHtml = document.getElementById('mpQrOptions').innerHTML;
+const mpUserHtml = document.getElementById('mpUserOptions').innerHTML;
+
+function currentKind() {
+    return document.getElementById('qr_kind').value;
+}
+
+function showMpCategory(categoryId) {
+    document.querySelectorAll('.mp-fields').forEach(function (group) {
+        var on = currentKind() === 'multipurpose' && group.getAttribute('data-category') === categoryId;
+        group.hidden = !on;
+        group.querySelectorAll('input, textarea').forEach(function (input) {
+            input.disabled = !on;
+        });
+    });
+}
+
+function prefillFromUser() {
+    var userSelect = document.getElementById('user_id');
+    var option = userSelect.options[userSelect.selectedIndex];
+    if (!option) return;
+    var map = {
+        fullName: option.getAttribute('data-name') || '',
+        contactNumber: option.getAttribute('data-phone') || '',
+        emailAddress: option.getAttribute('data-email') || '',
+        city: option.getAttribute('data-city') || ''
+    };
+    document.querySelectorAll('.mp-fields input').forEach(function (input) {
+        if (map[input.name]) input.value = map[input.name];
+    });
+}
+
+function applyKind(kind) {
+    var mp = kind === 'multipurpose';
+    var qrSelect = document.getElementById('qr_id');
+    var userSelect = document.getElementById('user_id');
+    var vehicleSelect = document.getElementById('vehicle_id');
+    qrSelect.innerHTML = mp ? mpQrHtml : vehicleQrHtml;
+    userSelect.innerHTML = mp ? mpUserHtml : vehicleUserHtml;
+    document.getElementById('vehicleFields').hidden = mp;
+    document.getElementById('mpFields').hidden = !mp;
+    vehicleSelect.required = !mp;
+    vehicleSelect.disabled = true;
+    if (!mp) {
+        vehicleSelect.innerHTML = '<option value="">First select a user...</option>';
+    }
+    document.getElementById('previewThirdLabel').textContent = mp ? 'Category:' : 'Vehicle:';
+    showMpCategory(document.getElementById('mpCategory').value);
+    updatePreview();
+}
+
+function onUserChosen(userId) {
+    if (currentKind() === 'multipurpose') {
+        prefillFromUser();
+        updatePreview();
+        return;
+    }
+    loadUserVehicles(userId);
+}
+
 function selectQrCode(qrId) {
     document.getElementById('qr_id').value = qrId;
     const modal = bootstrap.Modal.getInstance(document.getElementById('qrSearchModal'));
@@ -463,10 +594,18 @@ function selectQrCode(qrId) {
 }
 
 function selectUser(userId, userName, userEmail) {
-    document.getElementById('user_id').value = userId;
+    const userSelect = document.getElementById('user_id');
+    const existing = Array.from(userSelect.options).some(function (opt) { return opt.value === userId; });
+    if (!existing) {
+        const option = new Option((userName || 'User') + ' (' + (userEmail || '') + ')', userId);
+        option.setAttribute('data-name', userName || '');
+        option.setAttribute('data-email', userEmail || '');
+        userSelect.add(option);
+    }
+    userSelect.value = userId;
     const modal = bootstrap.Modal.getInstance(document.getElementById('userSearchModal'));
     modal.hide();
-    loadUserVehicles(userId);
+    onUserChosen(userId);
 }
 
 // Existing functions from previous implementation
@@ -530,6 +669,22 @@ function updatePreview() {
     const qrSelected = qrSelect.value;
     const userSelected = userSelect.value;
     const vehicleSelected = vehicleSelect.value;
+
+    if (currentKind() === 'multipurpose') {
+        const category = document.getElementById('mpCategory');
+        const categorySelected = category && category.value;
+        if (qrSelected && userSelected && categorySelected) {
+            document.getElementById('previewQr').querySelector('code').textContent = qrSelected;
+            document.getElementById('previewUser').textContent = userSelect.options[userSelect.selectedIndex].text;
+            document.getElementById('previewVehicle').textContent = category.options[category.selectedIndex].text;
+            previewSection.style.display = 'block';
+            assignBtn.disabled = false;
+        } else {
+            previewSection.style.display = 'none';
+            assignBtn.disabled = true;
+        }
+        return;
+    }
     
     if (qrSelected && userSelected && vehicleSelected && !vehicleSelect.disabled) {
         // Update preview with full IDs
@@ -551,6 +706,8 @@ function updatePreview() {
 // Enhanced reset form function
 document.getElementById('resetBtn').addEventListener('click', function() {
     // Clear all selections
+    document.getElementById('qr_kind').value = 'vehicle';
+    applyKind('vehicle');
     document.getElementById('qr_id').value = '';
     document.getElementById('user_id').value = '';
     document.getElementById('vehicle_id').innerHTML = '<option value="">First select a user...</option>';
@@ -572,17 +729,32 @@ document.getElementById('resetBtn').addEventListener('click', function() {
 document.getElementById('qr_id').addEventListener('change', updatePreview);
 document.getElementById('user_id').addEventListener('change', updatePreview);
 document.getElementById('vehicle_id').addEventListener('change', updatePreview);
+document.getElementById('qr_kind').addEventListener('change', function () {
+    applyKind(this.value);
+});
+document.getElementById('mpCategory').addEventListener('change', function () {
+    showMpCategory(this.value);
+    updatePreview();
+});
 
-// Handle pre-selected QR code from URL parameter
+// Handle pre-selected type and QR code from the URL
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
+    const kind = document.getElementById('assignQrForm').getAttribute('data-kind');
+    if (kind === 'multipurpose') {
+        document.getElementById('qr_kind').value = 'multipurpose';
+        applyKind('multipurpose');
+    }
     const qrId = urlParams.get('qr_id');
-    if (qrId) {
+    if (qrId && currentKind() === 'multipurpose') {
         const qrSelect = document.getElementById('qr_id');
         qrSelect.value = qrId;
-        // Trigger change event to update preview
         qrSelect.dispatchEvent(new Event('change'));
-        // Scroll to form
+        qrSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (qrId) {
+        const qrSelect = document.getElementById('qr_id');
+        qrSelect.value = qrId;
+        qrSelect.dispatchEvent(new Event('change'));
         qrSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 });

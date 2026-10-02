@@ -1,0 +1,15 @@
+<script>
+  (function () {
+    var id = "{{ qr_id|default:'' }}";
+    if (!id) return;
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("web") === "1") return;
+    var ua = navigator.userAgent || "";
+    var fallback = window.location.href + (window.location.search ? "&" : "?") + "web=1";
+    if (/Android/i.test(ua)) {
+      window.location.href = "intent://mp/" + encodeURIComponent(id)
+        + "#Intent;scheme=sudotag;package=com.sudotag.sudo;S.browser_fallback_url="
+        + encodeURIComponent(fallback) + ";end";
+    }
+  })();
+</script>

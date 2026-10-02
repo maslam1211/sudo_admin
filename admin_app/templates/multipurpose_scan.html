@@ -1,0 +1,225 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% if missing %}QR not found{% else %}{{ title }}{% endif %} | SudoTag</title>
+  {% include 'includes/qr_flow_head.html' %}
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="{% sudo_mobile_flow_css_url %}" rel="stylesheet">
+  <style>
+    body.mp-flow { background: #111; }
+    .mp-shell {
+      width: min(440px, 100%);
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      background: #1c1c1c;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+    .mp-shell .form-label { display: block; }
+    .mp-shell .form-control,
+    .mp-shell textarea.form-control {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .mp-hero-name {
+      margin: 0;
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .mp-hero-note {
+      margin: 8px 0 0;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .mp-channels { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+    .mp-tile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      min-height: 72px;
+      padding: 12px 14px;
+      text-align: left;
+      text-decoration: none;
+      color: #fff;
+      background: #1c1c1c;
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .mp-tile:disabled, .mp-tile[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+    .mp-tile-icon {
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      font-size: 1.15rem;
+    }
+    .mp-tile-icon--call { background: rgba(33, 150, 243, 0.15); color: #64b5f6; }
+    .mp-tile-icon--sms { background: rgba(229, 129, 71, 0.15); color: #e58147; }
+    .mp-tile-icon--push { background: rgba(76, 175, 80, 0.15); color: #81c784; }
+    .mp-tile-label { display: block; font-weight: 600; }
+    .mp-tile-desc { display: block; margin-top: 2px; font-size: 0.76rem; color: rgba(255,255,255,0.5); }
+    .mp-message {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      padding: 14px;
+    }
+    .mp-status { margin: 0 16px 16px; min-height: 1.2em; font-size: 0.86rem; color: #f3c7a8; }
+  </style>
+</head>
+<body class="mp-flow sudo-mobile-flow">
+  {% if not missing %}{% include 'includes/multipurpose_open_app.html' %}{% endif %}
+  <div class="mp-shell">
+    <header class="app-header sudo-app-header">
+      <a href="/" class="brand-logo" aria-label="SudoTag home">
+        {% include 'includes/brand_logo_img.html' %}
+      </a>
+      <h1 class="header-title">{% if missing %}QR not found{% else %}Multipurpose QR{% endif %}</h1>
+    </header>
+    <main class="app-main sudo-app-main">
+      {% if missing %}
+      <section class="content-card">
+        <div class="card-header-block">
+          <p class="card-title">This code isn’t available</p>
+          <p class="card-subtitle">It isn’t a vehicle sticker, and it isn’t registered as a multipurpose QR.</p>
+        </div>
+      </section>
+      {% else %}
+      <section class="vehicle-info">
+        <p class="vehicle-model">Scan to connect</p>
+        <h2 class="mp-hero-name">{{ title }}</h2>
+        {% if note %}<p class="mp-hero-note">{{ note }}</p>{% endif %}
+      </section>
+      <section class="content-card">
+        <div class="card-header-block">
+          <p class="card-title">Contact</p>
+          <p class="card-subtitle">Choose how you want to reach them.</p>
+        </div>
+        {% csrf_token %}
+        <div class="form-section" style="margin: 16px;">
+          <label class="form-label" for="mpMessage">Your message</label>
+          <textarea id="mpMessage" class="form-control mp-message" maxlength="200" placeholder="Write a short message"></textarea>
+        </div>
+        <div class="mp-channels">
+          <a id="mpCall" class="mp-tile" href="tel:+91{{ call_did }}" {% if not can_contact %}aria-disabled="true"{% endif %}>
+            <span class="mp-tile-icon mp-tile-icon--call"><i class="bi bi-telephone-fill"></i></span>
+            <span>
+              <span class="mp-tile-label">Voice call</span>
+              <span class="mp-tile-desc">Call through SudoTag</span>
+            </span>
+          </a>
+          <button type="button" id="mpSms" class="mp-tile" {% if not can_contact %}disabled{% endif %}>
+            <span class="mp-tile-icon mp-tile-icon--sms"><i class="bi bi-chat-dots-fill"></i></span>
+            <span>
+              <span class="mp-tile-label">Message</span>
+              <span class="mp-tile-desc">Send the text above by SMS</span>
+            </span>
+          </button>
+          <button type="button" id="mpPush" class="mp-tile" {% if not can_contact %}disabled{% endif %}>
+            <span class="mp-tile-icon mp-tile-icon--push"><i class="bi bi-bell-fill"></i></span>
+            <span>
+              <span class="mp-tile-label">Push notification</span>
+              <span class="mp-tile-desc">Alert the SudoTag app</span>
+            </span>
+          </button>
+        </div>
+        <p id="mpStatus" class="mp-status" role="status"></p>
+      </section>
+      {% endif %}
+    </main>
+  </div>
+  {% if not missing %}
+  <script>
+    (function () {
+      var callLink = document.getElementById('mpCall');
+      var smsBtn = document.getElementById('mpSms');
+      var pushBtn = document.getElementById('mpPush');
+      var messageBox = document.getElementById('mpMessage');
+      var statusEl = document.getElementById('mpStatus');
+      var canContact = {{ can_contact|yesno:"true,false" }};
+      var csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+      var csrf = csrfInput ? csrfInput.value : '';
+
+      function setStatus(text) {
+        if (statusEl) statusEl.textContent = text;
+      }
+
+      function messageText() {
+        return (messageBox && messageBox.value || '').trim();
+      }
+
+      var destDigits = "{{ call_destination|default:''|escapejs }}";
+      var notifyPageQrId = "{{ qr_id|default:''|escapejs }}";
+      var callRegisterUrl = "{{ register_url|escapejs }}";
+      if (callLink && canContact) {
+        callLink.addEventListener('click', function () {
+          setStatus('Connecting the call…');
+          fetch(callRegisterUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              destination: destDigits,
+              qr_id: notifyPageQrId,
+              target: 'owner'
+            }),
+            keepalive: true
+          }).catch(function () {});
+        });
+      } else if (callLink) {
+        callLink.addEventListener('click', function (event) {
+          event.preventDefault();
+        });
+      }
+
+      function send(method, button) {
+        if (!canContact) return;
+        var text = messageText();
+        if (!text) {
+          setStatus('Write a message first.');
+          return;
+        }
+        button.disabled = true;
+        setStatus(method === 'sms' ? 'Sending message…' : 'Sending push notification…');
+        fetch('{{ contact_url }}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf
+          },
+          body: JSON.stringify({ method: method, message: text })
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        }).then(function (result) {
+          var data = result.data || {};
+          setStatus(data.message || (result.ok ? 'Sent.' : 'Could not send.'));
+        }).catch(function () {
+          setStatus('Could not send. Check your connection and try again.');
+        }).finally(function () {
+          button.disabled = false;
+        });
+      }
+
+      if (smsBtn) smsBtn.addEventListener('click', function () { send('sms', smsBtn); });
+      if (pushBtn) pushBtn.addEventListener('click', function () { send('push', pushBtn); });
+    })();
+  </script>
+  {% endif %}
+</body>
+</html>
