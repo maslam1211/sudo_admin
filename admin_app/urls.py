@@ -9,6 +9,7 @@ from . import fleet_views
 from .multipurpose_admin import (
     assign_multipurpose_qr,
     delete_multipurpose_qr,
+    lookup_registered_user,
     manage_multipurpose_qr,
     manage_multipurpose_qrs,
 )
@@ -110,6 +111,7 @@ urlpatterns = [
     path('regenerate-qr/<str:qr_id>/', views.regenerate_qr, name='regenerate_qr'),
     # Add these new routes for QR assignment
     path('assign-qr/', views.assign_qr, name='assign_qr'),
+    path('lookup-registered-user/', lookup_registered_user, name='lookup_registered_user'),
     path('assign-multipurpose-qr/', assign_multipurpose_qr, name='assign_multipurpose_qr'),
     path('get-user-vehicles/<str:user_id>/', views.get_user_vehicles, name='get_user_vehicles'),
     path('search-qr-codes/', views.search_qr_codes, name='search_qr_codes'),

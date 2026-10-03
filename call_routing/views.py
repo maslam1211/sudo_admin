@@ -3,8 +3,6 @@
 import json
 import logging
 import secrets
-import urllib.error
-import urllib.request
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -143,40 +141,6 @@ def _vehicle_scan_destination(db, qr_id, target):
     return effective_contact_number(vehicle_data, user_data) or ''
 
 
-def _mirror_multipurpose_register_to_live_gateway(request, destination, qr_id):
-    """
-    The phone line asks sudotag.com for the destination. A register stored only
-    on this machine never reaches that lookup. Forward the same payload when
-    this request is not already on the live host.
-    Returns (status, body) or None when no forward is needed.
-    """
-    host = (request.get_host() or '').split(':')[0].lower()
-    if host in ('sudotag.com', 'www.sudotag.com'):
-        return None
-    live = str(getattr(settings, 'BASE_DOMAIN', 'https://sudotag.com') or '').rstrip('/')
-    if not live:
-        return None
-    payload = json.dumps({
-        'destination': destination,
-        'qr_id': qr_id,
-        'target': 'owner',
-    }).encode('utf-8')
-    req = urllib.request.Request(
-        f'{live}/admin/api/call/register',
-        data=payload,
-        headers={'Content-Type': 'application/json'},
-        method='POST',
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            return resp.status, resp.read().decode('utf-8', errors='replace')
-    except urllib.error.HTTPError as exc:
-        return exc.code, exc.read().decode('utf-8', errors='replace')
-    except Exception as exc:
-        logger.warning('call_route live gateway mirror failed: %s', exc)
-        return 502, json.dumps({'error': 'Call gateway unavailable'})
-
-
 @csrf_exempt
 @require_POST
 def register_call_destination(request):
@@ -274,12 +238,16 @@ def register_call_destination(request):
                 },
                 status=400,
             )
+        if mp_data.get('contactPaused'):
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'error': 'This tag is paused.',
+                    'message': 'This tag is paused.',
+                },
+                status=400,
+            )
         policy_err = None
-        try:
-            from admin_app.views import sync_multipurpose_voice_bridge
-            sync_multipurpose_voice_bridge(qr_id, mp_data)
-        except Exception:
-            logger.exception('call_route multipurpose voice bridge sync failed')
     else:
         policy_err = validate_scanner_call_for_qr(db, qr_id, dest_key)
     if policy_err:
@@ -287,31 +255,6 @@ def register_call_destination(request):
             {'status': 'error', 'error': policy_err, 'message': policy_err},
             status=400,
         )
-
-    if mp_data:
-        mirrored = _mirror_multipurpose_register_to_live_gateway(request, dest_key, qr_id)
-        if mirrored is not None:
-            status_code, raw = mirrored
-            if status_code < 200 or status_code >= 300:
-                logger.warning(
-                    'call_route live gateway rejected multipurpose qr_id=%s status=%s body=%s',
-                    qr_id,
-                    status_code,
-                    raw[:300],
-                )
-                try:
-                    parsed = json.loads(raw or '{}')
-                except json.JSONDecodeError:
-                    parsed = {}
-                message = (
-                    parsed.get('message')
-                    or parsed.get('error')
-                    or 'Could not register the call.'
-                )
-                return JsonResponse(
-                    {'status': 'error', 'error': message, 'message': message},
-                    status=400 if status_code < 500 else 502,
-                )
 
     CallRouteIntent.objects.update_or_create(
         caller_key=key,

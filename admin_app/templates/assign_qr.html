@@ -187,7 +187,7 @@
                         </div>
 
                         <!-- User Selection with Search -->
-                        <div class="mb-4">
+                        <div class="mb-4" id="userFields">
                             <label for="user_id" class="form-label">Select User *</label>
                             <div class="input-group">
                                 <select class="form-select" id="user_id" name="user_id" required onchange="onUserChosen(this.value)">
@@ -221,6 +221,11 @@
                         </div>
 
                         <div id="mpFields" hidden>
+                            <div class="mb-4">
+                                <label class="form-label" for="owner_email">Registered email *</label>
+                                <input class="form-control" type="email" id="owner_email" name="owner_email" placeholder="Email registered in the SudoTag app" autocomplete="off">
+                                <div class="form-text" id="mpEmailStatus"></div>
+                            </div>
                             <div class="mb-4">
                                 <label class="form-label" for="mpCategory">Category *</label>
                                 <select class="form-select" name="category" id="mpCategory">
@@ -290,12 +295,19 @@
                 </div>
                 <div class="info-card-body">
                     <h6 class="mb-3" style="color: #0d6efd; font-weight: 600;">How it works:</h6>
-                    <ul class="list-unstyled mb-4">
+                    <ul class="list-unstyled mb-4" id="assignHowVehicle">
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Vehicle QR or Multipurpose QR</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an unassigned QR code</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose a user with vehicles</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select the target vehicle</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Complete the assignment</li>
+                    </ul>
+                    <ul class="list-unstyled mb-4" id="assignHowMultipurpose" hidden>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Multipurpose QR</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an inactive multipurpose QR</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Enter the email registered in the SudoTag app</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>The QR is linked to that existing account</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Vehicle QR data is left unchanged</li>
                     </ul>
                     
                     <hr class="my-4">
@@ -528,9 +540,81 @@ const vehicleQrHtml = document.getElementById('qr_id').innerHTML;
 const vehicleUserHtml = document.getElementById('user_id').innerHTML;
 const mpQrHtml = document.getElementById('mpQrOptions').innerHTML;
 const mpUserHtml = document.getElementById('mpUserOptions').innerHTML;
+var mpMatchedUser = null;
+var mpEmailTimer = null;
 
 function currentKind() {
     return document.getElementById('qr_kind').value;
+}
+
+function setMpEmailStatus(text, ok) {
+    var status = document.getElementById('mpEmailStatus');
+    status.textContent = text || '';
+    status.style.color = ok ? '#198754' : (text ? '#dc3545' : '');
+}
+
+function lockRegisteredEmail() {
+    var email = mpMatchedUser ? mpMatchedUser.email : '';
+    document.querySelectorAll('.mp-fields input[name="emailAddress"]').forEach(function (input) {
+        if (email) {
+            input.value = email;
+            input.readOnly = true;
+        } else {
+            input.readOnly = false;
+        }
+    });
+}
+
+function scheduleEmailLookup() {
+    var email = (document.getElementById('owner_email').value || '').trim();
+    mpMatchedUser = null;
+    lockRegisteredEmail();
+    updatePreview();
+    clearTimeout(mpEmailTimer);
+    if (!email) {
+        setMpEmailStatus('', false);
+        return;
+    }
+    setMpEmailStatus('Checking registered account…', true);
+    mpEmailTimer = setTimeout(function () {
+        fetch('/admin/lookup-registered-user/?email=' + encodeURIComponent(email))
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if ((document.getElementById('owner_email').value || '').trim() !== email) return;
+                if (!data.ok) {
+                    mpMatchedUser = null;
+                    setMpEmailStatus(data.message || 'This email is not registered with SudoTag.', false);
+                } else {
+                    mpMatchedUser = data.user;
+                    document.getElementById('owner_email').value = data.user.email || email;
+                    lockRegisteredEmail();
+                    var label = data.user.name ? data.user.name + ' (' + data.user.email + ')' : data.user.email;
+                    setMpEmailStatus('Registered account: ' + label, true);
+                    prefillFromMatchedUser();
+                }
+                updatePreview();
+            })
+            .catch(function () {
+                mpMatchedUser = null;
+                setMpEmailStatus('Could not check this email. Try again.', false);
+                updatePreview();
+            });
+    }, 400);
+}
+
+function prefillFromMatchedUser() {
+    if (!mpMatchedUser) return;
+    var map = {
+        fullName: mpMatchedUser.name || '',
+        contactNumber: mpMatchedUser.phone || '',
+        emailAddress: mpMatchedUser.email || '',
+        city: mpMatchedUser.city || ''
+    };
+    document.querySelectorAll('.mp-fields input').forEach(function (input) {
+        if (input.name === 'emailAddress') return;
+        if (map[input.name] && !input.value) input.value = map[input.name];
+    });
+    lockRegisteredEmail();
 }
 
 function showMpCategory(categoryId) {
@@ -541,6 +625,7 @@ function showMpCategory(categoryId) {
             input.disabled = !on;
         });
     });
+    lockRegisteredEmail();
 }
 
 function prefillFromUser() {
@@ -565,12 +650,20 @@ function applyKind(kind) {
     var vehicleSelect = document.getElementById('vehicle_id');
     qrSelect.innerHTML = mp ? mpQrHtml : vehicleQrHtml;
     userSelect.innerHTML = mp ? mpUserHtml : vehicleUserHtml;
+    document.getElementById('userFields').hidden = mp;
+    userSelect.required = !mp;
+    userSelect.disabled = mp;
     document.getElementById('vehicleFields').hidden = mp;
     document.getElementById('mpFields').hidden = !mp;
+    document.getElementById('owner_email').required = mp;
+    document.getElementById('assignHowVehicle').hidden = mp;
+    document.getElementById('assignHowMultipurpose').hidden = !mp;
     vehicleSelect.required = !mp;
     vehicleSelect.disabled = true;
     if (!mp) {
         vehicleSelect.innerHTML = '<option value="">First select a user...</option>';
+        mpMatchedUser = null;
+        setMpEmailStatus('', false);
     }
     document.getElementById('previewThirdLabel').textContent = mp ? 'Category:' : 'Vehicle:';
     showMpCategory(document.getElementById('mpCategory').value);
@@ -673,9 +766,11 @@ function updatePreview() {
     if (currentKind() === 'multipurpose') {
         const category = document.getElementById('mpCategory');
         const categorySelected = category && category.value;
-        if (qrSelected && userSelected && categorySelected) {
+        if (qrSelected && mpMatchedUser && categorySelected) {
             document.getElementById('previewQr').querySelector('code').textContent = qrSelected;
-            document.getElementById('previewUser').textContent = userSelect.options[userSelect.selectedIndex].text;
+            document.getElementById('previewUser').textContent = mpMatchedUser.name
+                ? mpMatchedUser.name + ' (' + mpMatchedUser.email + ')'
+                : mpMatchedUser.email;
             document.getElementById('previewVehicle').textContent = category.options[category.selectedIndex].text;
             previewSection.style.display = 'block';
             assignBtn.disabled = false;
@@ -734,7 +829,17 @@ document.getElementById('qr_kind').addEventListener('change', function () {
 });
 document.getElementById('mpCategory').addEventListener('change', function () {
     showMpCategory(this.value);
+    prefillFromMatchedUser();
     updatePreview();
+});
+document.getElementById('owner_email').addEventListener('input', scheduleEmailLookup);
+document.getElementById('assignQrForm').addEventListener('submit', function (event) {
+    if (currentKind() !== 'multipurpose') return;
+    lockRegisteredEmail();
+    if (!mpMatchedUser) {
+        event.preventDefault();
+        setMpEmailStatus('This email is not registered with SudoTag.', false);
+    }
 });
 
 // Handle pre-selected type and QR code from the URL

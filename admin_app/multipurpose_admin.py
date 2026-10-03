@@ -6,10 +6,16 @@ from io import BytesIO
 import qrcode
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.core.validators import validate_email
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
+from google.cloud.firestore_v1 import FieldFilter
+
+NOT_REGISTERED_EMAIL_MESSAGE = 'This email is not registered with SudoTag.'
 
 
 def _views():
@@ -59,6 +65,19 @@ def _load_snaps():
         return []
 
 
+def _primary_photo(data):
+    raw = data.get('photoUrls') or []
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        return ''
+    for item in raw:
+        url = str(item or '').strip()
+        if url.startswith('http://') or url.startswith('https://'):
+            return url
+    return ''
+
+
 def _row_from_snap(snap):
     data = snap.to_dict() or {}
     if data.get('purpose') not in (None, 'multipurpose'):
@@ -80,6 +99,10 @@ def _row_from_snap(snap):
         'city': str(details.get('city') or ''),
         'email': str(details.get('emailAddress') or ''),
         'scan_url': str(data.get('scanUrl') or ''),
+        'scan_count': int(data.get('scanCount') or 0),
+        'last_scanned': _stamp_label(data.get('lastScannedAt')),
+        'paused': bool(data.get('contactPaused')),
+        'photo_url': _primary_photo(data),
         'created': _stamp_label(created),
         'created_sort': _stamp_sort(created),
         'assigned_at': _stamp_label(data.get('assignedAt')),
@@ -94,6 +117,42 @@ def _category_by_id(category_id):
         if category['id'] == category_id:
             return category
     return None
+
+
+def find_user_by_registered_email(email):
+    """Return (user_id, user_data) for an existing SudoTag account, or (None, None)."""
+    views = _views()
+    raw = str(email or '').strip()
+    if not raw or '@' not in raw:
+        return None, None
+    candidates = []
+    for value in (raw, raw.lower()):
+        if value not in candidates:
+            candidates.append(value)
+    for value in candidates:
+        try:
+            docs = list(
+                views.db.collection('users')
+                .where(filter=FieldFilter('emailAddress', '==', value))
+                .limit(1)
+                .stream()
+            )
+        except Exception:
+            docs = []
+        if docs:
+            return docs[0].id, docs[0].to_dict() or {}
+    try:
+        from firebase_admin import auth
+        record = auth.get_user_by_email(raw)
+    except Exception:
+        return None, None
+    try:
+        snap = views.db.collection('users').document(record.uid).get()
+    except Exception:
+        return None, None
+    if not snap.exists:
+        return None, None
+    return snap.id, snap.to_dict() or {}
 
 
 def _user_summary(user_id):
@@ -239,15 +298,22 @@ def manage_multipurpose_qr(request, qr_id):
 
     if request.method == 'POST':
         action = (request.POST.get('action') or '').strip()
+        if action == 'pause':
+            if not row['assigned']:
+                messages.info(request, 'Activate this QR before pausing contact.')
+            else:
+                snap.reference.update({'contactPaused': True})
+                messages.success(request, 'Contact is paused. Scans still open this tag, without call, message, or push.')
+            return redirect('manage_multipurpose_qr', qr_id=qr_id)
+        if action == 'resume':
+            snap.reference.update({'contactPaused': False})
+            messages.success(request, 'Contact is available again.')
+            return redirect('manage_multipurpose_qr', qr_id=qr_id)
         if action == 'deactivate':
             if not row['assigned']:
                 messages.info(request, 'This QR is already inactive.')
             else:
                 snap.reference.update({'isAssigned': False})
-                try:
-                    views.clear_multipurpose_voice_bridge(qr_id)
-                except Exception:
-                    pass
                 messages.success(request, 'Multipurpose QR marked inactive. Scans will ask for activation again.')
             return redirect('manage_multipurpose_qr', qr_id=qr_id)
         if action == 'save':
@@ -333,10 +399,6 @@ def _save_usage(request, snap, row):
         )
 
     snap.reference.update(update)
-    try:
-        views.sync_multipurpose_voice_bridge(row['id'], {**(snap.to_dict() or {}), **update})
-    except Exception:
-        pass
     messages.success(request, 'Multipurpose QR usage updated.')
     return redirect('manage_multipurpose_qr', qr_id=row['id'])
 
@@ -355,15 +417,29 @@ def inactive_multipurpose_rows():
 def assign_multipurpose_from_assign_page(request):
     views = _views()
     selected_qr = (request.POST.get('qr_id') or '').strip()
-    selected_user = (request.POST.get('user_id') or '').strip()
+    owner_email = (request.POST.get('owner_email') or request.POST.get('emailAddress') or '').strip()
     update, errors, _posted = _usage_from_post(request)
     back = reverse('assign_qr') + '?qr_kind=multipurpose'
     if selected_qr:
         back += '&qr_id=' + selected_qr
     if not selected_qr:
         errors.append('Choose a multipurpose QR.')
-    if not selected_user:
-        errors.append('Choose a user.')
+    user_id = None
+    user_data = None
+    registered_email = ''
+    if owner_email:
+        try:
+            validate_email(owner_email)
+        except ValidationError:
+            errors.append('Enter a valid email address.')
+        else:
+            user_id, user_data = find_user_by_registered_email(owner_email)
+            if not user_id:
+                errors.append(NOT_REGISTERED_EMAIL_MESSAGE)
+            else:
+                registered_email = str((user_data or {}).get('emailAddress') or owner_email).strip()
+    elif update is not None:
+        errors.append(NOT_REGISTERED_EMAIL_MESSAGE)
     snap = None
     if selected_qr:
         try:
@@ -378,24 +454,49 @@ def assign_multipurpose_from_assign_page(request):
                 errors.append('That code is not a multipurpose QR.')
             elif data.get('isAssigned'):
                 errors.append('This multipurpose QR is already active.')
-    if selected_user:
-        try:
-            user_snap = views.db.collection('users').document(selected_user).get()
-        except Exception:
-            user_snap = None
-        if user_snap is None or not user_snap.exists:
-            errors.append('User not found.')
-    if errors or update is None:
+    if errors or update is None or not user_id:
         for error in errors:
             messages.error(request, error)
         return redirect(back)
     from firebase_admin import firestore
-    update['userID'] = selected_user
+    details = update.get('details') if isinstance(update.get('details'), dict) else {}
+    details['emailAddress'] = registered_email
+    update['details'] = details
+    update['userID'] = user_id
+    update['ownerEmail'] = registered_email
     update['assignedAt'] = firestore.SERVER_TIMESTAMP
     update['assignedBy'] = 'admin'
     snap.reference.update(update)
-    messages.success(request, f'Multipurpose QR {selected_qr} assigned.')
+    messages.success(
+        request,
+        f'Multipurpose QR {selected_qr} assigned to {registered_email}.',
+    )
     return redirect('manage_multipurpose_qr', qr_id=selected_qr)
+
+
+@require_http_methods(['GET'])
+def lookup_registered_user(request):
+    gate = _require_admin(request)
+    if gate:
+        return JsonResponse({'ok': False, 'message': 'Admin access required.'}, status=401)
+    email = (request.GET.get('email') or '').strip()
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({'ok': False, 'message': 'Enter a valid email address.'}, status=400)
+    user_id, data = find_user_by_registered_email(email)
+    if not user_id:
+        return JsonResponse({'ok': False, 'message': NOT_REGISTERED_EMAIL_MESSAGE})
+    return JsonResponse({
+        'ok': True,
+        'user': {
+            'id': user_id,
+            'name': str((data or {}).get('fullName') or ''),
+            'email': str((data or {}).get('emailAddress') or email).strip(),
+            'phone': str((data or {}).get('contactNumber') or ''),
+            'city': str((data or {}).get('city') or ''),
+        },
+    })
 
 
 def assign_multipurpose_qr(request):
@@ -427,9 +528,5 @@ def delete_multipurpose_qr(request, qr_id):
         messages.error(request, 'Deactivate this QR before deleting it.')
         return redirect('manage_multipurpose_qr', qr_id=qr_id)
     snap.reference.delete()
-    try:
-        views.clear_multipurpose_voice_bridge(qr_id, delete=True)
-    except Exception:
-        pass
     messages.success(request, f'Deleted multipurpose QR {qr_id}.')
     return redirect('manage_multipurpose_qrs')

@@ -27,6 +27,31 @@
       width: 100%;
       box-sizing: border-box;
     }
+    .mp-cat {
+      display: inline-flex;
+      margin: 0 0 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #fff;
+      background: #7c4dff;
+    }
+    .mp-cat-business { background: #e58147; }
+    .mp-cat-home { background: #26a69a; }
+    .mp-cat-pet { background: #ff8a65; }
+    .mp-cat-item { background: #42a5f5; }
+    .mp-cat-personal { background: #7c4dff; }
+    .mp-paused {
+      margin: 16px;
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255, 193, 7, 0.12);
+      border: 1px solid rgba(255, 193, 7, 0.35);
+      color: #ffe082;
+    }
     .mp-hero-name {
       margin: 0;
       font-size: 1.55rem;
@@ -80,6 +105,54 @@
       padding: 14px;
     }
     .mp-status { margin: 0 16px 16px; min-height: 1.2em; font-size: 0.86rem; color: #f3c7a8; }
+    .mp-gallery { margin: 0 16px 8px; }
+    .mp-gallery img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 14px;
+      display: none;
+      background: #111;
+    }
+    .mp-gallery img.is-active { display: block; }
+    .mp-gallery-dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+    .mp-gallery-dots button {
+      width: 8px;
+      height: 8px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.28);
+      padding: 0;
+    }
+    .mp-gallery-dots button.is-active { background: #e58147; }
+    .mp-intro {
+      margin: 10px 0 0;
+      color: rgba(255,255,255,0.72);
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+    .mp-facts { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .mp-fact {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+    }
+    .mp-fact span { color: rgba(255,255,255,0.5); font-size: 0.75rem; }
+    .mp-fact strong { font-weight: 600; text-align: right; }
+    .mp-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 16px 10px; }
+    .mp-prompt {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: transparent;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font: inherit;
+      font-size: 0.8rem;
+    }
+    .mp-prompt.is-on { border-color: #e58147; color: #ffd7c2; }
   </style>
 </head>
 <body class="mp-flow sudo-mobile-flow">
@@ -89,7 +162,7 @@
       <a href="/" class="brand-logo" aria-label="SudoTag home">
         {% include 'includes/brand_logo_img.html' %}
       </a>
-      <h1 class="header-title">{% if missing %}QR not found{% else %}Multipurpose QR{% endif %}</h1>
+      <h1 class="header-title">{% if missing %}QR not found{% else %}{{ category_label|default:"Multipurpose" }} tag{% endif %}</h1>
     </header>
     <main class="app-main sudo-app-main">
       {% if missing %}
@@ -101,19 +174,52 @@
       </section>
       {% else %}
       <section class="vehicle-info">
-        <p class="vehicle-model">Scan to connect</p>
+        <p class="mp-cat mp-cat-{{ category|default:'personal' }}">{{ category_label|default:"Multipurpose" }}</p>
         <h2 class="mp-hero-name">{{ title }}</h2>
         {% if note %}<p class="mp-hero-note">{{ note }}</p>{% endif %}
+        <p class="mp-intro">{{ public_card.intro }}</p>
+        {% if public_card.facts %}
+        <div class="mp-facts">
+          {% for fact in public_card.facts %}
+          <div class="mp-fact"><span>{{ fact.label }}</span><strong>{{ fact.value }}</strong></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if photo_urls %}
+        <div class="mp-gallery" id="mpGallery">
+          {% for url in photo_urls %}
+          <img class="{% if forloop.first %}is-active{% endif %}" src="{{ url }}" alt="Photo {{ forloop.counter }}">
+          {% endfor %}
+          {% if photo_urls|length > 1 %}
+          <div class="mp-gallery-dots">
+            {% for url in photo_urls %}
+            <button type="button" class="{% if forloop.first %}is-active{% endif %}" data-index="{{ forloop.counter0 }}" aria-label="Photo {{ forloop.counter }}"></button>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
       </section>
+      {% if paused %}
+      <section class="mp-paused">
+        <strong>This tag is paused.</strong>
+        <p class="mb-0">The owner turned off voice call, message, and push. This is still a multipurpose QR.</p>
+      </section>
+      {% else %}
       <section class="content-card">
         <div class="card-header-block">
           <p class="card-title">Contact</p>
           <p class="card-subtitle">Choose how you want to reach them.</p>
         </div>
         {% csrf_token %}
+        <div class="mp-prompts" id="mpPrompts">
+          {% for prompt in public_card.prompts %}
+          <button type="button" class="mp-prompt" data-prompt="{{ prompt }}">{{ prompt }}</button>
+          {% endfor %}
+        </div>
         <div class="form-section" style="margin: 16px;">
           <label class="form-label" for="mpMessage">Your message</label>
-          <textarea id="mpMessage" class="form-control mp-message" maxlength="200" placeholder="Write a short message"></textarea>
+          <textarea id="mpMessage" class="form-control mp-message" maxlength="200" placeholder="Or write your own"></textarea>
         </div>
         <div class="mp-channels">
           <a id="mpCall" class="mp-tile" href="tel:+91{{ call_did }}" {% if not can_contact %}aria-disabled="true"{% endif %}>
@@ -141,15 +247,37 @@
         <p id="mpStatus" class="mp-status" role="status"></p>
       </section>
       {% endif %}
+      {% endif %}
     </main>
   </div>
   {% if not missing %}
   <script>
     (function () {
+      var gallery = document.getElementById('mpGallery');
+      if (gallery) {
+        var images = Array.prototype.slice.call(gallery.querySelectorAll('img'));
+        var dots = Array.prototype.slice.call(gallery.querySelectorAll('button'));
+        dots.forEach(function (dot) {
+          dot.addEventListener('click', function () {
+            var index = Number(dot.getAttribute('data-index') || 0);
+            images.forEach(function (img, i) { img.classList.toggle('is-active', i === index); });
+            dots.forEach(function (item, i) { item.classList.toggle('is-active', i === index); });
+          });
+        });
+      }
+      var messageBox = document.getElementById('mpMessage');
+      document.querySelectorAll('.mp-prompt').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (!messageBox) return;
+          messageBox.value = button.getAttribute('data-prompt') || '';
+          document.querySelectorAll('.mp-prompt').forEach(function (item) {
+            item.classList.toggle('is-on', item === button);
+          });
+        });
+      });
       var callLink = document.getElementById('mpCall');
       var smsBtn = document.getElementById('mpSms');
       var pushBtn = document.getElementById('mpPush');
-      var messageBox = document.getElementById('mpMessage');
       var statusEl = document.getElementById('mpStatus');
       var canContact = {{ can_contact|yesno:"true,false" }};
       var csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');

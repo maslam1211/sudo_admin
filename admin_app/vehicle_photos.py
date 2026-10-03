@@ -118,6 +118,28 @@ def delete_storage_url(download_url: str) -> None:
         logger.warning('Vehicle photo storage delete skipped: %s', exc)
 
 
+def upload_multipurpose_photo_bytes(
+    *,
+    qr_id: str,
+    content: bytes,
+    content_type: str = 'image/jpeg',
+) -> str:
+    """Upload one multipurpose activation photo. Same Cloudinary pipeline as vehicle photos."""
+    qid = (qr_id or 'unknown').strip() or 'unknown'
+    result = cloudinary.uploader.upload(
+        content,
+        folder=f'multipurpose_photos/{qid}',
+        public_id=uuid.uuid4().hex,
+        resource_type='image',
+        overwrite=False,
+        tags=['multipurpose_photo', qid],
+    )
+    url = (result or {}).get('secure_url') or (result or {}).get('url')
+    if not url:
+        raise RuntimeError('Cloudinary upload returned no URL')
+    return str(url)
+
+
 def set_vehicle_photo_urls(db, vehicle_id: str, photo_urls: list[str]) -> list[str]:
     cleaned = [str(u).strip() for u in photo_urls if str(u).strip()][:MAX_VEHICLE_PHOTOS]
     db.collection('vehicles').document(vehicle_id).update({'photoUrls': cleaned})

@@ -53,6 +53,7 @@
                     <th>Owner</th>
                     <th>Mobile</th>
                     <th>Status</th>
+                    <th>Scans</th>
                     <th>Created</th>
                     <th></th>
                 </tr>
@@ -64,16 +65,19 @@
                         <div class="fw-semibold">{{ row.id }}</div>
                         {% if row.title %}<div class="text-muted small">{{ row.title }}</div>{% endif %}
                     </td>
-                    <td>{{ row.category_label|default:"—" }}</td>
+                    <td><span class="badge text-bg-dark">{{ row.category_label|default:"—" }}</span></td>
                     <td>{{ row.owner|default:"—" }}</td>
                     <td>{{ row.contact|default:"—" }}</td>
                     <td>
-                        {% if row.assigned %}
+                        {% if row.assigned and row.paused %}
+                        <span class="badge bg-warning text-dark">Paused</span>
+                        {% elif row.assigned %}
                         <span class="badge bg-success">Active</span>
                         {% else %}
                         <span class="badge bg-secondary">Inactive</span>
                         {% endif %}
                     </td>
+                    <td>{{ row.scan_count }}</td>
                     <td>{{ row.created|default:"—" }}</td>
                     <td class="text-nowrap">
                         <a href="{% url 'manage_multipurpose_qr' row.id %}">Manage</a>
@@ -81,7 +85,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-muted p-4">No multipurpose QR codes yet. Generate them from Generate QR → Multipurpose.</td>
+                    <td colspan="8" class="text-muted p-4">No multipurpose QR codes yet. Generate them from Generate QR → Multipurpose.</td>
                 </tr>
                 {% endfor %}
             </tbody>

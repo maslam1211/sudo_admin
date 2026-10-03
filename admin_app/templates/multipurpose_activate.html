@@ -134,6 +134,56 @@
       font-size: 1.05rem;
     }
     .mp-activate:disabled { opacity: 0.55; }
+    .mp-photos { margin: 8px 0 16px; }
+    .mp-photos h3 { margin: 0 0 4px; font-size: 0.95rem; }
+    .mp-photos p { margin: 0 0 10px; color: rgba(255,255,255,0.55); font-size: 0.8rem; }
+    .mp-photo-row { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 10px; }
+    .mp-photo {
+      position: relative;
+      flex: 0 0 88px;
+      width: 88px;
+      height: 88px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.08);
+    }
+    .mp-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .mp-photo button {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      line-height: 22px;
+      padding: 0;
+    }
+    .mp-photo span {
+      position: absolute;
+      left: 4px;
+      bottom: 4px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #e58147;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .mp-photo-actions { display: flex; gap: 10px; }
+    .mp-photo-actions button {
+      flex: 1;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(229, 129, 71, 0.5);
+      background: transparent;
+      color: #e58147;
+      font: inherit;
+      font-weight: 600;
+    }
+    .mp-photo-actions button:disabled { opacity: 0.4; }
     .mp-shell .sudo-app-main { padding-bottom: 28px; }
     [hidden] { display: none !important; }
   </style>
@@ -169,6 +219,18 @@
             </div>
             <p class="mp-error" id="err-category"></p>
             <div id="mpDynamicFields"></div>
+            <div class="mp-photos">
+              <h3>Photos</h3>
+              <p>Up to 5 photos (optional). The first photo is the primary image.</p>
+              <div class="mp-photo-row" id="mpPhotoRow" hidden></div>
+              <div class="mp-photo-actions">
+                <button type="button" id="mpPhotoCamera">Camera</button>
+                <button type="button" id="mpPhotoGallery">Gallery</button>
+              </div>
+              <input id="mpPhotoCameraInput" type="file" accept="image/*" capture="environment" hidden>
+              <input id="mpPhotoGalleryInput" type="file" accept="image/*" multiple hidden>
+              <p class="mp-error" id="err-photos"></p>
+            </div>
             <button type="submit" class="mp-activate" id="activateBtn">Activate QR</button>
             <p class="mp-status" id="formStatus"></p>
           </section>
@@ -188,6 +250,63 @@
       var timer = null;
       var formStatus = document.getElementById('formStatus');
       var fieldsRoot = document.getElementById('mpDynamicFields');
+      var photoFiles = [];
+      var photoRow = document.getElementById('mpPhotoRow');
+      var cameraInput = document.getElementById('mpPhotoCameraInput');
+      var galleryInput = document.getElementById('mpPhotoGalleryInput');
+
+      function renderPhotos() {
+        photoRow.innerHTML = '';
+        photoRow.hidden = photoFiles.length === 0;
+        photoFiles.forEach(function (file, index) {
+          var card = document.createElement('div');
+          card.className = 'mp-photo';
+          var img = document.createElement('img');
+          img.alt = 'Photo ' + (index + 1);
+          img.src = URL.createObjectURL(file);
+          card.appendChild(img);
+          var remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = '×';
+          remove.setAttribute('aria-label', 'Remove photo');
+          remove.addEventListener('click', function () {
+            photoFiles.splice(index, 1);
+            renderPhotos();
+          });
+          card.appendChild(remove);
+          if (index === 0) {
+            var badge = document.createElement('span');
+            badge.textContent = 'Primary';
+            card.appendChild(badge);
+          }
+          photoRow.appendChild(card);
+        });
+        var full = photoFiles.length >= 5;
+        document.getElementById('mpPhotoCamera').disabled = full;
+        document.getElementById('mpPhotoGallery').disabled = full;
+      }
+      function addPhotoFiles(fileList) {
+        Array.prototype.forEach.call(fileList || [], function (file) {
+          if (photoFiles.length >= 5) return;
+          if (!file.type || file.type.indexOf('image/') !== 0) return;
+          photoFiles.push(file);
+        });
+        renderPhotos();
+      }
+      document.getElementById('mpPhotoCamera').addEventListener('click', function () {
+        cameraInput.click();
+      });
+      document.getElementById('mpPhotoGallery').addEventListener('click', function () {
+        galleryInput.click();
+      });
+      cameraInput.addEventListener('change', function () {
+        addPhotoFiles(cameraInput.files);
+        cameraInput.value = '';
+      });
+      galleryInput.addEventListener('change', function () {
+        addPhotoFiles(galleryInput.files);
+        galleryInput.value = '';
+      });
 
       function csrf() {
         var el = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -228,9 +347,14 @@
         var inputType = field.kind === 'email' ? 'email' : 'text';
         var tag = field.kind === 'text'
           ? '<textarea class="form-control" id="' + field.key + '" rows="3" maxlength="500" placeholder="People will see this after they scan"></textarea>'
-          : '<input class="form-control" id="' + field.key + '" type="' + inputType + '">';
+          : '<input class="form-control" id="' + field.key + '" type="' + inputType + '"'
+            + (field.kind === 'email' ? ' placeholder="Email registered in the SudoTag app"' : '') + '>';
+        var hint = field.kind === 'email'
+          ? '<p class="mp-status">Use the email already registered in the SudoTag app.</p>'
+          : '';
         return '<div class="form-group"><label class="form-label" for="' + field.key + '">' + field.label
           + (field.required ? '' : ' (optional)') + '</label>' + tag
+          + hint
           + '<p class="mp-error" id="err-' + field.key + '"></p></div>';
       }
       function wireOtp(previousValue) {
@@ -409,7 +533,26 @@
         var button = document.getElementById('activateBtn');
         button.disabled = true;
         formStatus.textContent = 'Activating…';
-        post(window.location.pathname, payload).then(function (data) {
+        var body = new FormData();
+        Object.keys(payload).forEach(function (key) {
+          body.append(key, payload[key]);
+        });
+        photoFiles.forEach(function (file) {
+          body.append('photos', file);
+        });
+        fetch(window.location.pathname, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrf(),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: body
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            if (!response.ok) throw data;
+            return data;
+          });
+        }).then(function (data) {
           formStatus.textContent = data.message || 'Activated.';
           window.location.href = data.redirect_url || window.location.pathname;
         }).catch(function (err) {

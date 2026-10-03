@@ -2176,13 +2176,60 @@ def multipurpose_otp_verify(request, qr_id):
     return JsonResponse({'status': 'success', 'message': 'Mobile number verified.'})
 
 
-def _activate_multipurpose_owner(request, qr_id, snap):
+def _activate_multipurpose_payload(request):
+    """JSON body, or multipart form when the page uploads photos."""
+    content_type = (request.content_type or '').lower()
+    if content_type.startswith('multipart/'):
+        data = {key: request.POST.get(key) for key in request.POST}
+        files = request.FILES.getlist('photos')
+        return data, files
     try:
         data = json.loads(request.body or b'{}')
     except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+        return None, []
     if not isinstance(data, dict):
         data = {}
+    return data, []
+
+
+def _activate_multipurpose_photos(qr_id, data, files):
+    """Up to 5 images, same limit as a vehicle gallery. Returns (urls, error)."""
+    from .vehicle_photos import MAX_VEHICLE_PHOTOS, upload_multipurpose_photo_bytes
+
+    urls = []
+    raw = data.get('photoUrls') if isinstance(data, dict) else None
+    if isinstance(raw, list):
+        for item in raw:
+            url = str(item or '').strip()
+            if url.startswith('https://'):
+                urls.append(url)
+            if len(urls) >= MAX_VEHICLE_PHOTOS:
+                break
+    uploads = list(files or [])
+    if len(urls) + len(uploads) > MAX_VEHICLE_PHOTOS:
+        return [], f'Maximum of {MAX_VEHICLE_PHOTOS} photos allowed.'
+    for upload in uploads:
+        content_type = (getattr(upload, 'content_type', '') or '').lower()
+        if not content_type.startswith('image/'):
+            return [], 'Only image files can be uploaded.'
+        if getattr(upload, 'size', 0) > 8 * 1024 * 1024:
+            return [], 'Each photo must be 8 MB or smaller.'
+        try:
+            urls.append(upload_multipurpose_photo_bytes(
+                qr_id=qr_id,
+                content=upload.read(),
+                content_type=content_type or 'image/jpeg',
+            ))
+        except Exception:
+            logger.exception('multipurpose photo upload failed')
+            return [], 'Could not upload the photo. Please try again.'
+    return urls[:MAX_VEHICLE_PHOTOS], None
+
+
+def _activate_multipurpose_owner(request, qr_id, snap):
+    data, photo_files = _activate_multipurpose_payload(request)
+    if data is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
 
     errors = {}
     category = _multipurpose_category(data.get('category'))
@@ -2228,95 +2275,42 @@ def _activate_multipurpose_owner(request, qr_id, snap):
             'errors': errors,
         }, status=400)
 
-    auth_user = None
-    is_new_user = False
     try:
-        user_query = db.collection('users').where(
-            filter=FieldFilter('emailAddress', '==', data['emailAddress'])
-        ).limit(1).get()
-        user_exists_in_firestore = len(user_query) > 0
-        try:
-            auth.get_user_by_email(data['emailAddress'])
-            user_exists_in_auth = True
-        except auth.UserNotFoundError:
-            user_exists_in_auth = False
-        except Exception:
-            user_exists_in_auth = False
-
-        if user_exists_in_auth and user_exists_in_firestore:
-            user_doc = user_query[0]
-            user_data = user_doc.to_dict() or {}
-            user_id = user_doc.id
-            stored_digits = normalize_phone_number(user_data.get('contactNumber', ''))
-            submitted_digits = normalize_phone_number(data.get('contactNumber', ''))
-            if stored_digits and submitted_digits and stored_digits != submitted_digits:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'This email is already registered',
-                    'errors': {
-                        'emailAddress': (
-                            'This email is already registered. Enter the mobile number linked to this account.'
-                        ),
-                    },
-                }, status=400)
-        elif user_exists_in_auth and not user_exists_in_firestore:
+        from .multipurpose_admin import (
+            NOT_REGISTERED_EMAIL_MESSAGE,
+            find_user_by_registered_email,
+        )
+        user_id, user_data = find_user_by_registered_email(data.get('emailAddress'))
+        if not user_id:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Account exists but data is incomplete. Please contact support.',
-                'errors': {'emailAddress': 'Account issue detected'},
+                'message': NOT_REGISTERED_EMAIL_MESSAGE,
+                'errors': {'emailAddress': NOT_REGISTERED_EMAIL_MESSAGE},
             }, status=400)
-        elif not user_exists_in_auth and user_exists_in_firestore:
+        stored_digits = normalize_phone_number((user_data or {}).get('contactNumber', ''))
+        submitted_digits = normalize_phone_number(data.get('contactNumber', ''))
+        if stored_digits and submitted_digits and stored_digits != submitted_digits:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Account data mismatch. Please contact support.',
-                'errors': {'emailAddress': 'Account issue detected'},
+                'message': 'This email is already registered',
+                'errors': {
+                    'emailAddress': (
+                        'This email is already registered. Enter the mobile number linked to this account.'
+                    ),
+                },
             }, status=400)
-        else:
-            password = generate_random_password(12)
-            try:
-                auth_user, password, is_new_user = create_or_update_firebase_user(
-                    email=data['emailAddress'],
-                    full_name=data['fullName'],
-                    password=password,
-                )
-            except Exception as exc:
-                logger.exception('Multipurpose Firebase Auth user creation failed')
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'Failed to create account: {exc}',
-                }, status=500)
-            user_id = auth_user.uid
-            db.collection('users').document(user_id).set({
-                'id': user_id,
-                'fullName': data.get('fullName'),
-                'contactNumber': data.get('contactNumber'),
-                'city': data.get('city'),
-                'emailAddress': data.get('emailAddress'),
-                'enableIdCheck': True,
-                'createdAt': firestore.SERVER_TIMESTAMP,
-                'profilePicture': 'default_profile.png',
-                'roleId': 0,
-                'mustChangePassword': False,
-                'fcmToken': '',
-                'adminAddedUser': False,
-            })
-            try:
-                send_welcome_email_for_id(
-                    email=data['emailAddress'],
-                    name=data['fullName'],
-                    password=password,
-                )
-            except Exception as mail_exc:
-                logger.warning(
-                    'Welcome email failed for %s: %s',
-                    data['emailAddress'],
-                    mail_exc,
-                )
+        registered_email = str(
+            (user_data or {}).get('emailAddress') or data.get('emailAddress') or ''
+        ).strip()
+        data['emailAddress'] = registered_email
 
         digits = normalize_phone_number(data.get('contactNumber'))
         title_key = category['title_field']
         title = str(data.get(title_key) or '').strip()[:80]
         note = str(data.get('note') or '').strip()[:500]
+        photo_urls, photo_err = _activate_multipurpose_photos(qr_id, data, photo_files)
+        if photo_err:
+            return JsonResponse({'status': 'error', 'message': photo_err}, status=400)
         details = {}
         for field in category['fields']:
             key = field['key']
@@ -2333,31 +2327,24 @@ def _activate_multipurpose_owner(request, qr_id, snap):
             'title': title,
             'isAssigned': True,
             'userID': user_id,
+            'ownerEmail': registered_email,
             'contactNumber': digits,
             'ownerFullName': str(data.get('fullName') or '').strip()[:80],
             'details': details,
             'assignedAt': firestore.SERVER_TIMESTAMP,
             'note': note,
+            'photoUrls': photo_urls,
         }
         snap.reference.update(update)
-        try:
-            sync_multipurpose_voice_bridge(qr_id, {**data, **update})
-        except Exception:
-            logger.exception('multipurpose voice bridge sync failed')
         clear_activate_phone_verified(request, qr_id)
         return JsonResponse({
             'status': 'success',
             'message': 'Multipurpose QR activated.',
             'redirect_url': reverse('multipurpose_qr_scan', args=[qr_id]),
-            'is_new_user': is_new_user,
+            'is_new_user': False,
         })
     except Exception as exc:
         logger.exception('multipurpose activation failed')
-        if auth_user is not None and is_new_user:
-            try:
-                auth.delete_user(auth_user.uid)
-            except Exception:
-                logger.warning('Failed to cleanup multipurpose auth user', exc_info=True)
         return JsonResponse({
             'status': 'error',
             'message': f'Activation failed: {exc}',
@@ -2367,67 +2354,58 @@ def _activate_multipurpose_owner(request, qr_id, snap):
 MULTIPURPOSE_CALL_BRIDGE_PURPOSE = 'multipurpose_call_bridge'
 
 
-def _multipurpose_voice_bridge_id(qr_id):
-    return f'mpvoice_{qr_id}'
+_MULTIPURPOSE_PROMPTS = {
+    'personal': ('Say hello', 'I need a hand', 'This is urgent'),
+    'business': ('I have a question', 'I want to visit', 'About an order'),
+    'home': ('I am here', 'Delivery at the door', 'Someone needs help'),
+    'pet': ('I found them', 'They are safe with me', 'Please call back'),
+    'item': ('I found this', 'It is safe with me', 'Where should I leave it?'),
+}
+
+_MULTIPURPOSE_INTRO = {
+    'personal': 'A personal tag. The mobile number stays private.',
+    'business': 'A business tag. Reach them without seeing the number.',
+    'home': 'A home tag for this place.',
+    'pet': 'Found this pet? Tell the owner. Their number stays hidden.',
+    'item': 'This item has an owner. The number stays hidden.',
+}
 
 
-def sync_multipurpose_voice_bridge(qr_id, mp_data):
-    """
-    Live call register only accepts qrcodes/{id} linked to a vehicle whose
-    owner number matches the destination. Keep a private bridge so a
-    multipurpose contactNumber can be dialed through that same gateway.
-    """
-    phone = normalize_phone_number((mp_data or {}).get('contactNumber'))
-    qr_id = str(qr_id or '').strip()
-    if not phone or not qr_id:
+def _multipurpose_public_card(data):
+    """What a scanner may see. Never includes the mobile number or email."""
+    category = str(data.get('category') or 'personal')
+    details = data.get('details') if isinstance(data.get('details'), dict) else {}
+    facts = []
+    if category == 'business':
+        person = str(details.get('fullName') or data.get('ownerFullName') or '').strip()
+        if person:
+            facts.append({'label': 'Contact', 'value': person})
+        address = str(details.get('address') or '').strip()
+        if address:
+            facts.append({'label': 'Address', 'value': address})
+    city = str(details.get('city') or '').strip()
+    if city:
+        facts.append({'label': 'City', 'value': city})
+    return {
+        'intro': _MULTIPURPOSE_INTRO.get(category, _MULTIPURPOSE_INTRO['personal']),
+        'prompts': list(_MULTIPURPOSE_PROMPTS.get(category, _MULTIPURPOSE_PROMPTS['personal'])),
+        'facts': facts,
+    }
+
+
+def _record_multipurpose_scan(request, snap):
+    """Count one scan per browser session. Stored only on the multipurpose document."""
+    key = f'mp_seen_{snap.id}'
+    if request.session.get(key):
         return
-    bridge_id = _multipurpose_voice_bridge_id(qr_id)
-    name = str(
-        (mp_data or {}).get('ownerFullName')
-        or (mp_data or {}).get('title')
-        or 'Multipurpose'
-    ).strip()[:80]
-    db.collection('users').document(bridge_id).set({
-        'fullName': name,
-        'contactNumber': phone,
-        'purpose': MULTIPURPOSE_CALL_BRIDGE_PURPOSE,
-    }, merge=True)
-    db.collection('vehicles').document(bridge_id).set({
-        'ownerId': bridge_id,
-        'ownerContact': phone,
-        'qrCodeId': qr_id,
-        'purpose': MULTIPURPOSE_CALL_BRIDGE_PURPOSE,
-    }, merge=True)
-    db.collection('qrcodes').document(qr_id).set({
-        'isAssigned': True,
-        'vehicleID': bridge_id,
-        'userID': bridge_id,
-        'qrId': qr_id,
-        'purpose': MULTIPURPOSE_CALL_BRIDGE_PURPOSE,
-        'qrType': 'Multipurpose QR',
-    }, merge=True)
-
-
-def clear_multipurpose_voice_bridge(qr_id, delete=False):
-    qr_id = str(qr_id or '').strip()
-    if not qr_id:
-        return
-    bridge_id = _multipurpose_voice_bridge_id(qr_id)
-    qr_ref = db.collection('qrcodes').document(qr_id)
+    request.session[key] = True
     try:
-        snap = qr_ref.get()
+        snap.reference.update({
+            'scanCount': firestore.Increment(1),
+            'lastScannedAt': firestore.SERVER_TIMESTAMP,
+        })
     except Exception:
-        snap = None
-    if snap is not None and snap.exists:
-        data = snap.to_dict() or {}
-        if data.get('purpose') == MULTIPURPOSE_CALL_BRIDGE_PURPOSE:
-            if delete:
-                qr_ref.delete()
-            else:
-                qr_ref.update({'isAssigned': False})
-    if delete:
-        db.collection('vehicles').document(bridge_id).delete()
-        db.collection('users').document(bridge_id).delete()
+        logger.exception('multipurpose scan count failed')
 
 
 @ensure_csrf_cookie
@@ -2448,16 +2426,20 @@ def multipurpose_qr_scan(request, qr_id):
             'title': 'Multipurpose QR',
             'categories': MULTIPURPOSE_CATEGORIES,
         })
-    try:
-        sync_multipurpose_voice_bridge(qr_id, data)
-    except Exception:
-        logger.exception('multipurpose voice bridge sync failed')
+    from .vehicle_photos import parse_photo_urls
+    paused = bool(data.get('contactPaused'))
+    _record_multipurpose_scan(request, snap)
     return render(request, 'multipurpose_scan.html', {
         'missing': False,
         'title': data.get('title') or 'SudoTag',
         'note': data.get('note') or '',
+        'category': str(data.get('category') or ''),
+        'category_label': str(data.get('categoryLabel') or 'Multipurpose'),
+        'public_card': _multipurpose_public_card(data),
+        'photo_urls': parse_photo_urls(data),
+        'paused': paused,
         'qr_id': qr_id,
-        'can_contact': bool(normalize_phone_number(data.get('contactNumber'))),
+        'can_contact': bool(normalize_phone_number(data.get('contactNumber'))) and not paused,
         'call_did': CALL_ROUTING_EXPECTED_DID,
         'call_destination': normalize_phone_number(data.get('contactNumber')) or '',
         'register_url': reverse('register_call_destination'),
@@ -2476,6 +2458,8 @@ def multipurpose_qr_contact(request, qr_id):
     data = snap.to_dict() if snap is not None and snap.exists else None
     if not data or data.get('purpose') != 'multipurpose' or not data.get('isAssigned'):
         return JsonResponse({'status': 'error', 'message': 'This QR is not a multipurpose code.'}, status=404)
+    if data.get('contactPaused'):
+        return JsonResponse({'status': 'error', 'message': 'This tag is paused.'}, status=403)
     digits = normalize_phone_number(data.get('contactNumber'))
     if not digits:
         return JsonResponse(
