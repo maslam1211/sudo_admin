@@ -87,7 +87,7 @@ def _row_from_snap(snap):
     assigned = bool(data.get('isAssigned'))
     return {
         'id': snap.id,
-        'qr_type': str(data.get('qrType') or 'Multipurpose QR'),
+        'qr_type': 'Smart Tag',
         'category': str(data.get('category') or ''),
         'category_label': str(data.get('categoryLabel') or ''),
         'title': str(data.get('title') or ''),
@@ -107,8 +107,23 @@ def _row_from_snap(snap):
         'created_sort': _stamp_sort(created),
         'assigned_at': _stamp_label(data.get('assignedAt')),
         'details': {str(k): str(v) for k, v in details.items() if v},
+        'links': views_links(data.get('links')),
         'raw': data,
     }
+
+
+def views_links(raw):
+    if not isinstance(raw, list):
+        return []
+    links = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get('title') or '').strip()
+        value = str(item.get('value') or '').strip()
+        if title and value:
+            links.append({'title': title, 'value': value})
+    return links
 
 
 def _category_by_id(category_id):
@@ -259,21 +274,28 @@ def manage_multipurpose_qrs(request):
 
 def _detail_context(row, user, qr_png, form_values=None):
     views = _views()
+    presets, extras = views.split_multipurpose_links(row.get('links') or [])
     values = {
         'category': row['category'],
         'note': row['note'],
         'contactNumber': row['contact'],
         'fullName': row['owner'],
+        'instagram': presets['instagram'],
+        'facebook': presets['facebook'],
+        'website': presets['website'],
     }
     values.update(row['details'])
     if form_values:
         values.update(form_values)
+        if 'extra_links' in form_values:
+            extras = form_values['extra_links']
     return {
         'row': row,
         'user': user,
         'qr_png': qr_png,
         'categories': views.MULTIPURPOSE_CATEGORIES,
         'values': values,
+        'extra_links': extras,
     }
 
 
@@ -289,11 +311,11 @@ def manage_multipurpose_qr(request, qr_id):
     except Exception:
         snap = None
     if snap is None or not snap.exists:
-        messages.error(request, 'Multipurpose QR not found.')
+        messages.error(request, 'Smart Tag not found.')
         return redirect('manage_multipurpose_qrs')
     row = _row_from_snap(snap)
     if row is None:
-        messages.error(request, 'This code is not a multipurpose QR.')
+        messages.error(request, 'This code is not a Smart Tag.')
         return redirect('manage_multipurpose_qrs')
 
     if request.method == 'POST':
@@ -314,7 +336,7 @@ def manage_multipurpose_qr(request, qr_id):
                 messages.info(request, 'This QR is already inactive.')
             else:
                 snap.reference.update({'isAssigned': False})
-                messages.success(request, 'Multipurpose QR marked inactive. Scans will ask for activation again.')
+                messages.success(request, 'Smart Tag marked inactive. Scans will ask for activation again.')
             return redirect('manage_multipurpose_qr', qr_id=qr_id)
         if action == 'save':
             return _save_usage(request, snap, row)
@@ -366,6 +388,12 @@ def _usage_from_post(request):
         value = posted.get(key) or ''
         if value:
             details[key] = value[:200]
+    links = views.parse_multipurpose_links(request.POST)
+    presets, extras = views.split_multipurpose_links(links)
+    posted['instagram'] = presets['instagram']
+    posted['facebook'] = presets['facebook']
+    posted['website'] = presets['website']
+    posted['extra_links'] = extras
     update = {
         'qrType': views.MULTIPURPOSE_QR_TYPE,
         'purpose': 'multipurpose',
@@ -377,6 +405,7 @@ def _usage_from_post(request):
         'details': details,
         'note': str(posted.get('note') or '').strip()[:500],
         'isAssigned': True,
+        'links': links,
     }
     return update, [], posted
 
@@ -399,7 +428,7 @@ def _save_usage(request, snap, row):
         )
 
     snap.reference.update(update)
-    messages.success(request, 'Multipurpose QR usage updated.')
+    messages.success(request, 'Smart Tag usage updated.')
     return redirect('manage_multipurpose_qr', qr_id=row['id'])
 
 
@@ -423,7 +452,7 @@ def assign_multipurpose_from_assign_page(request):
     if selected_qr:
         back += '&qr_id=' + selected_qr
     if not selected_qr:
-        errors.append('Choose a multipurpose QR.')
+        errors.append('Choose a Smart Tag.')
     user_id = None
     user_data = None
     registered_email = ''
@@ -447,13 +476,13 @@ def assign_multipurpose_from_assign_page(request):
         except Exception:
             snap = None
         if snap is None or not snap.exists:
-            errors.append('Multipurpose QR not found.')
+            errors.append('Smart Tag not found.')
         else:
             data = snap.to_dict() or {}
             if data.get('purpose') not in (None, 'multipurpose'):
-                errors.append('That code is not a multipurpose QR.')
+                errors.append('That code is not a Smart Tag.')
             elif data.get('isAssigned'):
-                errors.append('This multipurpose QR is already active.')
+                errors.append('This Smart Tag is already active.')
     if errors or update is None or not user_id:
         for error in errors:
             messages.error(request, error)
@@ -469,7 +498,7 @@ def assign_multipurpose_from_assign_page(request):
     snap.reference.update(update)
     messages.success(
         request,
-        f'Multipurpose QR {selected_qr} assigned to {registered_email}.',
+        f'Smart Tag {selected_qr} assigned to {registered_email}.',
     )
     return redirect('manage_multipurpose_qr', qr_id=selected_qr)
 
@@ -521,12 +550,12 @@ def delete_multipurpose_qr(request, qr_id):
     except Exception:
         snap = None
     if snap is None or not snap.exists:
-        messages.error(request, 'Multipurpose QR not found.')
+        messages.error(request, 'Smart Tag not found.')
         return redirect('manage_multipurpose_qrs')
     data = snap.to_dict() or {}
     if data.get('isAssigned'):
         messages.error(request, 'Deactivate this QR before deleting it.')
         return redirect('manage_multipurpose_qr', qr_id=qr_id)
     snap.reference.delete()
-    messages.success(request, f'Deleted multipurpose QR {qr_id}.')
+    messages.success(request, f'Deleted Smart Tag {qr_id}.')
     return redirect('manage_multipurpose_qrs')

@@ -154,7 +154,7 @@
                             <label for="qr_kind" class="form-label">QR type *</label>
                             <select class="form-select" id="qr_kind" name="qr_kind">
                                 <option value="vehicle" {% if qr_kind != 'multipurpose' %}selected{% endif %}>Vehicle QR</option>
-                                <option value="multipurpose" {% if qr_kind == 'multipurpose' %}selected{% endif %}>Multipurpose QR</option>
+                                <option value="multipurpose" {% if qr_kind == 'multipurpose' %}selected{% endif %}>Smart Tag</option>
                             </select>
                         </div>
                         
@@ -249,6 +249,7 @@
                                 {% endfor %}
                             </div>
                             {% endfor %}
+                            {% include 'includes/multipurpose_link_fields.html' %}
                         </div>
 
                         <!-- Preview Section -->
@@ -296,15 +297,15 @@
                 <div class="info-card-body">
                     <h6 class="mb-3" style="color: #0d6efd; font-weight: 600;">How it works:</h6>
                     <ul class="list-unstyled mb-4" id="assignHowVehicle">
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Vehicle QR or Multipurpose QR</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Vehicle QR or Smart Tag</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an unassigned QR code</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose a user with vehicles</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select the target vehicle</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Complete the assignment</li>
                     </ul>
                     <ul class="list-unstyled mb-4" id="assignHowMultipurpose" hidden>
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Multipurpose QR</li>
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an inactive multipurpose QR</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Choose Smart Tag</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Select an inactive Smart Tag</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Enter the email registered in the SudoTag app</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>The QR is linked to that existing account</li>
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Vehicle QR data is left unchanged</li>
@@ -343,7 +344,7 @@
     {% for qr in mp_qrs %}
     <option value="{{ qr.id }}">{{ qr.id }}{% if qr.created %} ({{ qr.created }}){% endif %}</option>
     {% empty %}
-    <option value="">No inactive multipurpose QR codes</option>
+    <option value="">No inactive Smart Tags</option>
     {% endfor %}
 </template>
 <template id="mpUserOptions">

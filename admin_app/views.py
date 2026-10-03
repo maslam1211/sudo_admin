@@ -1193,7 +1193,7 @@ def generate_qr(request):
             if not os.path.exists(template_path):
                 return render(request, 'generate_qr.html', _generate_qr_page_context(
                     request,
-                    error='Multipurpose QR template image is missing.',
+                    error='Smart Tag template image is missing.',
                 ))
             batch = db.batch()
             for _ in range(count):
@@ -1215,7 +1215,7 @@ def generate_qr(request):
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     qr_doc_ref = db.collection('multipurpose_qrs').document(qr_id)
                     batch.set(qr_doc_ref, {
-                        'qrType': 'Multipurpose QR',
+                        'qrType': MULTIPURPOSE_QR_TYPE,
                         'purpose': 'multipurpose',
                         'isAssigned': False,
                         'createdBy': 'admin',
@@ -1235,7 +1235,7 @@ def generate_qr(request):
             except Exception as e:
                 return render(request, 'generate_qr.html', _generate_qr_page_context(
                     request,
-                    error=f'Failed to save multipurpose QR codes: {str(e)}',
+                    error=f'Failed to save Smart Tag codes: {str(e)}',
                 ))
         
         else:
@@ -1984,7 +1984,7 @@ def check_id_enabled(request, qr_id):
         return render(request, 'error.html', {'error': str(e)})
 
 
-MULTIPURPOSE_QR_TYPE = 'Multipurpose QR'
+MULTIPURPOSE_QR_TYPE = 'Smart Tag'
 
 MULTIPURPOSE_CATEGORIES = (
     {
@@ -2053,6 +2053,105 @@ MULTIPURPOSE_CATEGORIES = (
         ),
     },
 )
+
+
+def parse_multipurpose_links(data):
+    """Optional public links. Presets plus owner-created titles. Max 8."""
+    links = []
+    seen = set()
+
+    def add(title, value):
+        title = str(title or '').strip()[:40]
+        value = str(value or '').strip()[:200]
+        if len(title) < 2 or not value:
+            return
+        key = title.lower()
+        if key in seen or len(links) >= 8:
+            return
+        seen.add(key)
+        links.append({'title': title, 'value': value})
+
+    for key, label in (
+        ('instagram', 'Instagram'),
+        ('facebook', 'Facebook'),
+        ('website', 'Website'),
+    ):
+        add(label, data.get(key) if data is not None else '')
+
+    titles = data.getlist('linkTitle') if hasattr(data, 'getlist') else []
+    values = data.getlist('linkValue') if hasattr(data, 'getlist') else []
+    for title, value in zip(titles, values):
+        add(title, value)
+
+    raw = data.get('links') if data is not None else None
+    if isinstance(raw, str) and raw.strip().startswith('['):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            raw = None
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, dict):
+                add(item.get('title'), item.get('value'))
+    return links
+
+
+def multipurpose_link_href(title, value):
+    raw = str(value or '').strip()
+    lower = raw.lower()
+    if not raw or lower.startswith('javascript:') or lower.startswith('data:'):
+        return ''
+    if lower.startswith('http://') or lower.startswith('https://'):
+        return raw
+    handle = raw[1:].strip() if raw.startswith('@') else raw
+    if not handle or ' ' in handle:
+        if str(title or '').strip().lower() == 'website' and '.' in raw:
+            return 'https://' + raw
+        return ''
+    kind = str(title or '').strip().lower()
+    if kind == 'instagram':
+        return 'https://instagram.com/' + handle
+    if kind == 'facebook':
+        return 'https://facebook.com/' + handle
+    if kind == 'website' or '.' in handle:
+        return 'https://' + handle
+    return ''
+
+
+def public_multipurpose_links(data):
+    raw = data.get('links') if isinstance(data, dict) else None
+    if not isinstance(raw, list):
+        return []
+    links = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get('title') or '').strip()
+        value = str(item.get('value') or '').strip()
+        if len(title) < 2 or not value:
+            continue
+        links.append({
+            'title': title,
+            'value': value,
+            'href': multipurpose_link_href(title, value),
+        })
+        if len(links) >= 8:
+            break
+    return links
+
+
+def split_multipurpose_links(links):
+    presets = {'instagram': '', 'facebook': '', 'website': ''}
+    extras = []
+    for item in links or []:
+        title = str(item.get('title') or '').strip()
+        value = str(item.get('value') or '').strip()
+        key = title.lower()
+        if key in presets and not presets[key]:
+            presets[key] = value
+        elif title and value:
+            extras.append({'title': title, 'value': value})
+    return presets, extras
 
 
 def _multipurpose_category(category_id):
@@ -2275,35 +2374,9 @@ def _activate_multipurpose_owner(request, qr_id, snap):
             'errors': errors,
         }, status=400)
 
+    auth_user = None
+    is_new_user = False
     try:
-        from .multipurpose_admin import (
-            NOT_REGISTERED_EMAIL_MESSAGE,
-            find_user_by_registered_email,
-        )
-        user_id, user_data = find_user_by_registered_email(data.get('emailAddress'))
-        if not user_id:
-            return JsonResponse({
-                'status': 'error',
-                'message': NOT_REGISTERED_EMAIL_MESSAGE,
-                'errors': {'emailAddress': NOT_REGISTERED_EMAIL_MESSAGE},
-            }, status=400)
-        stored_digits = normalize_phone_number((user_data or {}).get('contactNumber', ''))
-        submitted_digits = normalize_phone_number(data.get('contactNumber', ''))
-        if stored_digits and submitted_digits and stored_digits != submitted_digits:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'This email is already registered',
-                'errors': {
-                    'emailAddress': (
-                        'This email is already registered. Enter the mobile number linked to this account.'
-                    ),
-                },
-            }, status=400)
-        registered_email = str(
-            (user_data or {}).get('emailAddress') or data.get('emailAddress') or ''
-        ).strip()
-        data['emailAddress'] = registered_email
-
         digits = normalize_phone_number(data.get('contactNumber'))
         title_key = category['title_field']
         title = str(data.get(title_key) or '').strip()[:80]
@@ -2311,6 +2384,78 @@ def _activate_multipurpose_owner(request, qr_id, snap):
         photo_urls, photo_err = _activate_multipurpose_photos(qr_id, data, photo_files)
         if photo_err:
             return JsonResponse({'status': 'error', 'message': photo_err}, status=400)
+        from .multipurpose_admin import find_user_by_registered_email
+        email = str(data.get('emailAddress') or '').strip()
+        user_id, user_data = find_user_by_registered_email(email)
+        if user_id:
+            stored_digits = normalize_phone_number((user_data or {}).get('contactNumber', ''))
+            submitted_digits = normalize_phone_number(data.get('contactNumber', ''))
+            if stored_digits and submitted_digits and stored_digits != submitted_digits:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'This email is already registered',
+                    'errors': {
+                        'emailAddress': (
+                            'This email is already registered. Enter the mobile number linked to this account.'
+                        ),
+                    },
+                }, status=400)
+            registered_email = str(
+                (user_data or {}).get('emailAddress') or email
+            ).strip()
+        else:
+            try:
+                auth.get_user_by_email(email)
+                auth_exists = True
+            except auth.UserNotFoundError:
+                auth_exists = False
+            except Exception:
+                auth_exists = False
+            if auth_exists:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Account exists but data is incomplete. Please contact support.',
+                    'errors': {'emailAddress': 'Account issue detected'},
+                }, status=400)
+            password = generate_random_password(12)
+            try:
+                auth_user, password, is_new_user = create_or_update_firebase_user(
+                    email=email,
+                    full_name=data.get('fullName') or '',
+                    password=password,
+                )
+            except Exception as exc:
+                logger.exception('Smart Tag Firebase Auth user creation failed')
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Failed to create account: {exc}',
+                }, status=500)
+            user_id = auth_user.uid
+            registered_email = email
+            db.collection('users').document(user_id).set({
+                'id': user_id,
+                'fullName': data.get('fullName'),
+                'contactNumber': data.get('contactNumber'),
+                'city': data.get('city'),
+                'emailAddress': email,
+                'enableIdCheck': True,
+                'createdAt': firestore.SERVER_TIMESTAMP,
+                'profilePicture': 'default_profile.png',
+                'roleId': 0,
+                'mustChangePassword': False,
+                'fcmToken': '',
+                'adminAddedUser': False,
+            })
+            try:
+                send_welcome_email_for_id(
+                    email=email,
+                    name=data.get('fullName') or '',
+                    password=password,
+                )
+            except Exception as mail_exc:
+                logger.warning('Welcome email failed for %s: %s', email, mail_exc)
+        data['emailAddress'] = registered_email
+
         details = {}
         for field in category['fields']:
             key = field['key']
@@ -2319,6 +2464,7 @@ def _activate_multipurpose_owner(request, qr_id, snap):
             value = str(data.get(key) or '').strip()
             if value:
                 details[key] = value[:200]
+        link_source = request.POST if (request.content_type or '').lower().startswith('multipart/') else data
         update = {
             'qrType': MULTIPURPOSE_QR_TYPE,
             'purpose': 'multipurpose',
@@ -2334,17 +2480,27 @@ def _activate_multipurpose_owner(request, qr_id, snap):
             'assignedAt': firestore.SERVER_TIMESTAMP,
             'note': note,
             'photoUrls': photo_urls,
+            'links': parse_multipurpose_links(link_source),
         }
         snap.reference.update(update)
         clear_activate_phone_verified(request, qr_id)
         return JsonResponse({
             'status': 'success',
-            'message': 'Multipurpose QR activated.',
+            'message': (
+                'Smart Tag activated. We emailed your login password.'
+                if is_new_user
+                else 'Smart Tag activated.'
+            ),
             'redirect_url': reverse('multipurpose_qr_scan', args=[qr_id]),
-            'is_new_user': False,
+            'is_new_user': is_new_user,
         })
     except Exception as exc:
         logger.exception('multipurpose activation failed')
+        if auth_user is not None and is_new_user:
+            try:
+                auth.delete_user(auth_user.uid)
+            except Exception:
+                logger.warning('Failed to cleanup Smart Tag auth user', exc_info=True)
         return JsonResponse({
             'status': 'error',
             'message': f'Activation failed: {exc}',
@@ -2390,6 +2546,7 @@ def _multipurpose_public_card(data):
         'intro': _MULTIPURPOSE_INTRO.get(category, _MULTIPURPOSE_INTRO['personal']),
         'prompts': list(_MULTIPURPOSE_PROMPTS.get(category, _MULTIPURPOSE_PROMPTS['personal'])),
         'facts': facts,
+        'links': public_multipurpose_links(data),
     }
 
 
@@ -2408,6 +2565,75 @@ def _record_multipurpose_scan(request, snap):
         logger.exception('multipurpose scan count failed')
 
 
+def _smart_tag_owner_controls(owner_id):
+    """App toggles for a Smart Tag owner. Vehicle settings are not included."""
+    from .scanner_contact_prefs import (
+        merge_user_scanner_subdocuments,
+        scanner_effective_channels_now,
+        scanner_pref_merged_dict,
+        scanner_user_app_prefs_from_merged,
+    )
+    from .owner_live_status import parse_owner_live_status
+
+    off = {
+        'voice': False,
+        'sms': False,
+        'push': False,
+        'push_pref': False,
+        'call_note': 'The owner turned off voice calls in the app.',
+        'sms_note': 'The owner turned off messages in the app.',
+        'push_note': 'The owner turned off push notifications in the app.',
+        'token': '',
+    }
+    owner_id = str(owner_id or '').strip()
+    if not owner_id:
+        return off
+    user_ref = db.collection('users').document(owner_id)
+    try:
+        snap = user_ref.get()
+    except Exception:
+        logger.exception('Smart Tag owner settings lookup failed')
+        return off
+    if not snap.exists:
+        return off
+    user_data = merge_user_scanner_subdocuments(db, user_ref, snap.to_dict() or {})
+    merged = scanner_pref_merged_dict(user_data, None)
+    app_prefs = scanner_user_app_prefs_from_merged(merged)
+    channels = scanner_effective_channels_now(user_data, None)
+    live = parse_owner_live_status(user_data)
+    token = str(user_data.get('fcmToken') or '').strip()
+    voice_pref = bool(channels['voice'] and app_prefs['owner_call_allowed'])
+    voice = bool(voice_pref and live.get('allows_owner_call', True))
+    sms = bool(channels['sms'] and app_prefs['owner_sms_allowed'])
+    push_pref = bool(channels['push'] and app_prefs['push_allowed'])
+    if not voice_pref:
+        call_note = 'The owner turned off voice calls in the app.'
+    elif not live.get('allows_owner_call', True):
+        call_note = 'The owner isn’t available for calls right now.'
+    else:
+        call_note = 'Call through SudoTag'
+    if sms:
+        sms_note = 'Send the text above by SMS'
+    else:
+        sms_note = 'The owner turned off messages in the app.'
+    if not push_pref:
+        push_note = 'The owner turned off push notifications in the app.'
+    elif not token:
+        push_note = 'Push isn’t available on this account yet.'
+    else:
+        push_note = 'Alert the SudoTag app'
+    return {
+        'voice': voice,
+        'sms': sms,
+        'push': bool(push_pref and token),
+        'push_pref': push_pref,
+        'call_note': call_note,
+        'sms_note': sms_note,
+        'push_note': push_note,
+        'token': token,
+    }
+
+
 @ensure_csrf_cookie
 def multipurpose_qr_scan(request, qr_id):
     """Scan page for multipurpose QRs. Unassigned codes activate here first."""
@@ -2423,23 +2649,30 @@ def multipurpose_qr_scan(request, qr_id):
             return _activate_multipurpose_owner(request, qr_id, fresh)
         return render(request, 'multipurpose_activate.html', {
             'qr_id': qr_id,
-            'title': 'Multipurpose QR',
+            'title': 'Smart Tag',
             'categories': MULTIPURPOSE_CATEGORIES,
         })
     from .vehicle_photos import parse_photo_urls
     paused = bool(data.get('contactPaused'))
+    controls = _smart_tag_owner_controls(data.get('userID'))
+    has_phone = bool(normalize_phone_number(data.get('contactNumber'))) and not paused
     _record_multipurpose_scan(request, snap)
     return render(request, 'multipurpose_scan.html', {
         'missing': False,
         'title': data.get('title') or 'SudoTag',
         'note': data.get('note') or '',
         'category': str(data.get('category') or ''),
-        'category_label': str(data.get('categoryLabel') or 'Multipurpose'),
+        'category_label': str(data.get('categoryLabel') or 'Smart Tag'),
         'public_card': _multipurpose_public_card(data),
         'photo_urls': parse_photo_urls(data),
         'paused': paused,
         'qr_id': qr_id,
-        'can_contact': bool(normalize_phone_number(data.get('contactNumber'))) and not paused,
+        'can_call': has_phone and controls['voice'],
+        'can_sms': has_phone and controls['sms'],
+        'can_push': (not paused) and controls['push'],
+        'call_note': controls['call_note'],
+        'sms_note': controls['sms_note'],
+        'push_note': controls['push_note'],
         'call_did': CALL_ROUTING_EXPECTED_DID,
         'call_destination': normalize_phone_number(data.get('contactNumber')) or '',
         'register_url': reverse('register_call_destination'),
@@ -2457,15 +2690,11 @@ def multipurpose_qr_contact(request, qr_id):
         snap = None
     data = snap.to_dict() if snap is not None and snap.exists else None
     if not data or data.get('purpose') != 'multipurpose' or not data.get('isAssigned'):
-        return JsonResponse({'status': 'error', 'message': 'This QR is not a multipurpose code.'}, status=404)
+        return JsonResponse({'status': 'error', 'message': 'This QR is not a Smart Tag.'}, status=404)
     if data.get('contactPaused'):
         return JsonResponse({'status': 'error', 'message': 'This tag is paused.'}, status=403)
+    controls = _smart_tag_owner_controls(data.get('userID'))
     digits = normalize_phone_number(data.get('contactNumber'))
-    if not digits:
-        return JsonResponse(
-            {'status': 'error', 'message': 'No contact number is saved on this QR.'},
-            status=400,
-        )
     try:
         body = json.loads(request.body or b'{}')
     except json.JSONDecodeError:
@@ -2475,9 +2704,19 @@ def multipurpose_qr_contact(request, qr_id):
     method = str(body.get('method') or '').strip().lower()
     message = str(body.get('message') or data.get('note') or '').strip()
     if not message:
-        message = f"Someone scanned your SudoTag: {data.get('title') or 'Multipurpose QR'}"
+        message = f"Someone scanned your SudoTag: {data.get('title') or 'Smart Tag'}"
     message = message[:200]
     if method == 'sms':
+        if not controls['sms']:
+            return JsonResponse(
+                {'status': 'error', 'message': controls['sms_note']},
+                status=403,
+            )
+        if not digits:
+            return JsonResponse(
+                {'status': 'error', 'message': 'No contact number is saved on this QR.'},
+                status=400,
+            )
         from .msg91_vehicle_sms import send_vehicle_issue_sms
         result = send_vehicle_issue_sms(digits_10=digits, message=message)
         if not result.get('ok'):
@@ -2487,17 +2726,31 @@ def multipurpose_qr_contact(request, qr_id):
             )
         return JsonResponse({'status': 'ok', 'message': 'Message sent.'})
     if method == 'push':
-        user_doc = None
-        try:
-            matches = list(
-                db.collection('users')
-                .where('contactNumber', 'in', [digits, '+91' + digits])
-                .limit(1)
-                .stream()
+        if not controls['push_pref']:
+            return JsonResponse(
+                {'status': 'error', 'message': controls['push_note']},
+                status=403,
             )
-            user_doc = matches[0] if matches else None
-        except Exception:
-            user_doc = None
+        user_doc = None
+        owner_id = str(data.get('userID') or '').strip()
+        if owner_id:
+            try:
+                owner_snap = db.collection('users').document(owner_id).get()
+            except Exception:
+                owner_snap = None
+            if owner_snap is not None and owner_snap.exists:
+                user_doc = owner_snap
+        if user_doc is None:
+            try:
+                matches = list(
+                    db.collection('users')
+                    .where('contactNumber', 'in', [digits, '+91' + digits])
+                    .limit(1)
+                    .stream()
+                )
+                user_doc = matches[0] if matches else None
+            except Exception:
+                user_doc = None
         if user_doc is None:
             return JsonResponse(
                 {
@@ -6531,6 +6784,7 @@ def assign_qr(request):
             'mp_qrs': mp_qrs,
             'mp_users': mp_users,
             'mp_categories': MULTIPURPOSE_CATEGORIES,
+            'extra_links': [],
             'qr_kind': request.GET.get('qr_kind') or 'vehicle',
             'search_qr': search_qr,
             'search_user': search_user,
@@ -6547,6 +6801,7 @@ def assign_qr(request):
             'mp_qrs': [],
             'mp_users': [],
             'mp_categories': MULTIPURPOSE_CATEGORIES,
+            'extra_links': [],
             'qr_kind': request.GET.get('qr_kind') or 'vehicle',
             'search_qr': '',
             'search_user': '',

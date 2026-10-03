@@ -141,6 +141,41 @@ def _vehicle_scan_destination(db, qr_id, target):
     return effective_contact_number(vehicle_data, user_data) or ''
 
 
+def _notify_multipurpose_call(db, mp_data, qr_id):
+    """Heads-up push to the linked account when a multipurpose call is registered."""
+    owner_id = str((mp_data or {}).get('userID') or '').strip()
+    if not owner_id:
+        return
+    try:
+        user_doc = db.collection('users').document(owner_id).get()
+    except Exception:
+        return
+    if not user_doc.exists:
+        return
+    from admin_app.views import _smart_tag_owner_controls
+    controls = _smart_tag_owner_controls(owner_id)
+    if not controls['push_pref']:
+        return
+    token = controls['token'] or str((user_doc.to_dict() or {}).get('fcmToken') or '').strip()
+    if not token:
+        return
+    from admin_app.fcm_push import send_push_to_tokens
+    title = str((mp_data or {}).get('title') or 'SudoTag')[:80]
+    send_push_to_tokens(
+        db,
+        user_id=owner_id,
+        tokens=[token],
+        title=title,
+        body='Someone is calling you from your Smart Tag.',
+        data={
+            'qrId': str(qr_id),
+            'notificationType': 'multipurpose_call',
+            'type': 'multipurpose_call',
+        },
+        store_inbox=True,
+    )
+
+
 @csrf_exempt
 @require_POST
 def register_call_destination(request):
@@ -228,13 +263,24 @@ def register_call_destination(request):
         )
 
     if mp_data:
+        from admin_app.views import _smart_tag_owner_controls
+        controls = _smart_tag_owner_controls(mp_data.get('userID'))
+        if not controls['voice']:
+            return JsonResponse(
+                {
+                    'status': 'error',
+                    'error': controls['call_note'],
+                    'message': controls['call_note'],
+                },
+                status=403,
+            )
         stored = _call_route_norm10(mp_data.get('contactNumber'))
         if not stored or stored != dest_key:
             return JsonResponse(
                 {
                     'status': 'error',
-                    'error': 'This multipurpose QR has no matching contact number.',
-                    'message': 'This multipurpose QR has no matching contact number.',
+                    'error': 'This Smart Tag has no matching contact number.',
+                    'message': 'This Smart Tag has no matching contact number.',
                 },
                 status=400,
             )
@@ -262,7 +308,9 @@ def register_call_destination(request):
     )
     logger.info('call_route register stored caller_key=%s destination=%s', key, destination)
     try:
-        if not mp_data:
+        if mp_data:
+            _notify_multipurpose_call(db, mp_data, qr_id)
+        else:
             send_scanner_voice_call_attempt_push(db, qr_id, dest_key, key)
     except Exception as exc:
         logger.warning('call_route register owner push alert failed: %s', exc)

@@ -259,7 +259,7 @@
                             <div class="col-md-6">
                                 <label class="qr-type-card d-block mb-0">
                                     <input type="radio" name="qr_type" id="multipurpose_qr" value="multipurpose">
-                                    <span class="d-block fw-semibold mt-2">Multipurpose</span>
+                                    <span class="d-block fw-semibold mt-2">Smart Tag</span>
                                     <small class="text-muted">Inactive until it is scanned and activated. No details are collected here.</small>
                                 </label>
                             </div>
@@ -285,7 +285,7 @@
                                 <i class="fas fa-hashtag me-2"></i>Number of QR Codes
                             </label>
                             <input type="number" id="mp_count" name="mp_count" class="form-control" min="1" max="100" value="1">
-                            <small class="text-muted">Only the QR ID is created. Type is Multipurpose QR, and it stays inactive until someone scans it.</small>
+                            <small class="text-muted">Only the QR ID is created. Type is Smart Tag, and it stays inactive until someone scans it.</small>
                         </div>
                     </div>
 
@@ -309,7 +309,7 @@
                     <h4 class="mb-1"><i class="fas fa-check-circle me-2 text-success"></i>Generated QR Codes</h4>
                     <p class="mb-0">Successfully generated {{ qr_data|length }} QR code{{ qr_data|length|pluralize }}</p>
                     {% if qr_data.0.type == 'multipurpose' %}
-                    <a href="{% url 'manage_multipurpose_qrs' %}" class="small">View them under Multipurpose QR</a>
+                    <a href="{% url 'manage_multipurpose_qrs' %}" class="small">View them under Smart Tag</a>
                     {% endif %}
                 </div>
                 <a href="{% url 'download_qr_pdf' %}" class="btn btn-primary btn-sm">
@@ -327,7 +327,7 @@
                             {% if qr.type == 'user' %}
                             <i class="fas fa-car me-2"></i>Vehicle QR
                             {% elif qr.type == 'multipurpose' %}
-                            <i class="fas fa-qrcode me-2"></i>Multipurpose QR
+                            <i class="fas fa-qrcode me-2"></i>Smart Tag
                             {% else %}
                             <i class="fas fa-link me-2"></i>External Registration
                             {% endif %}

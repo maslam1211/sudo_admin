@@ -1,0 +1,57 @@
+<div class="mb-3">
+    <label class="form-label">Public links</label>
+    <div class="form-text">Optional. Instagram name, Facebook name, website, or your own title. Scanners can open these. The mobile number stays hidden.</div>
+</div>
+<div class="mb-3">
+    <label class="form-label" for="mpInstagram">Instagram name</label>
+    <input class="form-control" id="mpInstagram" name="instagram" value="{{ values.instagram|default:'' }}">
+</div>
+<div class="mb-3">
+    <label class="form-label" for="mpFacebook">Facebook name</label>
+    <input class="form-control" id="mpFacebook" name="facebook" value="{{ values.facebook|default:'' }}">
+</div>
+<div class="mb-3">
+    <label class="form-label" for="mpWebsite">Website</label>
+    <input class="form-control" id="mpWebsite" name="website" value="{{ values.website|default:'' }}">
+</div>
+<div id="mpExtraLinks">
+    {% for link in extra_links %}
+    <div class="row g-2 mb-2 mp-extra-link">
+        <div class="col-md-5">
+            <input class="form-control" name="linkTitle" placeholder="Title" value="{{ link.title }}">
+        </div>
+        <div class="col-md-5">
+            <input class="form-control" name="linkValue" placeholder="Name or link" value="{{ link.value }}">
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-outline-danger w-100 mp-remove-link">Remove</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="mpAddLink">Add title</button>
+<script>
+(function () {
+    var root = document.getElementById('mpExtraLinks');
+    var add = document.getElementById('mpAddLink');
+    if (!root || !add || add.dataset.bound === '1') return;
+    add.dataset.bound = '1';
+    function bind(button, row) {
+        button.addEventListener('click', function () { row.remove(); });
+    }
+    root.querySelectorAll('.mp-extra-link').forEach(function (row) {
+        var button = row.querySelector('.mp-remove-link');
+        if (button) bind(button, row);
+    });
+    add.addEventListener('click', function () {
+        if (root.querySelectorAll('.mp-extra-link').length >= 5) return;
+        var row = document.createElement('div');
+        row.className = 'row g-2 mb-2 mp-extra-link';
+        row.innerHTML = '<div class="col-md-5"><input class="form-control" name="linkTitle" placeholder="Title"></div>'
+            + '<div class="col-md-5"><input class="form-control" name="linkValue" placeholder="Name or link"></div>'
+            + '<div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 mp-remove-link">Remove</button></div>';
+        bind(row.querySelector('.mp-remove-link'), row);
+        root.appendChild(row);
+    });
+})();
+</script>

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ row.id }} - Multipurpose QR{% endblock %}
-{% block page_title %}Multipurpose QR{% endblock %}
+{% block title %}{{ row.id }} - Smart Tag{% endblock %}
+{% block page_title %}Smart Tag{% endblock %}
 
 {% block content %}
 {% if messages %}
@@ -15,7 +15,7 @@
 </div>
 {% endif %}
 
-<p><a href="{% url 'manage_multipurpose_qrs' %}">&larr; All multipurpose QR</a></p>
+<p><a href="{% url 'manage_multipurpose_qrs' %}">&larr; All Smart Tags</a></p>
 
 <div class="row g-3">
     <div class="col-lg-7">
@@ -89,6 +89,7 @@
                         {% endfor %}
                     </div>
                     {% endfor %}
+                    {% include 'includes/multipurpose_link_fields.html' %}
                     <button class="btn btn-primary" type="submit">Save usage</button>
                 </form>
                 {% if row.paused %}
@@ -117,7 +118,7 @@
                 <h5 class="mb-2">Inactive</h5>
                 <p class="text-muted">This code has no active owner. Assign it to an account here, or leave it so the next scan opens activation.</p>
                 <a class="btn btn-primary me-2" href="{% url 'assign_qr' %}?qr_kind=multipurpose&qr_id={{ row.id }}">Assign this QR</a>
-                <form method="post" action="{% url 'delete_multipurpose_qr' row.id %}" onsubmit="return confirm('Delete this unused multipurpose QR?');">
+                <form method="post" action="{% url 'delete_multipurpose_qr' row.id %}" onsubmit="return confirm('Delete this unused Smart Tag?');">
                     {% csrf_token %}
                     <button class="btn btn-outline-danger" type="submit">Delete QR</button>
                 </form>
@@ -131,7 +132,7 @@
             <div class="card-body text-center">
                 <h5 class="mb-3">Sticker</h5>
                 {% if qr_png %}
-                <img src="data:image/png;base64,{{ qr_png }}" alt="Multipurpose QR {{ row.id }}" class="img-fluid mb-3" style="max-width: 280px;">
+                <img src="data:image/png;base64,{{ qr_png }}" alt="Smart Tag {{ row.id }}" class="img-fluid mb-3" style="max-width: 280px;">
                 <div>
                     <a class="btn btn-outline-primary btn-sm" download="multipurpose-{{ row.id }}.png" href="data:image/png;base64,{{ qr_png }}">Download</a>
                 </div>

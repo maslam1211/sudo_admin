@@ -187,20 +187,128 @@
     .mp-shell .sudo-app-main { padding-bottom: 28px; }
     [hidden] { display: none !important; }
   </style>
+  <style id="mp-page-loading-critical">
+    html.mp-page-loading,
+    html.mp-page-loading body { overflow: hidden !important; background: #000 !important; }
+    html.mp-page-loading body > *:not(#mpPageLoading):not(script) {
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #mpPageLoading {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483645;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+    #mpPageLoading.is-hiding {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.38s ease, visibility 0.38s ease;
+    }
+    .mp-wheel-lottie { width: 160px; height: 160px; }
+    .mp-wheel-lottie svg { width: 160px !important; height: 160px !important; }
+  </style>
+  <link rel="preload" href="{% url 'notify_sending_wheel_json' %}" as="fetch" crossorigin>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    document.documentElement.classList.add('mp-page-loading');
+    (function () {
+      var dismissed = false;
+      var domReady = false;
+      var pageLoaded = document.readyState === 'complete';
+      var startedAt = Date.now();
+      function dismissPageLoading() {
+        if (dismissed || !domReady || !pageLoaded) return;
+        var wait = 700 - (Date.now() - startedAt);
+        if (wait > 0) {
+          window.setTimeout(dismissPageLoading, wait + 20);
+          return;
+        }
+        dismissed = true;
+        document.documentElement.classList.remove('mp-page-loading');
+        var overlay = document.getElementById('mpPageLoading');
+        if (!overlay) return;
+        overlay.classList.add('is-hiding');
+        overlay.setAttribute('aria-busy', 'false');
+        window.setTimeout(function () {
+          if (overlay.parentNode) overlay.remove();
+        }, 420);
+      }
+      window.markMpPageReady = function () {
+        domReady = true;
+        dismissPageLoading();
+      };
+      if (!pageLoaded) {
+        window.addEventListener('load', function () {
+          pageLoaded = true;
+          dismissPageLoading();
+        });
+      }
+      window.setTimeout(function () {
+        pageLoaded = true;
+        domReady = true;
+        dismissPageLoading();
+      }, 4000);
+    })();
+  </script>
 </head>
 <body class="mp-flow sudo-mobile-flow">
+  <div id="mpPageLoading" role="status" aria-live="polite" aria-busy="true" aria-label="Loading">
+    <div id="mpPageWheel" class="mp-wheel-lottie" aria-hidden="true"></div>
+  </div>
+  <script>
+    (function () {
+      var mount = document.getElementById('mpPageWheel');
+      var wheelUrl = "{% url 'notify_sending_wheel_json' %}";
+      function start(LottieApi) {
+        if (!mount || !LottieApi) return;
+        try {
+          LottieApi.loadAnimation({
+            container: mount,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: wheelUrl
+          });
+        } catch (e) {}
+      }
+      var ready = window.lottie || window.bodymovin;
+      if (ready) {
+        start(ready);
+        return;
+      }
+      var attempts = 0;
+      var timer = window.setInterval(function () {
+        var api = window.lottie || window.bodymovin;
+        attempts += 1;
+        if (api) {
+          window.clearInterval(timer);
+          start(api);
+        } else if (attempts > 80) {
+          window.clearInterval(timer);
+        }
+      }, 50);
+    })();
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof window.markMpPageReady === 'function') window.markMpPageReady();
+    });
+  </script>
   {% include 'includes/multipurpose_open_app.html' %}
   <div class="mp-shell">
     <header class="app-header sudo-app-header">
       <a href="/" class="brand-logo" aria-label="SudoTag home">
         {% include 'includes/brand_logo_img.html' %}
       </a>
-      <h1 class="header-title">Activate multipurpose QR</h1>
+      <h1 class="header-title">Activate Smart Tag</h1>
     </header>
     <main class="app-main sudo-app-main">
       <section class="vehicle-info">
         <p class="vehicle-model">Inactive QR</p>
-        <h2 class="mp-hero-name">Multipurpose QR</h2>
+        <h2 class="mp-hero-name">Smart Tag</h2>
         <p class="mp-hero-note">Choose what this code is for, then enter the details for that category.</p>
       </section>
       <section class="content-card">
@@ -219,6 +327,22 @@
             </div>
             <p class="mp-error" id="err-category"></p>
             <div id="mpDynamicFields"></div>
+            <h3 class="section-label"><i class="bi bi-link-45deg"></i> Public links</h3>
+            <p class="mp-status">Optional. Instagram name, Facebook name, website, or your own title. Scanners can open these. The mobile number stays hidden.</p>
+            <div class="form-group">
+              <label class="form-label" for="instagram">Instagram name</label>
+              <input class="form-control" id="instagram" name="instagram" type="text" placeholder="Instagram name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="facebook">Facebook name</label>
+              <input class="form-control" id="facebook" name="facebook" type="text" placeholder="Facebook name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="website">Website</label>
+              <input class="form-control" id="website" name="website" type="text" placeholder="https://">
+            </div>
+            <div id="mpExtraLinks"></div>
+            <button type="button" class="mp-mini" id="mpAddLink">Add title</button>
             <div class="mp-photos">
               <h3>Photos</h3>
               <p>Up to 5 photos (optional). The first photo is the primary image.</p>
@@ -348,9 +472,9 @@
         var tag = field.kind === 'text'
           ? '<textarea class="form-control" id="' + field.key + '" rows="3" maxlength="500" placeholder="People will see this after they scan"></textarea>'
           : '<input class="form-control" id="' + field.key + '" type="' + inputType + '"'
-            + (field.kind === 'email' ? ' placeholder="Email registered in the SudoTag app"' : '') + '>';
+            + (field.kind === 'email' ? ' placeholder="Your email address"' : '') + '>';
         var hint = field.kind === 'email'
-          ? '<p class="mp-status">Use the email already registered in the SudoTag app.</p>'
+          ? '<p class="mp-status">If this email has no SudoTag account yet, we will email you a password to log in.</p>'
           : '';
         return '<div class="form-group"><label class="form-label" for="' + field.key + '">' + field.label
           + (field.required ? '' : ' (optional)') + '</label>' + tag
@@ -502,6 +626,17 @@
       });
       document.querySelector('.mp-category').classList.add('is-selected');
       renderFields();
+      var extraRoot = document.getElementById('mpExtraLinks');
+      document.getElementById('mpAddLink').addEventListener('click', function () {
+        if (extraRoot.querySelectorAll('.mp-extra-link').length >= 5) return;
+        var row = document.createElement('div');
+        row.className = 'mp-extra-link';
+        row.innerHTML = '<div class="form-group"><label class="form-label">Title</label><input class="form-control" name="linkTitle" type="text" placeholder="YouTube"></div>'
+          + '<div class="form-group"><label class="form-label">Name or link</label><input class="form-control" name="linkValue" type="text" placeholder="Name or https://"></div>'
+          + '<button type="button" class="mp-mini mp-remove-link">Remove</button>';
+        row.querySelector('.mp-remove-link').addEventListener('click', function () { row.remove(); });
+        extraRoot.appendChild(row);
+      });
       document.getElementById('mpActivateForm').addEventListener('submit', function (event) {
         event.preventDefault();
         fieldsRoot.querySelectorAll('.mp-error').forEach(function (el) { el.textContent = ''; });
@@ -537,6 +672,26 @@
         Object.keys(payload).forEach(function (key) {
           body.append(key, payload[key]);
         });
+        ['instagram', 'facebook', 'website'].forEach(function (key) {
+          var input = document.getElementById(key);
+          body.append(key, input ? input.value.trim() : '');
+        });
+        document.querySelectorAll('.mp-extra-link').forEach(function (row) {
+          var title = row.querySelector('[name="linkTitle"]');
+          var value = row.querySelector('[name="linkValue"]');
+          var titleText = title ? title.value.trim() : '';
+          var valueText = value ? value.value.trim() : '';
+          if ((titleText && valueText.length === 0) || (valueText && titleText.length < 2)) {
+            missing = true;
+            formStatus.textContent = 'Each extra title needs a name and a value.';
+          }
+          body.append('linkTitle', titleText);
+          body.append('linkValue', valueText);
+        });
+        if (missing) {
+          button.disabled = false;
+          return;
+        }
         photoFiles.forEach(function (file) {
           body.append('photos', file);
         });
