@@ -36,32 +36,61 @@ def _to_aware_datetime(value: Any) -> Optional[datetime]:
     return None
 
 
+def _assignment_now(now: Optional[datetime]) -> datetime:
+    if now is None:
+        return datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        return now.replace(tzinfo=timezone.utc)
+    return now
+
+
+def _window_still_open(vehicle_data: Mapping[str, Any], now: datetime) -> bool:
+    until = vehicle_data.get('assignedUntil')
+    if until is None:
+        return True
+    until_dt = _to_aware_datetime(until)
+    if until_dt is None:
+        # Unparseable until → treat as open (contact is set), matching
+        # mobile's "null until means active" spirit for bad data.
+        return True
+    return now < until_dt
+
+
+def has_scheduled_family_assignment(
+    vehicle_data: Optional[Mapping[str, Any]],
+    now: Optional[datetime] = None,
+) -> bool:
+    """Contact is set, but assignedFrom is still in the future."""
+    if not vehicle_data:
+        return False
+    contact = (vehicle_data.get('assignedFamilyMemberContact') or '').strip()
+    if not contact:
+        return False
+    moment = _assignment_now(now)
+    starts = _to_aware_datetime(vehicle_data.get('assignedFrom'))
+    if starts is None or moment >= starts:
+        return False
+    return _window_still_open(vehicle_data, moment)
+
+
 def has_active_family_assignment(
     vehicle_data: Optional[Mapping[str, Any]],
     now: Optional[datetime] = None,
 ) -> bool:
     """
     True while a family member is actively using the vehicle
-    (contact present and time window not yet expired).
+    (contact present, start has passed, and the end time is not yet expired).
     """
     if not vehicle_data:
         return False
     contact = (vehicle_data.get('assignedFamilyMemberContact') or '').strip()
     if not contact:
         return False
-    until = vehicle_data.get('assignedUntil')
-    if until is None:
-        return True
-    until_dt = _to_aware_datetime(until)
-    if until_dt is None:
-        # Unparseable until → treat as active (contact is set), matching
-        # mobile's "null until means active" spirit for bad data.
-        return True
-    if now is None:
-        now = datetime.now(timezone.utc)
-    elif now.tzinfo is None:
-        now = now.replace(tzinfo=timezone.utc)
-    return now < until_dt
+    moment = _assignment_now(now)
+    starts = _to_aware_datetime(vehicle_data.get('assignedFrom'))
+    if starts is not None and moment < starts:
+        return False
+    return _window_still_open(vehicle_data, moment)
 
 
 def vehicle_owner_contact_number(

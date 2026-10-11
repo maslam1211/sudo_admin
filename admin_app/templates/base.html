@@ -515,6 +515,12 @@
             </div>
 
             <div class="sidebar-menu-item">
+                <a href="{% url 'manage_rewards' %}" class="sidebar-menu-link {% if '/rewards/' in request.path or '/admin/rewards/' in request.path %}active{% endif %}">
+                    <i class="fas fa-gift"></i>
+                    <span>Wallet</span>
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
                 <a href="{% url 'manage_referrals' %}" class="sidebar-menu-link {% if '/referrals/' in request.path or '/referrers/' in request.path or '/admin/referrals/' in request.path or '/admin/referrers/' in request.path %}active{% endif %}">
                     <i class="fas fa-share-alt"></i>
                     <span>Referrals</span>
@@ -540,6 +546,13 @@
                 <a href="{% url 'manage_ads' %}" class="sidebar-menu-link {% if request.path == '/manage-ads/' or request.path == '/admin/manage-ads/' %}active{% endif %}">
                     <i class="fas fa-ad"></i>
                     <span>Manage Ads</span>
+                </a>
+            </div>
+
+            <div class="sidebar-menu-item">
+                <a href="{% url 'manage_promotion_notification' %}" class="sidebar-menu-link {% if '/promotion-notification/' in request.path %}active{% endif %}">
+                    <i class="fas fa-bell"></i>
+                    <span>Push notification</span>
                 </a>
             </div>
 

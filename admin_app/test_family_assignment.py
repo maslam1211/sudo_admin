@@ -9,6 +9,7 @@ from admin_app.family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
     has_active_family_assignment,
+    has_scheduled_family_assignment,
     vehicle_owner_contact_number,
 )
 from admin_app.scanner_contact_prefs import validate_scanner_call_for_qr
@@ -31,6 +32,19 @@ class FamilyAssignmentHelpersTests(SimpleTestCase):
             'assignedUntil': NOW + timedelta(hours=12),
         }
         self.assertTrue(has_active_family_assignment(vehicle, now=NOW))
+
+    def test_future_start_is_scheduled_not_active(self):
+        vehicle = {
+            'assignedFamilyMemberContact': '9876543210',
+            'assignedFrom': NOW + timedelta(hours=4),
+            'assignedUntil': NOW + timedelta(hours=12),
+        }
+        self.assertTrue(has_scheduled_family_assignment(vehicle, now=NOW))
+        self.assertFalse(has_active_family_assignment(vehicle, now=NOW))
+        self.assertEqual(
+            effective_contact_number(vehicle, {'contactNumber': '9000000001'}, now=NOW),
+            '9000000001',
+        )
 
     def test_inactive_when_until_expired(self):
         vehicle = {

@@ -20,18 +20,20 @@
     <p class="text-muted mb-0">Paid fleet subscriptions. Activate or extend a plan here after an offline GST payment. Customers subscribe from the app under Me → SudoTag Fleet.</p>
     <div class="d-flex align-items-center gap-2">
         <span class="badge bg-success">{{ active_count }} active</span>
+        <span class="badge bg-primary">{{ scheduled_count }} scheduled</span>
         <a class="btn btn-outline-secondary btn-sm" href="{% url 'export_fleets_csv' %}?status={{ status }}&search={{ search }}">Export CSV</a>
     </div>
 </div>
 
 <form class="row g-2 mb-3" method="get">
     <div class="col-md-5">
-        <input class="form-control" name="search" value="{{ search }}" placeholder="Search name, GSTIN, owner id">
+        <input class="form-control" name="search" value="{{ search }}" placeholder="Search name, GSTIN, city, owner id">
     </div>
     <div class="col-md-3">
         <select class="form-select" name="status">
             <option value="" {% if not status %}selected{% endif %}>All statuses</option>
             <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="scheduled" {% if status == 'scheduled' %}selected{% endif %}>Scheduled</option>
             <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive / expired</option>
         </select>
     </div>
@@ -49,6 +51,7 @@
                     <th>Owner</th>
                     <th>Plan</th>
                     <th>Status</th>
+                    <th>Starts</th>
                     <th>Expires</th>
                     <th></th>
                 </tr>
@@ -72,9 +75,14 @@
                         <span class="badge bg-info text-dark">Trialing</span>
                         {% elif fleet.statusLabel == 'Expired' %}
                         <span class="badge bg-warning text-dark">Expired</span>
+                        {% elif fleet.statusLabel == 'Scheduled' %}
+                        <span class="badge bg-primary">Scheduled</span>
                         {% else %}
                         <span class="badge bg-secondary">{{ fleet.statusLabel }}</span>
                         {% endif %}
+                    </td>
+                    <td>
+                        {% if fleet.startsAt %}{{ fleet.startsAt|date:"d M Y" }}{% else %}—{% endif %}
                     </td>
                     <td>
                         {% if fleet.expiresAt %}{{ fleet.expiresAt|date:"d M Y" }}{% else %}—{% endif %}
@@ -85,7 +93,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No fleets yet. Customers subscribe from the SudoTag app → Me → SudoTag Fleet.</td>
+                    <td colspan="7" class="text-center text-muted py-4">No fleets yet. Customers subscribe from the SudoTag app → Me → SudoTag Fleet.</td>
                 </tr>
                 {% endfor %}
             </tbody>

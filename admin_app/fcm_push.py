@@ -210,6 +210,13 @@ def build_fcm_message(
     if badge < 1:
         badge = 1
 
+    image_url = ''
+    for key in ('imageUrl', 'image_url', 'image'):
+        raw = string_data.get(key) or ''
+        if raw.startswith('https://') or raw.startswith('http://'):
+            image_url = raw
+            break
+
     lost_mode = _is_lost_mode_payload(string_data)
     string_data.setdefault('title', title)
     string_data.setdefault('body', body)
@@ -244,13 +251,18 @@ def build_fcm_message(
 
     return messaging.Message(
         token=token.strip(),
-        notification=messaging.Notification(title=title, body=body),
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+            image=image_url or None,
+        ),
         data=string_data,
         android=messaging.AndroidConfig(
             priority='high',
             notification=messaging.AndroidNotification(
                 channel_id=PUSH_CHANNEL_ID,
                 sound=PUSH_SOUND_ANDROID,
+                image=image_url or None,
                 default_vibrate_timings=True,
                 visibility='public',
                 priority='high',
@@ -262,11 +274,13 @@ def build_fcm_message(
                 'apns-priority': '10',
                 'apns-push-type': 'alert',
             },
+            fcm_options=messaging.APNSFCMOptions(image=image_url) if image_url else None,
             payload=messaging.APNSPayload(
                 aps=messaging.Aps(
                     alert=messaging.ApsAlert(title=title, body=body),
                     sound=PUSH_SOUND_IOS,
                     badge=badge,
+                    mutable_content=bool(image_url),
                     custom_data={'interruption-level': 'active'},
                 )
             ),

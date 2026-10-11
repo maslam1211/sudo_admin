@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}Promotion notification - Admin Panel{% endblock %}
+{% block page_title %}Promotion notification{% endblock %}
+
+{% block content %}
+<style>
+  .pn-wrap { max-width: 720px; }
+  .pn-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    padding: 1.5rem;
+  }
+  .pn-help { font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; }
+  .pn-card label { font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.3rem; }
+  .pn-switch { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; color: #111827; }
+</style>
+
+<div class="pn-wrap">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %} mb-3" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="pn-card">
+    {% csrf_token %}
+    <h2 class="h5 fw-bold mb-1">In-app promotion</h2>
+    <p class="pn-help">
+      Saved in Firebase at <code>app_settings/promotion_notification</code>.
+      Send now, or set a time and how often it repeats, for every customer who has an FCM token.
+      Times are India time. The form clears after a successful send or schedule.
+    </p>
+
+    <div class="mb-3">
+      <label class="pn-switch">
+        <input type="checkbox" name="enabled" {% if settings.enabled %}checked{% endif %}>
+        Show this promotion in the app
+      </label>
+    </div>
+
+    <div class="mb-3">
+      <label for="title">Title</label>
+      <input type="text" class="form-control" id="title" name="title" maxlength="80"
+             value="{{ settings.title }}" placeholder="e.g. Upgrade to SudoTag Smart">
+    </div>
+
+    <div class="mb-3">
+      <label for="message">Message</label>
+      <textarea class="form-control" id="message" name="message" maxlength="240" rows="3"
+                placeholder="Short promotion the user sees in the app">{{ settings.message }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label for="buttonText">Button text</label>
+      <input type="text" class="form-control" id="buttonText" name="buttonText" maxlength="40"
+             value="{{ settings.buttonText }}" placeholder="Open">
+    </div>
+
+    <div class="mb-3">
+      <label for="linkUrl">Link</label>
+      <input type="text" class="form-control" id="linkUrl" name="linkUrl" maxlength="500"
+             value="{{ settings.linkUrl }}" placeholder="https:// or an in-app screen link">
+    </div>
+
+    <div class="mb-3">
+      <label for="imageUrl">Image URL</label>
+      <input type="url" class="form-control" id="imageUrl" name="imageUrl" maxlength="500"
+             value="{{ settings.imageUrl }}" placeholder="https://…">
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label for="all_next_run">First send time</label>
+        <input type="datetime-local" class="form-control" id="all_next_run" name="all_next_run">
+      </div>
+      <div class="col-md-4">
+        <label for="all_interval_minutes">Repeat</label>
+        <select class="form-select" id="all_interval_minutes" name="all_interval_minutes">
+          {% for minutes, label in intervals %}
+            <option value="{{ minutes }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="all_end_at">Stop after</label>
+        <input type="datetime-local" class="form-control" id="all_end_at" name="all_end_at">
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-outline-primary" name="action" value="save">Save</button>
+    <button type="submit" class="btn btn-primary" name="action" value="send"
+            onclick="return confirm('Send this promotion to every customer who has an FCM token?');">
+      Send to all customers
+    </button>
+    <button type="submit" class="btn btn-primary" name="action" value="schedule_all"
+            onclick="return confirm('Schedule this notification for every customer who has an FCM token?');">
+      Schedule
+    </button>
+  </form>
+
+  <form method="post" enctype="multipart/form-data" class="pn-card mt-3">
+    {% csrf_token %}
+    <h2 class="h5 fw-bold mb-1">One customer</h2>
+    <p class="pn-help">
+      Send a push now, or set the first time and how often it repeats.
+      Times are India time. The form clears after a successful send or schedule.
+      Repeating pushes run while the admin server is on.
+    </p>
+    <div class="mb-3">
+      <label for="user_query">Customer</label>
+      <input type="text" class="form-control" id="user_query" name="user_query" required
+             placeholder="User ID or email">
+    </div>
+    <div class="mb-3">
+      <label for="user_title">Title</label>
+      <input type="text" class="form-control" id="user_title" name="user_title" maxlength="80" required>
+    </div>
+    <div class="mb-3">
+      <label for="user_message">Message</label>
+      <textarea class="form-control" id="user_message" name="user_message" maxlength="240" rows="3" required></textarea>
+    </div>
+    <div class="mb-3">
+      <label for="user_link">Link</label>
+      <input type="text" class="form-control" id="user_link" name="user_link" maxlength="500"
+             placeholder="Optional">
+    </div>
+    <div class="mb-3">
+      <label for="user_image">Image</label>
+      <input type="file" class="form-control" id="user_image" name="user_image" accept="image/*">
+    </div>
+    <div class="mb-3">
+      <label for="user_image_url">Or image URL</label>
+      <input type="url" class="form-control" id="user_image_url" name="user_image_url" maxlength="500"
+             placeholder="https://…">
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label for="next_run">First send time</label>
+        <input type="datetime-local" class="form-control" id="next_run" name="next_run">
+      </div>
+      <div class="col-md-4">
+        <label for="interval_minutes">Repeat</label>
+        <select class="form-select" id="interval_minutes" name="interval_minutes">
+          {% for minutes, label in intervals %}
+            <option value="{{ minutes }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="end_at">Stop after</label>
+        <input type="datetime-local" class="form-control" id="end_at" name="end_at">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-outline-primary" name="action" value="send_user">Send now</button>
+    <button type="submit" class="btn btn-primary" name="action" value="schedule_user">Schedule</button>
+  </form>
+
+  {% if schedules %}
+  <div class="pn-card mt-3">
+    <h2 class="h5 fw-bold mb-3">Scheduled pushes</h2>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr><th>Customer</th><th>Title</th><th>Repeat</th><th>Next</th><th>Sent</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for item in schedules %}
+          <tr>
+            <td class="small">{{ item.uid }}</td>
+            <td class="small">{{ item.title }}</td>
+            <td class="small">{{ item.interval }}{% if not item.enabled %} · stopped{% endif %}</td>
+            <td class="small">{{ item.next_run }}</td>
+            <td>{{ item.sent_count }}</td>
+            <td>
+              {% if item.enabled %}
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="schedule_cancel">
+                <input type="hidden" name="schedule_id" value="{{ item.id }}">
+                <button class="btn btn-outline-danger btn-sm" type="submit">Stop</button>
+              </form>
+              {% elif item.last_error %}
+              <span class="small text-muted">{{ item.last_error }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

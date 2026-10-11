@@ -5,7 +5,9 @@ from . import views
 from . import checkout_views
 from . import checkout_coupon_views
 from . import referral_views
+from . import wallet_views
 from . import fleet_views
+from . import promotion_notification_views
 from .multipurpose_admin import (
     assign_multipurpose_qr,
     delete_multipurpose_qr,
@@ -45,6 +47,7 @@ urlpatterns = [
     path('manage-live-status/', views.manage_live_status, name='manage_live_status'),
     path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
     # Referral management (read / analytics / export — writes via Cloud Functions)
+    path('rewards/', wallet_views.manage_rewards, name='manage_rewards'),
     path('referrals/', referral_views.manage_referrals, name='manage_referrals'),
     path('referrals/table/', referral_views.referrals_table, name='referrals_table'),
     path('referrals/export/', referral_views.export_referrals_csv, name='export_referrals_csv'),
@@ -129,6 +132,11 @@ urlpatterns = [
     path('bulk-delete-auth-users/', views.bulk_delete_auth_users, name='bulk_delete_auth_users'),
     # Ads management URLs
     path('manage-ads/', views.manage_ads, name='manage_ads'),
+    path(
+        'promotion-notification/',
+        promotion_notification_views.manage_promotion_notification,
+        name='manage_promotion_notification',
+    ),
     path('add-ad/', views.add_ad, name='add_ad'),
     path('update-ad/', views.update_ad, name='update_ad'),
     path('delete-ad/', views.delete_ad, name='delete_ad'),

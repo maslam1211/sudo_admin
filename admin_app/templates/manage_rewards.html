@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}Wallet - Admin Panel{% endblock %}
+{% block page_title %}Wallet management{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item"><a class="nav-link {% if tab == 'wallet' %}active{% endif %}" href="?tab=wallet&q={{ query }}">Wallets</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'reports' %}active{% endif %}" href="?tab=reports&q={{ query }}">Issue reports</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'redemptions' %}active{% endif %}" href="?tab=redemptions">Redemptions</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'catalog' %}active{% endif %}" href="?tab=catalog">Reward catalog</a></li>
+</ul>
+
+{% if load_error %}
+<div class="alert alert-danger">{{ load_error }}</div>
+{% endif %}
+
+{% if tab == 'wallet' %}
+<form class="row g-2 mb-3" method="get">
+    <input type="hidden" name="tab" value="wallet">
+    <div class="col-md-6">
+        <input class="form-control" name="q" value="{{ query }}" placeholder="User ID or email">
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" type="submit">Find wallet</button>
+    </div>
+</form>
+
+{% if query and not wallet %}
+<div class="alert alert-warning">No wallet was found for that user.</div>
+{% endif %}
+
+{% if wallet %}
+<div class="row mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Available</div><div class="fs-4 fw-bold">{{ wallet.available }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Lifetime earned</div><div class="fs-4 fw-bold">{{ wallet.lifetime }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Redeemed</div><div class="fs-4 fw-bold">{{ wallet.redeemed }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">{{ wallet.name|default:"User" }}</div><div class="small">{{ wallet.email }}</div><div class="small text-muted">{{ wallet.uid }}</div></div></div></div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">Audited adjustment</div>
+    <div class="card-body">
+        <p class="text-muted small">This adds a ledger row. It does not replace the balance with a typed total. Positive adds points. Negative removes points.</p>
+        <form method="post" class="row g-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="adjust">
+            <input type="hidden" name="tab" value="wallet">
+            <input type="hidden" name="uid" value="{{ wallet.uid }}">
+            <input type="hidden" name="q" value="{{ wallet.uid }}">
+            <input type="hidden" name="idempotency_key" value="{{ form_key }}">
+            <div class="col-md-2"><input class="form-control" name="points" type="number" required placeholder="Points"></div>
+            <div class="col-md-6"><input class="form-control" name="reason" required minlength="4" placeholder="Reason"></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Record adjustment</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="bg-white rounded shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>When</th><th>Type</th><th>Points</th><th>Status</th><th>Reason</th><th>Linked</th><th></th></tr></thead>
+            <tbody>
+            {% for item in transactions %}
+                <tr>
+                    <td class="small">{{ item.created }}</td>
+                    <td>{{ item.type }}</td>
+                    <td class="fw-semibold">{{ item.points }}</td>
+                    <td>{{ item.status }}</td>
+                    <td class="small">{{ item.reason }}</td>
+                    <td class="small">{{ item.report_id }} {{ item.redemption_id }}</td>
+                    <td>
+                        {% if item.can_reverse %}
+                        <form method="post" class="d-flex gap-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reverse">
+                            <input type="hidden" name="uid" value="{{ wallet.uid }}">
+                            <input type="hidden" name="q" value="{{ wallet.uid }}">
+                            <input type="hidden" name="transaction_id" value="{{ item.id }}">
+                            <input class="form-control form-control-sm" name="reason" required minlength="4" placeholder="Reason">
+                            <button class="btn btn-outline-danger btn-sm" type="submit">Reverse</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7">No transactions yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% if tab == 'reports' %}
+<form class="row g-2 mb-3" method="get">
+    <input type="hidden" name="tab" value="reports">
+    <div class="col-md-3"><input class="form-control" name="q" value="{{ query }}" placeholder="Reporter ID or email"></div>
+    <div class="col-md-2">
+        <select class="form-select" name="status">
+            <option value="">Any status</option>
+            <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="under_review" {% if status == 'under_review' %}selected{% endif %}>Under review</option>
+            <option value="accepted" {% if status == 'accepted' %}selected{% endif %}>Accepted</option>
+            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+            <option value="resolved" {% if status == 'resolved' %}selected{% endif %}>Resolved</option>
+        </select>
+    </div>
+    <div class="col-md-2"><input class="form-control" name="category" value="{{ category }}" placeholder="Category"></div>
+    <div class="col-md-2"><input class="form-control" name="vehicle" value="{{ vehicle }}" placeholder="Vehicle ID"></div>
+    <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Filter</button>
+        <a class="btn btn-outline-secondary" href="?tab=reports&q={{ query }}&status={{ status }}&category={{ category }}&vehicle={{ vehicle }}&export=1">Export</a>
+    </div>
+</form>
+<div class="bg-white rounded shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>When</th><th>Category</th><th>Status</th><th>Verification</th><th>Vehicle</th><th>Reporter</th><th>Points</th></tr></thead>
+            <tbody>
+            {% for report in reports %}
+                <tr>
+                    <td class="small">{{ report.created }}</td>
+                    <td>{{ report.category }}</td>
+                    <td>{{ report.status }}</td>
+                    <td>{% if report.duplicate %}<span class="badge bg-warning text-dark">duplicate</span>{% else %}{{ report.verification }}{% endif %}</td>
+                    <td class="small">{{ report.vehicle_id }}</td>
+                    <td class="small"><a href="?tab=wallet&q={{ report.reporter_uid }}">{{ report.reporter_uid }}</a></td>
+                    <td>{{ report.points }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7">No reports match this search.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'redemptions' %}
+<form class="row g-2 mb-3" method="get">
+    <input type="hidden" name="tab" value="redemptions">
+    <div class="col-md-3">
+        <select class="form-select" name="status">
+            <option value="">Any status</option>
+            <option value="requested" {% if status == 'requested' %}selected{% endif %}>Requested</option>
+            <option value="processing" {% if status == 'processing' %}selected{% endif %}>Processing</option>
+            <option value="fulfilled" {% if status == 'fulfilled' %}selected{% endif %}>Fulfilled</option>
+            <option value="manually_redeemed" {% if status == 'manually_redeemed' %}selected{% endif %}>Manually redeemed</option>
+            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+            <option value="refunded" {% if status == 'refunded' %}selected{% endif %}>Refunded</option>
+        </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-primary" type="submit">Filter</button></div>
+</form>
+<div class="card mb-3">
+    <div class="card-header">Manually redeem</div>
+    <div class="card-body">
+        <form method="post" class="row g-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="manual_redeem">
+            <input type="hidden" name="tab" value="redemptions">
+            <div class="col-md-4">
+                <input class="form-control" name="uid" required placeholder="Customer user ID or email">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="reward_id" required>
+                    <option value="">Choose a reward</option>
+                    {% for item in catalog %}
+                        {% if item.active %}
+                        <option value="{{ item.id }}">{{ item.title }} · {{ item.points_cost }} pts</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" name="reference" placeholder="Reference, optional">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" type="submit">Redeem</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="bg-white rounded shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>When</th><th>User</th><th>Reward</th><th>Points</th><th>Status</th><th>Update</th></tr></thead>
+            <tbody>
+            {% for item in redemptions %}
+                <tr>
+                    <td class="small">{{ item.created }}</td>
+                    <td class="small"><a href="?tab=wallet&q={{ item.uid }}">{{ item.uid }}</a></td>
+                    <td class="small">{{ item.reward_id }}</td>
+                    <td>{{ item.points }}</td>
+                    <td><span class="badge bg-secondary">{{ item.label }}</span></td>
+                    <td>
+                        {% if item.open %}
+                        <form method="post" class="d-flex flex-wrap gap-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="fulfil">
+                            <input type="hidden" name="tab" value="redemptions">
+                            <input type="hidden" name="redemption_id" value="{{ item.id }}">
+                            <select class="form-select form-select-sm" name="next_status" style="width: 9rem;">
+                                {% if item.status == 'requested' %}<option value="processing">Processing</option>{% endif %}
+                                <option value="fulfilled">Fulfilled</option>
+                                <option value="manually_redeemed">Manually redeemed</option>
+                                <option value="rejected">Reject and refund</option>
+                            </select>
+                            <input class="form-control form-control-sm" name="reference" placeholder="Reference" style="width: 8rem;">
+                            <input class="form-control form-control-sm" name="reason" placeholder="Reason if rejecting" style="width: 10rem;">
+                            <button class="btn btn-primary btn-sm" type="submit">Save</button>
+                        </form>
+                        {% else %}
+                        <span class="small text-muted">{{ item.reference }} {{ item.reason }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6">No redemptions yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'catalog' %}
+<div class="card mb-3">
+    <div class="card-header">Add a reward</div>
+    <div class="card-body">
+        <form method="post" class="row g-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="catalog">
+            <input type="hidden" name="tab" value="catalog">
+            <div class="col-md-3"><input class="form-control" name="title" required placeholder="Title"></div>
+            <div class="col-md-3"><input class="form-control" name="description" placeholder="Description"></div>
+            <div class="col-md-2"><input class="form-control" name="points_cost" type="number" min="1" required placeholder="Points"></div>
+            <div class="col-md-2"><input class="form-control" name="stock" type="number" min="0" placeholder="Stock, empty = open"></div>
+            <div class="col-md-2"><input class="form-control" name="reward_type" placeholder="Type" value="other"></div>
+            <div class="col-md-8"><input class="form-control" name="terms" placeholder="Terms"></div>
+            <div class="col-md-2 form-check ms-2"><input class="form-check-input" type="checkbox" name="active" id="new-active" checked><label class="form-check-label" for="new-active">Active</label></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Save reward</button></div>
+        </form>
+    </div>
+</div>
+<div class="bg-white rounded shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Title</th><th>Points</th><th>Stock</th><th>Active</th><th>Update</th></tr></thead>
+            <tbody>
+            {% for item in catalog %}
+                <tr>
+                    <td colspan="5">
+                        <form method="post" class="row g-2 align-items-center">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="catalog">
+                            <input type="hidden" name="reward_id" value="{{ item.id }}">
+                            <div class="col-md-3"><input class="form-control form-control-sm" name="title" value="{{ item.title }}"></div>
+                            <div class="col-md-1"><input class="form-control form-control-sm" name="points_cost" type="number" value="{{ item.points_cost }}"></div>
+                            <div class="col-md-1"><input class="form-control form-control-sm" name="stock" value="{{ item.stock }}" placeholder="open"></div>
+                            <div class="col-md-2"><input class="form-control form-control-sm" name="reward_type" value="{{ item.reward_type }}"></div>
+                            <div class="col-md-3"><input class="form-control form-control-sm" name="terms" value="{{ item.terms }}"></div>
+                            <div class="col-md-1 form-check"><input class="form-check-input" type="checkbox" name="active" {% if item.active %}checked{% endif %}></div>
+                            <div class="col-md-1"><button class="btn btn-outline-primary btn-sm" type="submit">Save</button></div>
+                            <div class="col-12"><input class="form-control form-control-sm" name="description" value="{{ item.description }}" placeholder="Description"></div>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">No catalog rewards yet. Redemption stays off until config enables it.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
