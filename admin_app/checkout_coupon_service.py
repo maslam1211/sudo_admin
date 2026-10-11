@@ -17,6 +17,7 @@ SETTINGS_DOC_ID = 'default'
 
 DEFAULT_STICKER_PRICE = 300.0
 DEFAULT_SHIPPING_CHARGE = 49.0
+DEFAULT_BUYING_CLOSED_MESSAGE = 'Out of stock'
 
 DISCOUNT_TYPES = ('unit_price', 'fixed', 'percent')
 CODE_RE = re.compile(r'^[A-Z0-9_-]{3,32}$')
@@ -62,24 +63,38 @@ def _parse_expiry(value: Any) -> datetime | None:
     return None
 
 
-def get_checkout_settings(db) -> dict[str, float]:
-    """Return sticker unit price + shipping from Firestore (with code defaults)."""
+def _buying_fields(data: dict | None) -> dict:
+    data = data or {}
+    raw_open = data.get('buyingOpen')
+    message = str(data.get('buyingClosedMessage') or '').strip()[:240]
+    return {
+        'buyingOpen': True if raw_open is None else bool(raw_open),
+        'buyingClosedMessage': message or DEFAULT_BUYING_CLOSED_MESSAGE,
+    }
+
+
+def get_checkout_settings(db) -> dict:
+    """Return sticker unit price, shipping, and whether web buying is open."""
     try:
         snap = db.collection(SETTINGS_COLLECTION).document(SETTINGS_DOC_ID).get()
         if snap.exists:
             data = snap.to_dict() or {}
             price = float(data.get('stickerUnitPrice', DEFAULT_STICKER_PRICE))
             shipping = float(data.get('shippingCharge', DEFAULT_SHIPPING_CHARGE))
-            return {
+            settings = {
                 'stickerUnitPrice': max(0.0, price),
                 'shippingCharge': max(0.0, shipping),
             }
+            settings.update(_buying_fields(data))
+            return settings
     except Exception as exc:
         logger.warning('get_checkout_settings failed: %s', exc)
-    return {
+    settings = {
         'stickerUnitPrice': DEFAULT_STICKER_PRICE,
         'shippingCharge': DEFAULT_SHIPPING_CHARGE,
     }
+    settings.update(_buying_fields(None))
+    return settings
 
 
 def save_checkout_settings(db, *, sticker_unit_price: float, shipping_charge: float) -> dict:
@@ -89,10 +104,21 @@ def save_checkout_settings(db, *, sticker_unit_price: float, shipping_charge: fl
         'updatedAt': firestore.SERVER_TIMESTAMP,
     }
     db.collection(SETTINGS_COLLECTION).document(SETTINGS_DOC_ID).set(payload, merge=True)
-    return {
-        'stickerUnitPrice': payload['stickerUnitPrice'],
-        'shippingCharge': payload['shippingCharge'],
-    }
+    return get_checkout_settings(db)
+
+
+def save_buying_availability(db, *, buying_open: bool, message: str) -> dict:
+    """Turn website checkout on or off and store the message customers see."""
+    text = str(message or '').strip()[:240] or DEFAULT_BUYING_CLOSED_MESSAGE
+    db.collection(SETTINGS_COLLECTION).document(SETTINGS_DOC_ID).set(
+        {
+            'buyingOpen': bool(buying_open),
+            'buyingClosedMessage': text,
+            'updatedAt': firestore.SERVER_TIMESTAMP,
+        },
+        merge=True,
+    )
+    return get_checkout_settings(db)
 
 
 def list_coupons(db) -> list[dict]:

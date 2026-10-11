@@ -271,6 +271,23 @@
   color: var(--buy-accent);
 }
 
+.buy-closed {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.85rem;
+  background: rgba(229, 129, 71, 0.14);
+  border: 1px solid rgba(229, 129, 71, 0.5);
+}
+
+.buy-closed__message {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #f7f7f7;
+  white-space: pre-wrap;
+}
+
 .product-actions {
   display: flex;
   flex-wrap: wrap;

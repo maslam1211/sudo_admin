@@ -105,6 +105,39 @@
       </div>
     </form>
   </div>
+
+  <div class="pp-card mt-3">
+    <h3 class="h5 fw-bold mb-1">Web buying</h3>
+    <p class="text-muted mb-3">Turn checkout off when you are out of stock. Customers on <strong>/buy/</strong> see the message you write here and cannot place an order.</p>
+
+    <div class="pp-current" style="grid-template-columns: 1fr;">
+      <div class="pp-stat">
+        <div class="lbl">Status</div>
+        <div class="val">{% if settings.buyingOpen %}Open{% else %}Off{% endif %}</div>
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="buying">
+      <div class="pp-field">
+        <label class="d-flex align-items-center gap-2">
+          <input type="checkbox" name="buyingClosed" {% if not settings.buyingOpen %}checked{% endif %}>
+          Turn web buying off
+        </label>
+        <p class="pp-help">Leave this unchecked to keep the buy page open.</p>
+      </div>
+      <div class="pp-field">
+        <label for="buyingClosedMessage">Message shown when buying is off</label>
+        <textarea class="form-control" id="buyingClosedMessage" name="buyingClosedMessage" maxlength="240" rows="3" required>{{ settings.buyingClosedMessage }}</textarea>
+        <p class="pp-help">Example: Out of stock. You can change this any time.</p>
+      </div>
+      <div class="pp-actions">
+        <button type="submit" class="btn btn-primary">Save buying message</button>
+        <a href="{% url 'buy_now' %}" class="btn btn-outline-primary" target="_blank" rel="noopener">View /buy/</a>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>

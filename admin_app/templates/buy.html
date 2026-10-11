@@ -54,6 +54,11 @@
           <h1 id="product-title">{{ product.name }}</h1>
           <p class="product-desc">{{ product.description }}</p>
 
+          {% if not buying_open %}
+          <div class="buy-closed" role="status">
+            <p class="buy-closed__message">{{ buying_closed_message }}</p>
+          </div>
+          {% else %}
           <div class="product-price-block">
             <div class="product-price">
               <span class="product-price__was" id="hero-unit-price-was" hidden aria-hidden="true"></span>
@@ -98,9 +103,11 @@
           <p class="product-total-hint">
             Payable now: <strong id="hero-total">₹{{ unit_total|floatformat:2 }}</strong>
           </p>
+          {% endif %}
         </div>
       </section>
 
+      {% if buying_open %}
       {# —— Checkout —— #}
       <form id="checkout-form" class="checkout-stage" method="post" action="#" autocomplete="on" novalidate>
         <input type="hidden" name="selectedItem" value="{{ product.key }}"
@@ -252,9 +259,11 @@
           </aside>
         </div>
       </form>
+      {% endif %}
     </div>
   </main>
 
+  {% if buying_open %}
   {# Mobile sticky Buy Now #}
   <div class="buy-sticky" id="buy-sticky" hidden>
     <div class="buy-sticky__price">
@@ -265,6 +274,7 @@
       Buy Now
     </button>
   </div>
+  {% endif %}
 
   {# Zoomable lightbox #}
   <div class="zoom-lightbox" id="zoom-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Product image viewer">

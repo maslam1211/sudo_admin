@@ -18,6 +18,7 @@ from .checkout_coupon_service import (
     delete_coupon,
     get_checkout_settings,
     list_coupons,
+    save_buying_availability,
     save_checkout_settings,
     save_coupon,
     validate_coupon_for_checkout,
@@ -72,7 +73,26 @@ def manage_product_price(request):
         return gate
 
     db = _get_db()
-    if request.method == 'POST':
+    if request.method == 'POST' and request.POST.get('action') == 'buying':
+        message = str(request.POST.get('buyingClosedMessage') or '').strip()[:240]
+        if not message:
+            messages.error(request, 'Enter the message customers should see when buying is off.')
+        else:
+            try:
+                save_buying_availability(
+                    db,
+                    buying_open=request.POST.get('buyingClosed') != 'on',
+                    message=message,
+                )
+                if request.POST.get('buyingClosed') == 'on':
+                    messages.success(request, 'Web buying is off. Customers now see your message on /buy/.')
+                else:
+                    messages.success(request, 'Web buying is on. Customers can order again.')
+                return redirect('manage_product_price')
+            except Exception as exc:
+                logger.exception('buying availability save failed: %s', exc)
+                messages.error(request, f'Could not save the buying message: {exc}')
+    elif request.method == 'POST':
         try:
             sticker = float(request.POST.get('stickerUnitPrice'))
             shipping = float(request.POST.get('shippingCharge'))
@@ -232,6 +252,11 @@ def checkout_validate_coupon(request):
 
     db = _get_db()
     settings = get_checkout_settings(db)
+    if not settings.get('buyingOpen', True):
+        return JsonResponse(
+            {'success': False, 'error': settings.get('buyingClosedMessage') or 'Out of stock'},
+            status=409,
+        )
     unit_price = settings['stickerUnitPrice']
     shipping = settings['shippingCharge']
 

@@ -48,13 +48,13 @@ SHIPPING_CHARGE = DEFAULT_SHIPPING_CHARGE
 
 
 def _checkout_pricing(db=None):
-    """Load sticker price + shipping from Firestore admin settings."""
+    """Load sticker price, shipping, and buying status from Firestore admin settings."""
     if db is None:
         db = _get_db()
     settings = get_checkout_settings(db)
     product = dict(QR_PRODUCTS[DEFAULT_PRODUCT_KEY])
     product['price'] = settings['stickerUnitPrice']
-    return product, settings['shippingCharge']
+    return product, settings['shippingCharge'], settings
 
 # Prefer letter-leading names (mirrors mobile ValidationUtils.validateName)
 NAME_LETTER_RE = re.compile(r"^[^\W\d_]([^\W\d_]|[\s'.-]){1,49}$", re.UNICODE)
@@ -138,7 +138,11 @@ def _validate_checkout_payload(data: dict):
         return None, errors
 
     db = _get_db()
-    product, shipping_charge = _checkout_pricing(db)
+    product, shipping_charge, checkout_settings = _checkout_pricing(db)
+    if not checkout_settings.get('buyingOpen', True):
+        return None, {
+            'buying': checkout_settings.get('buyingClosedMessage') or 'Out of stock',
+        }
     unit_price = float(product['price'])
     subtotal_before = round(unit_price * quantity, 2)
     subtotal = subtotal_before
@@ -217,13 +221,16 @@ def buy_now(request):
     except RuntimeError:
         key_id = ''
 
-    product, shipping_charge = _checkout_pricing()
+    _db = _get_db()
+    product, shipping_charge, checkout_settings = _checkout_pricing(_db)
     return render(
         request,
         'buy.html',
         {
             'product': product,
             'shipping_charge': shipping_charge,
+            'buying_open': checkout_settings.get('buyingOpen', True),
+            'buying_closed_message': checkout_settings.get('buyingClosedMessage') or 'Out of stock',
             'unit_total': product['price'] + shipping_charge,
             'razorpay_key_id': key_id,
             'create_order_url': reverse('checkout_create_order'),
@@ -318,6 +325,8 @@ def checkout_create_order(request):
 
     cleaned, errors = _validate_checkout_payload(data)
     if errors:
+        if errors.get('buying') and len(errors) == 1:
+            return _err(errors['buying'], status=409)
         return _err('Please fix the highlighted fields', fields=errors)
 
     try:
