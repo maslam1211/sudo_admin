@@ -85,9 +85,9 @@ def manage_product_price(request):
                     message=message,
                 )
                 if request.POST.get('buyingClosed') == 'on':
-                    messages.success(request, 'Web buying is off. Customers now see your message on /buy/.')
+                    messages.success(request, 'Ordering is off. The website and the app now show your message.')
                 else:
-                    messages.success(request, 'Web buying is on. Customers can order again.')
+                    messages.success(request, 'Ordering is on. Customers can order on the website and in the app.')
                 return redirect('manage_product_price')
             except Exception as exc:
                 logger.exception('buying availability save failed: %s', exc)

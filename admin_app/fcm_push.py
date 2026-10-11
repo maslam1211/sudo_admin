@@ -217,6 +217,12 @@ def build_fcm_message(
             image_url = raw
             break
 
+    tray_tag = (
+        string_data.get('delivery_id')
+        or string_data.get('deliveryId')
+        or ''
+    ).strip() or None
+
     lost_mode = _is_lost_mode_payload(string_data)
     string_data.setdefault('title', title)
     string_data.setdefault('body', body)
@@ -263,6 +269,7 @@ def build_fcm_message(
                 channel_id=PUSH_CHANNEL_ID,
                 sound=PUSH_SOUND_ANDROID,
                 image=image_url or None,
+                tag=tray_tag,
                 default_vibrate_timings=True,
                 visibility='public',
                 priority='high',

@@ -107,8 +107,8 @@
   </div>
 
   <div class="pp-card mt-3">
-    <h3 class="h5 fw-bold mb-1">Web buying</h3>
-    <p class="text-muted mb-3">Turn checkout off when you are out of stock. Customers on <strong>/buy/</strong> see the message you write here and cannot place an order.</p>
+    <h3 class="h5 fw-bold mb-1">Ordering</h3>
+    <p class="text-muted mb-3">Turn ordering off when you are out of stock. Customers on the website and in the app see the message you write here and cannot place an order.</p>
 
     <div class="pp-current" style="grid-template-columns: 1fr;">
       <div class="pp-stat">
@@ -123,12 +123,12 @@
       <div class="pp-field">
         <label class="d-flex align-items-center gap-2">
           <input type="checkbox" name="buyingClosed" {% if not settings.buyingOpen %}checked{% endif %}>
-          Turn web buying off
+          Turn ordering off
         </label>
-        <p class="pp-help">Leave this unchecked to keep the buy page open.</p>
+        <p class="pp-help">Leave this unchecked to keep website and app orders open.</p>
       </div>
       <div class="pp-field">
-        <label for="buyingClosedMessage">Message shown when buying is off</label>
+        <label for="buyingClosedMessage">Message shown when ordering is off</label>
         <textarea class="form-control" id="buyingClosedMessage" name="buyingClosedMessage" maxlength="240" rows="3" required>{{ settings.buyingClosedMessage }}</textarea>
         <p class="pp-help">Example: Out of stock. You can change this any time.</p>
       </div>
