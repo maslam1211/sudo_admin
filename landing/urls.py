@@ -8,6 +8,9 @@ urlpatterns = [
     path('terms/', views.terms, name='terms'),
     path('privacy/', views.privacy, name='privacy'),
     path('domain-expired/', views.domain_expired, name='domain_expired'),
+    # Registrar parking URL, e.g. /lander?oref=https://www.google.com/
+    path('lander', views.domain_expired, name='lander'),
+    path('lander/', views.domain_expired, name='lander_slash'),
     path('how-it-works/', views.how_it_works, name='how_it_works'),
     # Mobile shares https://sudotag.com/r/{CODE} (no trailing slash).
     # Accept both forms so APPEND_SLASH / nginx never 404 the invite.
