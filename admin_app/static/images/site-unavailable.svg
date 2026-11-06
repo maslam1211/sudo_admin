@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-labelledby="suTitle suDesc">
+  <title id="suTitle">Under maintenance</title>
+  <desc id="suDesc">Server and globe with a service pause mark on a dark technical background</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#17120f"/>
+      <stop offset="55%" stop-color="#0f0f0f"/>
+      <stop offset="100%" stop-color="#12161c"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#E58147" stop-opacity="0.28"/>
+      <stop offset="70%" stop-color="#E58147" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#E58147" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a211c"/>
+      <stop offset="100%" stop-color="#1a1614"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="360" rx="32" fill="url(#bg)"/>
+  <circle cx="360" cy="150" r="150" fill="url(#orb)"/>
+  <g opacity="0.12" stroke="#E58147" stroke-width="1">
+    <path d="M48 90 H672 M48 150 H672 M48 210 H672 M48 270 H672"/>
+    <path d="M120 40 V320 M220 40 V320 M320 40 V320 M420 40 V320 M520 40 V320 M620 40 V320"/>
+  </g>
+
+  <!-- Server rack -->
+  <g transform="translate(168 108)">
+    <rect width="112" height="148" rx="16" fill="url(#panel)" stroke="rgba(229,129,71,0.45)" stroke-width="2"/>
+    <rect x="16" y="18" width="80" height="22" rx="6" fill="#0f0f0f"/>
+    <rect x="16" y="52" width="80" height="22" rx="6" fill="#0f0f0f"/>
+    <rect x="16" y="86" width="80" height="22" rx="6" fill="#0f0f0f"/>
+    <circle cx="28" cy="29" r="4" fill="#E58147"/>
+    <circle cx="28" cy="63" r="4" fill="#E58147" opacity="0.55"/>
+    <circle cx="28" cy="97" r="4" fill="#ff6b4a"/>
+    <rect x="40" y="124" width="48" height="8" rx="4" fill="rgba(229,129,71,0.35)"/>
+  </g>
+
+  <!-- Broken signal -->
+  <g fill="none" stroke="#E58147" stroke-width="4" stroke-linecap="round">
+    <path d="M292 180 H330" opacity="0.9"/>
+    <path d="M350 180 H390" opacity="0.35" stroke-dasharray="2 10"/>
+    <path d="M338 168 L358 192 M358 168 L338 192" stroke="#ff6b4a" stroke-width="3.5"/>
+  </g>
+
+  <!-- Globe -->
+  <g transform="translate(430 108)">
+    <circle cx="70" cy="74" r="70" fill="#161616" stroke="#E58147" stroke-width="3.5"/>
+    <ellipse cx="70" cy="74" rx="28" ry="70" fill="none" stroke="#E58147" stroke-width="2.5" opacity="0.8"/>
+    <path d="M8 74 H132" stroke="#E58147" stroke-width="2.5" opacity="0.8"/>
+    <path d="M18 42 H122 M18 106 H122" stroke="#E58147" stroke-width="2" opacity="0.45"/>
+    <circle cx="70" cy="74" r="16" fill="#2a1810" stroke="#E58147" stroke-width="2.5"/>
+    <path d="M70 66 V76" stroke="#E58147" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="70" cy="82" r="2.4" fill="#E58147"/>
+  </g>
+
+  <rect x="188" y="292" width="344" height="40" rx="20" fill="rgba(32,21,15,0.92)" stroke="rgba(229,129,71,0.4)"/>
+  <circle cx="226" cy="312" r="6" fill="#ff6b4a"/>
+  <text x="244" y="318" font-family="Poppins, Arial, sans-serif" font-size="15" font-weight="700" fill="#E58147" letter-spacing="1.6">UNDER MAINTENANCE</text>
+</svg>

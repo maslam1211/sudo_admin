@@ -1,6 +1,13 @@
+from datetime import datetime, timezone
+
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
+
+# Shown on the temporary site-unavailable notice. Update when restoring the full landing.
+SITE_ERROR_AT = datetime(2026, 11, 6, 16, 47, 1, tzinfo=timezone.utc)
+DOMAIN_NAME = 'sudotag.com'
+DOMAIN_ERROR_CODE = 'ERR_UNDER_MAINTENANCE'
 
 DEFAULT_LANDING_BANNER_AD = {
     'link': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
@@ -31,8 +38,31 @@ def _qr_data_uri(payload: str) -> str:
         return ''
 
 
+def _domain_expired_context():
+    now = datetime.now(timezone.utc)
+    occurred_at = SITE_ERROR_AT
+    delta = now - occurred_at
+    days = max(delta.days, 0)
+    return {
+        'domain_name': DOMAIN_NAME,
+        'domain_error_code': DOMAIN_ERROR_CODE,
+        'domain_error_at': occurred_at,
+        'domain_error_at_display': occurred_at.strftime('%d %b %Y, %H:%M UTC'),
+        'domain_error_days_ago': days,
+        'domain_status': 'maintenance',
+    }
+
+
 @ensure_csrf_cookie
 def index(request):
+    # Temporary: show Domain Expired notice on the site root while sudotag.com
+    # registration is lapsed. Restore the full landing render below when renewed.
+    return render(request, 'domain_expired.html', _domain_expired_context())
+
+
+@ensure_csrf_cookie
+def index_full_landing(request):
+    """Full marketing homepage (use after domain renewal)."""
     approved_feedbacks = []
     try:
         from admin_app.feedback_service import list_approved_feedbacks
@@ -56,6 +86,12 @@ def terms(request):
 
 def privacy(request):
     return render(request, 'privacy.html')
+
+
+def domain_expired(request):
+    """Public notice when sudotag.com domain registration has lapsed."""
+    return render(request, 'domain_expired.html', _domain_expired_context())
+
 
 def how_it_works(request):
     # Demo QR for the mobile scan mock — opens the public site when scanned.
