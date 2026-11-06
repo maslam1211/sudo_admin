@@ -1,0 +1,149 @@
+/**
+ * Visible motion for the current homepage.
+ * Transform and opacity only. Reduced motion turns this off.
+ */
+
+@keyframes stIn {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes stInScale {
+  from { opacity: 0; transform: translateY(36px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes stFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes stShine {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+body.index-page .hero-content > * {
+  animation: stIn 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+body.index-page .hero-eyebrow { animation-delay: 0.05s; }
+body.index-page .hero-content > h2 { animation-delay: 0.16s; }
+body.index-page .hero-lead { animation-delay: 0.28s; }
+body.index-page .hero-support { animation-delay: 0.4s; }
+body.index-page .hero-proof { animation-delay: 0.52s; }
+body.index-page .hero-download-block { animation-delay: 0.64s; }
+
+body.index-page .hero-scan-viz {
+  animation: stInScale 1s 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+body.index-page .hero-scan-device {
+  animation: stFloat 5.5s ease-in-out 1.2s infinite;
+}
+
+body.index-page .hero-glow--primary {
+  animation: stGlow 7s ease-in-out infinite;
+}
+
+@keyframes stGlow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+body.index-page .hero-scan-viz__card {
+  animation: stIn 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both, stFloat 6s ease-in-out 1.4s infinite;
+}
+
+body.index-page .hero-scan-viz__card--1 { animation-delay: 0.45s, 1.4s; }
+body.index-page .hero-scan-viz__card--2 { animation-delay: 0.55s, 1.6s; }
+body.index-page .hero-scan-viz__card--3 { animation-delay: 0.65s, 1.8s; }
+body.index-page .hero-scan-viz__card--4 { animation-delay: 0.75s, 2s; }
+body.index-page .hero-scan-viz__card--5 { animation-delay: 0.85s, 2.2s; }
+
+body.index-page .service-item,
+body.index-page .features-item,
+body.index-page .hiw-step-card,
+body.index-page .stats-item {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.index-page .service-item:hover,
+body.index-page .hiw-step-card:hover,
+body.index-page .features-item:hover {
+  transform: translateY(-6px);
+  border-color: rgba(229, 129, 71, 0.55);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(229, 129, 71, 0.25);
+}
+
+body.index-page .service-item .icon,
+body.index-page .hiw-step-card i {
+  transition: transform 0.35s ease;
+}
+
+body.index-page .service-item:hover .icon,
+body.index-page .hiw-step-card:hover i {
+  transform: translateY(-2px) scale(1.08);
+}
+
+body.index-page .btn-getstarted,
+body.index-page .btn-buy-now {
+  position: relative;
+  overflow: hidden;
+}
+
+body.index-page .btn-getstarted::after,
+body.index-page .btn-buy-now::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35), transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+body.index-page .btn-getstarted:hover::after,
+body.index-page .btn-buy-now:hover::after {
+  animation: stShine 0.65s ease;
+}
+
+body.index-page .hiw-step-card.is-on {
+  border-color: #e58147;
+  box-shadow: 0 0 0 1px rgba(229, 129, 71, 0.35);
+}
+
+body.index-page .hero-scan-phone__chip.is-done {
+  border-color: #e58147;
+}
+
+@media (max-width: 768px) {
+  body.index-page .hero-scan-viz__card,
+  body.index-page .hero-scan-device,
+  body.index-page .hero-glow--primary {
+    animation: none;
+  }
+
+  body.index-page .hero-content > * {
+    animation-duration: 0.45s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.index-page .hero-content > *,
+  body.index-page .hero-scan-viz,
+  body.index-page .hero-scan-device,
+  body.index-page .hero-scan-viz__card,
+  body.index-page .hero-glow--primary,
+  body.index-page .btn-getstarted::after,
+  body.index-page .btn-buy-now::after {
+    animation: none !important;
+  }
+
+  body.index-page .service-item,
+  body.index-page .features-item,
+  body.index-page .hiw-step-card,
+  body.index-page .btn-getstarted,
+  body.index-page .btn-buy-now {
+    transition: none !important;
+  }
+}

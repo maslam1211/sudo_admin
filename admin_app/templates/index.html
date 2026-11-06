@@ -26,6 +26,7 @@
   <!-- Main CSS File (landing-asset survives stale collectstatic on production) -->
   <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
   <link href="{% landing_asset 'css/landing-premium.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/landing-motion.css' %}" rel="stylesheet">
   <link href="{% url 'landing_ad_css' %}" rel="stylesheet">
   <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-qr-promo.png' %}">
 
@@ -1264,6 +1265,7 @@ if (whatsappSubscriptionForm) {
 
   <!-- Main JS File -->
   <script src="{% landing_asset 'js/main.js' %}" defer></script>
+  <script src="{% landing_asset 'js/landing-motion.js' %}" defer></script>
   <script src="{% landing_asset 'js/find_vehicle.js' %}" defer></script>
   <script src="{% landing_asset 'js/feedback.js' %}" defer></script>
 
