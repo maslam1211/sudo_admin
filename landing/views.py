@@ -1,18 +1,6 @@
-import logging
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
-
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
-
-logger = logging.getLogger(__name__)
-LANDING_DATA_TIMEOUT_SECONDS = 3
-
-# Shown on the temporary site-unavailable notice. Update when restoring the full landing.
-SITE_ERROR_AT = datetime(2026, 11, 6, 16, 47, 1, tzinfo=timezone.utc)
-DOMAIN_NAME = 'sudotag.com'
-DOMAIN_ERROR_CODE = 'ERR_UNDER_MAINTENANCE'
 
 DEFAULT_LANDING_BANNER_AD = {
     'link': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
@@ -21,18 +9,6 @@ DEFAULT_LANDING_BANNER_AD = {
 
 PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB'
 APP_STORE_URL = 'https://apps.apple.com/in/app/sudotag/id6761091033'
-
-
-def _safe_call(fn, default, timeout=LANDING_DATA_TIMEOUT_SECONDS):
-    """Run a landing data lookup without letting a hang or error take down the page."""
-    pool = ThreadPoolExecutor(max_workers=1)
-    try:
-        return pool.submit(fn).result(timeout=timeout)
-    except Exception:
-        logger.exception('SudoTag landing data lookup failed')
-        return default
-    finally:
-        pool.shutdown(wait=False, cancel_futures=True)
 
 
 def _landing_banner_ads(request):
@@ -55,55 +31,19 @@ def _qr_data_uri(payload: str) -> str:
         return ''
 
 
-def _domain_expired_context():
-    now = datetime.now(timezone.utc)
-    occurred_at = SITE_ERROR_AT
-    delta = now - occurred_at
-    days = max(delta.days, 0)
-    return {
-        'domain_name': DOMAIN_NAME,
-        'domain_error_code': DOMAIN_ERROR_CODE,
-        'domain_error_at': occurred_at,
-        'domain_error_at_display': occurred_at.strftime('%d %b %Y, %H:%M UTC'),
-        'domain_error_days_ago': days,
-        'domain_status': 'maintenance',
-    }
-
-
-def render_site_error(request, status=500):
-    """Styled technical-error page for landing failures."""
-    return render(
-        request,
-        'domain_expired.html',
-        _domain_expired_context(),
-        status=status,
-    )
-
-
-def _approved_feedbacks():
-    from admin_app.feedback_service import list_approved_feedbacks
-    items = list_approved_feedbacks(limit=40)
-    for item in items:
-        item.pop('_created_raw', None)
-    return items
-
-
 @ensure_csrf_cookie
 def index(request):
-    """SudoTag landing. Any crash shows the technical error page."""
+    approved_feedbacks = []
     try:
-        return index_full_landing(request)
+        from admin_app.feedback_service import list_approved_feedbacks
+        approved_feedbacks = list_approved_feedbacks(limit=40)
+        for item in approved_feedbacks:
+            item.pop('_created_raw', None)
     except Exception:
-        logger.exception('SudoTag landing failed')
-        return render_site_error(request)
+        approved_feedbacks = []
 
-
-@ensure_csrf_cookie
-def index_full_landing(request):
-    """Full marketing homepage (use after domain renewal)."""
-    approved_feedbacks = _safe_call(_approved_feedbacks, [])
     return render(request, 'index.html', {
-        'banner_ads': _safe_call(lambda: _landing_banner_ads(request), []),
+        'banner_ads': _landing_banner_ads(request),
         'public_lookup_url': reverse('public_lookup_vehicle'),
         'approved_feedbacks': approved_feedbacks,
         'submit_feedback_url': reverse('submit_feedback'),
@@ -116,24 +56,6 @@ def terms(request):
 
 def privacy(request):
     return render(request, 'privacy.html')
-
-
-def domain_expired(request):
-    """Public notice when sudotag.com domain registration has lapsed."""
-    return render(request, 'domain_expired.html', _domain_expired_context())
-
-
-def server_error(request):
-    """Uncaught server errors on the public site use the same error page."""
-    try:
-        path = getattr(request, 'path', '') or ''
-        if path.startswith('/admin') or path.startswith('/django-admin'):
-            return render(request, 'error.html', status=500)
-        return render_site_error(request)
-    except Exception:
-        from django.http import HttpResponse
-        return HttpResponse('Technical error', status=500, content_type='text/plain')
-
 
 def how_it_works(request):
     # Demo QR for the mobile scan mock — opens the public site when scanned.
