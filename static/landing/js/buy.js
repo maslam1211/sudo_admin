@@ -377,11 +377,15 @@
     if (payBtn) {
       var label = payBtn.querySelector('.buy-pay-btn__label');
       var spinner = payBtn.querySelector('.buy-pay-btn__spinner');
-      if (label) label.textContent = isBusy ? 'Processing…' : 'Buy Now';
+      if (label) {
+        if (!label.dataset.idle) label.dataset.idle = label.textContent;
+        label.textContent = isBusy ? 'Processing…' : label.dataset.idle;
+      }
       if (spinner) spinner.hidden = true;
     }
     if (stickyPayBtn) {
-      stickyPayBtn.textContent = isBusy ? 'Processing…' : 'Buy Now';
+      if (!stickyPayBtn.dataset.idle) stickyPayBtn.dataset.idle = stickyPayBtn.textContent.trim();
+      stickyPayBtn.textContent = isBusy ? 'Processing…' : stickyPayBtn.dataset.idle;
     }
     if (isBusy) {
       showCheckoutLoader(loaderMessage || 'Processing…');
@@ -626,6 +630,20 @@
   });
   qtyInput.addEventListener('change', onQuantityChanged);
   qtyInput.addEventListener('input', onQuantityChanged);
+
+  /* Prefill from the landing "Design your tag" section: /buy?qty=5&plate=KL11AB1234 */
+  (function prefillFromQuery() {
+    var q;
+    try { q = new URLSearchParams(window.location.search); } catch (e) { return; }
+    var qty = parseInt(q.get('qty'), 10);
+    if (qty >= 1) {
+      qtyInput.value = String(Math.min(20, qty));
+      onQuantityChanged();
+    }
+    var plate = (q.get('plate') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+    var plateField = document.getElementById('vehicleNumber');
+    if (plate && plateField && !plateField.value) plateField.value = plate;
+  })();
 
   if (couponApplyBtn) {
     couponApplyBtn.addEventListener('click', function () {

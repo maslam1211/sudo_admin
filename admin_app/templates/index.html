@@ -1,340 +1,692 @@
 {% load static custom_filters %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
   <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>SudoTag — Stay reachable. Stay private.</title>
-  <meta name="description" content="SudoTag is private QR contact for vehicles. Someone scans your tag — you get alerted, they never see your phone number. Notify, chat, SMS, or masked call.">
-  <meta name="keywords" content="SudoTag, private QR, vehicle contact, masked call, Lost Mode">
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+  <title>SudoTag — Park freely. Stay private.</title>
+  <meta name="description" content="SudoTag is a private QR tag for every vehicle — car, bike, scooter, auto, taxi or truck. Anyone can scan it to reach you by notify, chat, SMS or masked call. Your phone number is never shown.">
+  <meta name="keywords" content="SudoTag, vehicle QR tag, car owner contact, private QR, masked call, Lost Mode, parking alert, fleet">
+  <meta name="theme-color" content="#07080B">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SudoTag">
+  <meta property="og:title" content="SudoTag — Park freely. Stay private.">
+  <meta property="og:description" content="One scan. Zero exposure. A private QR tag that lets anyone reach a vehicle's owner without ever seeing their number.">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% landing_asset 'img/sudotag-sticker.png' %}">
+  <meta name="twitter:card" content="summary_large_image">
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('st-js');
+      try {
+        var t = localStorage.getItem('st-theme');
+        if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
+        else if (window.matchMedia('(prefers-color-scheme: light)').matches) d.setAttribute('data-theme', 'light');
+        if (sessionStorage.getItem('st-intro-seen')) d.classList.add('st-intro-repeat');
+      } catch (e) {}
+      /* Failsafe: if the motion engine never boots, show everything statically. */
+      setTimeout(function () { if (!window.__stBooted) d.classList.remove('st-js'); }, 9000);
+    })();
+  </script>
 
-  {% include 'includes/landing_head.html' %}
+  {% include 'includes/favicon_links.html' %}
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style id="stCritical">
+    /* Critical CSS: just enough to paint the splash before any stylesheet arrives. */
+    :root { --bg-void:#07080B; --text-hi:#F4F6FA; --text-lo:#8C95A8; --line:#1F2633; --signal:#FF7A1A; --signal-glow:rgba(255,122,26,.45); --safe:#00E5A8;
+      --signal-ink:#1A0D03; --grad:linear-gradient(120deg,#FF7A1A 0%,#FFB547 100%); --ease:cubic-bezier(.22,1,.36,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+      --font-display:"Space Grotesk","Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace; }
+    :root[data-theme="light"] { --bg-void:#F5F3EF; --text-hi:#0B0D12; --text-lo:#5B6475; --line:#E6E2DA; --signal:#EE6A0C; --safe:#00A97C; }
+    html, body { background: var(--bg-void); margin: 0; }
+    .st-mono { font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+    @keyframes stBeacon { 0% { box-shadow: 0 0 0 0 var(--signal-glow); } 70%, 100% { box-shadow: 0 0 0 .55em rgba(255,122,26,0); } }
+    /* ---------- Splash / launch loader ---------- */
+    @property --hole { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+    .st-intro { display: none; }
+    .st-js .st-intro {
+      position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(28px, 6vh, 48px);
+      padding: 24px; background: radial-gradient(60% 45% at 50% 42%, rgba(255, 122, 26, .10), transparent 70%), var(--bg-void);
+      -webkit-mask: radial-gradient(circle at 50% 42%, transparent var(--hole), #000 calc(var(--hole) + .5%));
+              mask: radial-gradient(circle at 50% 42%, transparent var(--hole), #000 calc(var(--hole) + .5%));
+      animation: stIntroFailsafe 0s 10s forwards; /* never trap the page */
+    }
+    .st-js.st-intro-skip .st-intro { display: none; }
+    /* Lock page scroll while the splash is up */
+    .st-js body:has(.st-intro:not(.is-out)) { overflow: hidden; }
+    .st-intro__grid { position: absolute; inset: 0; opacity: .5; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent 0 39px, var(--line) 39px 40px), repeating-linear-gradient(90deg, transparent 0 39px, var(--line) 39px 40px);
+      -webkit-mask: radial-gradient(circle at 50% 42%, #000 0, transparent 55%); mask: radial-gradient(circle at 50% 42%, #000 0, transparent 55%);
+      animation: stIntroGrid 1.6s var(--ease) both; }
+    @keyframes stIntroGrid { from { opacity: 0; transform: scale(1.08); } }
 
-  <!-- Vendor CSS Files -->
-  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+    .st-intro__core { position: relative; width: min(176px, 44vw); aspect-ratio: 1; display: grid; place-items: center; }
+    .st-intro__qr { position: relative; z-index: 1; width: 100%; height: 100%; overflow: visible; }
+    .st-intro__qr .m { fill: var(--text-hi); opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(0); transition: opacity 220ms var(--ease), transform 420ms var(--ease-spring); }
+    .st-intro__qr .m.is-on { opacity: 1; transform: scale(1); }
+    .st-intro__qr .eye-ring { fill: none; stroke: var(--text-hi); stroke-width: 1; opacity: 0; transition: opacity 300ms; }
+    .st-intro__qr .eye-core { fill: var(--signal); opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(0); transition: transform 500ms var(--ease-spring), opacity 200ms; }
+    .st-intro__qr .is-on.eye-ring { opacity: 1; }
+    .st-intro__qr .is-on.eye-core { opacity: 1; transform: scale(1); }
+    .st-intro__mark { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.4) rotate(-20deg); transition: opacity 300ms, transform 600ms var(--ease-spring); }
+    .st-intro.is-mark .st-intro__mark { opacity: 1; transform: none; }
+    .st-intro__vf { position: absolute; inset: -18%; z-index: 2; transform: scale(1.35); opacity: 0; transition: transform 700ms var(--ease-spring), opacity 300ms; }
+    .st-intro.is-lock .st-intro__vf { transform: scale(1); opacity: 1; }
+    .st-intro__vf i { position: absolute; width: 22%; height: 22%; border: 3px solid var(--signal); filter: drop-shadow(0 0 6px var(--signal-glow)); }
+    .st-intro__vf i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 14px 0 0 0; }
+    .st-intro__vf i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; border-radius: 0 14px 0 0; }
+    .st-intro__vf i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 14px; }
+    .st-intro__vf i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 14px 0; }
+    .st-intro.is-done .st-intro__vf i { border-color: var(--safe); filter: drop-shadow(0 0 8px var(--safe)); transition: border-color 200ms; }
+    .st-intro__scan { position: absolute; z-index: 3; left: -8%; right: -8%; top: 0; height: 2px; border-radius: 2px; background: var(--signal); box-shadow: 0 0 18px 4px var(--signal-glow); opacity: 0; }
+    .st-intro.is-lock .st-intro__scan { animation: stIntroScan 1.3s var(--ease) infinite; }
+    .st-intro.is-done .st-intro__scan { animation: none; opacity: 0; }
+    @keyframes stIntroScan { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+    .st-intro__ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--signal); opacity: 0; pointer-events: none; }
+    .st-intro.is-pulse .st-intro__ring { animation: stIntroRing 900ms var(--ease) forwards; }
+    .st-intro.is-pulse .st-intro__ring--2 { animation-delay: 150ms; border-color: var(--safe); }
+    @keyframes stIntroRing { 0% { opacity: 1; transform: scale(.6); } 100% { opacity: 0; transform: scale(6); } }
 
-  <!-- Main CSS File (landing-asset survives stale collectstatic on production) -->
-  <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
-  <link href="{% landing_asset 'css/landing-premium.css' %}" rel="stylesheet">
-  <link href="{% landing_asset 'css/landing-motion.css' %}" rel="stylesheet">
-  <link href="{% url 'landing_ad_css' %}" rel="stylesheet">
-  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-qr-promo.png' %}">
+    .st-intro__foot { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; opacity: 0; transform: translateY(10px); transition: opacity 500ms var(--ease) 200ms, transform 500ms var(--ease) 200ms; }
+    .st-intro.is-lock .st-intro__foot { opacity: 1; transform: none; }
+    .st-intro__word { font: 700 22px/1 var(--font-display); letter-spacing: -.03em; color: var(--text-hi); }
+    .st-intro__word i { display: inline-block; width: .3em; height: .3em; margin-left: .08em; border-radius: 50%; background: var(--signal); animation: stBeacon 1.2s var(--ease) infinite; }
+    .st-intro__bar { width: min(180px, 46vw); height: 2px; border-radius: 2px; background: var(--line); overflow: hidden; }
+    .st-intro__bar i { display: block; height: 100%; width: 100%; transform-origin: 0 50%; transform: scaleX(0); background: var(--grad); box-shadow: 0 0 10px var(--signal-glow); transition: transform 300ms var(--ease); }
+    .st-intro__status { min-height: 1em; font-size: 11px; color: var(--text-lo); }
+    .st-intro.is-done .st-intro__status { color: var(--safe); }
 
-  <!-- =======================================================
-  * Template Name: Gp
-  * Template URL: https://bootstrapmade.com/gp-free-multipurpose-html-bootstrap-template/
-  * Updated: Aug 15 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
+    .st-intro.is-out { --hole: 160%; pointer-events: none; transition: --hole 900ms var(--ease), opacity 350ms linear 600ms; opacity: 0; }
+    .st-intro.is-out .st-intro__core, .st-intro.is-out .st-intro__foot { transform: scale(.92); opacity: 0; transition: all 400ms var(--ease); }
+
+    /* Repeat visit in the same session: a quick 0.6s beacon blink instead of the full sequence */
+    .st-intro-repeat .st-intro__core { width: 56px; }
+    .st-intro-repeat .st-intro__qr, .st-intro-repeat .st-intro__vf, .st-intro-repeat .st-intro__scan, .st-intro-repeat .st-intro__bar, .st-intro-repeat .st-intro__status, .st-intro-repeat .st-intro__grid { display: none; }
+    .st-intro-repeat .st-intro__foot { opacity: 1; transform: none; }
+    .st-intro-repeat .st-intro__core { position: absolute; top: 42%; }
+    @keyframes stIntroFailsafe { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+
+  </style>
+
+  <!-- Non-blocking stylesheets: the splash paints immediately, then waits for signal.css -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" as="style" href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" as="style" href="{% static 'landing/vendor/swiper/swiper-bundle.min.css' %}" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" as="style" href="{% landing_asset 'css/signal.css' %}" id="stCss"
+        onload="this.onload=null;this.rel='stylesheet';window.__stCss=1;document.dispatchEvent(new Event('st:css'))"
+        onerror="this.rel='stylesheet';window.__stCss=1;document.dispatchEvent(new Event('st:css'))">
+  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-sticker.webp' %}" type="image/webp" fetchpriority="high">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+    <link href="{% static 'landing/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% landing_asset 'css/signal.css' %}" rel="stylesheet">
+  </noscript>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "SudoTag",
+        "url": "https://sudotag.com/",
+        "email": "sudotagonline@gmail.com",
+        "telephone": "+91-7907965255",
+        "address": { "@type": "PostalAddress", "addressLocality": "Calicut", "addressRegion": "Kerala", "addressCountry": "IN" },
+        "sameAs": ["https://www.instagram.com/sudotag"]
+      },
+      {
+        "@type": "Product",
+        "name": "SudoTag vehicle QR tag",
+        "brand": { "@type": "Brand", "name": "SudoTag" },
+        "description": "Weatherproof private QR sticker for any vehicle. Scanners reach the owner by notify, chat, SMS or masked call without seeing a phone number."
+      }
+    ]
+  }
+  </script>
 </head>
 
-<body class="index-page preloader-active">
+<body class="st-page">
 
-  {% include 'includes/landing_preloader.html' %}
+  <a class="st-skip" href="#main">Skip to content</a>
 
-  <div id="scroll-progress" class="scroll-progress" aria-hidden="true"></div>
+  <!-- SVG sprite: vehicle line-art (pathLength=1 so every outline draws in the same time) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="v-car" viewBox="0 0 240 120">
+        <path pathLength="1" d="M14 86V68q0-10 12-12l26-4 24-24q6-6 16-6h56q10 0 18 8l20 22 28 4q12 2 12 14v16h-20M170 86H66M30 86H14"/>
+        <path pathLength="1" d="M84 50l14-18h48l16 18zM122 32v18"/>
+        <circle pathLength="1" cx="48" cy="88" r="16"/><circle pathLength="1" cx="188" cy="88" r="16"/>
+      </symbol>
+      <symbol id="v-bike" viewBox="0 0 240 120">
+        <circle pathLength="1" cx="50" cy="86" r="24"/><circle pathLength="1" cx="190" cy="86" r="24"/>
+        <path pathLength="1" d="M50 86l36-32h54l26 32M86 54l18 32h36M140 54l20-20h18M160 34l30 52M98 54q10-16 36-12"/>
+      </symbol>
+      <symbol id="v-scooter" viewBox="0 0 240 120">
+        <circle pathLength="1" cx="54" cy="92" r="17"/><circle pathLength="1" cx="186" cy="92" r="17"/>
+        <path pathLength="1" d="M54 92h28q16 0 20-18h48q16 0 20 18M100 74q-4-22 18-22h30q12 0 6 22M174 92L160 30M148 30h26"/>
+      </symbol>
+      <symbol id="v-auto" viewBox="0 0 240 120">
+        <circle pathLength="1" cx="60" cy="94" r="14"/><circle pathLength="1" cx="184" cy="94" r="14"/>
+        <path pathLength="1" d="M30 94V42q0-22 30-22h92q22 2 30 24l18 34v16h-4M170 94H74M46 94H30M150 20v58H30M150 60h44"/>
+      </symbol>
+      <symbol id="v-taxi" viewBox="0 0 240 120">
+        <path pathLength="1" d="M14 86V68q0-10 12-12l26-4 24-24q6-6 16-6h56q10 0 18 8l20 22 28 4q12 2 12 14v16h-20M170 86H66M30 86H14"/>
+        <path pathLength="1" d="M106 22v-10h28v10M84 50l14-18h48l16 18z"/>
+        <circle pathLength="1" cx="48" cy="88" r="16"/><circle pathLength="1" cx="188" cy="88" r="16"/>
+      </symbol>
+      <symbol id="v-truck" viewBox="0 0 240 120">
+        <path pathLength="1" d="M12 90V24h138v66M150 40h36l26 24h14v26h-14M178 90H74M40 90H12M186 40v24h28"/>
+        <circle pathLength="1" cx="57" cy="92" r="16"/><circle pathLength="1" cx="195" cy="92" r="16"/>
+      </symbol>
+    </defs>
+  </svg>
 
-  <header id="header" class="header d-flex align-items-center fixed-top">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+  <!-- ============ Splash: viewfinder locks on, branded QR assembles from the
+       centre out, progress follows real loading, one pulse opens the page ============ -->
+  <div class="st-intro" id="stIntro" role="status" aria-live="polite" aria-label="Loading SudoTag">
+    <span class="st-intro__grid" aria-hidden="true"></span>
+    <div class="st-intro__core" aria-hidden="true">
+      <span class="st-intro__vf"><i></i><i></i><i></i><i></i></span>
+      <svg class="st-intro__qr" id="stIntroQr" viewBox="-1 -1 27 27">
+        <image class="st-intro__mark" href="{% url 'site_apple_touch_icon' %}" x="9.5" y="9.5" width="6" height="6" preserveAspectRatio="xMidYMid slice"/>
+      </svg>
+      <span class="st-intro__scan"></span>
+      <span class="st-intro__ring"></span><span class="st-intro__ring st-intro__ring--2"></span>
+    </div>
+    <div class="st-intro__foot">
+      <span class="st-intro__word">SudoTag<i></i></span>
+      <span class="st-intro__bar"><i id="stIntroBar"></i></span>
+      <span class="st-intro__status st-mono" id="stIntroStatus">Locating signal</span>
+    </div>
+  </div>
 
-      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0" aria-label="SudoTag home">
-        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" class="header-logo-img" width="320" height="80" decoding="async">
-      </a>
+  <script>
+  /* Splash driver — inline so it animates immediately, even before deferred JS
+     arrives on a slow connection. Waits only for what the first screen needs
+     (fonts + hero sticker), min 1.4s / max 3s from navigation start. */
+  (function () {
+    var root = document.documentElement, el = document.getElementById('stIntro');
+    if (!el) return;
+    function ready() { root.classList.add('st-ready'); }
+    /* The page must never be revealed unstyled: everything waits for signal.css */
+    var cssReady = new Promise(function (r) {
+      if (window.__stCss) return r();
+      document.addEventListener('st:css', r);
+      setTimeout(r, 9000);
+    });
+    function finish(delay) {
+      cssReady.then(function () {
+        setTimeout(function () {
+          el.classList.add('is-out'); ready();
+          setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1000);
+        }, delay || 0);
+      });
+    }
+    if (!root.classList.contains('st-js') || root.classList.contains('st-intro-skip')) { el.parentNode.removeChild(el); ready(); return; }
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { finish(250); return; }
+    if (root.classList.contains('st-intro-repeat')) { finish(600); return; }
+    try { sessionStorage.setItem('st-intro-seen', '1'); } catch (e) {}
 
-      <nav id="navmenu" class="navmenu">
-        <ul>
-          <li><a href="#hero" class="active">Home</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#features">Features</a></li>
-          <li><a href="{% url 'how_it_works' %}">How It Works</a></li>
-          <li><a href="#find-vehicle">Scan QR</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+    var G = '!<>-_/[]{}=+*^?#%&01ABCDEFXZ';
+    function scramble(node, to, dur) {
+      var from = node.textContent, len = Math.max(from.length, to.length), t0 = null;
+      (function step(t) {
+        if (t0 === null) t0 = t;
+        var p = Math.min(1, (t - t0) / dur), out = '';
+        for (var i = 0; i < len; i++) out += (i / len < p) ? (to[i] || '') : (to[i] === ' ' ? ' ' : G[(Math.random() * G.length) | 0]);
+        node.textContent = out;
+        if (p < 1) requestAnimationFrame(step);
+      })(performance.now());
+    }
+
+    /* Build a branded-looking QR: rounded dots, orange eyes, hole for the Sudo mark */
+    var svg = document.getElementById('stIntroQr'), bar = document.getElementById('stIntroBar'), status = document.getElementById('stIntroStatus');
+    var N = 25, ns = 'http://www.w3.org/2000/svg', mods = [], eyes = [], seed = 11;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    function inEye(x, y) { return (x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16); }
+    function inLogo(x, y) { return x >= 9 && x <= 15 && y >= 9 && y <= 15; }
+    function rect(x, y, s, r, cls) {
+      var n = document.createElementNS(ns, 'rect');
+      n.setAttribute('x', x); n.setAttribute('y', y); n.setAttribute('width', s); n.setAttribute('height', s); n.setAttribute('rx', r); n.setAttribute('class', cls);
+      return n;
+    }
+    var frag = document.createDocumentFragment();
+    [[0, 0], [18, 0], [0, 18]].forEach(function (p) {
+      var a = rect(p[0] + .5, p[1] + .5, 6, 1.8, 'eye-ring'), b = rect(p[0] + 2, p[1] + 2, 3, .9, 'eye-core');
+      frag.appendChild(a); frag.appendChild(b); eyes.push(a, b);
+    });
+    var c = (N - 1) / 2;
+    for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
+      if (inEye(x, y) || inLogo(x, y) || rnd() < .5) continue;
+      var d = document.createElementNS(ns, 'circle');
+      d.setAttribute('cx', x + .5); d.setAttribute('cy', y + .5); d.setAttribute('r', .42); d.setAttribute('class', 'm');
+      frag.appendChild(d);
+      mods.push({ el: d, d: Math.sqrt((x - c) * (x - c) + (y - c) * (y - c)) + rnd() * 2.5 });
+    }
+    svg.insertBefore(frag, svg.firstChild);
+    mods.sort(function (a, b) { return a.d - b.d; });
+
+    /* What the first screen needs */
+    var tasks = 0, done = 0;
+    function track(p) { tasks++; p.then(function () { done++; }, function () { done++; }); }
+    track(cssReady);
+    if (document.fonts && document.fonts.ready) track(document.fonts.ready);
+    function trackHero() {
+      var img = document.querySelector('.st-tag3d img');
+      if (img && !img.complete) track(new Promise(function (r) { img.addEventListener('load', r); img.addEventListener('error', r); }));
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trackHero); else trackHero();
+
+    var MIN = 1400, MAX = 3000, shown = 0, revealed = 0, label = '', finished = false;
+    var LABELS = [[0, 'Locating signal'], [.35, 'Encrypting channel'], [.7, 'Masking number']];
+    requestAnimationFrame(function () {
+      el.classList.add('is-lock');
+      for (var i = 0; i < eyes.length; i++) eyes[i].classList.add('is-on');
+    });
+    (function tick() {
+      if (finished) return;
+      var now = performance.now();                       // ms since navigation start
+      var real = tasks ? done / tasks : 1;
+      var target = Math.min(now / MIN, real < 1 ? Math.min(real + .2, .92) : 1);
+      if (now > MAX && window.__stCss) target = 1;   // cap only once the page can be shown styled
+      shown += (target - shown) * .14;
+      if (target === 1 && shown > .985) shown = 1;
+      if (bar) bar.style.transform = 'scaleX(' + shown.toFixed(3) + ')';
+      var want = Math.floor(shown * mods.length);
+      while (revealed < want) mods[revealed++].el.classList.add('is-on');
+      if (shown > .8) el.classList.add('is-mark');
+      for (var j = LABELS.length - 1; j >= 0; j--) {
+        if (shown >= LABELS[j][0]) { if (label !== LABELS[j][1] && status) { label = LABELS[j][1]; scramble(status, label, 320); } break; }
+      }
+      if (shown >= 1) {
+        finished = true;
+        while (revealed < mods.length) mods[revealed++].el.classList.add('is-on');
+        el.classList.add('is-done', 'is-mark');
+        if (status) scramble(status, 'Signal locked', 280);
+        el.setAttribute('aria-label', 'SudoTag loaded');
+        setTimeout(function () { el.classList.add('is-pulse'); }, 240);
+        finish(480);
+        return;
+      }
+      requestAnimationFrame(tick);
+    })();
+  })();
+  </script>
+
+
+  <div class="st-fx" aria-hidden="true"><span class="st-fx__grain"></span><span class="st-fx__vignette"></span></div>
+  <div class="st-progress" id="stProgress" aria-hidden="true"></div>
+  <div class="st-wipe" id="stWipe" aria-hidden="true"><span></span></div>
+
+  <!-- ============ Header ============ -->
+  <header class="st-header" id="stHeader">
+    <div class="st-wrap st-header__bar">
+      <a href="{% url 'index' %}" class="st-logo" aria-label="SudoTag home">SudoTag<i aria-hidden="true"></i></a>
+
+      <nav class="st-nav" id="stNav" aria-label="Main">
+        <a href="#how">How it works</a>
+        <a href="#vehicles">Vehicles</a>
+        <a href="#features">Features</a>
+        <a href="#fleet">Fleet <span class="st-soon">Soon</span></a>
+        <a href="#help">Help</a>
+        <a href="{% url 'buy_now' %}" class="st-nav__mobile-only">Buy SudoTag</a>
       </nav>
 
-      <a class="btn-getstarted btn-buy-now" href="{% url 'buy_now' %}">
-        <i class="bi bi-bag-check-fill" aria-hidden="true"></i>
-        <span>Buy Now</span>
-      </a>
-
+      <div class="st-header__actions">
+        <button type="button" class="st-iconbtn" id="stTheme" aria-label="Switch to light mode">
+          <i class="bi bi-sun" aria-hidden="true"></i><i class="bi bi-moon-stars" aria-hidden="true"></i>
+        </button>
+        <a class="st-btn st-btn--line st-btn--sm st-hide-sm" href="{% url 'buy_now' %}" data-magnetic>Buy</a>
+        <a class="st-btn st-btn--signal st-btn--sm" href="#scan" data-scan-tab="qr" data-magnetic>
+          <i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan</span>
+        </a>
+        <button type="button" class="st-burger" id="stBurger" aria-label="Open menu" aria-expanded="false" aria-controls="stNav">
+          <span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <main class="main">
+  <main id="main">
 
-    <!-- Hero Section -->
-    <section id="hero" class="hero section dark-background">
+    <!-- ============ 1 · Hero ============ -->
+    <section class="st-hero" id="hero" data-persona="car">
+      <canvas class="st-hero__canvas" id="stRoad" aria-hidden="true"></canvas>
+      <div class="st-hero__fallback" aria-hidden="true"></div>
 
-      <div class="hero-background" aria-hidden="true">
-        <img src="{% landing_asset 'img/sudotag-qr-promo.png' %}" alt="" width="1024" height="517" decoding="async" class="hero-bg-tag">
-        <div class="hero-overlay"></div>
-        <div class="hero-grid-pattern"></div>
-        <div class="hero-glow hero-glow--primary"></div>
-        <div class="hero-glow hero-glow--secondary"></div>
-        <div class="hero-speed-lines"></div>
-      </div>
-      <div class="hero-accent-line" aria-hidden="true"></div>
+      <div class="st-wrap st-hero__grid">
+        <div class="st-hero__copy">
+          <p class="st-eyebrow"><span class="st-beacon" aria-hidden="true"></span><span data-scramble>Private signal · every vehicle</span></p>
+          <h1 class="st-hero__title" aria-label="Park freely. Stay private.">
+            <span class="st-word" style="--i:0">Park</span>
+            <span class="st-word" style="--i:1">freely.</span><br>
+            <span class="st-word st-word--grad" style="--i:2">Stay</span>
+            <span class="st-word st-word--grad" style="--i:3">private.</span>
+          </h1>
+          <p class="st-hero__lead st-in" style="--i:5">
+            One sticker turns your vehicle into a quiet beacon. Anyone can reach you by notify, chat, SMS or masked call.
+            <strong>Nobody ever sees your number.</strong>
+          </p>
 
-      <div class="container-fluid container-xl hero-container">
-        <div class="row align-items-center hero-main-row g-4 g-xl-5">
-          <div class="col-lg-5 col-xl-5 hero-content-col">
-            <div class="hero-content" data-aos="fade-up" data-aos-delay="100">
-              <p class="hero-eyebrow">Privacy-first vehicle contact</p>
-              <h2>SudoTag<span>.</span></h2>
-              <p class="hero-lead">Park freely.<br><span class="hero-lead-accent">Stay private.</span></p>
-              <p class="hero-support">When someone needs to reach you, they scan your QR — you get the alert, they never see your phone number.</p>
-              <ul class="hero-proof" aria-label="Why SudoTag">
-                <li><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Number stays hidden</li>
-                <li><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> Instant owner alert</li>
-                <li><i class="bi bi-chat-dots-fill" aria-hidden="true"></i> Notify · Chat · Call</li>
-              </ul>
-              <div class="hero-download-block" data-aos="fade-up" data-aos-delay="150">
-                <div class="platform-icons" aria-hidden="true">
-                  <span class="platform-icon platform-icon--android"><i class="bi bi-android2"></i></span>
-                  <span class="platform-icon platform-icon--ios"><i class="bi bi-apple"></i></span>
-                </div>
-                <div class="hero-cta-row mb-3">
-                  <a class="btn-getstarted" href="#find-vehicle">
-                    <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
-                    <span>Scan QR</span>
-                  </a>
-                </div>
-                <div class="app-store-buttons justify-content-start">
-                  <a class="app-store-btn app-store-btn--android" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-                    <i class="bi bi-google-play" aria-hidden="true"></i>
-                    <span>Google Play</span>
-                  </a>
-                  <a class="app-store-btn app-store-btn--ios" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-                    <i class="bi bi-apple" aria-hidden="true"></i>
-                    <span>App Store</span>
-                  </a>
-                </div>
-              </div>
+          <div class="st-hero__cta st-in" style="--i:6">
+            <a class="st-btn st-btn--signal st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic>
+              <i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan a tag</span>
+            </a>
+            <a class="st-btn st-btn--line st-btn--lg" href="{% url 'buy_now' %}" data-magnetic>
+              <i class="bi bi-bag-check" aria-hidden="true"></i><span>Buy SudoTag</span>
+            </a>
+          </div>
+
+          <div class="st-persona st-in" style="--i:7">
+            <span class="st-persona__label">I drive a…</span>
+            <div class="st-persona__chips" role="radiogroup" aria-label="Choose your vehicle">
+              <button type="button" role="radio" aria-checked="true" data-persona="car">Car</button>
+              <button type="button" role="radio" aria-checked="false" data-persona="bike">Bike</button>
+              <button type="button" role="radio" aria-checked="false" data-persona="scooter">Scooter</button>
+              <button type="button" role="radio" aria-checked="false" data-persona="auto">Auto</button>
+              <button type="button" role="radio" aria-checked="false" data-persona="taxi">Taxi</button>
+              <button type="button" role="radio" aria-checked="false" data-persona="truck">Truck</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="st-beacon-stage" aria-hidden="true">
+          <div class="st-morph" id="stMorph">
+            <svg viewBox="0 0 240 120"><use href="#v-car" data-v="car" class="is-on"/></svg>
+            <svg viewBox="0 0 240 120"><use href="#v-bike" data-v="bike"/></svg>
+            <svg viewBox="0 0 240 120"><use href="#v-scooter" data-v="scooter"/></svg>
+            <svg viewBox="0 0 240 120"><use href="#v-auto" data-v="auto"/></svg>
+            <svg viewBox="0 0 240 120"><use href="#v-taxi" data-v="taxi"/></svg>
+            <svg viewBox="0 0 240 120"><use href="#v-truck" data-v="truck"/></svg>
+          </div>
+
+          <div class="st-tag3d" data-tilt>
+            <span class="st-pulse"><i></i><i></i><i></i></span>
+            <div class="st-tag3d__face">
+              <picture>
+                <source srcset="{% landing_asset 'img/sudotag-sticker.webp' %}" type="image/webp">
+                <img src="{% landing_asset 'img/sudotag-sticker.png' %}" alt="" width="1181" height="591" fetchpriority="high" decoding="async">
+              </picture>
+              <span class="st-tag3d__sweep"></span>
+              <span class="st-tag3d__glare"></span>
             </div>
           </div>
 
-          <div class="col-lg-7 col-xl-7 hero-panel-col" data-aos="fade-left" data-aos-delay="200">
-            <div class="hero-scan-viz">
-              <div class="hero-scan-stage hero-scan-stage--phone">
-                <div class="hero-scan-cone" aria-hidden="true"></div>
+          <p class="st-morph__label">for your <b id="stMorphLabel">car</b></p>
+          <p class="st-morph__story" id="stMorphStory">Blocking a gate? They scan. You move. Nobody swaps numbers.</p>
 
-                <div class="hero-scan-device">
-                    <div class="hero-scan-phone">
-                      <div class="hero-scan-phone__shell">
-                        <span class="hero-scan-phone__island" aria-hidden="true"></span>
-                        <div class="hero-scan-phone__screen">
-                          <div class="hero-scan-phone__status" aria-hidden="true">
-                            <span class="hero-scan-phone__time">9:41</span>
-                            <span class="hero-scan-phone__status-icons">
-                              <i class="bi bi-reception-4"></i>
-                              <i class="bi bi-wifi"></i>
-                              <i class="bi bi-battery-full"></i>
-                            </span>
-                          </div>
-                          <div class="hero-scan-phone__viewfinder">
-                            <div class="hero-scan-phone__qr-wrap">
-                              <img src="{% landing_asset 'img/sudotag-qr-code.png' %}" alt="" class="hero-scan-phone__qr-mirror" width="1024" height="1024" decoding="async">
-                            </div>
-                            <div class="hero-scan-phone__overlay" aria-hidden="true">
-                              <span class="hero-scan-bracket hero-scan-bracket--tl hero-scan-bracket--screen"></span>
-                              <span class="hero-scan-bracket hero-scan-bracket--tr hero-scan-bracket--screen"></span>
-                              <span class="hero-scan-bracket hero-scan-bracket--bl hero-scan-bracket--screen"></span>
-                              <span class="hero-scan-bracket hero-scan-bracket--br hero-scan-bracket--screen"></span>
-                              <span class="hero-scan-phone__beam"></span>
-                              <span class="hero-scan-phone__flash"></span>
-                            </div>
-                            <div class="hero-scan-phone__chip">
-                              <i class="bi bi-check-circle-fill"></i>
-                              <span>Scanning SudoTag QR…</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <svg class="hero-scan-hand" viewBox="0 0 160 80" aria-hidden="true" focusable="false">
-                      <defs>
-                        <linearGradient id="heroHandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stop-color="#4a4a4a"/>
-                          <stop offset="100%" stop-color="#1c1c1c"/>
-                        </linearGradient>
-                      </defs>
-                      <path fill="url(#heroHandGrad)" d="M32 62c-5-10-2-22 8-28 4-3 10-4 15-3 3-7 10-12 18-12 5 0 10 3 12 7 4-2 8-3 13-2 10 3 16 12 14 22l-4 22c-1 6-6 11-12 12l-48 7c-7 1-14-4-15-11l-2-11z"/>
-                    </svg>
-                </div>
-              </div>
+          <span class="st-float st-float--a"><i class="bi bi-eye-slash"></i><span class="st-mono">+91 98••• •••••</span></span>
+          <span class="st-float st-float--b"><span class="st-dot st-dot--safe"></span>Owner alerted</span>
+          <span class="st-float st-float--c"><i class="bi bi-shield-lock"></i>Masked call</span>
+        </div>
+      </div>
 
-              <div class="hero-scan-viz__card hero-scan-viz__card--1" data-aos="zoom-in" data-aos-delay="350">
-                <i class="bi bi-qr-code"></i>
-                <span>Private QR contact</span>
-              </div>
-              <div class="hero-scan-viz__card hero-scan-viz__card--2" data-aos="zoom-in" data-aos-delay="400">
-                <i class="bi bi-shield-lock"></i>
-                <span>Owner privacy</span>
-              </div>
-              <div class="hero-scan-viz__card hero-scan-viz__card--3" data-aos="zoom-in" data-aos-delay="450">
-                <i class="bi bi-geo-alt"></i>
-                <span>Lost Mode</span>
-              </div>
-              <div class="hero-scan-viz__card hero-scan-viz__card--4" data-aos="zoom-in" data-aos-delay="500">
-                <i class="bi bi-chat-left-text"></i>
-                <span>Masked channels</span>
-              </div>
-              <div class="hero-scan-viz__card hero-scan-viz__card--5" data-aos="zoom-in" data-aos-delay="550">
-                <i class="bi bi-car-front"></i>
-                <span>Vehicle locker</span>
-              </div>
+      <a href="#privacy" class="st-scrollcue" aria-label="Scroll to learn more"><span></span></a>
+    </section>
 
-              <div class="hero-scan-viz__features-mobile">
-                <div class="hero-scan-viz__feat"><i class="bi bi-qr-code"></i><span>Private QR contact</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-shield-lock"></i><span>Owner privacy</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-geo-alt"></i><span>Lost Mode</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-chat-left-text"></i><span>Masked channels</span></div>
-                <div class="hero-scan-viz__feat"><i class="bi bi-car-front"></i><span>Vehicle locker</span></div>
+    <!-- Ticker -->
+    <section class="st-ticker" aria-label="When SudoTag helps">
+      <div class="st-ticker__track">
+        {% for _ in "12" %}
+        <span><i class="bi bi-sign-stop"></i>Blocking a gate</span>
+        <span><i class="bi bi-lightbulb"></i>Headlights left on</span>
+        <span><i class="bi bi-cloud-rain"></i>Window open in the rain</span>
+        <span><i class="bi bi-truck"></i>Tow truck arriving</span>
+        <span><i class="bi bi-p-square"></i>Double parked</span>
+        <span><i class="bi bi-exclamation-triangle"></i>Minor bump</span>
+        <span><i class="bi bi-geo-alt"></i>Vehicle reported lost</span>
+        <span><i class="bi bi-key"></i>Keys left inside</span>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ============ 2 · Privacy moment (pinned): number → particles → logo ============ -->
+    <section class="st-privacy" id="privacy" aria-labelledby="privacyTitle">
+      <div class="st-privacy__pin">
+        <canvas class="st-privacy__canvas" id="stDissolve" aria-hidden="true"></canvas>
+        <div class="st-privacy__static" aria-hidden="true"><span class="st-mono">+91 98••• •••••</span><span class="st-privacy__arrow">→</span><span class="st-logo st-logo--xl">SudoTag<i></i></span></div>
+        <div class="st-privacy__captions">
+          <p class="st-kicker">The privacy moment</p>
+          <h2 id="privacyTitle">
+            <span class="st-cap is-on" data-cap="0">A number on the dashboard is an open door.</span>
+            <span class="st-cap" data-cap="1">With SudoTag, it dissolves.</span>
+            <span class="st-cap" data-cap="2">They reach you. <em>They never see you.</em></span>
+          </h2>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3 · How it works — 5-chapter pinned story ============ -->
+    <section class="st-section st-how" id="how" aria-labelledby="howTitle">
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">How it works</p>
+          <h2 id="howTitle">Scan. Signal. Respond.</h2>
+          <p>Five moments from sticker to solved, and your number stays hidden in every one of them.</p>
+        </header>
+      </div>
+
+      <div class="st-story" id="stStory" data-chapter="0">
+        <div class="st-story__pin">
+          <div class="st-wrap st-story__grid">
+            <ol class="st-rail" aria-label="Chapters">
+              <li><button type="button" data-go="0"><span>01</span>Stick the tag</button></li>
+              <li><button type="button" data-go="1"><span>02</span>Someone scans</button></li>
+              <li><button type="button" data-go="2"><span>03</span>The masked signal</button></li>
+              <li><button type="button" data-go="3"><span>04</span>Owner alerted</button></li>
+              <li><button type="button" data-go="4"><span>05</span>Talk, privately</button></li>
+            </ol>
+
+            <div class="st-story__stage st-glass" aria-hidden="true">
+              <!-- HUD: live channel read-out -->
+              <span class="st-hud__corners"><i></i><i></i><i></i><i></i></span>
+              <div class="st-hud st-mono">
+                <span class="st-hud__ch"><b data-hud-ch>01</b>/05 · <span data-hud-label>TAG ARMED</span></span>
+                <span class="st-hud__link"><i></i><span data-hud-link>IDLE</span></span>
+              </div>
+              <div class="st-hud__ledger st-mono"><span>Numbers exposed</span><b>0</b></div>
+
+              <!-- beam + routed channel (shares the stage's 115:100 box) -->
+              <svg class="st-sc st-sc--route" viewBox="0 0 115 100">
+                <defs>
+                  <linearGradient id="stBeamG" x1="0" y1="1" x2=".6" y2="0"><stop offset="0" stop-color="#FF7A1A" stop-opacity=".55"/><stop offset="1" stop-color="#FF7A1A" stop-opacity="0"/></linearGradient>
+                </defs>
+                <polygon class="st-route-beam" points="11.5,49 20.7,49 72,27 47.4,15" fill="url(#stBeamG)"/>
+                <path class="st-route-in" pathLength="1" d="M27.6 72 C38 72 45 80 57.5 80"/>
+                <path class="st-route-out" pathLength="1" d="M57.5 80 C66 80 70 60 77.5 52"/>
+                <circle class="st-route-pkt st-route-pkt--in" r=".9"><animateMotion dur="1.6s" repeatCount="indefinite" path="M27.6 72 C38 72 45 80 57.5 80"/></circle>
+                <circle class="st-route-pkt st-route-pkt--out" r=".9"><animateMotion dur="1.6s" begin=".8s" repeatCount="indefinite" path="M57.5 80 C66 80 70 60 77.5 52"/></circle>
+              </svg>
+
+              <!-- windshield + tag -->
+              <div class="st-sc st-sc--glass">
+                <span class="st-sc__shine"></span>
+                <span class="st-sc__tag"><img src="{% landing_asset 'img/sudotag-sticker.webp' %}" alt="" width="1181" height="591" loading="lazy"></span>
+                <span class="st-sc__otp st-mono"><i class="bi bi-shield-check"></i>OTP verified · tag live</span>
+                <span class="st-sc__plate st-mono"><b>IND</b>KL 11 AB 1234</span>
+              </div>
+              <!-- scanner phone -->
+              <div class="st-sc st-sc--scanner">
+                <span class="st-vf"><i></i><i></i><i></i><i></i><span class="st-vf__line"></span></span>
+                <span class="st-sc__found st-mono"><i class="bi bi-check2"></i>Tag found</span>
+                <span class="st-sc__sent st-mono"><i class="bi bi-send-check"></i>Sent</span>
+                <small>Scanner</small>
+              </div>
+              <!-- clear number → relay → masked -->
+              <span class="st-sc st-sc__clear st-mono">+91 98470 12345</span>
+              <div class="st-sc st-sc--relay">
+                <span class="st-relay__ring"></span>
+                <span class="st-relay__core"><b>S</b><i></i></span>
+                <small class="st-mono">SudoTag relay</small>
+              </div>
+              <span class="st-sc st-sc__glyphs st-mono" data-glyph>+91 98470 12345</span>
+              <!-- owner phone -->
+              <div class="st-sc st-sc--owner">
+                <span class="st-sc__ripple"></span><span class="st-sc__ripple"></span>
+                <span class="st-sc__island"></span>
+                <span class="st-sc__status"><span class="st-dot st-dot--safe"></span>Available</span>
+                <span class="st-sc__alert"><i class="bi bi-bell-fill"></i><b>Someone scanned your tag</b><small>"Your car is blocking the gate."</small></span>
+                <span class="st-sc__typing"><i></i><i></i><i></i></span>
+                <span class="st-sc__chat st-sc__chat--in">Coming in 2 min 🙏</span>
+                <span class="st-sc__chat st-sc__chat--out">Thanks! Waiting by the gate.</span>
+                <span class="st-sc__masked"><i class="bi bi-telephone"></i><span class="st-wave"><i></i><i></i><i></i><i></i><i></i></span><span class="st-mono">•••• •••••</span> masked</span>
+                <small>Owner</small>
+              </div>
+            </div>
+
+            <div class="st-story__text" aria-live="polite">
+              <span class="st-story__num" aria-hidden="true" data-story-num>01</span>
+              <article data-ch="0" class="is-on"><p class="st-story__stamp st-mono">Setup · once, 30 seconds</p><h3>Stick the tag</h3><p>Peel, place it on the windshield, helmet, scooter apron or cabin door, then activate with a one-time OTP. It needs no battery and no charging.</p></article>
+              <article data-ch="1"><p class="st-story__stamp st-mono">T + 0s</p><h3>Someone scans</h3><p>A neighbour, a guard or a passer-by opens their phone camera. No app is needed on their side.</p></article>
+              <article data-ch="2"><p class="st-story__stamp st-mono">T + 1s</p><h3>The signal is masked</h3><p>Their message travels through SudoTag and both numbers are scrambled on the way. Nothing personal crosses over.</p></article>
+              <article data-ch="3"><p class="st-story__stamp st-mono">T + 2s</p><h3>You're alerted</h3><p>A push alert arrives with the reason. Live Status (Available, Busy, Driving or DND) tells them what to expect.</p></article>
+              <article data-ch="4"><p class="st-story__stamp st-mono">T + 30s · solved</p><h3>Talk, privately</h3><p>Reply by chat, templated SMS or masked call. The problem gets solved and the numbers stay silent.</p></article>
+              <div class="st-story__nav">
+                <button type="button" class="st-round" data-step="-1" aria-label="Previous chapter"><i class="bi bi-arrow-left"></i></button>
+                <span class="st-story__bar"><i></i></span>
+                <button type="button" class="st-round" data-step="1" aria-label="Next chapter"><i class="bi bi-arrow-right"></i></button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <a href="#about" class="hero-scroll-hint" aria-label="Scroll to About section">
-        <span class="hero-scroll-line"></span>
-      </a>
-
-    </section><!-- /Hero Section -->
-
-    <!-- Scan QR / plate: one flow → notify (active) or activate (new tag) -->
-    <section id="find-vehicle" class="find-vehicle section">
-      <span id="activate-qr" aria-hidden="true"></span>
-      <div class="find-vehicle-bg" aria-hidden="true">
-        <span class="find-vehicle-bg__glow"></span>
-        <span class="find-vehicle-bg__grid"></span>
+      <div class="st-wrap st-how__more st-reveal">
+        <a class="st-btn st-btn--line" href="{% url 'how_it_works' %}">Read the full guide <i class="bi bi-arrow-right"></i></a>
       </div>
+    </section>
 
-      <div class="container section-title" data-aos="fade-up">
-        <h2>Scan QR</h2>
-        <p>One scan for everything — notify an owner or activate a new SudoTag.</p>
-      </div>
+    <!-- ============ 4 · Scan & Find (find_vehicle.js hooks preserved) ============ -->
+    <section class="st-section st-scan" id="scan" aria-labelledby="scanTitle">
+      <span id="find-vehicle" class="st-anchor" aria-hidden="true"></span>
+      <span id="activate-qr" class="st-anchor" aria-hidden="true"></span>
+      <div class="st-wrap st-scan__grid">
+        <header class="st-head st-scan__intro st-reveal">
+          <p class="st-kicker">Scan &amp; Find</p>
+          <h2 id="scanTitle">One scanner. <span class="st-grad">Two jobs.</span></h2>
+          <p>Scan any SudoTag. A <b>new</b> tag opens activation; an <b>active</b> tag lets you reach its owner privately. Can't see a tag? Search by number plate.</p>
+          <ol class="st-routes" aria-label="What the scanner does">
+            <li><button type="button" class="st-routes__btn" data-route-pick="new" style="--c:var(--signal)">
+              <span class="st-routes__k st-mono">01</span>
+              <span class="st-routes__txt"><b>New tag <i class="bi bi-arrow-right"></i> activation</b><small>An unclaimed sticker opens setup. Link your vehicle with an OTP.</small></span>
+            </button></li>
+            <li><button type="button" class="st-routes__btn" data-route-pick="active" style="--c:var(--safe)">
+              <span class="st-routes__k st-mono">02</span>
+              <span class="st-routes__txt"><b>Active tag <i class="bi bi-arrow-right"></i> private notify</b><small>A live sticker reaches the owner. Neither side sees a number.</small></span>
+            </button></li>
+            <li><button type="button" class="st-routes__btn" data-route-pick="plate" style="--c:var(--signal-2)">
+              <span class="st-routes__k st-mono">03</span>
+              <span class="st-routes__txt"><b>Plate <i class="bi bi-arrow-right"></i> find the owner</b><small>No sticker in sight? Read the number plate instead.</small></span>
+            </button></li>
+          </ol>
+        </header>
 
-      <div class="container" data-aos="fade-up" data-aos-delay="80">
-        <div class="find-vehicle-stage" id="findVehicleCard" data-mode="qr"
+        <div class="find-vehicle-stage st-console st-glass st-reveal" id="findVehicleCard" data-mode="qr"
              data-lookup-url="{% url 'public_lookup_vehicle' %}"
              data-wheel-url="{% url 'notify_sending_wheel_json' %}"
              data-lottie-url="{% landing_asset 'vendor/lottie/lottie.min.js' %}">
 
-          <aside class="find-vehicle-visual" aria-hidden="true">
-            <div class="find-vehicle-visual__ring">
-              <div class="find-vehicle-visual__core">
-                <i class="bi bi-qr-code-scan find-vehicle-visual__icon find-vehicle-visual__icon--qr"></i>
-                <i class="bi bi-card-heading find-vehicle-visual__icon find-vehicle-visual__icon--plate"></i>
-                <span class="find-vehicle-visual__scanline"></span>
-              </div>
+          <div class="st-console__window st-route" aria-hidden="true" data-route="new">
+            <div class="st-route__src">
+              <span class="st-vf st-vf--lg"><i></i><i></i><i></i><i></i><span class="st-vf__line"></span></span>
+              <span class="st-console__qr"><i class="bi bi-qr-code"></i></span>
+              <span class="st-route__plate st-mono"><b>IND</b><span data-route-plate>KL 10 AY 2121</span></span>
             </div>
-            <ul class="find-vehicle-visual__points">
-              <li><i class="bi bi-shield-check"></i> Private notify</li>
-              <li><i class="bi bi-phone"></i> Activate new QR</li>
-              <li><i class="bi bi-card-text"></i> Plate lookup</li>
+            <svg class="st-route__fork" viewBox="0 0 100 120" preserveAspectRatio="none">
+              <path data-to="new" d="M0 60 C45 60 50 20 100 20"/>
+              <path data-to="active" d="M0 60 C45 60 50 60 100 60"/>
+              <path data-to="plate" d="M0 60 C45 60 50 100 100 100"/>
+            </svg>
+            <ul class="st-route__out">
+              <li data-out="new" style="--c:var(--signal)"><i class="bi bi-stars"></i><span><b>Activate</b><small>New tag</small></span></li>
+              <li data-out="active" style="--c:var(--safe)"><i class="bi bi-bell-fill"></i><span><b>Notify owner</b><small>Active tag</small></span></li>
+              <li data-out="plate" style="--c:var(--signal-2)"><i class="bi bi-person-check-fill"></i><span><b>Owner found</b><small>Plate match</small></span></li>
             </ul>
-          </aside>
-
-          <div class="find-vehicle-console">
-            <div class="find-vehicle-seg" role="tablist" aria-label="Scan method">
-              <span class="find-vehicle-seg__pill" aria-hidden="true"></span>
-              <button type="button" class="find-vehicle-tab is-active" data-tab="qr" role="tab" aria-selected="true">
-                <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
-                <span>Scan QR</span>
-              </button>
-              <button type="button" class="find-vehicle-tab" data-tab="plate" role="tab" aria-selected="false">
-                <i class="bi bi-card-text" aria-hidden="true"></i>
-                <span>Plate number</span>
-              </button>
-            </div>
-
-            <div class="find-vehicle-panel is-active" data-panel="qr" role="tabpanel">
-              <p class="find-vehicle-help">Scan or upload a SudoTag QR — active tags open notify; new tags open activation.</p>
-              <div class="find-vehicle-primary">
-                <button type="button" class="find-vehicle-scan-btn" id="findVehicleScanBtn" data-scan-mode="qr">
-                  <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
-                  <i class="bi bi-camera-fill" aria-hidden="true"></i>
-                  <strong>Scan QR</strong>
-                  <small>Camera or gallery</small>
-                </button>
-                <label class="find-vehicle-ghost-btn find-vehicle-file-btn">
-                  <i class="bi bi-image" aria-hidden="true"></i> Gallery
-                  <input type="file" id="findVehicleQrFile" accept="image/*" hidden>
-                </label>
-              </div>
-              <div class="find-vehicle-divider"><span>or paste link / ID</span></div>
-              <div class="find-vehicle-row">
-                <div class="find-vehicle-field">
-                  <i class="bi bi-link-45deg" aria-hidden="true"></i>
-                  <input type="text" id="findVehicleQrInput" class="find-vehicle-input form-control"
-                         placeholder="Paste SudoTag QR link…"
-                         autocomplete="off" spellcheck="false">
-                </div>
-                <button type="button" class="find-vehicle-go" id="findVehicleQrGo">Go</button>
-              </div>
-            </div>
-
-            <div class="find-vehicle-panel" data-panel="plate" role="tabpanel" hidden>
-              <p class="find-vehicle-help">Scan or upload the number plate — auto-detect fills the registration.</p>
-              <div class="find-vehicle-primary">
-                <button type="button" class="find-vehicle-scan-btn" id="findVehiclePlateScanBtn" data-scan-mode="plate">
-                  <span class="find-vehicle-scan-btn__pulse" aria-hidden="true"></span>
-                  <i class="bi bi-camera-fill" aria-hidden="true"></i>
-                  <strong>Scan plate</strong>
-                  <small>Camera or gallery</small>
-                </button>
-                <label class="find-vehicle-ghost-btn find-vehicle-file-btn">
-                  <i class="bi bi-image" aria-hidden="true"></i> Gallery
-                  <input type="file" id="findVehiclePlateFile" accept="image/*" hidden>
-                </label>
-              </div>
-              <div class="find-vehicle-divider"><span>or type registration</span></div>
-              <label class="find-vehicle-plate-label" for="findVehiclePlateInput">Registration number</label>
-              <div class="find-vehicle-row">
-                <div class="find-vehicle-field">
-                  <i class="bi bi-upc" aria-hidden="true"></i>
-                  <input type="text" id="findVehiclePlateInput" class="find-vehicle-input find-vehicle-input--plate form-control"
-                         placeholder="e.g. KL10AY2121"
-                         autocomplete="off" autocapitalize="characters" spellcheck="false">
-                </div>
-                <button type="button" class="find-vehicle-go" id="findVehiclePlateGo">Find</button>
-              </div>
-            </div>
-
-              <div class="find-vehicle-preview is-qr" id="findVehiclePreviewWrap" hidden>
-              <div class="find-vehicle-preview__frame" data-mode-label="QR">
-                <video id="findVehicleVideo" class="find-vehicle-video" playsinline muted hidden></video>
-                <img id="findVehicleSnap" class="find-vehicle-snap" alt="Captured preview" hidden>
-                <div class="find-vehicle-preview__guide is-qr" id="findVehicleGuide" aria-hidden="true"></div>
-                <canvas id="findVehicleCanvas" hidden></canvas>
-              </div>
-              <div class="find-vehicle-preview__bar">
-                <button type="button" class="find-vehicle-go" id="findVehicleCaptureBtn" hidden>Capture</button>
-                <button type="button" class="find-vehicle-ghost-btn" id="findVehicleStopBtn" hidden>Stop</button>
-              </div>
-            </div>
-
-            <p class="find-vehicle-status" id="findVehicleStatus" role="status" aria-live="polite"></p>
+            <span class="st-console__readout st-mono" data-route-readout>SIGNAL · READY</span>
           </div>
+
+          <div class="find-vehicle-seg st-seg" role="tablist" aria-label="Scan method">
+            <span class="st-seg__pill" aria-hidden="true"></span>
+            <button type="button" class="find-vehicle-tab is-active" data-tab="qr" role="tab" aria-selected="true">
+              <i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan QR</span>
+            </button>
+            <button type="button" class="find-vehicle-tab" data-tab="plate" role="tab" aria-selected="false">
+              <i class="bi bi-card-text" aria-hidden="true"></i><span>Plate number</span>
+            </button>
+          </div>
+
+          <div class="find-vehicle-panel is-active" data-panel="qr" role="tabpanel">
+            <div class="st-console__actions">
+              <button type="button" class="find-vehicle-scan-btn st-scanbtn" id="findVehicleScanBtn" data-scan-mode="qr" aria-label="Scan a SudoTag QR with camera or gallery">
+                <span class="st-scanbtn__ring" aria-hidden="true"></span>
+                <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                <span><strong>Scan QR</strong><small>Camera or gallery</small></span>
+              </button>
+              <label class="st-btn st-btn--quiet find-vehicle-file-btn">
+                <i class="bi bi-image" aria-hidden="true"></i> Gallery
+                <input type="file" id="findVehicleQrFile" accept="image/*" hidden>
+              </label>
+            </div>
+            <div class="st-or"><span>or paste the QR link / ID</span></div>
+            <div class="st-field-row">
+              <label class="st-field">
+                <i class="bi bi-link-45deg" aria-hidden="true"></i>
+                <input type="text" id="findVehicleQrInput" class="find-vehicle-input"
+                       placeholder="https://sudotag.com/admin/send-notification/…"
+                       autocomplete="off" spellcheck="false" aria-label="SudoTag QR link or ID">
+              </label>
+              <button type="button" class="st-btn st-btn--signal" id="findVehicleQrGo">Go</button>
+            </div>
+          </div>
+
+          <div class="find-vehicle-panel" data-panel="plate" role="tabpanel" hidden>
+            <div class="st-console__actions">
+              <button type="button" class="find-vehicle-scan-btn st-scanbtn" id="findVehiclePlateScanBtn" data-scan-mode="plate" aria-label="Scan a number plate with camera or gallery">
+                <span class="st-scanbtn__ring" aria-hidden="true"></span>
+                <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                <span><strong>Scan plate</strong><small>Auto-reads the number</small></span>
+              </button>
+              <label class="st-btn st-btn--quiet find-vehicle-file-btn">
+                <i class="bi bi-image" aria-hidden="true"></i> Gallery
+                <input type="file" id="findVehiclePlateFile" accept="image/*" hidden>
+              </label>
+            </div>
+            <div class="st-or"><span>or type the registration</span></div>
+            <div class="st-field-row">
+              <label class="st-field st-field--plate" id="stPlateField">
+                <span class="st-field__ind" aria-hidden="true"><i class="bi bi-circle"></i>IND</span>
+                <input type="text" id="findVehiclePlateInput" class="find-vehicle-input find-vehicle-input--plate"
+                       placeholder="KL10AY2121" aria-label="Vehicle registration number"
+                       autocomplete="off" autocapitalize="characters" spellcheck="false">
+              </label>
+              <button type="button" class="st-btn st-btn--signal" id="findVehiclePlateGo">Find</button>
+            </div>
+          </div>
+
+          <div class="find-vehicle-preview is-qr" id="findVehiclePreviewWrap" hidden>
+            <div class="find-vehicle-preview__frame" data-mode-label="QR">
+              <video id="findVehicleVideo" class="find-vehicle-video" playsinline muted hidden></video>
+              <img id="findVehicleSnap" class="find-vehicle-snap" alt="Captured preview" hidden>
+              <div class="find-vehicle-preview__guide is-qr" id="findVehicleGuide" aria-hidden="true"></div>
+              <canvas id="findVehicleCanvas" hidden></canvas>
+            </div>
+            <div class="find-vehicle-preview__bar">
+              <button type="button" class="st-btn st-btn--signal" id="findVehicleCaptureBtn" hidden>Capture</button>
+              <button type="button" class="st-btn st-btn--quiet" id="findVehicleStopBtn" hidden>Stop</button>
+            </div>
+          </div>
+
+          <p class="find-vehicle-status" id="findVehicleStatus" role="status" aria-live="polite"></p>
         </div>
       </div>
-
     </section>
 
-    <!-- Outside section so overflow/transform never clips the camera sheet -->
+    <!-- Outside the section so transforms never clip the camera sheet -->
     <div class="find-vehicle-sheet" id="findVehicleCameraSheet" hidden>
       <div class="find-vehicle-sheet__backdrop" data-sheet-close></div>
       <div class="find-vehicle-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="findVehicleSheetTitle">
@@ -352,487 +704,434 @@
       </div>
     </div>
 
-    <!-- Advertisement Slider -->
-    <section id="promo-ad" class="landing-ad section light-background">
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="section-title">
-          <h2>Advertisement</h2>
-          <p>Discover the latest offers and updates from SudoTag</p>
+    <!-- ============ 5 · Features bento (tiles expand into sheets) ============ -->
+    <section class="st-section st-features" id="features" aria-labelledby="featTitle">
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">More than a sticker</p>
+          <h2 id="featTitle">Your whole garage, <span class="st-grad">in one app.</span></h2>
+          <p>Tap any tile to open it.</p>
+        </header>
+
+        <div class="st-bento">
+          <button type="button" class="st-tile st-tile--xl st-glass st-reveal" data-feature="qr" data-tilt>
+            <span class="st-tile__fx st-fx-qr"><span class="st-pulse st-pulse--sm"><i></i><i></i><i></i></span><i class="bi bi-qr-code"></i></span>
+            <h3>Private QR contact</h3><p>Anyone can reach you. Nobody sees behind the tag.</p>
+          </button>
+          <button type="button" class="st-tile st-tile--wide st-glass st-reveal" data-feature="garage" style="--d:60ms" data-tilt>
+            <span class="st-tile__fx st-fx-garage"><span class="st-mini-plate">KL 11 AB 1234</span><span class="st-mini-plate">KL 10 AY 2121</span><span class="st-mini-plate">KL 07 CD 5678</span></span>
+            <h3>Multi-vehicle garage</h3><p>Every car, bike and scooter on one account.</p>
+          </button>
+          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="locker" style="--d:120ms" data-tilt>
+            <span class="st-soon-badge">Coming soon</span>
+            <span class="st-tile__fx st-fx-locker"><span class="st-fx-locker__doc">RC</span><span class="st-fx-locker__door"></span></span>
+            <h3>Document locker</h3><p>RC, insurance and PUC in the app. On the way.</p>
+          </button>
+          <button type="button" class="st-tile st-glass st-reveal" data-feature="assign" style="--d:60ms" data-tilt>
+            <span class="st-tile__fx st-fx-assign"><i class="bi bi-person-fill"></i><span></span><i class="bi bi-person"></i></span>
+            <h3>Family &amp; temp assign</h3><p>Hand alerts to whoever is driving today.</p>
+          </button>
+          <button type="button" class="st-tile st-tile--alert st-glass st-reveal" data-feature="lost" style="--d:120ms" data-tilt>
+            <span class="st-tile__fx st-fx-lost"><span></span><span></span><span></span><i class="bi bi-geo-alt-fill"></i></span>
+            <h3>Lost Mode + tips</h3><p>Community scans send you sightings with location.</p>
+          </button>
+          <button type="button" class="st-tile st-glass st-reveal" data-feature="channels" style="--d:180ms" data-tilt>
+            <span class="st-tile__fx st-fx-channels"><span class="st-mono" data-scramble-loop>98470 12345</span></span>
+            <h3>Chat · SMS · masked call</h3><p>Talk without either side seeing a number.</p>
+          </button>
+          <button type="button" class="st-tile st-glass st-reveal" data-feature="status" style="--d:60ms" data-tilt>
+            <span class="st-tile__fx st-fx-status"><span>Available</span><span>Busy</span><span>Driving</span><span>DND</span></span>
+            <h3>Live Status</h3><p>Let scanners know what to expect before they wait.</p>
+          </button>
+          <button type="button" class="st-tile st-glass st-reveal" data-feature="ai" style="--d:120ms" data-tilt>
+            <span class="st-tile__fx st-fx-ai"><i class="bi bi-stars"></i><span class="st-fx-ai__type">How do I use Lost Mode?</span></span>
+            <h3>Sudo AI</h3><p>Quick answers for everyday ownership.</p>
+          </button>
+          <button type="button" class="st-tile st-glass st-reveal" data-feature="order" style="--d:180ms" data-tilt>
+            <span class="st-tile__fx st-fx-order"><i class="bi bi-box-seam"></i></span>
+            <h3>Order QR tags</h3><p>Extra tags for new vehicles, right from the app.</p>
+          </button>
+          <button type="button" class="st-tile st-tile--signal st-glass st-reveal" data-feature="refer" style="--d:240ms" data-tilt>
+            <span class="st-tile__fx st-fx-refer"><i class="bi bi-gift"></i></span>
+            <h3>Refer &amp; earn</h3><p>Invite friends and earn rewards when they join.</p>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <dialog class="st-sheet" id="stSheet" aria-labelledby="stSheetTitle">
+      <div class="st-sheet__inner">
+        <button type="button" class="st-round st-sheet__close" data-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+        <div class="st-sheet__phone" aria-hidden="true">
+          <span class="st-sc__island"></span>
+          <div class="st-sheet__screen" id="stSheetScreen"></div>
+        </div>
+        <div class="st-sheet__copy">
+          <p class="st-kicker" id="stSheetKicker">Feature</p>
+          <h3 id="stSheetTitle">Feature</h3>
+          <p id="stSheetLead"></p>
+          <ul id="stSheetList"></ul>
+          <div class="st-sheet__cta">
+            <a class="st-btn st-btn--signal" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link><i class="bi bi-phone"></i><span>Get the app</span></a>
+            <a class="st-btn st-btn--line" href="{% url 'buy_now' %}">Buy a tag</a>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- ============ 6 · For every vehicle ============ -->
+    <section class="st-section st-vehicles" id="vehicles" aria-labelledby="vehTitle">
+      <div class="st-wrap">
+        <header class="st-head st-head--row st-reveal">
+          <div>
+            <p class="st-kicker">For every vehicle</p>
+            <h2 id="vehTitle">Two wheels, three or eighteen.</h2>
+          </div>
+          <div class="st-vehicles__nav">
+            <button type="button" class="st-round" data-veh-step="-1" aria-label="Previous vehicle"><i class="bi bi-arrow-left"></i></button>
+            <button type="button" class="st-round" data-veh-step="1" aria-label="Next vehicle"><i class="bi bi-arrow-right"></i></button>
+          </div>
+        </header>
+        <div class="st-vehicles__switch st-reveal" role="tablist" aria-label="I drive a…">
+          <button type="button" role="tab" data-veh="0" aria-selected="true">Car</button>
+          <button type="button" role="tab" data-veh="1" aria-selected="false">Bike</button>
+          <button type="button" role="tab" data-veh="2" aria-selected="false">Scooter</button>
+          <button type="button" role="tab" data-veh="3" aria-selected="false">Auto</button>
+          <button type="button" role="tab" data-veh="4" aria-selected="false">Taxi</button>
+          <button type="button" role="tab" data-veh="5" aria-selected="false">Truck</button>
+        </div>
+      </div>
+
+      <div class="st-vtrack" id="stVTrack" tabindex="0" aria-label="Vehicle stories">
+        <article class="st-vslide" style="--tint:#FF7A1A" data-veh-slide="0">
+          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-car"/></svg><span class="st-pin" style="--x:44%;--y:30%"><i></i>Inside windshield, top corner</span></div>
+          <div class="st-vslide__copy">
+            <p class="st-kicker">Car</p>
+            <h3>Blocked in. Lights on. Tow truck coming.</h3>
+            <p>The classic parking headache. They scan your windshield and you get the reason instantly, with no number on the glass.</p>
+            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="car">Tag my car</a>
+          </div>
+        </article>
+        <article class="st-vslide" style="--tint:#00E5A8" data-veh-slide="1">
+          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-bike"/></svg><span class="st-pin" style="--x:62%;--y:30%"><i></i>Headlight visor or tank</span></div>
+          <div class="st-vslide__copy">
+            <p class="st-kicker">Bike</p>
+            <h3>Key left in. Helmet on the seat.</h3>
+            <p>Bikes get moved, tipped and towed. A tag on the visor lets anyone warn you before it becomes a problem.</p>
+            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="bike">Tag my bike</a>
+          </div>
+        </article>
+        <article class="st-vslide" style="--tint:#3D7BFF" data-veh-slide="2">
+          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-scooter"/></svg><span class="st-pin" style="--x:46%;--y:52%"><i></i>Front apron</span></div>
+          <div class="st-vslide__copy">
+            <p class="st-kicker">Scooter</p>
+            <h3>Parked in a sea of identical scooters.</h3>
+            <p>Turn on Lost Mode and anyone who spots it can ping you with a tip and location.</p>
+            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="scooter">Tag my scooter</a>
+          </div>
+        </article>
+        <article class="st-vslide" style="--tint:#FFB547" data-veh-slide="3">
+          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-auto"/></svg><span class="st-pin" style="--x:40%;--y:40%"><i></i>Inside the cabin, passenger side</span></div>
+          <div class="st-vslide__copy">
+            <p class="st-kicker">Auto-rickshaw</p>
+            <h3>A passenger forgot their bag.</h3>
+            <p>They scan the cabin tag and reach the driver. Neither side has to share a personal number.</p>
+            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="auto">Tag my auto</a>
+          </div>
+        </article>
+        <article class="st-vslide" style="--tint:#FFD400" data-veh-slide="4">
+          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-taxi"/></svg><span class="st-pin" style="--x:44%;--y:30%"><i></i>Rear window, guest-facing</span></div>
+          <div class="st-vslide__copy">
+            <p class="st-kicker">Taxi</p>
+            <h3>Guests reach you. Your number stays yours.</h3>
+            <p>Lost items, pickup changes and feedback all reach you through masked channels, ride after ride.</p>
+            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="taxi">Tag my taxi</a>
+          </div>
+        </article>
+        <article class="st-vslide" style="--tint:#FF4D5E" data-veh-slide="5">
+          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-truck"/></svg><span class="st-pin" style="--x:74%;--y:46%"><i></i>Cab door or windshield</span></div>
+          <div class="st-vslide__copy">
+            <p class="st-kicker">Truck</p>
+            <h3>Blocking a loading dock at 3 AM.</h3>
+            <p>Anyone at the dock can scan the cab tag and alert the driver privately, with no number painted on the door. Tools for whole fleets are coming soon.</p>
+            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="truck">Tag my truck</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ 6b · Design your tag (live configurator) ============ -->
+    <section class="st-section st-designer" id="designer" aria-labelledby="designTitle"
+             data-buy-url="{% url 'buy_now' %}"
+             data-price="{% if tag_price is not None %}{{ tag_price|floatformat:0 }}{% endif %}"
+             data-shipping="{% if tag_shipping is not None %}{{ tag_shipping|floatformat:0 }}{% endif %}">
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">Design your tag</p>
+          <h2 id="designTitle">Make it <span class="st-grad">yours.</span></h2>
+          <p>Pick your vehicle, add your number plate and choose a pack. Drag the tag to turn it, or flip it to see the back.</p>
+        </header>
+
+        <div class="st-dz">
+          <!-- Stage -->
+          <div class="st-dz__stage st-glass st-reveal" id="stDzStage">
+            <div class="st-dz__bg" aria-hidden="true">
+              <svg class="st-dz__veh" viewBox="0 0 240 120"><use href="#v-car" id="stDzVeh"/></svg>
+              <span class="st-dz__pin" id="stDzPin"><i></i></span>
+            </div>
+
+            <div class="st-dz__scene" id="stDzScene" role="img" aria-label="SudoTag sticker preview">
+              <div class="st-dz__stack" id="stDzStack" aria-hidden="true"></div>
+              <div class="st-dz__card" id="stDzCard">
+                <div class="st-dz__face st-dz__face--front">
+                  <picture>
+                    <source srcset="{% landing_asset 'img/sudotag-sticker.webp' %}" type="image/webp">
+                    <img src="{% landing_asset 'img/sudotag-sticker.png' %}" alt="" width="1181" height="591" loading="lazy" draggable="false">
+                  </picture>
+                  <span class="st-dz__holo" aria-hidden="true"></span>
+                  <span class="st-dz__scan" aria-hidden="true"></span>
+                </div>
+                <div class="st-dz__face st-dz__face--back" aria-hidden="true">
+                  <span class="st-dz__liner"></span>
+                  <span class="st-dz__peel">Peel here</span>
+                  <div class="st-dz__backcopy">
+                    <span class="st-logo">SudoTag<i></i></span>
+                    <ol>
+                      <li><b>1</b>Clean &amp; dry the glass</li>
+                      <li><b>2</b>Peel and press from the centre out</li>
+                      <li><b>3</b>Scan once to activate</li>
+                    </ol>
+                    <span class="st-mono st-dz__for">For your <b id="stDzBackVeh">car</b></span>
+                  </div>
+                </div>
+              </div>
+              <span class="st-dz__shadow" aria-hidden="true"></span>
+            </div>
+
+            <div class="st-dz__link" aria-hidden="true">
+              <span class="st-dz__line"><i></i></span>
+            </div>
+            <div class="st-dz__plate" id="stDzPlateView" aria-live="polite">
+              <span class="st-dz__plate-ind"><i class="bi bi-circle"></i>IND</span>
+              <span class="st-dz__plate-num" id="stDzPlateNum">KL 11 AB 1234</span>
+            </div>
+            <p class="st-dz__caption">Your plate is linked in the app when you activate. <b>It is never printed on the tag.</b></p>
+
+            <div class="st-dz__tools">
+              <button type="button" class="st-round" id="stDzFlip" aria-label="Flip the tag"><i class="bi bi-arrow-repeat"></i></button>
+              <span class="st-dz__hint"><i class="bi bi-hand-index"></i>Drag to rotate</span>
+              <span class="st-dz__count st-mono" id="stDzCount">×1</span>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <form class="st-dz__panel st-glass st-reveal" id="stDzForm" onsubmit="return false">
+            <fieldset class="st-dz__group">
+              <legend><span>01</span>Your vehicle</legend>
+              <div class="st-dz__vehicles" role="radiogroup" aria-label="Vehicle type">
+                <label><input type="radio" name="veh" value="car" checked><span><svg viewBox="0 0 240 120"><use href="#v-car"/></svg>Car</span></label>
+                <label><input type="radio" name="veh" value="bike"><span><svg viewBox="0 0 240 120"><use href="#v-bike"/></svg>Bike</span></label>
+                <label><input type="radio" name="veh" value="scooter"><span><svg viewBox="0 0 240 120"><use href="#v-scooter"/></svg>Scooter</span></label>
+                <label><input type="radio" name="veh" value="auto"><span><svg viewBox="0 0 240 120"><use href="#v-auto"/></svg>Auto</span></label>
+                <label><input type="radio" name="veh" value="taxi"><span><svg viewBox="0 0 240 120"><use href="#v-taxi"/></svg>Taxi</span></label>
+                <label><input type="radio" name="veh" value="truck"><span><svg viewBox="0 0 240 120"><use href="#v-truck"/></svg>Truck</span></label>
+              </div>
+              <p class="st-dz__where"><i class="bi bi-geo"></i><span id="stDzWhere">Stick it inside the windshield, top corner.</span></p>
+            </fieldset>
+
+            <fieldset class="st-dz__group">
+              <legend><span>02</span>Number plate <small>(optional)</small></legend>
+              <label class="st-field st-field--plate" id="stDzPlateField">
+                <span class="st-field__ind" aria-hidden="true"><i class="bi bi-circle"></i>IND</span>
+                <input type="text" id="stDzPlate" maxlength="13" placeholder="KL 11 AB 1234" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Vehicle registration number">
+              </label>
+            </fieldset>
+
+            <fieldset class="st-dz__group">
+              <legend><span>03</span>Pack size</legend>
+              <div class="st-dz__packs" role="radiogroup" aria-label="Pack size">
+                <label><input type="radio" name="qty" value="1" checked><span><b>1</b>Single</span></label>
+                <label><input type="radio" name="qty" value="2"><span><b>2</b>Couple</span></label>
+                <label><input type="radio" name="qty" value="5"><span><b>5</b>Family</span></label>
+                <label><input type="radio" name="qty" value="10"><span><b>10</b>Bulk</span></label>
+              </div>
+            </fieldset>
+
+            <div class="st-dz__summary" aria-live="polite">
+              <div><span>Tags</span><b id="stDzSumQty">1 × SudoTag</b></div>
+              <div id="stDzSumShipRow"><span>Shipping</span><b id="stDzSumShip">—</b></div>
+              <div class="st-dz__total"><span>Total</span><b id="stDzSumTotal">Shown at checkout</b></div>
+              <small>Coupons can be applied at checkout.</small>
+            </div>
+
+            <a class="st-btn st-btn--signal st-btn--lg st-dz__buy" id="stDzBuy" href="{% url 'buy_now' %}" data-magnetic>
+              <i class="bi bi-bag-check" aria-hidden="true"></i><span>Buy this tag</span>
+            </a>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 7 · Lost Mode beacon map ============ -->
+    <section class="st-section st-lost" id="lost" aria-labelledby="lostTitle">
+      <div class="st-wrap st-lost__grid">
+        <div class="st-lost__map st-glass st-reveal" id="stLostMap" aria-hidden="true">
+          <svg class="st-lost__roads" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+            <path d="M0 80 H400 M0 210 H400 M90 0 V300 M260 0 V300 M0 300 L180 0 M330 0 Q300 150 400 260"/>
+          </svg>
+          <span class="st-lost__target"><i class="bi bi-bicycle"></i></span>
+          <div class="st-lost__dots"></div>
+          <div class="st-lost__toasts"></div>
+        </div>
+        <header class="st-head st-reveal">
+          <p class="st-kicker st-kicker--alert">Lost Mode</p>
+          <h2 id="lostTitle">A whole city becomes your search party.</h2>
+          <p>Mark a vehicle lost in the app. Anyone who scans its tag can send a tip with location straight to you, and you never have to post your number on a group chat.</p>
+          <ul class="st-checks">
+            <li><i class="bi bi-check2"></i>One tap to switch on, one to switch off</li>
+            <li><i class="bi bi-check2"></i>Tips arrive with location and time</li>
+            <li><i class="bi bi-check2"></i>Finders stay anonymous too</li>
+          </ul>
+        </header>
+      </div>
+    </section>
+
+    <!-- ============ 8 · Numbers ============ -->
+    <section class="st-numbers" aria-label="SudoTag in numbers">
+      <div class="st-wrap st-numbers__grid">
+        <div class="st-num st-reveal"><b data-count="0" data-from="9847012345">0</b><span>phone numbers shown to scanners</span></div>
+        <div class="st-num st-reveal" style="--d:80ms"><b data-count="4">4</b><span>private ways to reach you</span></div>
+        <div class="st-num st-reveal" style="--d:160ms"><b data-count="6">6</b><span>vehicle types, one tag</span></div>
+        <div class="st-num st-reveal" style="--d:240ms"><b data-count="0" data-from="100">0</b><span>batteries to charge, ever</span></div>
+      </div>
+    </section>
+
+    <!-- ============ 9 · Fleet ============ -->
+    <section class="st-section st-fleet" id="fleet" aria-labelledby="fleetTitle">
+      <div class="st-wrap">
+        <div class="st-offer-banner st-reveal">
+          <span class="st-offer-banner__badge">Early access</span>
+          <p>Activate your SudoTag now and get <b>1 year free fleet access</b> when Fleet launches.</p>
+          <a class="st-btn st-btn--signal st-btn--sm" href="{% url 'buy_now' %}">Get a tag</a>
         </div>
 
-        <div class="landing-ad-slider swiper init-swiper">
+        <div class="st-fleet__grid">
+          <header class="st-head st-reveal">
+            <p class="st-kicker">Fleet <span class="st-soon st-soon--lg">Coming soon</span></p>
+            <h2 id="fleetTitle">Fleet tools are <span class="st-grad">on the way.</span></h2>
+            <p>Every SudoTag already works on trucks, taxis, buses and delivery vehicles today. Next, we're building tools to run a whole fleet from one place.</p>
+            <ul class="st-fleet__list">
+              <li class="is-live"><i class="bi bi-shield-check"></i><div><b>Private contact for every vehicle <span class="st-tagpill st-tagpill--live">Available now</span></b><span>Anyone can scan a tag and alert the driver. Numbers stay hidden on both sides.</span></div></li>
+              <li><i class="bi bi-grid-1x2"></i><div><b>Fleet dashboard <span class="st-tagpill">Soon</span></b><span>Every vehicle and every alert in one view.</span></div></li>
+              <li><i class="bi bi-person-badge"></i><div><b>Driver assignment by shift <span class="st-tagpill">Soon</span></b><span>Route each vehicle's alerts to whoever is driving it.</span></div></li>
+              <li><i class="bi bi-calendar2-check"></i><div><b>Document expiry reminders <span class="st-tagpill">Soon</span></b><span>Insurance, PUC and permits flagged before they lapse.</span></div></li>
+            </ul>
+          </header>
+
+          <div class="st-fleet__dash st-glass st-reveal" aria-hidden="true">
+            <div class="st-fleet__bar"><span class="st-dot" style="background:var(--amber)"></span><span class="st-mono">FLEET · PREVIEW</span><span class="st-fleet__count st-mono">Coming soon</span></div>
+            <canvas id="stFleet"></canvas>
+            <div class="st-fleet__toasts" id="stFleetToasts"></div>
+            <span class="st-fleet__ribbon st-mono">Preview of what's coming</span>
+          </div>
+        </div>
+
+        <form class="st-lead st-glass st-reveal" id="stLead" aria-labelledby="leadTitle">
+          <h3 id="leadTitle">Get early access to Fleet</h3>
+          <p class="st-lead__lead">Tell us about your vehicles and we'll reach out when Fleet launches.</p>
+          <div class="st-lead__grid">
+            <label><span>Name</span><input name="name" required autocomplete="name" placeholder="Your name"></label>
+            <label><span>Company</span><input name="company" autocomplete="organization" placeholder="Company"></label>
+            <label><span>Fleet size</span>
+              <select name="size"><option>2–10</option><option>11–50</option><option>51–200</option><option>200+</option></select>
+            </label>
+            <label><span>Phone</span><input name="phone" type="tel" autocomplete="tel" placeholder="+91" inputmode="tel"></label>
+          </div>
+          <button type="submit" class="st-btn st-btn--signal"><i class="bi bi-whatsapp"></i><span>Join on WhatsApp</span></button>
+          <small>Opens WhatsApp with your details filled in. Nothing is stored on this page.</small>
+      </div>
+    </section>
+
+    <!-- ============ Offers (admin-managed banner ads) ============ -->
+    <section class="st-section st-offers" id="offers" aria-labelledby="offersTitle">
+      <div class="st-wrap">
+        <header class="st-head st-head--row st-reveal">
+          <div>
+            <p class="st-kicker">Offers</p>
+            <h2 id="offersTitle">What's new for owners</h2>
+          </div>
+          <div class="st-offers__nav">
+            <button type="button" class="landing-ad-prev st-round" aria-label="Previous offer"><i class="bi bi-arrow-left"></i></button>
+            <button type="button" class="landing-ad-next st-round" aria-label="Next offer"><i class="bi bi-arrow-right"></i></button>
+          </div>
+        </header>
+
+        <div class="landing-ad-slider swiper init-swiper st-reveal">
           <script type="application/json" class="swiper-config">
             {
               "loop": {% if banner_ads|length > 1 %}true{% else %}false{% endif %},
               "speed": 700,
-              "autoplay": {
-                "delay": 5000,
-                "disableOnInteraction": false
-              },
+              "autoplay": { "delay": 5000, "disableOnInteraction": false },
               "slidesPerView": 1,
-              "spaceBetween": 0,
-              "pagination": {
-                "el": ".landing-ad-pagination",
-                "type": "bullets",
-                "clickable": true
-              },
-              "navigation": {
-                "nextEl": ".landing-ad-next",
-                "prevEl": ".landing-ad-prev"
-              }
+              "spaceBetween": 16,
+              "pagination": { "el": ".landing-ad-pagination", "type": "bullets", "clickable": true },
+              "navigation": { "nextEl": ".landing-ad-next", "prevEl": ".landing-ad-prev" }
             }
           </script>
-
           <div class="swiper-wrapper">
             {% for ad in banner_ads %}
             <div class="swiper-slide">
-              <div class="landing-ad-item">
-                {% if ad.link %}
-                <a href="{{ ad.link }}" class="landing-ad-link" target="_blank" rel="noopener noreferrer" aria-label="{{ ad.message|default:'SudoTag promotion' }}">
-                {% endif %}
-                  <img src="{{ ad.image_url }}" alt="{{ ad.message|default:'SudoTag advertisement' }}" class="landing-ad-image" loading="lazy">
-                {% if ad.link %}
-                </a>
-                {% endif %}
-                {% if ad.message %}
-                <p class="landing-ad-caption">{{ ad.message }}</p>
-                {% endif %}
-              </div>
+              <figure class="st-offer">
+                {% if ad.link %}<a href="{{ ad.link }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ad.message|default:'SudoTag offer' }}">{% endif %}
+                  <img src="{{ ad.image_url }}" alt="{{ ad.message|default:'SudoTag offer' }}" loading="lazy">
+                {% if ad.link %}</a>{% endif %}
+                {% if ad.message %}<figcaption>{{ ad.message }}</figcaption>{% endif %}
+              </figure>
             </div>
             {% endfor %}
           </div>
-
-          <div class="landing-ad-prev swiper-button-prev"></div>
-          <div class="landing-ad-next swiper-button-next"></div>
           <div class="landing-ad-pagination swiper-pagination"></div>
         </div>
       </div>
-    </section><!-- /Advertisement Slider -->
+    </section>
 
-    <!-- About Section -->
-    <section id="about" class="about section light-background">
-
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-        <div class="row gy-4">
-          <div class="col-lg-6 order-1 order-lg-2">
-            <div class="about-image-frame" data-aos="fade-left" data-aos-delay="150">
-              <img src="{% landing_asset 'img/sudotag-windshield-scan.png' %}" class="img-fluid" alt="Scanning a SudoTag QR sticker on a car windshield with a smartphone">
-              <span class="about-image-accent" aria-hidden="true"></span>
-            </div>
-          </div>
-          <div class="col-lg-6 order-2 order-lg-1 content">
-            <h3>About SudoTag</h3>
-            <p class="fst-italic">
-              SudoTag is a smart vehicle identification and private communication platform. Physical QR tags connect scanners to owners—without exposing personal phone numbers.
-            </p>
-            <ul>
-              <li><i class="bi bi-check2-all"></i> <span>Scan a SudoTag or plate to notify, chat, SMS, or call the owner privately.</span></li>
-              <li><i class="bi bi-check2-all"></i> <span>Owners manage vehicles, documents, family access, Live Status, and Lost Mode in the app.</span></li>
-              <li><i class="bi bi-check2-all"></i> <span>Activate on web or in-app, order tags online, and stay protected with privacy-first channels.</span></li>
-            </ul>
-            <p>
-              Available on Google Play and the App Store. Use the website to find a vehicle, activate a new QR, or buy a SudoTag—then manage everything from the mobile app.
-            </p>
-          </div>
-        </div>
-    
-      </div>
-
-    </section><!-- /About Section -->
-
-    <!-- Feature highlights (4 pillars) -->
-    <section id="feature-highlights" class="features section light-background">
-
-      <div class="container">
-
-        <div class="row gy-4">
-          <div class="features-image col-lg-6" data-aos="fade-up" data-aos-delay="100">
-            <div class="features-image-inner">
-              <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="SudoTag sticker on a car windshield — scan to contact the vehicle owner">
-              <span class="features-image-accent" aria-hidden="true"></span>
-            </div>
-          </div>
-          <div class="col-lg-6">
-    
-            <div class="features-item d-flex ps-0 ps-lg-3 pt-4 pt-lg-0" data-aos="fade-up" data-aos-delay="200">
-              <i class="bi bi-qr-code-scan flex-shrink-0"></i>
-              <div>
-                <h4>Private scan-to-contact</h4>
-                <p>Scan a SudoTag QR or plate on web or in-app to reach the owner—without revealing anyone’s personal number.</p>
-              </div>
-            </div><!-- End Features Item-->
-    
-            <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="300">
-              <i class="bi bi-person-badge flex-shrink-0"></i>
-              <div>
-                <h4>Owner privacy &amp; Live Status</h4>
-                <p>Control push, chat, SMS, and voice channels. Show Available, Busy, Driving, Do Not Disturb, and more.</p>
-              </div>
-            </div><!-- End Features Item-->
-    
-            <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="400">
-              <i class="bi bi-geo-alt flex-shrink-0"></i>
-              <div>
-                <h4>Lost Mode recovery</h4>
-                <p>Enable Lost Mode per vehicle. Community tips and location sharing help you recover faster.</p>
-              </div>
-            </div><!-- End Features Item-->
-    
-            <div class="features-item d-flex mt-5 ps-0 ps-lg-3" data-aos="fade-up" data-aos-delay="500">
-              <i class="bi bi-telephone-forward flex-shrink-0"></i>
-              <div>
-                <h4>Masked chat, SMS &amp; voice</h4>
-                <p>Communicate through SudoTag channels—chat, templated SMS, and routed voice—with emergency options when needed.</p>
-              </div>
-            </div><!-- End Features Item-->
-    
-          </div>
-        </div>
-    
-      </div>
-
-    </section><!-- /Feature highlights -->
-
-    <!-- Features section UI (unique feature modal can replace card details later) -->
-    <section id="features" class="services section">
-
-      <!-- Section Title -->
-      <div class="container section-title" data-aos="fade-up">
-        <h2>Features</h2>
-        <p>Everything in the SudoTag app &amp; web</p>
-      </div><!-- End Section Title -->
-    
-      <div class="container">
-    
-        <div class="row gy-4 services-feature-grid">
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-qr-code"></i>
-              </div>
-              <h3>Private QR contact</h3>
-              <p>Anyone can scan your SudoTag to reach you privately—without seeing your phone number.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="150">
-            <a href="#find-vehicle" class="service-item position-relative service-item--link">
-              <div class="icon">
-                <i class="bi bi-qr-code-scan"></i>
-              </div>
-              <h3>Scan QR / plate</h3>
-              <p>One scan: notify an active owner, or activate a new SudoTag. Plate lookup works too.</p>
-            </a>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-            <a href="#find-vehicle" class="service-item position-relative service-item--link">
-              <div class="icon">
-                <i class="bi bi-upc-scan"></i>
-              </div>
-              <h3>Activate SudoTag</h3>
-              <p>Got a new sticker? Same Scan QR flow opens activation when the tag is not linked yet.</p>
-            </a>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="250">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-car-front"></i>
-              </div>
-              <h3>Multi-vehicle garage</h3>
-              <p>Add and manage multiple vehicles from one account—cars, bikes, and more.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-folder2-open"></i>
-              </div>
-              <h3>Document locker</h3>
-              <p>Store RC, insurance, PUC, and other vehicle docs securely in the app.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="350">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-people"></i>
-              </div>
-              <h3>Family / temp assign</h3>
-              <p>Share access with family or temporarily assign a vehicle when someone else is driving.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-geo-alt"></i>
-              </div>
-              <h3>Lost Mode + tips</h3>
-              <p>Mark a vehicle lost, collect community tips, and get location when someone notifies you.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="450">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-chat-dots"></i>
-              </div>
-              <h3>Chat / SMS / masked call</h3>
-              <p>Talk through masked chat, SMS templates, and routed voice—numbers stay private.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-toggle-on"></i>
-              </div>
-              <h3>Live Status + privacy</h3>
-              <p>Set Available, Busy, Driving, or Do Not Disturb. Control which channels reach you.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="550">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-stars"></i>
-              </div>
-              <h3>Sudo AI toolkit</h3>
-              <p>Get AI-assisted help for vehicle questions, reminders, and day-to-day ownership tasks.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
-            <a href="{% url 'buy_now' %}" class="service-item position-relative service-item--link">
-              <div class="icon">
-                <i class="bi bi-bag-check"></i>
-              </div>
-              <h3>Order QR tags</h3>
-              <p>Buy official SudoTag QR stickers online and track your order to delivery.</p>
-            </a>
-          </div><!-- End Service Item -->
-    
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="650">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-gift"></i>
-              </div>
-              <h3>Refer &amp; Earn</h3>
-              <p>Invite friends from the app and earn rewards when they join SudoTag.</p>
-            </div>
-          </div><!-- End Service Item -->
-    
-        </div>
-    
-      </div>
-
-    </section><!-- /Features Section -->
-    
-    <!-- Call To Action Section -->
-    <section id="call-to-action" class="call-to-action section dark-background">
-
-      <img src="{% landing_asset 'img/Fleets-1-4.jpg' %}" alt="">
-
-      <div class="container">
-        <div class="row justify-content-center" data-aos="zoom-in" data-aos-delay="100">
-          <div class="col-xl-10">
-            <div class="text-center cta-inner">
-              <h3>Get Started with SudoTag Today</h3>
-              <p>Order a SudoTag, activate it on web or in-app, and protect your vehicle with private scan-to-contact. Download the app to manage vehicles, Lost Mode, documents, and more.</p>
-              <div class="cta-actions mt-3 mb-3">
-                <a class="btn-getstarted btn-buy-now btn-buy-now--lg" href="{% url 'buy_now' %}">
-                  <i class="bi bi-bag-check-fill" aria-hidden="true"></i>
-                  <span>Buy Your SudoTag</span>
-                </a>
-                <a class="btn-getstarted btn-getstarted--outline" href="#find-vehicle">
-                  <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
-                  <span>Scan QR</span>
-                </a>
-              </div>
-              <div class="app-store-buttons justify-content-center mt-3">
-                <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-                  <i class="bi bi-google-play" aria-hidden="true"></i>
-                  <span>Google Play</span>
-                </a>
-                <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-                  <i class="bi bi-apple" aria-hidden="true"></i>
-                  <span>App Store</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </section><!-- /Call To Action Section -->
-
-
-    <!-- Stats Section -->
-    <section id="stats" class="stats section">
-
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-        <div class="row gy-4 align-items-center justify-content-between">
-
-          <div class="col-lg-5">
-            <img src="{% landing_asset 'img/stats-img.jpg' %}" alt="Sudo App Statistics" class="img-fluid">
-          </div>
-
-          <div class="col-lg-6">
-
-            <h3 class="fw-bold fs-2 mb-3">Private contact for every vehicle</h3>
-            <p>
-              SudoTag connects scanners to owners through private QR contact—notify, chat, SMS, and masked calls—while you manage vehicles, documents, and Lost Mode in the app.
-            </p>
-
-            <div class="row gy-4">
-
-              <div class="col-lg-6">
-                <div class="stats-item d-flex">
-                  <i class="bi bi-emoji-smile flex-shrink-0"></i>
-                  <div>
-                    <span data-purecounter-start="0" data-purecounter-end="1200" data-purecounter-duration="1" class="purecounter"></span>
-                    <p><strong>Happy Users</strong> <span>trusted our app</span></p>
-                  </div>
-                </div>
-              </div><!-- End Stats Item -->
-
-              <div class="col-lg-6">
-                <div class="stats-item d-flex">
-                  <i class="bi bi-journal-richtext flex-shrink-0"></i>
-                  <div>
-                    <span data-purecounter-start="0" data-purecounter-end="2500" data-purecounter-duration="1" class="purecounter"></span>
-                    <p><strong>Issues Resolved</strong> <span>with SudoTag's platform</span></p>
-                  </div>
-                </div>
-              </div><!-- End Stats Item -->
-
-              <div class="col-lg-6">
-                <div class="stats-item d-flex">
-                  <i class="bi bi-headset flex-shrink-0"></i>
-                  <div>
-                    <span data-purecounter-start="0" data-purecounter-end="3000" data-purecounter-duration="1" class="purecounter"></span>
-                    <p><strong>Support Hours</strong> <span>provided to our users</span></p>
-                  </div>
-                </div>
-              </div><!-- End Stats Item -->
-
-              <div class="col-lg-6">
-                <div class="stats-item d-flex">
-                  <i class="bi bi-people flex-shrink-0"></i>
-                  <div>
-                    <span data-purecounter-start="0" data-purecounter-end="50" data-purecounter-duration="1" class="purecounter"></span>
-                    <p><strong>Team Members</strong> <span>dedicated to innovation</span></p>
-                  </div>
-                </div>
-              </div><!-- End Stats Item -->
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section><!-- /Stats Section -->
-
-    <section id="how-it-works" class="how-it-works section">
-      <div class="container section-title" data-aos="fade-up">
-        <h2>How SudoTag Works</h2>
-        <p>One QR code. Smart, secure vehicle communication.</p>
-      </div>
-
-      <div class="container">
-        <div class="row align-items-center gy-5">
-          <div class="col-lg-6" data-aos="fade-right">
-            <div class="hiw-preview-card">
-              <p class="hiw-preview-label">Scan &bull; Connect &bull; Protect</p>
-              <h3 class="hiw-preview-title">Smart Vehicle Identification Platform</h3>
-              <p class="hiw-preview-desc">Activate your tag, get private notifications when someone scans, enable Lost Mode when needed, and keep docs and family access in one place.</p>
-              <ul class="hiw-preview-list">
-                <li><i class="bi bi-check-circle-fill"></i> Activate a SudoTag on web or in-app</li>
-                <li><i class="bi bi-check-circle-fill"></i> Private notify, chat, SMS &amp; masked call</li>
-                <li><i class="bi bi-check-circle-fill"></i> Lost Mode with community tips &amp; location</li>
-                <li><i class="bi bi-check-circle-fill"></i> Document locker &amp; family / temp assign</li>
-              </ul>
-              <a href="{% url 'how_it_works' %}" class="hiw-preview-cta">
-                Explore Full Guide <i class="bi bi-arrow-right"></i>
-              </a>
-            </div>
-          </div>
-          <div class="col-lg-6" data-aos="fade-left" data-aos-delay="100">
-            <div class="hiw-steps-grid">
-              <a href="#find-vehicle" class="hiw-step-card">
-                <i class="bi bi-qr-code-scan"></i>
-                <strong>Scan QR</strong>
-              </a>
-              <a href="{% url 'buy_now' %}" class="hiw-step-card">
-                <i class="bi bi-bag-check"></i>
-                <strong>Buy Now</strong>
-              </a>
-              <a href="#find-vehicle" class="hiw-step-card">
-                <i class="bi bi-card-text"></i>
-                <strong>Find by plate</strong>
-              </a>
-              <div class="hiw-step-card">
-                <i class="bi bi-shield-lock"></i>
-                <strong>Secure Connect</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </section><!-- End How It Works Section -->
-
-    <!-- Testimonials / Feedback Section -->
-    <section id="testimonials" class="testimonials section dark-background"
+    <!-- ============ 10 · Stories (feedback.js hooks preserved) ============ -->
+    <section class="st-section st-voices testimonials" id="testimonials"
       data-feedback-api="{{ approved_feedbacks_api_url }}"
       data-submit-url="{{ submit_feedback_url }}"
       data-default-avatar="{% landing_asset 'img/testimonials/testimonials-1.jpg' %}">
+      <span id="stories" class="st-anchor" aria-hidden="true"></span>
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">Stories</p>
+          <h2>From the people who park with us.</h2>
+        </header>
 
-      <img src="{% landing_asset 'img/testimonials-bg.jpg' %}" class="testimonials-bg" alt="">
-
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="section-title section-title--light text-center mb-4">
-          <h2>Feedback</h2>
-          <p>What SudoTag customers are saying</p>
-        </div>
-
-        <div id="feedback-loading" class="feedback-state" hidden>
-          <div class="feedback-skeleton" aria-hidden="true"></div>
+        <div id="feedback-loading" class="st-voices__state" hidden>
+          <div class="st-skeleton" aria-hidden="true"></div>
           <p>Loading feedback…</p>
         </div>
-        <div id="feedback-empty" class="feedback-state" {% if approved_feedbacks %}hidden{% endif %}>
-          <p>No feedback available yet.</p>
+        <div id="feedback-empty" class="st-voices__state" {% if approved_feedbacks %}hidden{% endif %}>
+          <p>No reviews yet. Be the first to share yours below.</p>
         </div>
-        <div id="feedback-error" class="feedback-state" hidden>
+        <div id="feedback-error" class="st-voices__state" hidden>
           <p>Unable to load feedback right now. Please try again later.</p>
         </div>
 
-        <div class="swiper" id="feedback-swiper" {% if not approved_feedbacks %}hidden{% endif %}>
+        <div class="swiper st-reveal" id="feedback-swiper" {% if not approved_feedbacks %}hidden{% endif %}>
           <script type="application/json" class="swiper-config">
             {
               "loop": true,
-              "speed": 600,
-              "autoplay": { "delay": 5000 },
-              "slidesPerView": 1,
-              "spaceBetween": 20,
+              "speed": 6000,
+              "autoplay": { "delay": 0, "disableOnInteraction": false, "pauseOnMouseEnter": true },
+              "freeMode": { "enabled": true, "momentum": false },
+              "slidesPerView": 1.1,
+              "spaceBetween": 16,
               "breakpoints": {
-                "768": { "slidesPerView": 1, "spaceBetween": 24 },
-                "1200": { "slidesPerView": "auto", "spaceBetween": 30 }
+                "768": { "slidesPerView": 2.2, "spaceBetween": 20 },
+                "1200": { "slidesPerView": 3.2, "spaceBetween": 24 }
               },
-              "pagination": {
-                "el": ".swiper-pagination",
-                "type": "bullets",
-                "clickable": true
-              }
+              "pagination": { "el": ".swiper-pagination", "type": "bullets", "clickable": true }
             }
           </script>
           <div class="swiper-wrapper" id="feedback-slides">
@@ -863,23 +1162,25 @@
           <div class="swiper-pagination"></div>
         </div>
 
-        <!-- Submit feedback form -->
-        <div class="feedback-form-wrap" data-aos="fade-up" data-aos-delay="150">
-          <h3 class="feedback-form-title">Share your feedback</h3>
-          <p class="feedback-form-lead">Your review is submitted for approval before it appears here.</p>
-          <form id="landing-feedback-form" class="feedback-form" novalidate>
+        <details class="st-review st-glass st-reveal" id="stReview">
+          <summary>
+            <span><i class="bi bi-pencil-square" aria-hidden="true"></i>Using SudoTag? Share your experience</span>
+            <i class="bi bi-plus-lg st-review__plus" aria-hidden="true"></i>
+          </summary>
+          <p class="st-review__lead">Reviews are checked before they appear here.</p>
+          <form id="landing-feedback-form" class="st-form" novalidate>
             {% csrf_token %}
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label for="fb-name" class="form-label">Name *</label>
-                <input type="text" id="fb-name" name="name" class="form-control" required maxlength="80" placeholder="Your name" autocomplete="name">
-              </div>
-              <div class="col-md-6">
-                <label for="fb-email" class="form-label">Email (optional)</label>
-                <input type="email" id="fb-email" name="email" class="form-control" maxlength="120" placeholder="you@email.com" autocomplete="email">
-              </div>
-              <div class="col-12">
-                <label class="form-label">Rating *</label>
+            <div class="st-form__grid">
+              <label class="st-form__field">
+                <span>Name *</span>
+                <input type="text" id="fb-name" name="name" required maxlength="80" placeholder="Your name" autocomplete="name">
+              </label>
+              <label class="st-form__field">
+                <span>Email (optional)</span>
+                <input type="email" id="fb-email" name="email" maxlength="120" placeholder="you@email.com" autocomplete="email">
+              </label>
+              <div class="st-form__field st-form__field--full">
+                <span>Rating *</span>
                 <div class="feedback-rating" role="radiogroup" aria-label="Rating">
                   {% for i in "12345" %}
                   <button type="button" class="feedback-star" data-value="{{ i }}" aria-label="{{ i }} stars"><i class="bi bi-star"></i></button>
@@ -887,388 +1188,161 @@
                 </div>
                 <input type="hidden" name="rating" id="fb-rating" value="" required>
               </div>
-              <div class="col-12">
-                <label for="fb-message" class="form-label">Feedback *</label>
-                <textarea id="fb-message" name="feedback" class="form-control" rows="4" required maxlength="1000" placeholder="Tell us about your SudoTag experience"></textarea>
-              </div>
-              <div class="col-12">
-                <button type="submit" class="btn-getstarted feedback-submit-btn" id="fb-submit-btn">
-                  <span>Submit Feedback</span>
-                </button>
-              </div>
-              <div class="col-12">
-                <div id="fb-form-alert" class="feedback-alert" hidden role="status"></div>
-              </div>
+              <label class="st-form__field st-form__field--full">
+                <span>Your review *</span>
+                <textarea id="fb-message" name="feedback" rows="4" required maxlength="1000" placeholder="How has SudoTag helped you?"></textarea>
+              </label>
             </div>
+            <button type="submit" class="st-btn st-btn--signal" id="fb-submit-btn"><span>Submit review</span></button>
+            <div id="fb-form-alert" class="feedback-alert" hidden role="status"></div>
           </form>
-        </div>
+          <span class="st-burst" aria-hidden="true"><i></i><i></i><i></i></span>
+        </details>
       </div>
+    </section>
 
-    </section><!-- /Testimonials Section -->
-
-    <section id="faq" class="faq-section section light-background">
-      <div class="container section-title" data-aos="fade-up">
-        <h2>FAQ</h2>
-        <p>Frequently Asked Questions</p>
-      </div><!-- End Section Title -->
-    
-      <div class="container">
-        <!-- First FAQ Column -->
-        <div class="row">
-          <div class="col">
-            <div class="faq-item" data-aos="fade-up" data-aos-delay="100">
-              <button class="faq-question">
-                How do I activate a SudoTag?
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <div class="faq-answer">
-                <p>Use <a href="#find-vehicle">Scan QR</a> on this site (or the app). Scan your new sticker—if it is not activated yet, we open the activation form. Link it to your vehicle and you’re ready for private scan-to-contact.</p>
-              </div>
-            </div>
-    
-            <div class="faq-item" data-aos="fade-up" data-aos-delay="200">
-              <button class="faq-question">
-                Can scanners see my phone number?
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <div class="faq-answer">
-                <p>No. Scanners contact you through SudoTag’s private channels—notify, chat, SMS, or masked call—without your personal number being shown.</p>
-              </div>
-            </div>
-    
-            <div class="faq-item" data-aos="fade-up" data-aos-delay="300">
-              <button class="faq-question">
-                How do I contact an owner from the website?
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <div class="faq-answer">
-                <p>Use <a href="#find-vehicle">Scan QR</a>: enter a plate or scan a QR. Active tags open notify; new tags open activation—all from the same scan.</p>
-              </div>
-            </div>
-          </div>
-    
-          <!-- Second FAQ Column -->
-          <div class="col">
-            <div class="faq-item" data-aos="fade-up" data-aos-delay="400">
-              <button class="faq-question">
-                What is Lost Mode?
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <div class="faq-answer">
-                <p>Lost Mode marks a vehicle as missing in the app. When someone notifies you, you can receive tips and location to help recover it faster.</p>
-              </div>
-            </div>
-    
-            <div class="faq-item" data-aos="fade-up" data-aos-delay="500">
-              <button class="faq-question">
-                How do orders / Buy Now work?
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <div class="faq-answer">
-                <p>Tap <a href="{% url 'buy_now' %}">Buy Now</a> to order official SudoTag QR stickers. After delivery, activate the tag on web or in the app and start using it.</p>
-              </div>
-            </div>
-    
-            <div class="faq-item" data-aos="fade-up" data-aos-delay="600">
-              <button class="faq-question">
-                How do I get support?
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <div class="faq-answer">
-                <p>Message us on WhatsApp from the <a href="#contact">Contact</a> section, reach support in the app, or email <b>sudotagonline@gmail.com</b>.</p>
-              </div>
-            </div>
+    <!-- ============ 11 · Help: searchable FAQ + contact ============ -->
+    <section class="st-section st-help" id="help" aria-labelledby="helpTitle">
+      <span id="faq" class="st-anchor" aria-hidden="true"></span>
+      <div class="st-wrap st-help__grid">
+        <div>
+          <header class="st-head st-reveal">
+            <p class="st-kicker">Help</p>
+            <h2 id="helpTitle">Good to know before you tag.</h2>
+          </header>
+          <label class="st-search st-reveal">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="stFaqSearch" placeholder="Search: activation, privacy, Lost Mode…" aria-label="Search questions" autocomplete="off">
+          </label>
+          <div class="st-faq" id="stFaq">
+            <details class="st-qa st-reveal" open>
+              <summary>Can people who scan my tag see my phone number?</summary>
+              <div><p>No. They reach you through SudoTag's private channels (notify, chat, SMS or masked call), and your personal number is never shown to them.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I activate my SudoTag?</summary>
+              <div><p>Use <a href="#scan" data-scan-tab="qr">Scan &amp; Find</a> on this page or in the app. Scan your new sticker, verify your mobile number with an OTP and add your vehicle details. Your login details are shown on screen and emailed to you.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I contact a vehicle's owner?</summary>
+              <div><p>Scan the tag with your phone camera, or search the <a href="#scan" data-scan-tab="plate">number plate</a>. Pick notify, chat, SMS or masked call. You don't need to install anything.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>Does the tag need a battery or charging?</summary>
+              <div><p>No. SudoTag is a weatherproof QR sticker with nothing to charge or replace. All the smarts live in the app.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>What if someone else is driving my vehicle?</summary>
+              <div><p>Use family or temporary assign in the app. Alerts go to the person driving for the time you choose, then come back to you.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>What is Lost Mode?</summary>
+              <div><p>Lost Mode marks a vehicle as missing. When someone scans it, they can send you tips and their location to help you recover it faster.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>Does it work for bikes, autos and trucks?</summary>
+              <div><p>Yes. One tag works on any vehicle: car, bike, scooter, auto-rickshaw, taxi, truck or bus. Tools to manage a whole fleet together are coming soon.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I order a tag?</summary>
+              <div><p>Tap <a href="{% url 'buy_now' %}">Buy SudoTag</a> to order official stickers online. When it arrives, stick it on and activate it here or in the app.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I get support?</summary>
+              <div><p>Message us on <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">WhatsApp</a>, reach support in the app, or email <b>sudotagonline@gmail.com</b>.</p></div>
+            </details>
+            <p class="st-faq__empty" id="stFaqEmpty" hidden>No match. <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">Ask us on WhatsApp</a>; a real person replies.</p>
           </div>
         </div>
-      </div><!-- End FAQ Container -->
-    </section><!-- End FAQ Section -->
-    
 
-<!-- Contact Section -->
-<section id="contact" class="contact section light-background">
-
-  <!-- Section Title -->
-  <div class="container section-title" data-aos="fade-up">
-    <h2>Contact</h2>
-    <p>Connect with Us</p>
-  </div><!-- End Section Title -->
-
-  <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-    <!-- WhatsApp Connection Section -->
-    <div class="whatsapp-connect" data-aos="fade-up" data-aos-delay="200">
-      <div class="whatsapp-icon">
-        <svg width="80" height="80" viewBox="0 0 24 24" fill="#E58147">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
+        <aside class="st-contact" aria-label="Contact SudoTag">
+          <a class="st-contact__card st-contact__card--wa st-glass st-reveal" href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i><span><b>WhatsApp</b><small>+91 79079 65255 · fastest reply</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+          <a class="st-contact__card st-glass st-reveal" href="mailto:sudotagonline@gmail.com">
+            <i class="bi bi-envelope" aria-hidden="true"></i><span><b>Email</b><small>sudotagonline@gmail.com</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+          <a class="st-contact__card st-glass st-reveal" href="tel:+917907965255">
+            <i class="bi bi-telephone" aria-hidden="true"></i><span><b>Phone</b><small>+91 79079 65255</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+          <a class="st-contact__card st-glass st-reveal" href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-instagram" aria-hidden="true"></i><span><b>Instagram</b><small>@sudotag</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+        </aside>
       </div>
-      <h3>Message us directly on WhatsApp</h3>
-      <p>Get quick responses to your queries</p>
-      <a href="https://wa.me/917907965255" class="whatsapp-btn" target="_blank">
-        <span>Chat on WhatsApp</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#151515">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-      </a>
-    </div><!-- End WhatsApp Connection Section -->
+    </section>
 
-    
-
-  </div>
-
-</section><!-- /Contact Section -->
-
-<script>
-// Only add event listener if contactForm exists
-const contactForm = document.getElementById('contactForm');
-if (contactForm) {
-  contactForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Show loading state
-    const loadingDiv = this.querySelector('.loading');
-    const errorDiv = this.querySelector('.error-message');
-    const successDiv = this.querySelector('.sent-message');
-    
-    if (loadingDiv) loadingDiv.style.display = 'block';
-    if (errorDiv) errorDiv.style.display = 'none';
-    if (successDiv) successDiv.style.display = 'none';
-    
-    // Get form data
-    const formData = new FormData(this);
-    const name = formData.get('name');
-    const email = formData.get('email');
-    const subject = formData.get('subject');
-    const message = formData.get('message');
-    
-    // Format WhatsApp message
-    const whatsappMessage = `New Contact Form Submission:\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\nMessage: ${message}`;
-    
-    // Encode message for URL
-    const encodedMessage = encodeURIComponent(whatsappMessage);
-    
-    // WhatsApp number
-    const whatsappNumber = "917907965255";
-    
-    // Create WhatsApp URL
-    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      if (loadingDiv) loadingDiv.style.display = 'none';
-      
-      // Open WhatsApp with the message
-      window.open(whatsappURL, '_blank');
-      
-      // Show success message
-      if (successDiv) successDiv.style.display = 'block';
-      
-      // Reset form
-      this.reset();
-      
-      // Hide success message after 5 seconds
-      if (successDiv) {
-        setTimeout(() => {
-          successDiv.style.display = 'none';
-        }, 5000);
-      }
-    }, 1000);
-  });
-}
-</script>
+    <!-- ============ Closing CTA over pulse field ============ -->
+    <section class="st-final" id="contact" aria-labelledby="finalTitle">
+      <div class="st-final__field" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="st-wrap st-final__inner st-reveal">
+        <span class="st-logo st-logo--xl" aria-hidden="true">SudoTag<i></i></span>
+        <h2 id="finalTitle">One scan. <span class="st-grad">Zero exposure.</span></h2>
+        <p>Every vehicle gets a voice and your number stays silent.</p>
+        <div class="st-hero__cta st-final__cta">
+          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i class="bi bi-bag-check" aria-hidden="true"></i><span>Buy SudoTag</span></a>
+          <a class="st-btn st-btn--line st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan a tag</span></a>
+        </div>
+        <div class="st-stores">
+          <a class="st-store" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-google-play" aria-hidden="true"></i><span><small>Get it on</small>Google Play</span>
+          </a>
+          <a class="st-store" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-apple" aria-hidden="true"></i><span><small>Download on the</small>App Store</span>
+          </a>
+        </div>
+      </div>
+    </section>
 
   </main>
-  <footer id="footer" class="footer dark-background">
 
-    <div class="footer-top">
-      <div class="container">
-        <div class="row gy-4">
-          <div class="col-lg-4 col-md-6 footer-about">
-            <a href="{% url 'index' %}" class="logo d-flex align-items-center">
-              <span class="sitename">SudoTag</span>
-            </a>
-            <div class="footer-contact pt-3">
-              <p>Calicut, Kerala, India</p>
-              <p class="mt-3"><strong>Phone:</strong> <span>+91 7907965255</span></p>
-              <p><strong>Email:</strong> <span>sudotagonline@gmail.com</span></p>
-            </div>
-            <div class="social-links d-flex mt-4">
-              <!-- <a href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
-              <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a> -->
-              <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank"><i class="bi bi-instagram"></i></a>
-              <!-- <a href="https://linkedin.com" target="_blank"><i class="bi bi-linkedin"></i></a> -->
-            </div>
-            <p class="small text-white-50 mt-3 mb-1">Get the app</p>
-            <div class="app-store-buttons justify-content-start mt-1">
-              <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-google-play" aria-hidden="true"></i>
-                <span>Google Play</span>
-              </a>
-              <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-apple" aria-hidden="true"></i>
-                <span>App Store</span>
-              </a>
-            </div>
-          </div>
-  
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Useful Links</h4>
-            <ul>
-              <li><i class="bi bi-chevron-right"></i> <a href="#hero">Home</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="#about">About SudoTag</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'how_it_works' %}">How It Works</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="#find-vehicle">Scan QR</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="#faq">FAQ</a></li>
-            </ul>
-          </div>
-  
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Our Features</h4>
-            <ul>
-              <li><i class="bi bi-chevron-right"></i>Private QR contact</li>
-              <li><i class="bi bi-chevron-right"></i>Lost Mode recovery</li>
-              <li><i class="bi bi-chevron-right"></i>Masked chat / SMS / voice</li>
-              <li><i class="bi bi-chevron-right"></i>Vehicle document locker</li>
-            </ul>
-          </div>
-  
-<div class="col-lg-4 col-md-12 footer-whatsapp">
-  <h4>Contact Us</h4>
-  <p>Get instant updates and notifications directly on WhatsApp!</p>
-  
-  <!-- Direct WhatsApp Button -->
-  <div class="direct-whatsapp">
-    <a href="https://wa.me/917907965255" class="whatsapp-direct-btn" target="_blank">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-      </svg>
-      <span>Chat with us</span>
-    </a>
-  </div>
-
-  
-</div>
-
-<script>
-// Only add event listener if whatsappSubscriptionForm exists
-const whatsappSubscriptionForm = document.getElementById('whatsappSubscriptionForm');
-if (whatsappSubscriptionForm) {
-  whatsappSubscriptionForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Show loading state
-    const loadingDiv = this.querySelector('.loading');
-    const errorDiv = this.querySelector('.error-message');
-    const successDiv = this.querySelector('.sent-message');
-    
-    if (loadingDiv) loadingDiv.style.display = 'block';
-    if (errorDiv) errorDiv.style.display = 'none';
-    if (successDiv) successDiv.style.display = 'none';
-    
-    // Get form data
-    const formData = new FormData(this);
-    const name = formData.get('name');
-    const phone = formData.get('phone');
-    
-    // Format WhatsApp message
-    const whatsappMessage = `New WhatsApp Subscription:\n\nName: ${name}\nPhone: ${phone}\n\nPlease add me to your WhatsApp updates!`;
-    
-    // Encode message for URL
-    const encodedMessage = encodeURIComponent(whatsappMessage);
-    
-    // WhatsApp number
-    const whatsappNumber = "917907965255";
-    
-    // Create WhatsApp URL
-    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      if (loadingDiv) loadingDiv.style.display = 'none';
-      
-      // Open WhatsApp with the subscription message
-      window.open(whatsappURL, '_blank');
-      
-      // Show success message
-      if (successDiv) successDiv.style.display = 'block';
-      
-      // Reset form
-      this.reset();
-      
-      // Hide success message after 5 seconds
-      if (successDiv) {
-        setTimeout(() => {
-          successDiv.style.display = 'none';
-        }, 5000);
-      }
-    }, 1000);
-  });
-}
-</script>
-  
-        </div>
+  <!-- ============ Footer ============ -->
+  <footer class="st-footer">
+    <div class="st-wrap st-footer__grid">
+      <div class="st-footer__brand">
+        <span class="st-logo">SudoTag<i></i></span>
+        <p>The private signal between vehicles and people.<br>Calicut, Kerala, India</p>
+      </div>
+      <nav class="st-footer__col" aria-label="Explore">
+        <h4>Explore</h4>
+        <a href="#how">How it works</a>
+        <a href="#vehicles">Vehicles</a>
+        <a href="#features">Features</a>
+        <a href="#fleet">Fleet (coming soon)</a>
+        <a href="{% url 'how_it_works' %}">Full guide</a>
+      </nav>
+      <nav class="st-footer__col" aria-label="Owners">
+        <h4>Owners</h4>
+        <a href="{% url 'buy_now' %}">Buy SudoTag</a>
+        <a href="#scan" data-scan-tab="qr">Activate a tag</a>
+        <a href="#scan" data-scan-tab="plate">Find by plate</a>
+        <a href="#help">Help &amp; FAQ</a>
+      </nav>
+      <div class="st-footer__col">
+        <h4>Contact</h4>
+        <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> +91 79079 65255</a>
+        <a href="mailto:sudotagonline@gmail.com"><i class="bi bi-envelope"></i> sudotagonline@gmail.com</a>
+        <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> @sudotag</a>
       </div>
     </div>
-  
-    <div class="copyright">
-  <div class="container text-center">
-    <p>© <span>Copyright</span> <strong class="px-1 sitename">SudoTag</strong> <span>All Rights Reserved</span></p>
-    <div class="credits">
-      <div class="legal-links">
-        <a href="{% url 'privacy' %}" class="legal-link">
-          <i class="bi bi-shield-lock"></i>
-          Privacy Policy
-        </a>
-        <span class="divider"></span>
-        <a href="{% url 'terms' %}" class="legal-link">
-          <i class="bi bi-file-earmark-text"></i>
-          Terms & Conditions
-        </a>
-        <span class="divider"></span>
-        <span class="design-credit">
-          <i class="bi bi-heart-fill"></i>
-          Designed by SudoTag Team
-        </span>
-      </div>
+    <div class="st-wrap st-footer__legal">
+      <span>© SudoTag. All rights reserved.</span>
+      <span><a href="{% url 'privacy' %}">Privacy Policy</a> · <a href="{% url 'terms' %}">Terms &amp; Conditions</a></span>
     </div>
-  </div>
-</div>
-
   </footer>
-  
 
-  <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <!-- Mobile floating dock: Scan QR · Plate · Buy · App -->
+  <nav class="st-dock" id="stDock" aria-label="Quick actions">
+    <a href="#scan" data-scan-tab="qr" class="is-primary"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan QR</span></a>
+    <a href="#scan" data-scan-tab="plate"><i class="bi bi-card-text" aria-hidden="true"></i><span>Plate</span></a>
+    <a href="{% url 'buy_now' %}"><i class="bi bi-bag" aria-hidden="true"></i><span>Buy</span></a>
+    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link><i class="bi bi-phone" aria-hidden="true"></i><span>App</span></a>
+  </nav>
 
-  <!-- Mobile sticky app bar -->
-  <div id="mobile-app-bar" class="mobile-app-bar" aria-hidden="true">
-    <div class="mobile-app-bar-inner">
-      <a class="app-store-btn app-store-btn--android app-store-btn--compact" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-        <i class="bi bi-google-play" aria-hidden="true"></i>
-        <span>Google Play</span>
-      </a>
-      <a class="app-store-btn app-store-btn--ios app-store-btn--compact" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-        <i class="bi bi-apple" aria-hidden="true"></i>
-        <span>App Store</span>
-      </a>
-    </div>
-  </div>
-  <!-- Vendor JS Files: defer keeps execution order while allowing parallel download (same behavior after load) -->
-  <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/php-email-form/validate.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/aos/aos.js' %}" defer></script>
   <script src="{% static 'landing/vendor/swiper/swiper-bundle.min.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/glightbox/js/glightbox.min.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/imagesloaded/imagesloaded.pkgd.min.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/isotope-layout/isotope.pkgd.min.js' %}" defer></script>
-  <script src="{% static 'landing/vendor/purecounter/purecounter_vanilla.js' %}" defer></script>
-
-  <!-- Main JS File -->
-  <script src="{% landing_asset 'js/main.js' %}" defer></script>
-  <script src="{% landing_asset 'js/landing-motion.js' %}" defer></script>
+  <script src="{% landing_asset 'js/signal.js' %}" defer></script>
   <script src="{% landing_asset 'js/find_vehicle.js' %}" defer></script>
   <script src="{% landing_asset 'js/feedback.js' %}" defer></script>
-
 </body>
 
 </html>

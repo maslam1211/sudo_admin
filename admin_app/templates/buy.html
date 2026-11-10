@@ -1,107 +1,153 @@
 {% load static custom_filters %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Buy SudoTag QR — Official Store</title>
-  <meta name="description" content="Order the official SudoTag windshield QR tag. Secure Razorpay checkout with doorstep delivery.">
-  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+  <title>Buy SudoTag — Official Store</title>
+  <meta name="description" content="Order the official SudoTag vehicle QR tag. Secure Razorpay checkout with doorstep delivery across India.">
+  <meta name="theme-color" content="#07080B">
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('st-js', 'st-intro-skip');
+      try {
+        var t = localStorage.getItem('st-theme');
+        if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
+        else if (window.matchMedia('(prefers-color-scheme: light)').matches) d.setAttribute('data-theme', 'light');
+      } catch (e) {}
+      setTimeout(function () { if (!window.__stBooted) d.classList.remove('st-js'); }, 4000);
+    })();
+  </script>
 
   {# Favicons only — do not include landing_head (its preloader never dismisses here) #}
   {% include 'includes/favicon_links.html' %}
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-sticker.webp' %}" type="image/webp">
 
   <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% landing_asset 'css/buy.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/signal.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/store.css' %}" rel="stylesheet">
 </head>
-<body class="buy-page">
-  <header class="buy-header">
-    <div class="buy-shell buy-header-inner">
-      <a href="{% url 'index' %}" class="buy-logo" aria-label="SudoTag home">
-        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" width="148" height="37" decoding="async">
-      </a>
-      <a href="{% url 'index' %}" class="buy-back-link"><i class="bi bi-arrow-left"></i> Home</a>
+<body class="st-page buy-page">
+  <a class="st-skip" href="#checkout">Skip to checkout</a>
+  <div class="st-fx" aria-hidden="true"><span class="st-fx__grain"></span><span class="st-fx__vignette"></span></div>
+  <div class="st-progress" id="stProgress" aria-hidden="true"></div>
+  <div class="st-wipe" id="stWipe" aria-hidden="true"><span></span></div>
+
+  <!-- ============ Header ============ -->
+  <header class="st-header is-scrolled" id="stHeader">
+    <div class="st-wrap st-header__bar">
+      <a href="{% url 'index' %}" class="st-logo" aria-label="SudoTag home">SudoTag<i aria-hidden="true"></i></a>
+      <span class="sx-crumb st-mono" aria-hidden="true">/ Store</span>
+      <div class="st-header__actions">
+        <button type="button" class="st-iconbtn" id="stTheme" aria-label="Switch to light mode">
+          <i class="bi bi-sun" aria-hidden="true"></i><i class="bi bi-moon-stars" aria-hidden="true"></i>
+        </button>
+        <a class="st-btn st-btn--line st-btn--sm" href="{% url 'index' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Home</span></a>
+      </div>
     </div>
   </header>
 
-  <main class="buy-main">
-    <div class="buy-shell">
+  <main class="sx-main">
+    <div class="st-wrap">
+
+      <!-- Stepper -->
+      <ol class="sx-steps" id="sxSteps" aria-label="Checkout steps">
+        <li class="is-on"><span>1</span>Your tag</li>
+        <li><span>2</span>Delivery</li>
+        <li><span>3</span>Pay</li>
+      </ol>
+
       {# —— Product stage —— #}
-      <section class="product-stage" aria-labelledby="product-title">
-        <div class="product-gallery">
-          <button type="button" class="product-media" id="product-zoom-trigger"
-                  aria-label="View SudoTag QR image — click to zoom"
-                  data-full-src="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
-            <img
-              src="{% landing_asset 'img/sudotag-windshield-tag.png' %}"
-              alt="SudoTag QR windshield tag"
-              width="800"
-              height="500"
-              decoding="async"
-              fetchpriority="high"
-              class="product-media__img"
-              id="product-main-img">
-            <span class="product-media__hint"><i class="bi bi-zoom-in"></i> Tap to zoom</span>
-          </button>
+      <section class="sx-product" aria-labelledby="product-title">
+        <div class="sx-gallery">
+          <div class="sx-stage st-glass">
+            <span class="sx-stage__grid" aria-hidden="true"></span>
+            <button type="button" class="sx-media" id="product-zoom-trigger"
+                    aria-label="View the SudoTag sticker, tap to zoom"
+                    data-full-src="{% landing_asset 'img/sudotag-sticker.png' %}">
+              <span class="sx-media__card" data-tilt>
+                <span class="st-pulse" aria-hidden="true"><i></i><i></i><i></i></span>
+                <img src="{% landing_asset 'img/sudotag-sticker.webp' %}"
+                     alt="SudoTag vehicle QR sticker"
+                     width="1181" height="591" decoding="async" fetchpriority="high"
+                     class="sx-media__img" id="product-main-img">
+                <span class="sx-media__sweep" aria-hidden="true"></span>
+                <span class="sx-media__glare" aria-hidden="true"></span>
+              </span>
+              <span class="sx-media__hint"><i class="bi bi-zoom-in" aria-hidden="true"></i> Tap to zoom</span>
+            </button>
+          </div>
+          <div class="sx-thumbs" role="group" aria-label="Product views">
+            <button type="button" class="sx-thumb is-on" data-src="{% landing_asset 'img/sudotag-sticker.webp' %}" data-full="{% landing_asset 'img/sudotag-sticker.png' %}" aria-label="Sticker front">
+              <img src="{% landing_asset 'img/sudotag-sticker.webp' %}" alt="" width="1181" height="591" loading="lazy">
+            </button>
+            <button type="button" class="sx-thumb" data-src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" data-full="{% landing_asset 'img/sudotag-windshield-tag.png' %}" aria-label="Sticker on a windshield">
+              <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="" width="800" height="500" loading="lazy">
+            </button>
+          </div>
         </div>
 
-        <div class="product-info">
-          <p class="product-eyebrow">Official SudoTag store</p>
+        <div class="sx-info">
+          <p class="st-kicker">Official SudoTag store</p>
           <h1 id="product-title">{{ product.name }}</h1>
-          <p class="product-desc">{{ product.description }}</p>
+          <p class="sx-desc">{{ product.description }}</p>
 
           {% if not buying_open %}
-          <div class="buy-closed" role="status">
-            <p class="buy-closed__message">{{ buying_closed_message }}</p>
+          <div class="sx-closed" role="status">
+            <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+            <div>
+              <strong>{{ buying_closed_message }}</strong>
+              <p>Message us on <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">WhatsApp</a> and we'll tell you when tags are back.</p>
+            </div>
           </div>
           {% else %}
-          <div class="product-price-block">
-            <div class="product-price">
-              <span class="product-price__was" id="hero-unit-price-was" hidden aria-hidden="true"></span>
-              <span class="product-price__amount" id="hero-unit-price">₹{{ product.price|floatformat:0 }}</span>
-              <span class="product-price__note" id="hero-shipping-note">
-                {% if shipping_charge %}+ ₹{{ shipping_charge|floatformat:0 }} shipping{% else %}Free shipping{% endif %}
-              </span>
-            </div>
-            <ul class="product-badges" aria-label="Product highlights">
-              <li><i class="bi bi-shield-check"></i> Weather-ready sticker</li>
-              <li><i class="bi bi-truck"></i> Doorstep delivery</li>
-              <li><i class="bi bi-lock"></i> Razorpay secure pay</li>
-            </ul>
+          <div class="sx-price">
+            <span class="product-price__was" id="hero-unit-price-was" hidden aria-hidden="true"></span>
+            <span class="sx-price__amount" id="hero-unit-price">₹{{ product.price|floatformat:0 }}</span>
+            <span class="sx-price__note" id="hero-shipping-note">
+              {% if shipping_charge %}+ ₹{{ shipping_charge|floatformat:0 }} shipping{% else %}Free shipping{% endif %}
+            </span>
           </div>
 
-          <div class="product-actions">
-            <div class="qty-row qty-row--inline">
-              <span class="qty-label" id="qty-label">Quantity</span>
-              <div class="qty-controls" role="group" aria-labelledby="qty-label">
-                <button type="button" class="qty-btn" data-qty="-1" aria-label="Decrease quantity">−</button>
+          <ul class="sx-badges" aria-label="Product highlights">
+            <li><i class="bi bi-cloud-rain" aria-hidden="true"></i>Weather-ready</li>
+            <li><i class="bi bi-battery-full" aria-hidden="true"></i>No battery</li>
+            <li><i class="bi bi-eye-slash" aria-hidden="true"></i>Number stays private</li>
+            <li><i class="bi bi-truck" aria-hidden="true"></i>Doorstep delivery</li>
+          </ul>
+
+          <div class="sx-buyrow">
+            <div class="sx-qty" role="group" aria-labelledby="qty-label">
+              <span class="sx-qty__label" id="qty-label">Quantity</span>
+              <div class="sx-qty__controls">
+                <button type="button" class="qty-btn" data-qty="-1" aria-label="Decrease quantity"><i class="bi bi-dash-lg"></i></button>
                 <input type="number" id="quantity" name="quantity" form="checkout-form" value="1" min="1" max="20" required>
-                <button type="button" class="qty-btn" data-qty="1" aria-label="Increase quantity">+</button>
+                <button type="button" class="qty-btn" data-qty="1" aria-label="Increase quantity"><i class="bi bi-plus-lg"></i></button>
               </div>
             </div>
-            <a href="#checkout" class="buy-pay-btn buy-pay-btn--hero" id="buy-now-jump">
-              <span>Buy Now</span>
-              <i class="bi bi-arrow-down"></i>
+            <a href="#checkout" class="st-btn st-btn--signal st-btn--lg buy-pay-btn--hero" id="buy-now-jump" data-magnetic>
+              <span>Buy now</span><i class="bi bi-arrow-down" aria-hidden="true"></i>
             </a>
           </div>
 
-          <div class="coupon-box coupon-box--hero">
-            <label for="couponCode" class="coupon-box__label">Have a coupon code?</label>
-            <div class="coupon-box__row">
-              <input type="text" id="couponCode" name="couponCode" class="coupon-box__input"
-                     placeholder="Enter code" autocomplete="off" spellcheck="false" maxlength="32">
-              <button type="button" class="coupon-box__apply" id="coupon-apply-btn">Apply</button>
-            </div>
-            <p class="coupon-box__hint" id="coupon-hint" hidden></p>
-            <p class="field-error" data-for="couponCode" hidden></p>
+          <div class="sx-packs" aria-label="Quick pack sizes">
+            <button type="button" data-pack="1">1</button>
+            <button type="button" data-pack="2">2</button>
+            <button type="button" data-pack="5">5 · Family</button>
+            <button type="button" data-pack="10">10 · Bulk</button>
           </div>
 
-          <p class="product-total-hint">
-            Payable now: <strong id="hero-total">₹{{ unit_total|floatformat:2 }}</strong>
+          <a href="#couponCodeSummary" class="sx-coupon-link" id="sxCouponJump">
+            <i class="bi bi-ticket-perforated" aria-hidden="true"></i>Have a coupon? Add it in your order summary
+          </a>
+
+          <p class="product-total-hint sx-payable">
+            <span>Payable now</span><strong id="hero-total">₹{{ unit_total|floatformat:2 }}</strong>
           </p>
           {% endif %}
         </div>
@@ -109,97 +155,137 @@
 
       {% if buying_open %}
       {# —— Checkout —— #}
-      <form id="checkout-form" class="checkout-stage" method="post" action="#" autocomplete="on" novalidate>
+      <form id="checkout-form" class="sx-checkout" method="post" action="#" autocomplete="on" novalidate>
         <input type="hidden" name="selectedItem" value="{{ product.key }}"
                data-price="{{ product.price }}" data-name="{{ product.name }}" autocomplete="off">
 
-        <div class="checkout-grid">
-          <div class="checkout-fields">
-            <div class="buy-section" id="checkout">
-              <h2>Delivery details</h2>
-              <p class="section-lead">We’ll ship your SudoTag QR to this address.</p>
+        <div class="sx-checkout__grid">
+          <div class="sx-fields">
+            <div class="buy-section sx-card st-glass" id="checkout">
+              <header class="sx-card__head">
+                <p class="st-kicker">Step 2</p>
+                <h2>Delivery details</h2>
+                <p class="section-lead">We'll ship your SudoTag to this address.</p>
+              </header>
 
-              <div class="field-grid">
+              <fieldset class="sx-group">
+                <legend><i class="bi bi-person" aria-hidden="true"></i>Contact</legend>
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="fullName">Full name <span class="req">*</span></label>
+                    <input id="fullName" name="name" type="text" autocomplete="shipping name" required
+                           maxlength="50" placeholder="Enter your full name" enterkeyhint="next">
+                    <p class="field-error" data-for="fullName" hidden></p>
+                  </div>
+                  <div class="field">
+                    <label for="mobile">Mobile number <span class="req">*</span></label>
+                    <div class="sx-prefix"><span class="st-mono">+91</span>
+                      <input id="mobile" name="tel" type="tel" inputmode="tel" autocomplete="shipping tel"
+                             required maxlength="15" placeholder="10-digit mobile number" enterkeyhint="next">
+                    </div>
+                    <p class="field-error" data-for="mobile" hidden></p>
+                  </div>
+                  <div class="field field--full">
+                    <label for="email">Email <span class="optional">(optional, for your receipt)</span></label>
+                    <input id="email" name="email" type="email" autocomplete="shipping email"
+                           placeholder="you@example.com" enterkeyhint="next">
+                    <p class="field-error" data-for="email" hidden></p>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="sx-group">
+                <legend><i class="bi bi-geo-alt" aria-hidden="true"></i>Address</legend>
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="houseNumber">House / flat number <span class="req">*</span></label>
+                    <input id="houseNumber" name="address-line1" type="text" required
+                           placeholder="e.g., 123, Flat 4A" autocomplete="shipping address-line1"
+                           enterkeyhint="next">
+                    <p class="field-error" data-for="houseNumber" hidden></p>
+                  </div>
+                  <div class="field">
+                    <label for="pincode">PIN code <span class="req">*</span></label>
+                    <input id="pincode" name="postal-code" type="text" inputmode="numeric"
+                           required maxlength="6" placeholder="6-digit PIN code"
+                           autocomplete="shipping postal-code" enterkeyhint="next" class="st-mono">
+                    <p class="field-error" data-for="pincode" hidden></p>
+                  </div>
+                  <div class="field field--full">
+                    <label for="street">Complete delivery address <span class="req">*</span></label>
+                    <textarea id="street" name="address-line2" rows="2" required
+                              placeholder="Street, area, or village"
+                              autocomplete="shipping address-line2" enterkeyhint="next"></textarea>
+                    <p class="field-error" data-for="street" hidden></p>
+                  </div>
+                  <div class="field">
+                    <label for="city">District / city <span class="req">*</span></label>
+                    <input id="city" name="city" type="text" required placeholder="District or city"
+                           autocomplete="shipping address-level2" enterkeyhint="next">
+                    <p class="field-error" data-for="city" hidden></p>
+                  </div>
+                  <div class="field">
+                    <label for="state">State <span class="req">*</span></label>
+                    <input id="state" name="state" type="text" required placeholder="State"
+                           autocomplete="shipping address-level1" enterkeyhint="next">
+                    <p class="field-error" data-for="state" hidden></p>
+                  </div>
+                  <div class="field">
+                    <label for="landmark">Landmark <span class="optional">(optional)</span></label>
+                    <input id="landmark" name="landmark" type="text" placeholder="Nearby landmark"
+                           autocomplete="off">
+                  </div>
+                  <div class="field">
+                    <label for="postOffice">Post office <span class="optional">(optional)</span></label>
+                    <input id="postOffice" name="postOffice" type="text" placeholder="Nearest post office"
+                           autocomplete="off">
+                  </div>
+                  <div class="field field--full">
+                    <label for="country">Country</label>
+                    <input id="country" name="country" type="text" value="India"
+                           autocomplete="shipping country-name">
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="sx-group">
+                <legend><i class="bi bi-car-front" aria-hidden="true"></i>Vehicle <span class="optional">(optional)</span></legend>
                 <div class="field">
-                  <label for="fullName">Full Name <span class="req">*</span></label>
-                  <input id="fullName" name="name" type="text" autocomplete="shipping name" required
-                         maxlength="50" placeholder="Enter your full name" enterkeyhint="next">
-                  <p class="field-error" data-for="fullName" hidden></p>
+                  <label for="vehicleNumber">Vehicle number</label>
+                  <div class="st-field st-field--plate sx-plate" id="sxPlateField">
+                    <span class="st-field__ind" aria-hidden="true"><i class="bi bi-circle"></i>IND</span>
+                    <input id="vehicleNumber" name="vehicleNumber" type="text"
+                           placeholder="KL01AB1234" autocomplete="off" spellcheck="false" autocapitalize="characters">
+                  </div>
+                  <p class="sx-help">Only used to help you set up faster. It's never printed on the tag.</p>
                 </div>
-                <div class="field">
-                  <label for="mobile">Mobile Number <span class="req">*</span></label>
-                  <input id="mobile" name="tel" type="tel" inputmode="tel" autocomplete="shipping tel"
-                         required maxlength="15" placeholder="10-digit mobile number" enterkeyhint="next">
-                  <p class="field-error" data-for="mobile" hidden></p>
-                </div>
-                <div class="field field--full">
-                  <label for="email">Email Address <span class="optional">(optional)</span></label>
-                  <input id="email" name="email" type="email" autocomplete="shipping email"
-                         placeholder="you@example.com" enterkeyhint="next">
-                  <p class="field-error" data-for="email" hidden></p>
-                </div>
-                <div class="field">
-                  <label for="houseNumber">House / Flat Number <span class="req">*</span></label>
-                  <input id="houseNumber" name="address-line1" type="text" required
-                         placeholder="e.g., 123, Flat 4A" autocomplete="shipping address-line1"
-                         enterkeyhint="next">
-                  <p class="field-error" data-for="houseNumber" hidden></p>
-                </div>
-                <div class="field field--full">
-                  <label for="street">Complete Delivery Address <span class="req">*</span></label>
-                  <textarea id="street" name="address-line2" rows="2" required
-                            placeholder="Street, area, or village"
-                            autocomplete="shipping address-line2" enterkeyhint="next"></textarea>
-                  <p class="field-error" data-for="street" hidden></p>
-                </div>
-                <div class="field">
-                  <label for="city">District / City <span class="req">*</span></label>
-                  <input id="city" name="city" type="text" required placeholder="District or city"
-                         autocomplete="shipping address-level2" enterkeyhint="next">
-                  <p class="field-error" data-for="city" hidden></p>
-                </div>
-                <div class="field">
-                  <label for="state">State <span class="req">*</span></label>
-                  <input id="state" name="state" type="text" required placeholder="State"
-                         autocomplete="shipping address-level1" enterkeyhint="next">
-                  <p class="field-error" data-for="state" hidden></p>
-                </div>
-                <div class="field">
-                  <label for="pincode">PIN Code <span class="req">*</span></label>
-                  <input id="pincode" name="postal-code" type="text" inputmode="numeric"
-                         required maxlength="6" placeholder="6-digit PIN code"
-                         autocomplete="shipping postal-code" enterkeyhint="next">
-                  <p class="field-error" data-for="pincode" hidden></p>
-                </div>
-                <div class="field">
-                  <label for="landmark">Landmark <span class="optional">(optional)</span></label>
-                  <input id="landmark" name="landmark" type="text" placeholder="Nearby landmark"
-                         autocomplete="off">
-                </div>
-                <div class="field">
-                  <label for="postOffice">Post Office <span class="optional">(optional)</span></label>
-                  <input id="postOffice" name="postOffice" type="text" placeholder="Nearest post office"
-                         autocomplete="off">
-                </div>
-                <div class="field">
-                  <label for="country">Country</label>
-                  <input id="country" name="country" type="text" value="India"
-                         autocomplete="shipping country-name">
-                </div>
-                <div class="field">
-                  <label for="vehicleNumber">Vehicle Number <span class="optional">(optional)</span></label>
-                  <input id="vehicleNumber" name="vehicleNumber" type="text"
-                         placeholder="e.g., KL01AB1234" autocomplete="off" spellcheck="false">
-                </div>
+              </fieldset>
+            </div>
+
+            <div class="sx-next st-glass" aria-label="What happens after you order">
+              <p class="st-kicker">What happens next</p>
+              <div class="sx-road" aria-hidden="true">
+                <span class="sx-road__line"><i></i></span>
+                <span class="sx-road__van"><i class="bi bi-truck"></i></span>
               </div>
+              <ol class="sx-road__stops">
+                <li><i class="bi bi-bag-check"></i>Ordered</li>
+                <li><i class="bi bi-box-seam"></i>Packed</li>
+                <li><i class="bi bi-send"></i>Shipped</li>
+                <li><i class="bi bi-house-check"></i>Delivered</li>
+              </ol>
+              <p class="sx-next__tail">Then stick it on, scan once and verify with an OTP. You're live in about two minutes.</p>
             </div>
           </div>
 
-          <aside class="buy-summary" aria-labelledby="summary-heading">
-            <div class="summary-card">
-              <h2 id="summary-heading">Order summary</h2>
-              <div class="summary-product-line">
-                <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="" width="56" height="56" loading="lazy" decoding="async">
+          <aside class="buy-summary sx-summary" aria-labelledby="summary-heading">
+            <div class="summary-card sx-card st-glass">
+              <header class="sx-card__head">
+                <p class="st-kicker">Step 3</p>
+                <h2 id="summary-heading">Order summary</h2>
+              </header>
+              <div class="summary-product-line sx-line">
+                <span class="sx-line__img"><img src="{% landing_asset 'img/sudotag-sticker.webp' %}" alt="" width="1181" height="591" loading="lazy" decoding="async"></span>
                 <div>
                   <strong id="summary-product">{{ product.name }}</strong>
                   <span class="summary-unit-wrap" id="summary-unit-wrap">
@@ -210,52 +296,58 @@
                 </div>
               </div>
               <div class="summary-rows summary-rows--live" id="summary-rows" aria-live="polite" aria-atomic="true">
-              <div class="summary-row">
-                <span>Quantity</span>
-                <span id="summary-qty">1</span>
-              </div>
-              <div class="summary-row summary-row--muted" id="summary-list-subtotal-row" hidden>
-                <span>Price before coupon</span>
-                <span id="summary-list-subtotal">₹{{ product.price|floatformat:2 }}</span>
-              </div>
-              <div class="summary-row">
-                <span>Subtotal</span>
-                <span id="summary-subtotal">₹{{ product.price|floatformat:2 }}</span>
-              </div>
-              <div class="summary-row">
-                <span>Shipping</span>
-                <span id="summary-shipping">₹{{ shipping_charge|floatformat:2 }}</span>
-              </div>
-              <div class="summary-row summary-row--coupon" id="summary-discount-row" hidden>
-                <span>Coupon discount</span>
-                <span id="summary-discount">−₹0.00</span>
-              </div>
-              <div class="summary-row summary-row--coupon-code" id="summary-coupon-applied-row" hidden>
-                <span>Coupon applied</span>
-                <span id="summary-coupon-code" class="summary-coupon-code"></span>
-              </div>
+                <div class="summary-row">
+                  <span>Quantity</span>
+                  <span id="summary-qty">1</span>
+                </div>
+                <div class="summary-row summary-row--muted" id="summary-list-subtotal-row" hidden>
+                  <span>Price before coupon</span>
+                  <span id="summary-list-subtotal">₹{{ product.price|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row">
+                  <span>Subtotal</span>
+                  <span id="summary-subtotal">₹{{ product.price|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row">
+                  <span>Shipping</span>
+                  <span id="summary-shipping">₹{{ shipping_charge|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row summary-row--coupon" id="summary-discount-row" hidden>
+                  <span>Coupon discount</span>
+                  <span id="summary-discount">−₹0.00</span>
+                </div>
+                <div class="summary-row summary-row--coupon-code" id="summary-coupon-applied-row" hidden>
+                  <span>Coupon applied</span>
+                  <span id="summary-coupon-code" class="summary-coupon-code"></span>
+                </div>
               </div>
               <div class="coupon-box coupon-box--summary">
                 <label for="couponCodeSummary" class="coupon-box__label">Coupon code</label>
                 <div class="coupon-box__row">
-                  <input type="text" id="couponCodeSummary" class="coupon-box__input"
-                         placeholder="Enter code" autocomplete="off" spellcheck="false" maxlength="32"
+                  <input type="text" id="couponCodeSummary" name="couponCode" class="coupon-box__input st-mono"
+                         placeholder="ENTER CODE" autocomplete="off" spellcheck="false" maxlength="32"
                          aria-describedby="coupon-hint-summary">
                   <button type="button" class="coupon-box__apply" id="coupon-apply-btn-summary">Apply</button>
                 </div>
                 <p class="coupon-box__hint" id="coupon-hint-summary" hidden></p>
+                <p class="field-error" data-for="couponCode" hidden></p>
               </div>
               <div class="summary-total summary-total--live" id="summary-total-wrap">
                 <span>Total</span>
                 <span id="summary-total">₹{{ unit_total|floatformat:2 }}</span>
               </div>
-              <button type="submit" class="buy-pay-btn" id="pay-btn">
-                <span class="buy-pay-btn__label">Buy Now</span>
+              <button type="submit" class="buy-pay-btn st-btn st-btn--signal st-btn--lg" id="pay-btn">
+                <i class="bi bi-lock-fill" aria-hidden="true"></i>
+                <span class="buy-pay-btn__label">Pay securely</span>
                 <span class="buy-pay-btn__spinner" hidden aria-hidden="true"></span>
               </button>
               <p class="buy-status" id="checkout-status" role="status" aria-live="polite"></p>
-              <p class="summary-secure"><i class="bi bi-shield-lock-fill"></i> Secured by Razorpay</p>
+              <div class="sx-secure">
+                <span><i class="bi bi-shield-lock-fill" aria-hidden="true"></i>Secured by Razorpay</span>
+                <span class="sx-secure__pay" aria-label="UPI, cards and netbanking accepted">UPI · Cards · Netbanking</span>
+              </div>
             </div>
+            <a class="sx-help-link" href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp" aria-hidden="true"></i>Questions? Chat with us</a>
           </aside>
         </div>
       </form>
@@ -263,15 +355,22 @@
     </div>
   </main>
 
+  <footer class="sx-footer">
+    <div class="st-wrap sx-footer__row">
+      <span>© SudoTag · Calicut, Kerala</span>
+      <span><a href="{% url 'privacy' %}">Privacy</a> · <a href="{% url 'terms' %}">Terms</a> · <a href="mailto:sudotagonline@gmail.com">sudotagonline@gmail.com</a></span>
+    </div>
+  </footer>
+
   {% if buying_open %}
   {# Mobile sticky Buy Now #}
-  <div class="buy-sticky" id="buy-sticky" hidden>
+  <div class="buy-sticky sx-sticky" id="buy-sticky" hidden>
     <div class="buy-sticky__price">
       <span>Total</span>
       <strong id="sticky-total">₹{{ unit_total|floatformat:2 }}</strong>
     </div>
-    <button type="submit" form="checkout-form" class="buy-pay-btn buy-pay-btn--compact" id="sticky-pay-btn">
-      Buy Now
+    <button type="submit" form="checkout-form" class="st-btn st-btn--signal" id="sticky-pay-btn">
+      Buy now
     </button>
   </div>
   {% endif %}
@@ -279,7 +378,7 @@
   {# Zoomable lightbox #}
   <div class="zoom-lightbox" id="zoom-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Product image viewer">
     <div class="zoom-lightbox__backdrop" data-zoom-close></div>
-    <button type="button" class="zoom-lightbox__close" data-zoom-close aria-label="Close viewer">
+    <button type="button" class="zoom-lightbox__close st-round" data-zoom-close aria-label="Close viewer">
       <i class="bi bi-x-lg"></i>
     </button>
     <div class="zoom-lightbox__toolbar">
@@ -288,7 +387,7 @@
       <button type="button" id="zoom-in" aria-label="Zoom in"><i class="bi bi-zoom-in"></i></button>
     </div>
     <div class="zoom-lightbox__stage" id="zoom-stage">
-      <img src="" alt="SudoTag QR — enlarged view" id="zoom-img" draggable="false">
+      <img src="" alt="SudoTag sticker, enlarged view" id="zoom-img" draggable="false">
     </div>
     <p class="zoom-lightbox__hint">Scroll or pinch to zoom · drag to pan · Esc to close</p>
   </div>
@@ -317,11 +416,13 @@
       productName: "{{ product.name|escapejs }}",
       productPrice: {{ product.price }},
       logoUrl: "https://sudotag.com/logo.png",
-      themeColor: "#E58147",
-      backdropColor: "#1C1C1C"
+      themeColor: "#FF7A1A",
+      backdropColor: "#07080B"
     };
   </script>
   <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+  <script src="{% landing_asset 'js/signal.js' %}" defer></script>
   <script src="{% landing_asset 'js/buy.js' %}" defer></script>
+  <script src="{% landing_asset 'js/store.js' %}" defer></script>
 </body>
 </html>

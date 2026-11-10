@@ -42,7 +42,17 @@ def index(request):
     except Exception:
         approved_feedbacks = []
 
+    tag_price = tag_shipping = None
+    try:
+        from admin_app.checkout_views import _checkout_pricing
+        product, tag_shipping, _settings = _checkout_pricing()
+        tag_price = product.get('price')
+    except Exception:
+        tag_price = tag_shipping = None
+
     return render(request, 'index.html', {
+        'tag_price': tag_price,
+        'tag_shipping': tag_shipping,
         'banner_ads': _landing_banner_ads(request),
         'public_lookup_url': reverse('public_lookup_vehicle'),
         'approved_feedbacks': approved_feedbacks,
