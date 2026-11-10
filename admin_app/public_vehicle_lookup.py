@@ -41,6 +41,19 @@ def extract_qr_id_from_scan(raw: str) -> str | None:
     return None
 
 
+_SMART_TAG_PATH_RE = re.compile(r'/admin/mp/([A-Za-z0-9_-]+)/?', re.IGNORECASE)
+
+
+def extract_smart_tag_id_from_scan(raw: str) -> str | None:
+    """Multipurpose (Smart Tag) sticker URL: /admin/mp/<id>/ → id."""
+    m = _SMART_TAG_PATH_RE.search((raw or '').strip())
+    return m.group(1) if m else None
+
+
+def smart_tag_url(qr_id: str, request=None) -> str:
+    return _absolute_admin_url(f'/admin/mp/{(qr_id or "").strip()}/', request)
+
+
 def _absolute_admin_url(path: str, request=None) -> str:
     path = '/' + (path or '').lstrip('/')
     if request is not None:
@@ -121,11 +134,46 @@ def plate_ocr_variants(plate_raw: str) -> list[str]:
     return ordered[:12]
 
 
-def _vehicle_hit_from_docs(docs, fallback_plate: str) -> dict[str, Any] | None:
+def _qr_points_at_vehicle(qr_data: dict, vehicle_id: str) -> bool:
+    linked = str(qr_data.get('vehicleID') or qr_data.get('vehicleId') or '').strip()
+    return bool(qr_data.get('isAssigned')) and linked == vehicle_id
+
+
+def _live_qr_for_vehicle(db, vehicle_id: str, data: dict) -> str | None:
+    """
+    The QR that is actually assigned to this vehicle right now, or None.
+
+    The vehicle's own ``qrCodeId`` can be stale (QR deleted, unassigned, or moved
+    to another vehicle), so the QR document must confirm it points back here.
+    Falls back to searching QRs by ``vehicleID`` when the vehicle link is missing.
+    """
+    qr_id = str(data.get('qrCodeId') or '').strip()
+    if qr_id:
+        snap = db.collection('qrcodes').document(qr_id).get()
+        if snap.exists and _qr_points_at_vehicle(snap.to_dict() or {}, vehicle_id):
+            return qr_id
+    for field in ('vehicleID', 'vehicleId'):
+        for snap in (
+            db.collection('qrcodes')
+            .where(filter=FieldFilter(field, '==', vehicle_id))
+            .limit(5)
+            .stream()
+        ):
+            if _qr_points_at_vehicle(snap.to_dict() or {}, vehicle_id):
+                return snap.id
+    return None
+
+
+def _vehicle_hit_from_docs(docs, fallback_plate: str, db=None) -> dict[str, Any] | None:
     for doc in docs:
         data = doc.to_dict() or {}
-        if data.get('isQrGenerated') and str(data.get('qrCodeId') or '').strip():
+        if db is not None:
+            qr_id = _live_qr_for_vehicle(db, doc.id, data)
+        elif data.get('isQrGenerated') and str(data.get('qrCodeId') or '').strip():
             qr_id = str(data.get('qrCodeId')).strip()
+        else:
+            qr_id = None
+        if qr_id:
             photos = data.get('photoUrls') if isinstance(data.get('photoUrls'), list) else []
             primary = ''
             for p in photos:
@@ -147,7 +195,7 @@ def _vehicle_hit_from_docs(docs, fallback_plate: str) -> dict[str, Any] | None:
 def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
     """
     Exact registration match (normalized), then OCR confusion variants.
-    Returns first vehicle that has an activated QR (``isQrGenerated`` + ``qrCodeId``).
+    Returns the first matching vehicle whose QR is assigned to it right now.
     """
     variants = plate_ocr_variants(plate_raw)
     if not variants:
@@ -160,7 +208,7 @@ def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
             .limit(10)
             .stream()
         )
-        hit = _vehicle_hit_from_docs(docs, plate)
+        hit = _vehicle_hit_from_docs(docs, plate, db)
         if hit:
             return hit
 
@@ -170,7 +218,7 @@ def lookup_vehicle_by_plate(db, plate_raw: str) -> dict[str, Any] | None:
             .limit(10)
             .stream()
         )
-        hit = _vehicle_hit_from_docs(docs, plate)
+        hit = _vehicle_hit_from_docs(docs, plate, db)
         if hit:
             return hit
 

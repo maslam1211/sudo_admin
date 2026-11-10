@@ -358,3 +358,74 @@ class AdminAccessTests(_FakeDBMixin, TestCase):
         self.client.post(reverse('assign_qr'), {'qr_id': 'QR2', 'user_id': 'U1', 'vehicle_id': 'V1'})
         self.assertFalse(self.fake.store['qrcodes']['QR2']['isAssigned'])
         self.assertEqual(self.fake.store['vehicles']['V1']['qrCodeId'], 'QR1')
+
+
+class PublicScanAndPlateLookupTests(_FakeDBMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('public_lookup_vehicle')
+        self.fake.store['users'] = {'U1': {'fullName': 'Owner'}}
+        self.fake.store['qrcodes'] = {
+            'QRLIVE01': {'isAssigned': True, 'vehicleID': 'V1', 'userID': 'U1'},
+            'QRFREE01': {'isAssigned': False},
+            'QRORPHAN': {'isAssigned': True, 'vehicleID': 'GONE', 'userID': 'U1'},
+        }
+        self.fake.store['vehicles'] = {
+            # Stale duplicate of the same plate, pointing at a QR now owned by V1.
+            'V0': {'registrationNumber': 'KL13AU6368', 'isQrGenerated': True, 'qrCodeId': 'QRLIVE01'},
+            'V1': {'registrationNumber': 'KL13AU6368', 'isQrGenerated': True,
+                   'qrCodeId': 'QRLIVE01', 'ownerId': 'U1'},
+            # Points at a QR that does not exist.
+            'V2': {'registrationNumber': 'KL10AY2728', 'isQrGenerated': True, 'qrCodeId': 'NOPE1234'},
+            # Link only on the QR side.
+            'V3': {'registrationNumber': 'KL11BE6888'},
+        }
+        self.fake.store['qrcodes']['QRSIDE01'] = {'isAssigned': True, 'vehicleID': 'V3'}
+        self.fake.store['multipurpose_qrs'] = {'SMARTTAG1': {'isAssigned': True}}
+
+    def _lookup(self, **payload):
+        return self.client.post(self.url, json.dumps(payload), content_type='application/json')
+
+    def test_plate_with_stale_duplicate_resolves_to_live_vehicle(self):
+        res = self._lookup(mode='plate', plate='kl 13 au 6368')
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.json()['qr_id'], 'QRLIVE01')
+
+    def test_plate_whose_qr_is_missing_is_not_found(self):
+        res = self._lookup(mode='plate', plate='KL10AY2728')
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res.json()['error_type'], 'not_found')
+
+    def test_plate_linked_only_from_qr_side_is_found(self):
+        res = self._lookup(mode='plate', plate='KL11BE6888')
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.json()['qr_id'], 'QRSIDE01')
+
+    def test_scan_of_inactive_qr_opens_activation(self):
+        res = self._lookup(mode='qr', qr='https://sudotag.com/admin/send-notification/QRFREE01/')
+        self.assertEqual(res.json()['next'], 'activate')
+
+    def test_scan_of_sticker_without_vehicle_says_not_linked(self):
+        res = self._lookup(mode='qr', qr='https://sudotag.com/admin/send-notification/QRORPHAN/')
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res.json()['error_type'], 'not_linked')
+
+    def test_scan_of_smart_tag_url_opens_smart_tag_page(self):
+        res = self._lookup(mode='qr', qr='https://sudotag.com/admin/mp/SMARTTAG1/')
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.json()['next'], 'smart_tag')
+        self.assertIn('/admin/mp/SMARTTAG1/', res.json()['redirect_url'])
+
+    def test_bare_smart_tag_id_is_recognised(self):
+        res = self._lookup(mode='qr', qr='SMARTTAG1')
+        self.assertEqual(res.json()['next'], 'smart_tag')
+
+    def test_notify_page_for_sticker_without_vehicle_is_friendly(self):
+        res = self.client.get(reverse('send_notification', args=['QRORPHAN']))
+        self.assertEqual(res.status_code, 404)
+        self.assertContains(res, 'linked to a vehicle', status_code=404)
+
+    def test_notify_url_with_smart_tag_id_redirects(self):
+        res = self.client.get(reverse('send_notification', args=['SMARTTAG1']))
+        self.assertRedirects(res, reverse('multipurpose_qr_scan', args=['SMARTTAG1']),
+                             fetch_redirect_response=False)

@@ -23,14 +23,14 @@
       <div class="sudo-error-icon-wrap" aria-hidden="true">
         <i class="bi bi-qr-code-scan"></i>
       </div>
-      <p class="sudo-error-eyebrow">Invalid code</p>
-      <h1 class="sudo-error-title">This QR code isn’t valid</h1>
+      <p class="sudo-error-eyebrow">{{ eyebrow|default:"Invalid code" }}</p>
+      <h1 class="sudo-error-title">{{ title|default:"This QR code isn’t valid" }}</h1>
       <p class="sudo-error-message">
         {{ error|default:"The QR code you scanned is not registered in our system." }}
       </p>
-      <p class="sudo-error-hint">Check that you scanned the correct SudoTag sticker, then try again.</p>
+      <p class="sudo-error-hint">{{ hint|default:"Check that you scanned the correct SudoTag sticker, then try again." }}</p>
       <div class="sudo-error-actions">
-        <a href="https://sudo-70852.firebaseapp.com" class="sudo-error-btn sudo-error-btn--primary">
+        <a href="/" class="sudo-error-btn sudo-error-btn--primary">
           <i class="bi bi-house-door-fill" aria-hidden="true"></i>
           Return home
         </a>

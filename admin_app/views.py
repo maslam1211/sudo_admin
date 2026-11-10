@@ -2834,10 +2834,12 @@ def public_lookup_vehicle(request):
     from .public_vehicle_lookup import (
         activate_url_for_qr,
         extract_qr_id_from_scan,
+        extract_smart_tag_id_from_scan,
         lookup_vehicle_by_plate,
         notify_final_url_for_qr,
         normalize_registration,
         resolve_qr_for_notify,
+        smart_tag_url,
     )
 
     try:
@@ -2855,6 +2857,32 @@ def public_lookup_vehicle(request):
     try:
         if mode in ('qr', 'scan', 'qr_scan'):
             raw = str(payload.get('qr') or payload.get('scan') or payload.get('value') or '')
+
+            def _smart_tag_response(tag_id):
+                url = smart_tag_url(tag_id, request)
+                return JsonResponse({
+                    'status': 'success',
+                    'qr_id': tag_id,
+                    'kind': 'smart_tag',
+                    'isAssigned': True,
+                    'activated': True,
+                    'next': 'smart_tag',
+                    'redirect_url': url,
+                    'notify_url': url,
+                    'activate_url': '',
+                })
+
+            smart_id = extract_smart_tag_id_from_scan(raw)
+            if smart_id:
+                if not db.collection('multipurpose_qrs').document(smart_id).get().exists:
+                    return JsonResponse({
+                        'status': 'error',
+                        'error_type': 'invalid_qr',
+                        'message': 'This QR code is not valid.',
+                    }, status=404)
+                # The Smart Tag page itself handles both activation and contact.
+                return _smart_tag_response(smart_id)
+
             qr_id = extract_qr_id_from_scan(raw)
             if not qr_id:
                 return JsonResponse(
@@ -2866,6 +2894,11 @@ def public_lookup_vehicle(request):
                     status=400,
                 )
             info = resolve_qr_for_notify(db, qr_id)
+            if (
+                (not info or not info.get('exists'))
+                and db.collection('multipurpose_qrs').document(qr_id).get().exists
+            ):
+                return _smart_tag_response(qr_id)
             if not info or not info.get('exists'):
                 return JsonResponse(
                     {
@@ -2892,6 +2925,20 @@ def public_lookup_vehicle(request):
                         'notify_url': '',
                         'message': 'This QR is not activated yet. Opening activation…',
                     }
+                )
+
+            linked_vehicle = str(info.get('vehicleID') or '').strip()
+            if not linked_vehicle or not db.collection('vehicles').document(linked_vehicle).get().exists:
+                return JsonResponse(
+                    {
+                        'status': 'error',
+                        'error_type': 'not_linked',
+                        'message': (
+                            'This sticker is not linked to a vehicle right now. '
+                            'If it is yours, contact SudoTag support.'
+                        ),
+                    },
+                    status=404,
                 )
 
             notify_url = notify_final_url_for_qr(qr_id, request)
@@ -3759,6 +3806,15 @@ def get_twilio_error_message(twilio_exception):
     
     return error_messages.get(twilio_exception.code, f"Twilio error: {twilio_exception.msg}")
 
+def _unlinked_sticker_context():
+    return {
+        'eyebrow': 'Sticker not linked',
+        'title': 'This sticker isn’t linked to a vehicle right now',
+        'error': 'The owner’s vehicle details are no longer available, so we can’t contact them through this sticker.',
+        'hint': 'If this is your sticker, contact SudoTag support to re-link it.',
+    }
+
+
 @ensure_csrf_cookie
 def send_notification(request, qr_id):
     try:
@@ -3767,6 +3823,9 @@ def send_notification(request, qr_id):
         qr_doc = qr_ref.get()
 
         if not qr_doc.exists:
+            # A Smart Tag id typed/scanned into the vehicle URL → its own page.
+            if db.collection('multipurpose_qrs').document(qr_id).get().exists:
+                return redirect('multipurpose_qr_scan', qr_id=qr_id)
             return render(request, 'invalid_qr.html', {'error': 'Invalid QR Code'})
 
         if not qr_doc.to_dict().get('isAssigned', False):
@@ -3776,11 +3835,13 @@ def send_notification(request, qr_id):
         qr_data = qr_doc.to_dict()
         
         # Get vehicle data
-        vehicle_ref = db.collection('vehicles').document(qr_data['vehicleID'])
-        vehicle_doc = vehicle_ref.get()
+        vehicle_id = str(qr_data.get('vehicleID') or qr_data.get('vehicleId') or '').strip()
+        vehicle_ref = db.collection('vehicles').document(vehicle_id) if vehicle_id else None
+        vehicle_doc = vehicle_ref.get() if vehicle_ref else None
         
-        if not vehicle_doc.exists:
-            return render(request, 'error.html', {'error': 'Vehicle not found!'})
+        if vehicle_doc is None or not vehicle_doc.exists:
+            logger.warning('Assigned QR %s has no vehicle (%r)', qr_id, vehicle_id)
+            return render(request, 'invalid_qr.html', _unlinked_sticker_context(), status=404)
 
         vehicle_data = vehicle_doc.to_dict()
         vehicle_data = merge_vehicle_scanner_subdocuments(db, vehicle_ref, vehicle_data)
@@ -3824,13 +3885,14 @@ def send_notification(request, qr_id):
         # Owner's Firestore uid (same as users/{uid} document id). Scanner prefs use this id.
         owner_id = vehicle_data.get('ownerId')
         if not owner_id:
-            return render(request, 'error.html', {'error': 'Vehicle owner not found.'})
+            return render(request, 'invalid_qr.html', _unlinked_sticker_context(), status=404)
 
         user_ref = db.collection('users').document(owner_id)
         user_doc = user_ref.get()
         
         if not user_doc.exists:
-            return render(request, 'error.html', {'error': 'Vehicle owner not found.'})
+            logger.warning('QR %s vehicle %s has no owner profile %s', qr_id, vehicle_id, owner_id)
+            return render(request, 'invalid_qr.html', _unlinked_sticker_context(), status=404)
         
         user_data = merge_user_scanner_subdocuments(
             db, user_ref, user_doc.to_dict() or {}
