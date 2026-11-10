@@ -111,6 +111,7 @@ urlpatterns = [
     ),
     path('manage-qrs/delete/<str:qr_id>/', views.delete_qr_code, name='delete_qr_code'),
     path('manage-qrs/bulk-delete/', views.bulk_delete_qr_codes, name='bulk_delete_qr_codes'),
+    path('manage-qrs/unassign/<str:qr_id>/', views.unassign_qr_code, name='unassign_qr_code'),
     path('regenerate-qr/<str:qr_id>/', views.regenerate_qr, name='regenerate_qr'),
     # Add these new routes for QR assignment
     path('assign-qr/', views.assign_qr, name='assign_qr'),

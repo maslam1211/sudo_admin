@@ -847,6 +847,11 @@
 
       setBusy(true, 'Verifying payment…');
       setStatus('Verifying payment…');
+      // Payment went through: hide the form while the verify request runs.
+      // Chrome/Edge treat "fetch finished + form gone" as a real submission,
+      // so they offer to save the name/address and autofill it next time.
+      showCheckoutLoader('Verifying payment…');
+      form.style.display = 'none';
       var verifyRes = await postJson(cfg.verifyPaymentUrl, {
         orderId: createRes.orderId,
         razorpayOrderId: payment.razorpay_order_id || createRes.razorpayOrderId,
@@ -893,6 +898,7 @@
       });
       window.location.href = cfg.successUrl + '?' + params.toString();
     } catch (err) {
+      form.style.display = '';
       hideCheckoutLoader();
       if (err.payload && err.payload.fields) {
         clearErrors();

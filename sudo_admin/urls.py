@@ -269,8 +269,6 @@ urlpatterns = [
 
 # This handles 404 errors - shows error instead of redirecting
 handler404 = 'admin_app.views.custom_404'
-# Technical / server errors on the public landing show the styled error page.
-handler500 = 'landing.views.server_error'
 
 
 if settings.DEBUG:

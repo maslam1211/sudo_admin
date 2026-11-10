@@ -344,6 +344,10 @@ def extension_update(fleet: dict, days: int, *, now: Optional[datetime] = None) 
         raise FleetDateError('Extend by 30 or 365 days.')
     moment = _now(now)
     current = _to_dt(fleet.get('subscriptionExpiresAt')) or _to_dt(fleet.get('expiresAt'))
+    if current is None:
+        # Never had a model: extending would mark it active with no plan or
+        # vehicle/driver limits. Activate sets those.
+        raise FleetDateError('This fleet has no model yet. Use Activate first.')
     base = current if current and current > moment else moment
     return {
         'subscriptionStatus': 'active',

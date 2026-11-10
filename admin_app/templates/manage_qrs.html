@@ -497,10 +497,19 @@
                                         <span>Assign</span>
                                 </a>
                                     {% else %}
-                                    <span class="action-badge">
-                                        <i class="fas fa-check-circle me-1"></i>
-                                        <span>Assigned</span>
-                                    </span>
+                                    <form method="post"
+                                          action="{% url 'unassign_qr_code' qr_id=qr.doc_id %}"
+                                          style="display:inline"
+                                          onsubmit="return confirm('Unassign QR {{ qr.doc_id|escapejs }}? It becomes inactive and the next scan opens activation again. The user and vehicle are kept.');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="page" value="{{ qrs.number }}">
+                                        {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+                                        {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+                                        <button type="submit" class="action-btn action-btn-delete" title="Unassign QR Code">
+                                            <i class="fas fa-unlink me-1"></i>
+                                            <span>Unassign</span>
+                                        </button>
+                                    </form>
                                     {% endif %}
                                     {% if not qr.isAssigned %}
                                     <button type="button"

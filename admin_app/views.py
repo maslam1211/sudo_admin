@@ -658,6 +658,12 @@ import pytz
 from django.core.cache import cache
 from django.utils.timezone import now
 
+def _firestore_count(query):
+    """Server-side COUNT aggregation for a Firestore query or collection."""
+    result = query.count().get()
+    return int(result[0][0].value) if result and result[0] else 0
+
+
 def dashboard(request):
     if not request.session.get('admin'):
         return redirect('admin_login')
@@ -696,26 +702,18 @@ def dashboard(request):
     all_orders.sort(key=lambda x: str(x.get('timestamp', '')), reverse=True)
     recent_orders = all_orders[:10]  # Get top 10 for display
     
-    # Optimized: Use efficient queries with limits
-    # Users count - sample approach for speed
+    # Users: exact server-side counts (no document download, no 1000-doc cap).
+    users_ref = db.collection('users')
     try:
-        users_sample = list(db.collection('users').limit(1000).stream())
-        users_count = sum(
-            1 for doc in users_sample
-            if (doc.to_dict() or {}).get('emailAddress') != ADMIN_EMAIL
-            and (doc.to_dict() or {}).get('purpose') != MULTIPURPOSE_CALL_BRIDGE_PURPOSE
+        users_count = (
+            _firestore_count(users_ref)
+            - _firestore_count(users_ref.where(filter=FieldFilter('emailAddress', '==', ADMIN_EMAIL)))
+            - _firestore_count(users_ref.where(
+                filter=FieldFilter('purpose', '==', MULTIPURPOSE_CALL_BRIDGE_PURPOSE)
+            ))
         )
-        # If we got less than 1000, we have exact count
-        if len(users_sample) < 1000:
-            # Exact count
-            pass
-        else:
-            # Estimate - scale up (rough approximation)
-            admin_count = sum(1 for doc in users_sample if doc.to_dict().get('emailAddress') == ADMIN_EMAIL)
-            if admin_count > 0:
-                scale = len(users_sample) / admin_count if admin_count > 0 else 1
-                users_count = int(users_count * min(scale, 10))  # Cap scaling
-    except:
+    except Exception:
+        logger.exception('dashboard user count failed')
         users_count = 0
     
     # Helper function to parse timestamp and get date
@@ -827,25 +825,16 @@ def dashboard(request):
         status_counts = {status: 0 for status in STATUS_MAPPING.keys()}
         total_earnings = 0
     
-    # QR Codes - efficient queries
+    # QR Codes: exact counts, excluding internal call-bridge documents.
     try:
         qr_ref = db.collection('qrcodes')
-        # Get active count
-        active_qr_docs = list(qr_ref.where(filter=FieldFilter('isAssigned', '==', True)).limit(1000).stream())
-        active_qr = sum(
-            1 for doc in active_qr_docs
-            if (doc.to_dict() or {}).get('purpose') != MULTIPURPOSE_CALL_BRIDGE_PURPOSE
-        )
-        
-        # Get total count
-        total_qr_docs = list(qr_ref.limit(1000).stream())
-        total_qr = sum(
-            1 for doc in total_qr_docs
-            if (doc.to_dict() or {}).get('purpose') != MULTIPURPOSE_CALL_BRIDGE_PURPOSE
-        )
-        
+        assigned_q = qr_ref.where(filter=FieldFilter('isAssigned', '==', True))
+        bridge_filter = FieldFilter('purpose', '==', MULTIPURPOSE_CALL_BRIDGE_PURPOSE)
+        total_qr = _firestore_count(qr_ref) - _firestore_count(qr_ref.where(filter=bridge_filter))
+        active_qr = _firestore_count(assigned_q) - _firestore_count(assigned_q.where(filter=bridge_filter))
         inactive_qr = total_qr - active_qr
-    except:
+    except Exception:
+        logger.exception('dashboard QR count failed')
         total_qr = 0
         active_qr = 0
         inactive_qr = 0
@@ -1508,7 +1497,7 @@ def register_admin(request):
 
     if request.method == 'POST':
         if not pin_gate_done:
-            if request.POST.get('panel_pin', '').strip() != '4455':
+            if request.POST.get('panel_pin', '').strip() != getattr(settings, 'ADMIN_GATE_PIN', '4455'):
                 messages.error(request, 'Invalid admin PIN. Enter the panel PIN to register.')
                 return render(
                     request,
@@ -1653,23 +1642,26 @@ def manage_users(request):
         users_page = paginator.page(paginator.num_pages)
 
     if request.method == "POST":
+        users_ref = db.collection('users')
         if 'delete_selected' in request.POST:
             return handle_bulk_delete(request, users_ref)
         elif 'delete_single' in request.POST:
-            user_id = request.POST.get('user_id')
-            user_doc = users_ref.document(user_id).get()
-            if user_doc.exists and user_doc.to_dict().get('emailAddress') == ADMIN_EMAIL:
-                messages.error(request, 'Cannot delete admin account')
-                return redirect('manage_users')
             return handle_single_delete(request, users_ref)
         # Removed toggle_status feature - users can only view details now
         elif 'update_user' in request.POST:
-            user_id = request.POST.get('user_id')
-            users_ref.document(user_id).update({
-                'fullName': request.POST.get('fullName'),
-                'city': request.POST.get('city')
-            })
-            messages.success(request, 'User updated successfully')
+            user_id = (request.POST.get('user_id') or '').strip()
+            full_name = (request.POST.get('fullName') or '').strip()
+            city = (request.POST.get('city') or '').strip()
+            if not user_id or not users_ref.document(user_id).get().exists:
+                messages.error(request, 'User not found')
+            elif not full_name:
+                messages.error(request, 'Full name is required')
+            else:
+                users_ref.document(user_id).update({
+                    'fullName': full_name,
+                    'city': city,
+                })
+                messages.success(request, 'User updated successfully')
             return redirect('manage_users')
 
     return render(request, 'manage_users.html', {
@@ -1912,40 +1904,63 @@ def manage_live_status(request):
     )
 
 
+_PROTECTED_ADMIN_EMAIL = "sudotagonline@gmail.com"
+
+
+def _is_protected_admin_user(user_dict):
+    """Admin accounts (roleId 1 or the owner email) cannot be deleted from Manage Users."""
+    user_dict = user_dict or {}
+    email = str(user_dict.get('emailAddress') or '').strip().lower()
+    return email == _PROTECTED_ADMIN_EMAIL or _is_admin_role_id(user_dict.get('roleId'))
+
+
 def handle_bulk_delete(request, users_ref):
     selected_user_ids = request.POST.getlist('selected_users')
-    
+
     if not selected_user_ids:
         messages.warning(request, 'No users selected for deletion')
         return redirect('manage_users')
-    
+
     success_count = 0
+    skipped_admin = 0
     for user_id in selected_user_ids:
         try:
+            snap = users_ref.document(user_id).get()
+            if snap.exists and _is_protected_admin_user(snap.to_dict()):
+                skipped_admin += 1
+                continue
             users_ref.document(user_id).delete()
             success_count += 1
         except Exception as e:
             messages.error(request, f'Error deleting user {user_id}: {str(e)}')
-    
+
+    if skipped_admin:
+        messages.warning(request, f'Skipped {skipped_admin} admin account(s); admins cannot be deleted here.')
+
     if success_count > 0:
         msg = f'Successfully deleted {success_count} user(s)'
-        if success_count != len(selected_user_ids):
-            msg += f' (failed to delete {len(selected_user_ids) - success_count})'
+        failed = len(selected_user_ids) - success_count - skipped_admin
+        if failed:
+            msg += f' (failed to delete {failed})'
         messages.success(request, msg)
-    else:
+    elif not skipped_admin:
         messages.error(request, 'Failed to delete all selected users')
-    
+
     return redirect('manage_users')
 
 
 def handle_single_delete(request, users_ref):
     user_id = request.POST.get('user_id')
-    
+
     if not user_id:
         messages.warning(request, 'No user selected for deletion')
         return redirect('manage_users')
-    
+
     try:
+        snap = users_ref.document(user_id).get()
+        if snap.exists and _is_protected_admin_user(snap.to_dict()):
+            messages.error(request, 'Cannot delete admin account')
+            return redirect('manage_users')
         users_ref.document(user_id).delete()
         messages.success(request, 'User deleted successfully')
     except Exception as e:
@@ -3044,6 +3059,96 @@ def _activate_id_qr_guard(qr_id):
     return qr_doc, None
 
 
+class QrAlreadyAssigned(Exception):
+    """The QR was claimed by someone else between the page load and the claim."""
+
+
+def _activate_id_claim_qr(qr_ref, vehicle_ref, vehicle_data, user_id):
+    """
+    Atomically: confirm the QR is still free, create the vehicle, mark the QR assigned.
+    Raises QrAlreadyAssigned if another activation got there first.
+    """
+    @firestore.transactional
+    def _claim(transaction):
+        snap = qr_ref.get(transaction=transaction)
+        if not snap.exists or (snap.to_dict() or {}).get('isAssigned'):
+            raise QrAlreadyAssigned()
+        transaction.set(vehicle_ref, vehicle_data)
+        transaction.update(qr_ref, {
+            'isAssigned': True,
+            'vehicleID': vehicle_ref.id,
+            'userID': user_id,
+            'assignedAt': firestore.SERVER_TIMESTAMP,
+        })
+
+    _claim(db.transaction())
+
+
+def _recreate_login_for_profile(user_id, email, full_name):
+    """
+    Create a Firebase Auth login whose uid is the existing profile's document id,
+    so vehicles/QRs that reference that id keep working. Returns (user, password).
+    """
+    password = generate_random_password(12)
+    auth_user = auth.create_user(
+        uid=user_id,
+        email=email,
+        password=password,
+        display_name=(full_name or '').strip() or None,
+        email_verified=False,
+        disabled=False,
+    )
+    logger.info('Recreated missing Firebase Auth login for profile %s', user_id)
+    return auth_user, password
+
+
+def _send_activation_emails(email, name, vehicle_data, temp_password):
+    if temp_password:
+        try:
+            send_welcome_email_for_id(email=email, name=name, password=temp_password)
+        except Exception as exc:
+            logger.warning('Welcome email failed for %s: %s', email, exc)
+    try:
+        send_vehicle_registration_email(email=email, name=name, vehicle_data=vehicle_data)
+    except Exception as exc:
+        logger.warning('Vehicle registration email failed for %s: %s', email, exc)
+
+
+def _activate_id_send_emails_async(email, name, vehicle_data, temp_password):
+    """Send activation emails after the response; never raises."""
+    import threading
+
+    vehicle_snapshot = {
+        k: v for k, v in vehicle_data.items() if v is not firestore.SERVER_TIMESTAMP
+    }
+    if getattr(settings, 'ACTIVATION_EMAILS_SYNC', False):
+        _send_activation_emails(email, name, vehicle_snapshot, temp_password)
+        return
+    threading.Thread(
+        target=_send_activation_emails,
+        args=(email, name, vehicle_snapshot, temp_password),
+        daemon=True,
+    ).start()
+
+
+def _activate_id_rollback_new_user(auth_user, user_id, is_new_user, delete_profile=True):
+    """
+    Undo a login created earlier in this activation request. The profile doc is
+    removed only when this request created it (delete_profile).
+    """
+    if not is_new_user or auth_user is None:
+        return
+    try:
+        auth.delete_user(auth_user.uid)
+    except Exception as exc:
+        logger.warning('Failed to cleanup auth user %s: %s', auth_user.uid, exc)
+    if user_id and delete_profile:
+        try:
+            db.collection('users').document(user_id).delete()
+        except Exception as exc:
+            logger.warning('Failed to cleanup user doc %s: %s', user_id, exc)
+
+
 def _activate_id_otp_phone_from_request(request):
     try:
         data = json.loads(request.body or '{}')
@@ -3171,8 +3276,15 @@ def activate_id(request, qr_id):
         
         if request.method == 'POST':
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                import json
-                data = json.loads(request.body)
+                try:
+                    data = json.loads(request.body or b'{}')
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    data = None
+                if not isinstance(data, dict):
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Invalid request body',
+                    }, status=400)
                 admin_added_user = truthy_admin_added_user_from_json(data, default=False)
                 
                 # Validate required fields
@@ -3181,14 +3293,31 @@ def activate_id(request, qr_id):
                     'vehicle': ['make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing']
                 }
                 
+                # Trim string inputs so whitespace-only values count as missing.
+                for key, value in list(data.items()):
+                    if isinstance(value, str):
+                        data[key] = value.strip()
+                # Firebase Auth treats email as case-insensitive; store and match lowercase.
+                email_as_typed = str(data.get('emailAddress') or '')
+                if data.get('emailAddress'):
+                    data['emailAddress'] = str(data['emailAddress']).lower()
+
                 errors = {}
                 for field in required_fields['user']:
                     if not data.get(field):
                         errors[field] = 'This field is required'
-                
+
                 for field in required_fields['vehicle']:
                     if not data.get(field):
                         errors[field] = 'This field is required'
+
+                if data.get('registrationNumber'):
+                    reg_canon = normalize_vehicle_registration(data['registrationNumber'])
+                    if len(reg_canon) < 4:
+                        errors['registrationNumber'] = 'Enter a valid license plate number'
+                    else:
+                        # Same canonical form the public plate lookup searches for.
+                        data['registrationNumber'] = reg_canon
                 
                 max_year = datetime.date.today().year
                 if data.get('yearOfManufacturing'):
@@ -3230,11 +3359,19 @@ def activate_id(request, qr_id):
                 try:
                     new_user_temp_password = None
                     is_new_user = False
+                    created_user_doc = False
                     auth_user = None
 
-                    user_query = db.collection('users').where(
-                        filter=FieldFilter('emailAddress', '==', data['emailAddress'])
-                    ).limit(1).get()
+                    # Older user docs may store the email with its original casing.
+                    user_query = []
+                    for email_variant in dict.fromkeys([data['emailAddress'], email_as_typed]):
+                        if not email_variant:
+                            continue
+                        user_query = db.collection('users').where(
+                            filter=FieldFilter('emailAddress', '==', email_variant)
+                        ).limit(1).get()
+                        if user_query:
+                            break
                     user_exists_in_firestore = len(user_query) > 0
 
                     try:
@@ -3249,9 +3386,6 @@ def activate_id(request, qr_id):
                         user_doc = user_query[0]
                         user_data = user_doc.to_dict()
                         user_id = user_doc.id
-                        db.collection('users').document(user_id).update(
-                            admin_added_user_update_payload(admin_added_user)
-                        )
 
                         stored_phone = user_data.get('contactNumber', '') or ''
                         sub_digits = normalize_phone_number(data.get('contactNumber', ''))
@@ -3283,6 +3417,11 @@ def activate_id(request, qr_id):
                                 'message': 'Account error. Please contact support.',
                             }, status=400)
 
+                        # Only touch the existing account once its phone has matched.
+                        db.collection('users').document(user_id).update(
+                            admin_added_user_update_payload(admin_added_user)
+                        )
+
                     elif user_exists_in_auth and not user_exists_in_firestore:
                         return JsonResponse({
                             'status': 'error',
@@ -3291,11 +3430,43 @@ def activate_id(request, qr_id):
                         }, status=400)
 
                     elif not user_exists_in_auth and user_exists_in_firestore:
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': 'Account data mismatch. Please contact support.',
-                            'errors': {'emailAddress': 'Account issue detected'}
-                        }, status=400)
+                        # Profile exists but its login is gone (e.g. an earlier failed
+                        # activation deleted it). The phone was just OTP-verified, so if
+                        # it matches the profile, recreate the login under the same uid
+                        # so existing vehicles/QRs stay linked.
+                        user_doc = user_query[0]
+                        user_data = user_doc.to_dict() or {}
+                        user_id = user_doc.id
+                        if (
+                            normalize_phone_number(user_data.get('contactNumber'))
+                            != normalize_phone_number(data.get('contactNumber'))
+                        ):
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'This email is already registered',
+                                'errors': {
+                                    'emailAddress': (
+                                        'This email is already registered. Enter the mobile number linked to this account.'
+                                    )
+                                }
+                            }, status=400)
+                        try:
+                            auth_user, new_user_temp_password = _recreate_login_for_profile(
+                                user_id,
+                                data['emailAddress'],
+                                user_data.get('fullName') or data['fullName'],
+                            )
+                        except Exception:
+                            logger.exception('Recreating login for profile %s failed', user_id)
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Could not restore your account login. Please contact support.',
+                            }, status=500)
+                        # New login, existing profile: roll back the login only.
+                        is_new_user = True
+                        db.collection('users').document(user_id).update(
+                            admin_added_user_update_payload(admin_added_user)
+                        )
 
                     else:
                         password = generate_random_password(12)
@@ -3311,6 +3482,7 @@ def activate_id(request, qr_id):
                                 'status': 'error',
                                 'message': f'Failed to create account: {exc}',
                             }, status=500)
+                        created_user_doc = True
 
                         user_data = {
                             'id': auth_user.uid,
@@ -3332,25 +3504,26 @@ def activate_id(request, qr_id):
                         user_id = auth_user.uid
                         user_ref.update(admin_added_user_update_payload(admin_added_user))
 
+                        # The password is emailed only after activation is committed
+                        # (see below), never for a login that might still be rolled back.
                         new_user_temp_password = password
-                        try:
-                            send_welcome_email_for_id(
-                                email=data['emailAddress'],
-                                name=data['fullName'],
-                                password=password,
-                            )
-                        except Exception as mail_exc:
-                            logger.warning(
-                                'Welcome email failed for %s: %s',
-                                data['emailAddress'],
-                                mail_exc,
-                            )
-                    
+
                     # Check if this vehicle is already registered to this user
-                    vehicle_query = db.collection('vehicles').where(filter=FieldFilter('ownerId', '==', user_id))\
-                        .where(filter=FieldFilter('registrationNumber', '==', data['registrationNumber'])).limit(1).get()
-                    
-                    if len(vehicle_query) > 0:
+                    # (stored plates may be canonical or as originally typed).
+                    reg_canon = data['registrationNumber']
+                    already_registered = any(
+                        normalize_vehicle_registration(
+                            (v.to_dict() or {}).get('registrationNumber')
+                        ) == reg_canon
+                        for v in db.collection('vehicles')
+                        .where(filter=FieldFilter('ownerId', '==', user_id))
+                        .stream()
+                    )
+
+                    if already_registered:
+                        _activate_id_rollback_new_user(
+                            auth_user, user_id, is_new_user, delete_profile=created_user_doc,
+                        )
                         return JsonResponse({
                             'status': 'error',
                             'message': 'This vehicle is already registered to your account',
@@ -3378,24 +3551,35 @@ def activate_id(request, qr_id):
                     }
                     
                     vehicle_ref = db.collection('vehicles').document(vehicle_id)
-                    vehicle_ref.set(vehicle_data)
-                    vehicle_ref.update(admin_added_user_update_payload(admin_added_user))
 
-                    # Update QR code to mark as assigned
-                    qr_ref.update({
-                        'isAssigned': True,
-                        'vehicleID': vehicle_id,
-                        'userID': user_id,
-                        'assignedAt': firestore.SERVER_TIMESTAMP
-                    })
-                    
-                    # Send vehicle registration email
-                    send_vehicle_registration_email(
+                    # Create the vehicle and mark the QR assigned in one transaction,
+                    # so two people activating the same sticker at once cannot both win.
+                    try:
+                        _activate_id_claim_qr(qr_ref, vehicle_ref, vehicle_data, user_id)
+                    except QrAlreadyAssigned:
+                        _activate_id_rollback_new_user(
+                            auth_user, user_id, is_new_user, delete_profile=created_user_doc,
+                        )
+                        return JsonResponse({
+                            'status': 'error',
+                            'error_type': 'already_activated',
+                            'message': 'This QR code has already been activated.',
+                            'redirect_url': reverse('send_notification', args=[qr_id]),
+                        }, status=409)
+
+                    clear_activate_phone_verified(request, qr_id)
+
+                    # Activation is committed. Emails go out in the background so a slow
+                    # SMTP server can't time the request out and show a false error;
+                    # the success screen also shows the password, so a lost email
+                    # doesn't lock the customer out.
+                    _activate_id_send_emails_async(
                         email=data['emailAddress'],
                         name=data['fullName'],
-                        vehicle_data=vehicle_data
+                        vehicle_data=vehicle_data,
+                        temp_password=new_user_temp_password,
                     )
-                    
+
                     ui_notice = {
                         'support_email': 'support@sudo.com',
                         'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
@@ -3422,24 +3606,17 @@ def activate_id(request, qr_id):
                         'ui_notice': ui_notice,
                     })
                     
-                except Exception as e:
+                except Exception:
                     logger.exception('activate_id registration failed')
-                    if (
-                        'auth_user' in locals()
-                        and auth_user is not None
-                        and locals().get('is_new_user')
-                    ):
-                        try:
-                            auth.delete_user(auth_user.uid)
-                        except Exception as cleanup_exc:
-                            logger.warning(
-                                'Failed to cleanup auth user %s: %s',
-                                auth_user.uid,
-                                cleanup_exc,
-                            )
+                    _activate_id_rollback_new_user(
+                        auth_user,
+                        locals().get('user_id'),
+                        is_new_user,
+                        delete_profile=created_user_doc,
+                    )
                     return JsonResponse({
                         'status': 'error',
-                        'message': f'Registration failed: {str(e)}'
+                        'message': 'Registration failed. Please try again.',
                     }, status=500)
         
         # Render the registration form
@@ -4715,6 +4892,9 @@ STATUS_MAPPING = {
 }
 
 def view_orders(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
     try:
         # OPTIMIZED: Use query with limit and ordering for faster loading
         orders_ref = db.collection('orders')
@@ -4821,6 +5001,8 @@ def view_payments(request):
 
 @csrf_exempt
 def update_order_status(request):
+    if not request.session.get('admin'):
+        return JsonResponse({'success': False, 'error': 'Admin access required'}, status=401)
     if request.method == 'POST':
         try:
             # Get the raw POST data
@@ -4839,11 +5021,13 @@ def update_order_status(request):
 
             if not order_id:
                 return JsonResponse({'success': False, 'error': 'Order ID is required'})
-
-            print(f"Updating order {order_id} to status {new_status}")  # Debug
+            if new_status not in STATUS_MAPPING:
+                return JsonResponse({'success': False, 'error': 'Unknown order status'}, status=400)
 
             # Update ONLY the order status in the database
             order_ref = db.collection('orders').document(order_id)
+            if not order_ref.get().exists:
+                return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
             order_ref.update({
                 'orderStatus': new_status,
             })
@@ -4853,9 +5037,11 @@ def update_order_status(request):
                 'status_text': STATUS_MAPPING.get(new_status, "Unknown")
             })
             
-        except Exception as e:
-            print(f"Error in update_order_status: {str(e)}")  # Debug
-            return JsonResponse({'success': False, 'error': str(e)})
+        except (TypeError, ValueError):
+            return JsonResponse({'success': False, 'error': 'Invalid order status'}, status=400)
+        except Exception:
+            logger.exception('update_order_status failed')
+            return JsonResponse({'success': False, 'error': 'Could not update order status'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
@@ -6021,7 +6207,7 @@ def delete_qr_code(request, qr_id):
         if data.get('isAssigned'):
             messages.error(
                 request,
-                'Cannot delete an assigned QR code. It is linked to a user or vehicle; unassign or reassign from Assign QR first.'
+                'Cannot delete an assigned QR code. It is linked to a user or vehicle; use Unassign first.'
             )
             return _build_manage_qrs_redirect(request)
 
@@ -6104,6 +6290,68 @@ def bulk_delete_qr_codes(request):
     if not deleted and not notes:
         messages.info(request, 'No QR codes were deleted.')
 
+    return _build_manage_qrs_redirect(request)
+
+
+@require_POST
+def unassign_qr_code(request, qr_id):
+    """
+    Deactivate an assigned vehicle QR: the QR returns to the inactive pool and the
+    linked vehicle (if it still exists and points at this QR) loses its QR link.
+    The user and vehicle documents themselves are kept.
+    """
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
+
+    qr_ref = db.collection('qrcodes').document(qr_id)
+
+    @firestore.transactional
+    def _unassign(transaction):
+        snap = qr_ref.get(transaction=transaction)
+        if not snap.exists:
+            return 'missing'
+        data = snap.to_dict() or {}
+        if not data.get('isAssigned'):
+            return 'already'
+        vehicle_id = str(data.get('vehicleID') or '').strip()
+        vehicle_ref = db.collection('vehicles').document(vehicle_id) if vehicle_id else None
+        vehicle_snap = vehicle_ref.get(transaction=transaction) if vehicle_ref else None
+        transaction.update(qr_ref, {
+            'isAssigned': False,
+            'userID': firestore.DELETE_FIELD,
+            'vehicleID': firestore.DELETE_FIELD,
+            'assignedAt': firestore.DELETE_FIELD,
+            'lastUpdated': firestore.SERVER_TIMESTAMP,
+        })
+        if (
+            vehicle_snap is not None
+            and vehicle_snap.exists
+            and str((vehicle_snap.to_dict() or {}).get('qrCodeId') or '') == qr_id
+        ):
+            transaction.update(vehicle_ref, {
+                'qrCodeId': firestore.DELETE_FIELD,
+                'isQrGenerated': False,
+            })
+        return 'ok'
+
+    try:
+        result = _unassign(db.transaction())
+    except Exception:
+        logger.exception('unassign_qr_code failed for %s', qr_id)
+        messages.error(request, 'Could not unassign QR code. Please try again.')
+        return _build_manage_qrs_redirect(request)
+
+    if result == 'missing':
+        messages.error(request, 'QR code not found.')
+    elif result == 'already':
+        messages.info(request, f'QR code {qr_id} is already inactive.')
+    else:
+        logger.info('Admin %s unassigned QR %s', request.session.get('email'), qr_id)
+        messages.success(
+            request,
+            f'QR code {qr_id} is now inactive. Scanning it will open activation again.',
+        )
     return _build_manage_qrs_redirect(request)
 
 
@@ -6289,6 +6537,9 @@ import pytz
 from datetime import datetime
 
 def export_orders_with_qr(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('admin_login')
     if request.method != 'POST':
         return HttpResponse("Method not allowed", status=405)
     
@@ -6670,22 +6921,42 @@ def assign_qr(request):
             if vehicle_data.get('ownerId') != user_id:
                 messages.error(request, 'Vehicle does not belong to the selected user')
                 return redirect('assign_qr')
-            
-            # Update QR code assignment with IST timestamp
+
+            existing_qr = str(vehicle_data.get('qrCodeId') or '').strip()
+            if existing_qr and existing_qr != qr_id:
+                messages.error(
+                    request,
+                    f'This vehicle already has QR {existing_qr}. Unassign that QR first.',
+                )
+                return redirect('assign_qr')
+
+            # Mark QR assigned and link the vehicle in one transaction so a
+            # concurrent web activation cannot claim the same QR.
             ist = pytz.timezone('Asia/Kolkata')
-            qr_ref.update({
-                'isAssigned': True,
-                'userID': user_id,
-                'vehicleID': vehicle_id,
-                'assignedAt': now().astimezone(ist),
-                'lastUpdated': now().astimezone(ist)
-            })
-            
-            # Update vehicle with QR code ID
-            vehicle_ref.update({
-                'qrCodeId': qr_id,
-                'isQrGenerated': True
-            })
+            stamp = now().astimezone(ist)
+
+            @firestore.transactional
+            def _assign(transaction):
+                snap = qr_ref.get(transaction=transaction)
+                if not snap.exists or (snap.to_dict() or {}).get('isAssigned'):
+                    raise QrAlreadyAssigned()
+                transaction.update(qr_ref, {
+                    'isAssigned': True,
+                    'userID': user_id,
+                    'vehicleID': vehicle_id,
+                    'assignedAt': stamp,
+                    'lastUpdated': stamp,
+                })
+                transaction.update(vehicle_ref, {
+                    'qrCodeId': qr_id,
+                    'isQrGenerated': True,
+                })
+
+            try:
+                _assign(db.transaction())
+            except QrAlreadyAssigned:
+                messages.error(request, 'QR code is already assigned')
+                return redirect('assign_qr')
             
             # Update user to enable ID check
             user_ref.update({

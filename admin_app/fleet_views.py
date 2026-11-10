@@ -132,7 +132,10 @@ def manage_fleet_detail(request, fleet_id):
                 else:
                     messages.success(request, 'Subscription activated. The owner can open Me → SudoTag Fleet in the app.')
             elif action == 'extend':
-                days = int(request.POST.get('days') or 0)
+                try:
+                    days = int(request.POST.get('days') or 0)
+                except ValueError:
+                    days = 0
                 new_end = svc.extend_subscription(_db(), fleet_id, fleet, days)
                 messages.success(
                     request,

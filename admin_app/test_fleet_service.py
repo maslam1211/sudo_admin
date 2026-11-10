@@ -164,6 +164,10 @@ class FleetActivationTests(SimpleTestCase):
         }, 365, now=now)
         self.assertEqual(updated['subscriptionExpiresAt'], now + timedelta(days=365))
 
+    def test_extend_rejects_fleet_that_never_had_a_model(self):
+        with self.assertRaises(FleetDateError):
+            extension_update({'subscriptionStatus': 'pending'}, 30)
+
     def test_extend_rejects_other_day_counts(self):
         with self.assertRaises(FleetDateError):
             extension_update({}, 7)
