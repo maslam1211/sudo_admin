@@ -22,7 +22,6 @@
       try {
         var t = localStorage.getItem('st-theme');
         if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
-        else if (window.matchMedia('(prefers-color-scheme: light)').matches) d.setAttribute('data-theme', 'light');
         if (sessionStorage.getItem('st-intro-seen')) d.classList.add('st-intro-repeat');
       } catch (e) {}
       /* Failsafe: if the motion engine never boots, show everything statically. */
@@ -44,7 +43,7 @@
     .st-mono { font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
     @keyframes stBeacon { 0% { box-shadow: 0 0 0 0 var(--signal-glow); } 70%, 100% { box-shadow: 0 0 0 .55em rgba(255,122,26,0); } }
     /* ---------- Splash / launch loader ---------- */
-    @property --hole { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+    @property --hole { syntax: "<percentage>"; inherits: false; initial-value: -2%; }
     .st-intro { display: none; }
     .st-js .st-intro {
       position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(28px, 6vh, 48px);
@@ -70,6 +69,53 @@
     .st-intro__qr .eye-core { fill: var(--signal); opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(0); transition: transform 500ms var(--ease-spring), opacity 200ms; }
     .st-intro__qr .is-on.eye-ring { opacity: 1; }
     .st-intro__qr .is-on.eye-core { opacity: 1; transform: scale(1); }
+    /* Real SudoTag QR: dark modules + orange eyes on a white sticker card, like the printed tag */
+    .st-intro__card { fill: #FFFFFF; opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.86); filter: drop-shadow(0 0 1.6px rgba(255,122,26,.55)); transition: opacity 360ms var(--ease), transform 600ms var(--ease-spring); }
+    .st-intro.is-lock .st-intro__card { opacity: 1; transform: none; }
+    .st-intro__qr.is-real .m { fill: #0B0D12; }
+    .st-intro__qr.is-real .eye-ring { stroke: #0B0D12; }
+    .st-intro__plate { fill: #FFFFFF; stroke: #FF7A1A; stroke-width: .35; opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.4); transition: opacity 300ms, transform 600ms var(--ease-spring); }
+    .st-intro.is-mark .st-intro__plate { opacity: 1; transform: none; }
+    .st-intro.is-done .st-intro__card { filter: drop-shadow(0 0 2.4px rgba(0,229,168,.75)); transition: filter 300ms; }
+    /* ---- Sticker build (real QR inside the blank SudoTag sticker) ---- */
+    .st-intro__core--sticker { width: min(560px, 88vw); aspect-ratio: 1181 / 591; perspective: 1400px; }
+    .st-intro__sticker { position: absolute; inset: 0; border-radius: 3.2% / 6.4%; overflow: hidden; background: #fff; transform-origin: 50% 30%;
+      opacity: 0; transform: translate3d(0, -34%, 0) rotateX(58deg) rotateZ(-9deg) scale(1.18); }
+    .st-intro.is-lock .st-intro__sticker { animation: stStick 1050ms cubic-bezier(.2,.9,.25,1) forwards; }
+    @keyframes stStick {
+      0%   { opacity: 0; transform: translate3d(0, -34%, 0) rotateX(58deg) rotateZ(-9deg) scale(1.18); }
+      18%  { opacity: 1; }
+      62%  { transform: translate3d(0, 1%, 0) rotateX(-4deg) rotateZ(.6deg) scale(.965); }
+      80%  { transform: translate3d(0, -.4%, 0) rotateX(1.5deg) rotateZ(0) scale(1.012); }
+      100% { opacity: 1; transform: none; }
+    }
+    .st-intro__base { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .st-intro__shadow { position: absolute; left: 6%; right: 6%; bottom: -10%; height: 22%; border-radius: 50%; background: rgba(0,0,0,.55); filter: blur(22px); opacity: 0; transform: scale(.5); }
+    .st-intro.is-lock .st-intro__shadow { animation: stShadow 1050ms cubic-bezier(.2,.9,.25,1) forwards; }
+    @keyframes stShadow { 0% { opacity: 0; transform: scale(.4) translateY(30%); } 62% { opacity: .9; transform: scale(1.02); } 100% { opacity: .7; transform: none; } }
+    :root[data-theme="light"] .st-intro__shadow { background: rgba(60,40,20,.35); }
+    .st-intro__core--sticker::after { content: ""; position: absolute; inset: -1px; border-radius: 3.2% / 6.4%; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 30px 80px -30px rgba(255,122,26,.55); opacity: 0; transition: opacity 600ms var(--ease) 700ms; pointer-events: none; }
+    .st-intro.is-lock .st-intro__core--sticker::after { opacity: 1; }
+    .st-intro.is-done .st-intro__core--sticker::after { box-shadow: 0 0 0 1px rgba(0,229,168,.5), 0 0 60px -10px rgba(0,229,168,.55); transition: box-shadow 300ms; }
+    /* Light sweeps across once it lands, then again when it locks */
+    .st-intro__glare { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.85) 47%, rgba(255,255,255,.2) 53%, transparent 62%); transform: translateX(-110%); mix-blend-mode: soft-light; }
+    .st-intro.is-lock .st-intro__glare { animation: stGlare 900ms var(--ease) 620ms forwards; }
+    .st-intro.is-done .st-intro__glare { animation: stGlare2 700ms var(--ease) forwards; }
+    @keyframes stGlare { to { transform: translateX(110%); } }
+    @keyframes stGlare2 { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
+    /* Corner smooths down as it sticks */
+    .st-intro__peel { position: absolute; right: 0; bottom: 0; width: 12%; aspect-ratio: 1; background: linear-gradient(135deg, #fff 0 49%, #E7E3DC 50%, #CFC9BE 100%); box-shadow: -3px -3px 8px rgba(0,0,0,.18); border-top-left-radius: 30%; transform-origin: 100% 100%; }
+    .st-intro.is-lock .st-intro__peel { animation: stPeel 700ms var(--ease) 650ms forwards; }
+    @keyframes stPeel { to { transform: scale(0); opacity: 0; } }
+    /* QR slot = the empty frame printed on the sticker */
+    .st-intro__slot { position: absolute; left: 59.36%; top: 13.54%; width: 37.43%; height: 75.63%; display: grid; place-items: center; }
+    .st-intro__slot .st-intro__qr { width: 92%; height: 92%; }
+    .st-intro__slot .st-intro__vf { inset: -.6%; }
+    .st-intro__slot .st-intro__vf i { border-width: 2.5px; }
+    .st-intro__core--sticker .st-intro__vf { transition-delay: 500ms; }
+    .st-intro__slot .st-intro__scan { left: 4%; right: 4%; }
+    .st-intro.is-lock .st-intro__slot .st-intro__scan { animation-delay: 700ms; }
+    .st-intro-repeat .st-intro__core--sticker { display: none; }
     .st-intro__mark { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.4) rotate(-20deg); transition: opacity 300ms, transform 600ms var(--ease-spring); }
     .st-intro.is-mark .st-intro__mark { opacity: 1; transform: none; }
     .st-intro__vf { position: absolute; inset: -18%; z-index: 2; transform: scale(1.35); opacity: 0; transition: transform 700ms var(--ease-spring), opacity 300ms; }
@@ -151,6 +197,8 @@
 
 <body class="st-page">
 
+  {% include 'includes/st_icons.html' %}
+
   <a class="st-skip" href="#main">Skip to content</a>
 
   <!-- SVG sprite: vehicle line-art (pathLength=1 so every outline draws in the same time) -->
@@ -189,6 +237,26 @@
        centre out, progress follows real loading, one pulse opens the page ============ -->
   <div class="st-intro" id="stIntro" role="status" aria-live="polite" aria-label="Loading SudoTag">
     <span class="st-intro__grid" aria-hidden="true"></span>
+    {% if splash_qr %}
+    <!-- The blank SudoTag sticker flies in and sticks; the real QR then builds inside its frame -->
+    <div class="st-intro__core st-intro__core--sticker" aria-hidden="true">
+      <span class="st-intro__shadow"></span>
+      <div class="st-intro__sticker">
+        <img class="st-intro__base" src="{% landing_asset 'img/sudotag-sticker-blank.webp' %}" alt="" width="1181" height="591" decoding="async" fetchpriority="high">
+        <div class="st-intro__slot">
+          <span class="st-intro__vf"><i></i><i></i><i></i><i></i></span>
+          <svg class="st-intro__qr is-real" id="stIntroQr" viewBox="-1.5 -1.5 {{ splash_qr.n|add:3 }} {{ splash_qr.n|add:3 }}" data-n="{{ splash_qr.n }}" data-qr="{{ splash_qr.bits }}">
+            <rect class="st-intro__plate" x="0" y="0" width="1" height="1" rx="1.4"/>
+            <image class="st-intro__mark" href="{% url 'site_apple_touch_icon' %}" x="0" y="0" width="1" height="1" preserveAspectRatio="xMidYMid slice"/>
+          </svg>
+          <span class="st-intro__scan"></span>
+          <span class="st-intro__ring"></span><span class="st-intro__ring st-intro__ring--2"></span>
+        </div>
+        <span class="st-intro__glare"></span>
+        <span class="st-intro__peel"></span>
+      </div>
+    </div>
+    {% else %}
     <div class="st-intro__core" aria-hidden="true">
       <span class="st-intro__vf"><i></i><i></i><i></i><i></i></span>
       <svg class="st-intro__qr" id="stIntroQr" viewBox="-1 -1 27 27">
@@ -197,6 +265,7 @@
       <span class="st-intro__scan"></span>
       <span class="st-intro__ring"></span><span class="st-intro__ring st-intro__ring--2"></span>
     </div>
+    {% endif %}
     <div class="st-intro__foot">
       <span class="st-intro__word">SudoTag<i></i></span>
       <span class="st-intro__bar"><i id="stIntroBar"></i></span>
@@ -244,31 +313,46 @@
       })(performance.now());
     }
 
-    /* Build a branded-looking QR: rounded dots, orange eyes, hole for the Sudo mark */
+    /* Build the QR. With server data (data-qr) it is the real, scannable SudoTag
+       code for sudotag.com; otherwise a decorative stand-in. Rounded modules,
+       orange eyes, a clear centre for the Sudo mark (safe with level-H ECC). */
     var svg = document.getElementById('stIntroQr'), bar = document.getElementById('stIntroBar'), status = document.getElementById('stIntroStatus');
-    var N = 25, ns = 'http://www.w3.org/2000/svg', mods = [], eyes = [], seed = 11;
+    var bits = svg.getAttribute('data-qr') || '', isReal = bits.length > 0, sticker = !!document.querySelector('.st-intro__core--sticker');
+    var N = isReal ? +svg.getAttribute('data-n') : 25, ns = 'http://www.w3.org/2000/svg', mods = [], eyes = [], seed = 11;
+    var H = isReal ? (Math.round(N * .26) | 1) : 7, h0 = (N - H) / 2;
     function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-    function inEye(x, y) { return (x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16); }
-    function inLogo(x, y) { return x >= 9 && x <= 15 && y >= 9 && y <= 15; }
+    function inEye(x, y) { return (x < 8 && y < 8) || (x > N - 9 && y < 8) || (x < 8 && y > N - 9); }
+    function inLogo(x, y) { return x >= h0 && x < h0 + H && y >= h0 && y < h0 + H; }
+    function dark(x, y) { return isReal ? bits.charAt(y * N + x) === '1' : rnd() >= .5; }
+    if (isReal) {
+      var plate = svg.querySelector('.st-intro__plate'), mark = svg.querySelector('.st-intro__mark');
+      [plate, mark].forEach(function (n, k) {
+        var pad = k ? .9 : .25;
+        n.setAttribute('x', h0 + pad); n.setAttribute('y', h0 + pad);
+        n.setAttribute('width', H - pad * 2); n.setAttribute('height', H - pad * 2);
+      });
+    }
     function rect(x, y, s, r, cls) {
       var n = document.createElementNS(ns, 'rect');
       n.setAttribute('x', x); n.setAttribute('y', y); n.setAttribute('width', s); n.setAttribute('height', s); n.setAttribute('rx', r); n.setAttribute('class', cls);
       return n;
     }
     var frag = document.createDocumentFragment();
-    [[0, 0], [18, 0], [0, 18]].forEach(function (p) {
+    [[0, 0], [N - 7, 0], [0, N - 7]].forEach(function (p) {
       var a = rect(p[0] + .5, p[1] + .5, 6, 1.8, 'eye-ring'), b = rect(p[0] + 2, p[1] + 2, 3, .9, 'eye-core');
       frag.appendChild(a); frag.appendChild(b); eyes.push(a, b);
     });
     var c = (N - 1) / 2;
     for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
-      if (inEye(x, y) || inLogo(x, y) || rnd() < .5) continue;
-      var d = document.createElementNS(ns, 'circle');
-      d.setAttribute('cx', x + .5); d.setAttribute('cy', y + .5); d.setAttribute('r', .42); d.setAttribute('class', 'm');
+      if (inEye(x, y) || inLogo(x, y) || !dark(x, y)) continue;
+      var d;
+      if (isReal) { d = rect(x + .06, y + .06, .88, .3, 'm'); }
+      else { d = document.createElementNS(ns, 'circle'); d.setAttribute('cx', x + .5); d.setAttribute('cy', y + .5); d.setAttribute('r', .42); d.setAttribute('class', 'm'); }
       frag.appendChild(d);
       mods.push({ el: d, d: Math.sqrt((x - c) * (x - c) + (y - c) * (y - c)) + rnd() * 2.5 });
     }
-    svg.insertBefore(frag, svg.firstChild);
+    var card = svg.querySelector('.st-intro__card');
+    svg.insertBefore(frag, card ? card.nextSibling : svg.firstChild);
     mods.sort(function (a, b) { return a.d - b.d; });
 
     /* What the first screen needs */
@@ -277,23 +361,27 @@
     track(cssReady);
     if (document.fonts && document.fonts.ready) track(document.fonts.ready);
     function trackHero() {
-      var img = document.querySelector('.st-tag3d img');
-      if (img && !img.complete) track(new Promise(function (r) { img.addEventListener('load', r); img.addEventListener('error', r); }));
+      ['.st-tag3d img', '.st-intro__base'].forEach(function (sel) {
+        var img = document.querySelector(sel);
+        if (img && !img.complete) track(new Promise(function (r) { img.addEventListener('load', r); img.addEventListener('error', r); }));
+      });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trackHero); else trackHero();
 
-    var MIN = 1400, MAX = 3000, shown = 0, revealed = 0, label = '', finished = false;
+    var MIN = 1400, MAX = 3000, shown = 0, revealed = 0, label = '', finished = false, lockAt = 0;
+    var LAND = 650, BUILD = 1250, SMAX = 3600;   // sticker mode: land, then build the QR
     var LABELS = [[0, 'Locating signal'], [.35, 'Encrypting channel'], [.7, 'Masking number']];
     requestAnimationFrame(function () {
-      el.classList.add('is-lock');
+      el.classList.add('is-lock'); lockAt = performance.now();
       for (var i = 0; i < eyes.length; i++) eyes[i].classList.add('is-on');
     });
     (function tick() {
       if (finished) return;
       var now = performance.now();                       // ms since navigation start
       var real = tasks ? done / tasks : 1;
-      var target = Math.min(now / MIN, real < 1 ? Math.min(real + .2, .92) : 1);
-      if (now > MAX && window.__stCss) target = 1;   // cap only once the page can be shown styled
+      var timeP = sticker ? (lockAt ? Math.max(0, now - lockAt - LAND) / BUILD : 0) : now / MIN;
+      var target = Math.min(timeP, real < 1 ? Math.min(real + .2, .92) : 1);
+      if ((sticker ? lockAt && now - lockAt > SMAX : now > MAX) && window.__stCss) target = 1;   // cap only once the page can be shown styled
       shown += (target - shown) * .14;
       if (target === 1 && shown > .985) shown = 1;
       if (bar) bar.style.transform = 'scaleX(' + shown.toFixed(3) + ')';
@@ -307,7 +395,7 @@
         finished = true;
         while (revealed < mods.length) mods[revealed++].el.classList.add('is-on');
         el.classList.add('is-done', 'is-mark');
-        if (status) scramble(status, 'Signal locked', 280);
+        if (status) scramble(status, isReal ? 'Locked · sudotag.com' : 'Signal locked', 320);
         el.setAttribute('aria-label', 'SudoTag loaded');
         setTimeout(function () { el.classList.add('is-pulse'); }, 240);
         finish(480);
@@ -343,7 +431,7 @@
         </button>
         <a class="st-btn st-btn--line st-btn--sm st-hide-sm" href="{% url 'buy_now' %}" data-magnetic>Buy</a>
         <a class="st-btn st-btn--signal st-btn--sm" href="#scan" data-scan-tab="qr" data-magnetic>
-          <i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan</span>
+          <i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan</span>
         </a>
         <button type="button" class="st-burger" id="stBurger" aria-label="Open menu" aria-expanded="false" aria-controls="stNav">
           <span></span><span></span>
@@ -358,6 +446,12 @@
     <section class="st-hero" id="hero" data-persona="car">
       <canvas class="st-hero__canvas" id="stRoad" aria-hidden="true"></canvas>
       <div class="st-hero__fallback" aria-hidden="true"></div>
+      <!-- Privacy lens: a wall of phone numbers; inside the lens they are live-encrypted -->
+      <div class="st-numwall" id="stNumwall" aria-hidden="true">
+        <div class="st-numwall__base st-mono"><span>+91 98470 12345 · +91 94461 70032 · +91 98470 12345</span><span>+91 70123 88412 · +91 98950 41267 · +91 70123 88412</span><span>+91 94461 70032 · +91 98470 12345 · +91 94461 70032</span><span>+91 98950 41267 · +91 70123 88412 · +91 98950 41267</span><span>+91 98470 12345 · +91 94461 70032 · +91 98470 12345</span><span>+91 70123 88412 · +91 98950 41267 · +91 70123 88412</span></div>
+        <div class="st-numwall__lens st-mono" data-lens><span>+91 98470 12345 · +91 94461 70032 · +91 98470 12345</span><span>+91 70123 88412 · +91 98950 41267 · +91 70123 88412</span><span>+91 94461 70032 · +91 98470 12345 · +91 94461 70032</span><span>+91 98950 41267 · +91 70123 88412 · +91 98950 41267</span><span>+91 98470 12345 · +91 94461 70032 · +91 98470 12345</span><span>+91 70123 88412 · +91 98950 41267 · +91 70123 88412</span></div>
+        <span class="st-numwall__ring"><small class="st-mono">Encrypting</small></span>
+      </div>
 
       <div class="st-wrap st-hero__grid">
         <div class="st-hero__copy">
@@ -366,7 +460,7 @@
             <span class="st-word" style="--i:0">Park</span>
             <span class="st-word" style="--i:1">freely.</span><br>
             <span class="st-word st-word--grad" style="--i:2">Stay</span>
-            <span class="st-word st-word--grad" style="--i:3">private.</span>
+            <span class="st-word st-word--grad" style="--i:3" data-encrypt>private.</span>
           </h1>
           <p class="st-hero__lead st-in" style="--i:5">
             One sticker turns your vehicle into a quiet beacon. Anyone can reach you by notify, chat, SMS or masked call.
@@ -375,10 +469,10 @@
 
           <div class="st-hero__cta st-in" style="--i:6">
             <a class="st-btn st-btn--signal st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic>
-              <i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan a tag</span>
+              <i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan a tag</span>
             </a>
             <a class="st-btn st-btn--line st-btn--lg" href="{% url 'buy_now' %}" data-magnetic>
-              <i class="bi bi-bag-check" aria-hidden="true"></i><span>Buy SudoTag</span>
+              <i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy SudoTag</span>
             </a>
           </div>
 
@@ -420,9 +514,13 @@
           <p class="st-morph__label">for your <b id="stMorphLabel">car</b></p>
           <p class="st-morph__story" id="stMorphStory">Blocking a gate? They scan. You move. Nobody swaps numbers.</p>
 
-          <span class="st-float st-float--a"><i class="bi bi-eye-slash"></i><span class="st-mono">+91 98••• •••••</span></span>
-          <span class="st-float st-float--b"><span class="st-dot st-dot--safe"></span>Owner alerted</span>
-          <span class="st-float st-float--c"><i class="bi bi-shield-lock"></i>Masked call</span>
+          <!-- Live signal loop: scan → owner alerted → private reply (per vehicle) -->
+          <div class="st-loop" id="stLoop">
+            <span class="st-float st-float--a" data-b="1"><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span class="st-float__txt"><b>Tag scanned</b><small data-loop-reason>"Blocking the gate"</small></span></span>
+            <span class="st-float st-float--b" data-b="2"><span class="st-dot st-dot--safe"></span><span class="st-float__txt"><b>Owner alerted</b><small class="st-mono">+91 98••• ••••• · hidden</small></span></span>
+            <span class="st-float st-float--c" data-b="3"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i><span class="st-float__txt"><b data-loop-reply>"Moving it now 🙏"</b><small class="st-mono">Masked reply</small></span></span>
+            <span class="st-loop__meter st-mono"><i data-m="1">Scan</i><i data-m="2">Alert</i><i data-m="3">Reply</i></span>
+          </div>
         </div>
       </div>
 
@@ -529,7 +627,7 @@
               <div class="st-sc st-sc--owner">
                 <span class="st-sc__ripple"></span><span class="st-sc__ripple"></span>
                 <span class="st-sc__island"></span>
-                <span class="st-sc__status"><span class="st-dot st-dot--safe"></span>Available</span>
+                <span class="st-sc__status"><span class="st-dot st-dot--safe"></span>Notified</span>
                 <span class="st-sc__alert"><i class="bi bi-bell-fill"></i><b>Someone scanned your tag</b><small>"Your car is blocking the gate."</small></span>
                 <span class="st-sc__typing"><i></i><i></i><i></i></span>
                 <span class="st-sc__chat st-sc__chat--in">Coming in 2 min 🙏</span>
@@ -544,7 +642,7 @@
               <article data-ch="0" class="is-on"><p class="st-story__stamp st-mono">Setup · once, 30 seconds</p><h3>Stick the tag</h3><p>Peel, place it on the windshield, helmet, scooter apron or cabin door, then activate with a one-time OTP. It needs no battery and no charging.</p></article>
               <article data-ch="1"><p class="st-story__stamp st-mono">T + 0s</p><h3>Someone scans</h3><p>A neighbour, a guard or a passer-by opens their phone camera. No app is needed on their side.</p></article>
               <article data-ch="2"><p class="st-story__stamp st-mono">T + 1s</p><h3>The signal is masked</h3><p>Their message travels through SudoTag and both numbers are scrambled on the way. Nothing personal crosses over.</p></article>
-              <article data-ch="3"><p class="st-story__stamp st-mono">T + 2s</p><h3>You're alerted</h3><p>A push alert arrives with the reason. Live Status (Available, Busy, Driving or DND) tells them what to expect.</p></article>
+              <article data-ch="3"><p class="st-story__stamp st-mono">T + 2s</p><h3>You're alerted</h3><p>A push alert arrives with the reason, and you decide how to reply. Live Status (Available, Busy, Driving or DND) is coming soon.</p></article>
               <article data-ch="4"><p class="st-story__stamp st-mono">T + 30s · solved</p><h3>Talk, privately</h3><p>Reply by chat, templated SMS or masked call. The problem gets solved and the numbers stay silent.</p></article>
               <div class="st-story__nav">
                 <button type="button" class="st-round" data-step="-1" aria-label="Previous chapter"><i class="bi bi-arrow-left"></i></button>
@@ -591,32 +689,54 @@
              data-wheel-url="{% url 'notify_sending_wheel_json' %}"
              data-lottie-url="{% landing_asset 'vendor/lottie/lottie.min.js' %}">
 
-          <div class="st-console__window st-route" aria-hidden="true" data-route="new">
-            <div class="st-route__src">
-              <span class="st-vf st-vf--lg"><i></i><i></i><i></i><i></i><span class="st-vf__line"></span></span>
-              <span class="st-console__qr"><i class="bi bi-qr-code"></i></span>
-              <span class="st-route__plate st-mono"><b>IND</b><span data-route-plate>KL 10 AY 2121</span></span>
+          <!-- Live demo: the camera finds a tag (or plate), the result card shows where it goes -->
+          <div class="st-console__window st-route st-live" aria-hidden="true" data-route="new">
+            <div class="st-cam">
+              <span class="st-cam__glass"></span>
+              <!-- QR modes: the real sticker on a windshield -->
+              <div class="st-cam__tag">
+                <img src="{% landing_asset 'img/sudotag-sticker.webp' %}" alt="" width="1181" height="591" loading="lazy">
+                <span class="st-cam__stamp st-cam__stamp--new st-mono">Unclaimed</span>
+                <span class="st-cam__stamp st-cam__stamp--live st-mono"><i></i>Live</span>
+              </div>
+              <!-- Plate mode: the number plate, read box by box -->
+              <div class="st-cam__plate st-mono"><b>IND</b><span class="st-cam__chars" data-route-plate>KL 10 AY 2121</span></div>
+              <!-- detector -->
+              <span class="st-cam__box"><i></i><i></i><i></i><i></i></span>
+              <span class="st-cam__sweep"></span>
+              <span class="st-cam__hud st-mono"><i class="st-cam__rec"></i><span data-cam-label>Scanning</span></span>
             </div>
-            <svg class="st-route__fork" viewBox="0 0 100 120" preserveAspectRatio="none">
-              <path data-to="new" d="M0 60 C45 60 50 20 100 20"/>
-              <path data-to="active" d="M0 60 C45 60 50 60 100 60"/>
-              <path data-to="plate" d="M0 60 C45 60 50 100 100 100"/>
-            </svg>
-            <ul class="st-route__out">
-              <li data-out="new" style="--c:var(--signal)"><i class="bi bi-stars"></i><span><b>Activate</b><small>New tag</small></span></li>
-              <li data-out="active" style="--c:var(--safe)"><i class="bi bi-bell-fill"></i><span><b>Notify owner</b><small>Active tag</small></span></li>
-              <li data-out="plate" style="--c:var(--signal-2)"><i class="bi bi-person-check-fill"></i><span><b>Owner found</b><small>Plate match</small></span></li>
-            </ul>
+
+            <div class="st-res">
+              <div class="st-res__card" data-res="new" style="--c:var(--signal)">
+                <p class="st-res__k st-mono"><i class="bi bi-stars"></i>New tag</p>
+                <b class="st-res__t">Activate this tag</b>
+                <ol class="st-res__flow st-mono"><li>Vehicle</li><li>OTP</li><li>Live</li></ol>
+                <span class="st-res__otp st-mono"><i>4</i><i>8</i><i>1</i><i>7</i></span>
+              </div>
+              <div class="st-res__card" data-res="active" style="--c:var(--safe)">
+                <p class="st-res__k st-mono"><i class="bi bi-bell-fill"></i>Active tag</p>
+                <b class="st-res__t">Reach the owner</b>
+                <span class="st-res__chips"><i class="is-on">Blocking gate</i><i>Lights on</i><i>Emergency</i></span>
+                <span class="st-res__row st-mono"><span><i class="st-dot st-dot--safe"></i>Owner notified</span><span><i class="bi bi-eye-slash"></i>No. hidden</span></span>
+              </div>
+              <div class="st-res__card" data-res="plate" style="--c:var(--signal-2)">
+                <p class="st-res__k st-mono"><i class="bi bi-person-check-fill"></i>Plate match</p>
+                <b class="st-res__t">Owner found</b>
+                <span class="st-res__who"><i class="bi bi-car-front-fill"></i><span><b>Hatchback · Kerala</b><small class="st-mono">Owner •••••••</small></span></span>
+                <span class="st-res__go">Notify privately <i class="bi bi-arrow-right"></i></span>
+              </div>
+            </div>
             <span class="st-console__readout st-mono" data-route-readout>SIGNAL · READY</span>
           </div>
 
           <div class="find-vehicle-seg st-seg" role="tablist" aria-label="Scan method">
             <span class="st-seg__pill" aria-hidden="true"></span>
             <button type="button" class="find-vehicle-tab is-active" data-tab="qr" role="tab" aria-selected="true">
-              <i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan QR</span>
+              <i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan QR</span>
             </button>
             <button type="button" class="find-vehicle-tab" data-tab="plate" role="tab" aria-selected="false">
-              <i class="bi bi-card-text" aria-hidden="true"></i><span>Plate number</span>
+              <i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i><span>Plate number</span>
             </button>
           </div>
 
@@ -624,7 +744,7 @@
             <div class="st-console__actions">
               <button type="button" class="find-vehicle-scan-btn st-scanbtn" id="findVehicleScanBtn" data-scan-mode="qr" aria-label="Scan a SudoTag QR with camera or gallery">
                 <span class="st-scanbtn__ring" aria-hidden="true"></span>
-                <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                <i aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
                 <span><strong>Scan QR</strong><small>Camera or gallery</small></span>
               </button>
               <label class="st-btn st-btn--quiet find-vehicle-file-btn">
@@ -648,7 +768,7 @@
             <div class="st-console__actions">
               <button type="button" class="find-vehicle-scan-btn st-scanbtn" id="findVehiclePlateScanBtn" data-scan-mode="plate" aria-label="Scan a number plate with camera or gallery">
                 <span class="st-scanbtn__ring" aria-hidden="true"></span>
-                <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                <i aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
                 <span><strong>Scan plate</strong><small>Auto-reads the number</small></span>
               </button>
               <label class="st-btn st-btn--quiet find-vehicle-file-btn">
@@ -693,7 +813,7 @@
         <div class="find-vehicle-sheet__handle" aria-hidden="true"></div>
         <p class="find-vehicle-sheet__title" id="findVehicleSheetTitle">Choose how to scan</p>
         <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetCamera">
-          <i class="bi bi-camera-fill" aria-hidden="true"></i>
+          <i aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
           <span><strong>Camera</strong><small>Use rear camera</small></span>
         </button>
         <button type="button" class="find-vehicle-sheet__btn" id="findVehicleSheetGallery">
@@ -727,25 +847,29 @@
             <span class="st-tile__fx st-fx-locker"><span class="st-fx-locker__doc">RC</span><span class="st-fx-locker__door"></span></span>
             <h3>Document locker</h3><p>RC, insurance and PUC in the app. On the way.</p>
           </button>
-          <button type="button" class="st-tile st-glass st-reveal" data-feature="assign" style="--d:60ms" data-tilt>
+          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="assign" style="--d:60ms" data-tilt>
+            <span class="st-soon-badge">Coming soon</span>
             <span class="st-tile__fx st-fx-assign"><i class="bi bi-person-fill"></i><span></span><i class="bi bi-person"></i></span>
-            <h3>Family &amp; temp assign</h3><p>Hand alerts to whoever is driving today.</p>
+            <h3>Family &amp; temp assign</h3><p>Soon: hand alerts to whoever is driving today.</p>
           </button>
-          <button type="button" class="st-tile st-tile--alert st-glass st-reveal" data-feature="lost" style="--d:120ms" data-tilt>
+          <button type="button" class="st-tile st-tile--alert st-tile--soon st-glass st-reveal" data-feature="lost" style="--d:120ms" data-tilt>
+            <span class="st-soon-badge">Coming soon</span>
             <span class="st-tile__fx st-fx-lost"><span></span><span></span><span></span><i class="bi bi-geo-alt-fill"></i></span>
-            <h3>Lost Mode + tips</h3><p>Community scans send you sightings with location.</p>
+            <h3>Lost Mode + tips</h3><p>Soon: community scans send you sightings with location.</p>
           </button>
           <button type="button" class="st-tile st-glass st-reveal" data-feature="channels" style="--d:180ms" data-tilt>
             <span class="st-tile__fx st-fx-channels"><span class="st-mono" data-scramble-loop>98470 12345</span></span>
             <h3>Chat · SMS · masked call</h3><p>Talk without either side seeing a number.</p>
           </button>
-          <button type="button" class="st-tile st-glass st-reveal" data-feature="status" style="--d:60ms" data-tilt>
+          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="status" style="--d:60ms" data-tilt>
+            <span class="st-soon-badge">Coming soon</span>
             <span class="st-tile__fx st-fx-status"><span>Available</span><span>Busy</span><span>Driving</span><span>DND</span></span>
-            <h3>Live Status</h3><p>Let scanners know what to expect before they wait.</p>
+            <h3>Live Status</h3><p>Soon: let scanners know what to expect before they wait.</p>
           </button>
-          <button type="button" class="st-tile st-glass st-reveal" data-feature="ai" style="--d:120ms" data-tilt>
+          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="ai" style="--d:120ms" data-tilt>
+            <span class="st-soon-badge">Coming soon</span>
             <span class="st-tile__fx st-fx-ai"><i class="bi bi-stars"></i><span class="st-fx-ai__type">How do I use Lost Mode?</span></span>
-            <h3>Sudo AI</h3><p>Quick answers for everyday ownership.</p>
+            <h3>Sudo AI</h3><p>Soon: quick answers for everyday ownership.</p>
           </button>
           <button type="button" class="st-tile st-glass st-reveal" data-feature="order" style="--d:180ms" data-tilt>
             <span class="st-tile__fx st-fx-order"><i class="bi bi-box-seam"></i></span>
@@ -772,7 +896,7 @@
           <p id="stSheetLead"></p>
           <ul id="stSheetList"></ul>
           <div class="st-sheet__cta">
-            <a class="st-btn st-btn--signal" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link><i class="bi bi-phone"></i><span>Get the app</span></a>
+            <a class="st-btn st-btn--signal" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>Get the app</span></a>
             <a class="st-btn st-btn--line" href="{% url 'buy_now' %}">Buy a tag</a>
           </div>
         </div>
@@ -826,7 +950,7 @@
           <div class="st-vslide__copy">
             <p class="st-kicker">Scooter</p>
             <h3>Parked in a sea of identical scooters.</h3>
-            <p>Turn on Lost Mode and anyone who spots it can ping you with a tip and location.</p>
+            <p>Anyone who spots it can reach you privately. Lost Mode, with tips and location from the community, is coming soon.</p>
             <a class="st-btn st-btn--signal" href="#designer" data-design-veh="scooter">Tag my scooter</a>
           </div>
         </article>
@@ -965,7 +1089,7 @@
             </div>
 
             <a class="st-btn st-btn--signal st-btn--lg st-dz__buy" id="stDzBuy" href="{% url 'buy_now' %}" data-magnetic>
-              <i class="bi bi-bag-check" aria-hidden="true"></i><span>Buy this tag</span>
+              <i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy this tag</span>
             </a>
           </form>
         </div>
@@ -984,9 +1108,9 @@
           <div class="st-lost__toasts"></div>
         </div>
         <header class="st-head st-reveal">
-          <p class="st-kicker st-kicker--alert">Lost Mode</p>
+          <p class="st-kicker st-kicker--alert">Lost Mode <span class="st-soon st-soon--lg">Coming soon</span></p>
           <h2 id="lostTitle">A whole city becomes your search party.</h2>
-          <p>Mark a vehicle lost in the app. Anyone who scans its tag can send a tip with location straight to you, and you never have to post your number on a group chat.</p>
+          <p>Coming soon to the app: mark a vehicle lost, and anyone who scans its tag can send a tip with location straight to you. You'll never have to post your number on a group chat.</p>
           <ul class="st-checks">
             <li><i class="bi bi-check2"></i>One tap to switch on, one to switch off</li>
             <li><i class="bi bi-check2"></i>Tips arrive with location and time</li>
@@ -1212,7 +1336,7 @@
           </header>
           <label class="st-search st-reveal">
             <i class="bi bi-search" aria-hidden="true"></i>
-            <input type="search" id="stFaqSearch" placeholder="Search: activation, privacy, Lost Mode…" aria-label="Search questions" autocomplete="off">
+            <input type="search" id="stFaqSearch" placeholder="Search: activation, privacy, plate…" aria-label="Search questions" autocomplete="off">
           </label>
           <div class="st-faq" id="stFaq">
             <details class="st-qa st-reveal" open>
@@ -1233,11 +1357,11 @@
             </details>
             <details class="st-qa st-reveal">
               <summary>What if someone else is driving my vehicle?</summary>
-              <div><p>Use family or temporary assign in the app. Alerts go to the person driving for the time you choose, then come back to you.</p></div>
+              <div><p>Family and temporary assign is coming soon. You'll be able to send alerts to the person driving for the time you choose, and they'll come back to you afterwards.</p></div>
             </details>
             <details class="st-qa st-reveal">
-              <summary>What is Lost Mode?</summary>
-              <div><p>Lost Mode marks a vehicle as missing. When someone scans it, they can send you tips and their location to help you recover it faster.</p></div>
+              <summary>What is Lost Mode? <span class="st-soon">Soon</span></summary>
+              <div><p>Lost Mode is coming soon. It will mark a vehicle as missing, so when someone scans it they can send you tips and their location to help you recover it faster.</p></div>
             </details>
             <details class="st-qa st-reveal">
               <summary>Does it work for bikes, autos and trucks?</summary>
@@ -1280,8 +1404,8 @@
         <h2 id="finalTitle">One scan. <span class="st-grad">Zero exposure.</span></h2>
         <p>Every vehicle gets a voice and your number stays silent.</p>
         <div class="st-hero__cta st-final__cta">
-          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i class="bi bi-bag-check" aria-hidden="true"></i><span>Buy SudoTag</span></a>
-          <a class="st-btn st-btn--line st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan a tag</span></a>
+          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy SudoTag</span></a>
+          <a class="st-btn st-btn--line st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan a tag</span></a>
         </div>
         <div class="st-stores">
           <a class="st-store" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
@@ -1332,11 +1456,22 @@
   </footer>
 
   <!-- Mobile floating dock: Scan QR · Plate · Buy · App -->
-  <nav class="st-dock" id="stDock" aria-label="Quick actions">
-    <a href="#scan" data-scan-tab="qr" class="is-primary"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Scan QR</span></a>
-    <a href="#scan" data-scan-tab="plate"><i class="bi bi-card-text" aria-hidden="true"></i><span>Plate</span></a>
-    <a href="{% url 'buy_now' %}"><i class="bi bi-bag" aria-hidden="true"></i><span>Buy</span></a>
-    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link><i class="bi bi-phone" aria-hidden="true"></i><span>App</span></a>
+  <nav class="st-dock st-dock--fab" id="stDock" aria-label="Quick actions">
+    <span class="st-dock__bg" aria-hidden="true"></span>
+    <span class="st-dock__mark" aria-hidden="true"></span>
+    <a href="#scan" data-scan-tab="plate" data-dock="plate"><i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i><span>Plate</span></a>
+    <a href="{% url 'buy_now' %}" data-dock="buy"><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy</span></a>
+    <a href="#scan" data-scan-tab="qr" class="st-dock__fab" data-dock="scan" aria-label="Scan a SudoTag QR">
+      <span class="st-dock__orb" aria-hidden="true">
+        <span class="st-dock__ring"></span>
+        <span class="st-dock__vf"><i></i><i></i><i></i><i></i></span>
+        <i class="st-dock__ico" aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><i class="st-dock__ico st-dock__ico--cam" aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
+        <span class="st-dock__line"></span>
+      </span>
+      <span class="st-dock__lbl" data-dock-label>Scan</span>
+    </a>
+    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link data-dock="app"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>App</span></a>
+    <a href="#help" data-dock="help"><i aria-hidden="true"><svg class="st-ico"><use href="#i-help"/></svg></i><span>Help</span></a>
   </nav>
 
   <script src="{% static 'landing/vendor/swiper/swiper-bundle.min.js' %}" defer></script>

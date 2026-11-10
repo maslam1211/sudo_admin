@@ -14,7 +14,6 @@
       try {
         var t = localStorage.getItem('st-theme');
         if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
-        else if (window.matchMedia('(prefers-color-scheme: light)').matches) d.setAttribute('data-theme', 'light');
       } catch (e) {}
       setTimeout(function () { if (!window.__stBooted) d.classList.remove('st-js'); }, 4000);
     })();

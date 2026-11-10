@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -21,6 +23,26 @@ def _landing_banner_ads(request):
         return [default, *get_active_banner_ads_for_landing()]
     except Exception:
         return [default]
+
+
+SPLASH_QR_URL = 'https://sudotag.com/'
+
+
+@lru_cache(maxsize=4)
+def _qr_matrix(payload: str):
+    """Real QR module grid (high error correction so the centre logo is safe).
+
+    Returns {'n': size, 'bits': '0101…'} row by row, or None if qrcode fails.
+    """
+    try:
+        import qrcode
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H, border=0)
+        qr.add_data(payload)
+        qr.make(fit=True)
+        rows = qr.get_matrix()
+        return {'n': len(rows), 'bits': ''.join('1' if c else '0' for row in rows for c in row)}
+    except Exception:
+        return None
 
 
 def _qr_data_uri(payload: str) -> str:
@@ -58,6 +80,7 @@ def index(request):
         'approved_feedbacks': approved_feedbacks,
         'submit_feedback_url': reverse('submit_feedback'),
         'approved_feedbacks_api_url': reverse('approved_feedbacks_api'),
+        'splash_qr': _qr_matrix(SPLASH_QR_URL),
     })
 
 

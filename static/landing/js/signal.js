@@ -232,12 +232,82 @@
   chips.forEach(function (c) {
     c.addEventListener('click', function () { morphPausedUntil = Date.now() + 9000; setPersona(c.getAttribute('data-persona'), true); });
   });
-  if (!reduce && morphUses.length) {
-    morphTimer = setInterval(function () {
-      if (document.hidden || Date.now() < morphPausedUntil) return;
-      setPersona(ORDER[(ORDER.indexOf(curPersona) + 1) % ORDER.length]);
-    }, 2800);
+  /* Live signal loop: each cycle = one vehicle story (scan → alert → reply),
+     then the next persona. Replaces the old 2.8s persona timer. */
+  var LOOP = {
+    car: ['"Blocking the gate"', '"Moving it now 🙏"'],
+    bike: ['"Headlight left on"', '"Thanks! Switching it off"'],
+    scooter: ['"Your scooter fell over"', '"Coming down 🙏"'],
+    auto: ['"Passenger left a bag"', '"On my way back"'],
+    taxi: ['"Guest is waiting"', '"2 min away"'],
+    truck: ['"Blocking the dock"', '"Shift driver moving it"']
+  };
+  var loopEl = $('#stLoop'), stage = $('.st-beacon-stage'), loopReason = $('[data-loop-reason]'), loopReply = $('[data-loop-reply]');
+  var loopFloats = loopEl ? $$('.st-float', loopEl) : [], loopT = [], loopOn = false;
+  function beat(n) {
+    if (!loopEl) return;
+    loopEl.classList.remove('is-b1', 'is-b2', 'is-b3');
+    if (n) loopEl.classList.add('is-b' + n);
+    loopFloats.forEach(function (f) { f.classList.toggle('is-cur', +f.getAttribute('data-b') === n); });
+    if (stage) stage.classList.toggle('is-scan', n === 1);
   }
+  function cycle() {
+    loopT.forEach(clearTimeout); loopT = [];
+    if (!loopOn) return;
+    var m = LOOP[curPersona] || LOOP.car;
+    if (loopReason) loopReason.textContent = m[0];
+    if (loopReply) loopReply.textContent = m[1];
+    beat(0);
+    loopT.push(setTimeout(function () { beat(1); }, 500));
+    loopT.push(setTimeout(function () { beat(2); }, 1900));
+    loopT.push(setTimeout(function () { beat(3); }, 3400));
+    loopT.push(setTimeout(function () {
+      if (Date.now() >= morphPausedUntil) setPersona(ORDER[(ORDER.indexOf(curPersona) + 1) % ORDER.length]);
+      cycle();
+    }, 6200));
+  }
+  if (loopEl && reduce) beat(3);
+  else if (loopEl) whenVisible(hero, function () { if (!loopOn) { loopOn = true; cycle(); } }, function () { loopOn = false; loopT.forEach(clearTimeout); });
+  chips.forEach(function (c) { c.addEventListener('click', function () { if (loopOn) cycle(); }); });
+
+  /* "private." encrypts and resolves every few seconds */
+  var enc = $('[data-encrypt]');
+  if (enc && !reduce) {
+    var encWord = enc.textContent;
+    setInterval(function () {
+      if (document.hidden || window.scrollY > window.innerHeight) return;
+      var g = ''; for (var k = 0; k < encWord.length; k++) g += GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      enc.textContent = g; scramble(enc, encWord, 900);
+    }, 7000);
+  }
+
+  /* Privacy lens: follows the pointer; drifts on its own when idle / on touch */
+  (function lens() {
+    var wall = $('#stNumwall'); if (!wall || !hero) return;
+    var lensRows = $$('[data-lens] span', wall), src = lensRows.map(function (r) { return r.textContent; });
+    var tx = .7, ty = .4, x = .7, y = .4, lastMove = 0, t0 = performance.now(), lastGlyph = 0;
+    if (finePointer) hero.addEventListener('pointermove', function (e) {
+      var r = wall.getBoundingClientRect(); tx = (e.clientX - r.left) / r.width; ty = (e.clientY - r.top) / r.height; lastMove = performance.now();
+    });
+    function enc(str) {
+      var out = '';
+      for (var i = 0; i < str.length; i++) { var ch = str[i]; out += /[0-9]/.test(ch) ? GLYPHS[(Math.random() * GLYPHS.length) | 0] : ch; }
+      return out;
+    }
+    if (reduce) { lensRows.forEach(function (r, i) { r.textContent = src[i].replace(/[0-9]/g, '•'); }); return; }
+    loop(hero, function (t) {
+      if (t - lastMove > 2200) {                     // idle: a slow figure-eight
+        var k = (t - t0) / 1000;
+        tx = .6 + Math.sin(k * .45) * .28; ty = .55 + Math.sin(k * .9) * .14;
+      }
+      x += (tx - x) * .08; y += (ty - y) * .08;
+      wall.style.setProperty('--mx', (x * 100).toFixed(2) + '%');
+      wall.style.setProperty('--my', (y * 100).toFixed(2) + '%');
+      wall.style.setProperty('--px', (x * wall.clientWidth).toFixed(1) + 'px');
+      wall.style.setProperty('--py', (y * wall.clientHeight).toFixed(1) + 'px');
+      if (t - lastGlyph > 90) { lastGlyph = t; lensRows.forEach(function (r, i) { r.textContent = enc(src[i]); }); }
+    });
+  })();
 
   /* =================================================================
      Hero canvas: night road, headlight streaks, wet reflections,
@@ -472,7 +542,7 @@
   (function routes() {
     var win = fvCard && $('.st-route', fvCard); if (!win) return;
     var read = $('[data-route-readout]', win), plateEl = $('[data-route-plate]', win);
-    var picks = $$('[data-route-pick]'), cur = '', timer = 0, pinUntil = 0, visible = false;
+    var picks = $$('[data-route-pick]'), cur = '', timer = 0, pinUntil = 0, visible = false, hitTimer = 0, camLabel = $('[data-cam-label]', win);
     var TXT = { 'new': 'TAG #A7F3 · UNCLAIMED → ACTIVATE', active: 'TAG #K2Q9 · LIVE → NOTIFY OWNER', plate: 'OCR · PLATE READ → OWNER MATCH' };
     function show(r, auto) {
       picks.forEach(function (b) {
@@ -483,7 +553,15 @@
       });
       if (r === cur) return; cur = r;
       win.setAttribute('data-route', r);
-      if (read) { if (reduce) read.textContent = TXT[r]; else scramble(read, TXT[r], 650); }
+      /* scan → detect → result: the box hunts, then snaps and the card slides in */
+      clearTimeout(hitTimer); win.classList.remove('is-hit');
+      if (camLabel) camLabel.textContent = r === 'plate' ? 'Reading plate' : 'Scanning';
+      if (read) read.textContent = r === 'plate' ? 'OCR · READING…' : 'SIGNAL · SEARCHING…';
+      hitTimer = setTimeout(function () {
+        win.classList.add('is-hit');
+        if (camLabel) camLabel.textContent = r === 'plate' ? 'Plate read' : r === 'new' ? 'New tag' : 'Live tag';
+        if (read) { if (reduce) read.textContent = TXT[r]; else scramble(read, TXT[r], 650); }
+      }, reduce ? 0 : 900);
     }
     function isPlate() { return fvCard.getAttribute('data-mode') === 'plate'; }
     function tick() {
@@ -492,7 +570,7 @@
       timer = setTimeout(function () {
         if (Date.now() >= pinUntil && !isPlate()) show(cur === 'new' ? 'active' : 'new', true);
         tick();
-      }, 3400);
+      }, 4200);
     }
     function sync() { if (isPlate()) show('plate'); else if (cur === 'plate' || !cur) show('new', true); tick(); }
     if ('MutationObserver' in window) new MutationObserver(sync).observe(fvCard, { attributes: true, attributeFilter: ['data-mode'] });
@@ -516,6 +594,61 @@
   })();
 
   /* =================================================================
+     Signal dock: sliding beacon, context-aware scan orb, tuck on scroll
+     ================================================================= */
+  (function dockFx() {
+    var d = $('#stDock'); if (!d || !d.classList.contains('st-dock--fab')) return;
+    var mark = $('.st-dock__mark', d), items = $$('[data-dock]', d), fab = $('.st-dock__fab', d), lbl = $('[data-dock-label]', d);
+    var cur = null, inScan = false, lastY = window.scrollY;
+    function place(k) {
+      cur = k;
+      items.forEach(function (a) { a.classList.toggle('is-on', a.getAttribute('data-dock') === k); });
+      var it = k && $('[data-dock="' + k + '"]', d);
+      if (mark) {
+        if (it) { mark.style.setProperty('--x', (it.offsetLeft + it.offsetWidth / 2) + 'px'); mark.classList.add('is-on'); }
+        else mark.classList.remove('is-on');
+      }
+    }
+    /* which dock slot matches the section in the middle of the screen */
+    var map = [['#scan', 'scan'], ['#help', 'help'], ['#steps', 'steps'], ['#activate', 'activate']], seen = {};
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { seen[e.target.id] = e.isIntersecting; });
+        var hit = null;
+        map.forEach(function (m) { var id = m[0].slice(1); if (seen[id] && $('[data-dock="' + m[1] + '"]', d)) hit = m[1]; });
+        inScan = !!seen.scan;
+        d.classList.toggle('is-cam', inScan);
+        if (inScan) d.classList.remove('is-tuck');
+        if (lbl) lbl.textContent = inScan ? 'Camera' : 'Scan';
+        if (fab) fab.setAttribute('aria-label', inScan ? 'Open the camera to scan' : 'Scan a SudoTag QR');
+        place(hit);
+      }, { rootMargin: '-45% 0px -45% 0px' });
+      map.forEach(function (m) { var t = $(m[0]); if (t) io.observe(t); });
+    }
+    window.addEventListener('resize', function () { place(cur); });
+    /* orb: anywhere → jump to the scanner; inside it → open the camera directly */
+    if (fab) fab.addEventListener('click', function (e) {
+      fab.classList.remove('is-tap'); void fab.offsetWidth; fab.classList.add('is-tap');
+      if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
+      if (!inScan) return;
+      var card = $('#findVehicleCard'), btn = $(card && card.getAttribute('data-mode') === 'plate' ? '#findVehiclePlateScanBtn' : '#findVehicleScanBtn');
+      if (btn) { e.preventDefault(); e.stopPropagation(); btn.click(); }
+    });
+    /* tuck away while reading down, return on the way up */
+    var ticking = false, idle = 0;
+    window.addEventListener('scroll', function () {
+      clearTimeout(idle); idle = setTimeout(function () { d.classList.remove('is-tuck'); }, 900);
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(function () {
+        var y = window.scrollY;
+        if (y > lastY + 8 && !inScan) d.classList.add('is-tuck');
+        else if (y < lastY - 6 || inScan) d.classList.remove('is-tuck');
+        lastY = y; ticking = false;
+      });
+    }, { passive: true });
+  })();
+
+  /* =================================================================
      Features: tile → full sheet with phone mock
      ================================================================= */
   var FEATURES = {
@@ -528,19 +661,19 @@
     locker: { k: 'Coming soon', t: 'Document locker', l: "We're building a secure place in the app for your RC, insurance and PUC. It isn't live yet.",
       b: ['Keep RC, insurance and PUC in one place', 'See expiry dates at a glance', 'Shared only with people you assign'],
       s: '<p class="st-ph-title">Documents</p><div class="st-ph-card" style="opacity:.55"><i class="bi bi-file-earmark-text"></i><div>Registration (RC)<small>Coming soon</small></div></div><div class="st-ph-card" style="opacity:.55"><i class="bi bi-shield-check"></i><div>Insurance<small>Coming soon</small></div></div><div class="st-ph-card" style="opacity:.55"><i class="bi bi-wind"></i><div>PUC<small>Coming soon</small></div></div><div class="st-ph-btn" style="background:#1F2633;color:#8C95A8">Coming soon</div>' },
-    assign: { k: 'Sharing', t: 'Family & temp assign', l: 'Someone else driving today? Hand the alerts over for exactly as long as you choose.',
+    assign: { k: 'Coming soon', t: 'Family & temp assign', l: "Coming soon. Someone else driving today? You'll be able to hand the alerts over for exactly as long as you choose.",
       b: ['Assign family members permanently', 'Temporary assign with an end time', 'Alerts return to you automatically'],
       s: '<p class="st-ph-title">Assign vehicle</p><div class="st-ph-card"><i class="bi bi-person"></i><div>Amma<small>Family · always</small></div></div><div class="st-ph-card"><i class="bi bi-clock-history"></i><div>Driver (Ravi)<small>Until 8:00 PM</small></div></div><div class="st-ph-btn">Assign</div>' },
-    lost: { k: 'Lost Mode', t: 'Lost Mode + community tips', l: 'Mark a vehicle lost and every scan becomes a lead, with location and time.',
+    lost: { k: 'Coming soon', t: 'Lost Mode + community tips', l: "Coming soon. Mark a vehicle lost and every scan becomes a lead, with location and time.",
       b: ['One tap to turn on or off', 'Tips arrive with location', 'Finders stay anonymous too'],
       s: '<p class="st-ph-title">Lost Mode · ON</p><div class="st-ph-card"><i class="bi bi-geo-alt" style="color:var(--alert)"></i><div>New tip<small>Seen near the bus stand · 2 min ago</small></div></div><div class="st-ph-card"><i class="bi bi-geo-alt" style="color:var(--alert)"></i><div>New tip<small>Parked by the mall · 14 min ago</small></div></div><div class="st-ph-btn" style="background:var(--alert);color:#fff">View on map</div>' },
     channels: { k: 'Channels', t: 'Chat · SMS · masked call', l: 'Every conversation runs through SudoTag, so neither side ever sees a phone number.',
       b: ['Real-time chat thread', 'Templated SMS for quick replies', 'Masked voice calls both ways'],
       s: '<p class="st-ph-title">Chat</p><div class="st-ph-card"><div>Your car is blocking my gate<small>Scanner · just now</small></div></div><div class="st-ph-card" style="justify-content:flex-end;background:var(--signal);color:var(--signal-ink)"><div>Coming in 2 minutes!</div></div><div class="st-ph-card"><i class="bi bi-telephone"></i><div>Masked call<small>•••• ••••• hidden</small></div></div>' },
-    status: { k: 'Status', t: 'Live Status + privacy', l: 'Tell scanners what to expect before they wait: Available, Busy, Driving or Do Not Disturb.',
+    status: { k: 'Coming soon', t: 'Live Status + privacy', l: "Coming soon. Tell scanners what to expect before they wait: Available, Busy, Driving or Do Not Disturb.",
       b: ['Shown on the scan page', 'Auto-switch while driving', 'DND still lets emergencies through'],
       s: '<p class="st-ph-title">Live Status</p><div class="st-ph-card"><span class="st-dot st-dot--safe"></span><div>Available</div></div><div class="st-ph-card"><span class="st-dot" style="background:var(--amber)"></span><div>Busy</div></div><div class="st-ph-card"><span class="st-dot" style="background:var(--signal-2)"></span><div>Driving</div></div><div class="st-ph-card"><span class="st-dot" style="background:var(--alert)"></span><div>Do Not Disturb</div></div>' },
-    ai: { k: 'Assistant', t: 'Sudo AI', l: 'Quick answers about SudoTag and your vehicles, right inside the app.',
+    ai: { k: 'Coming soon', t: 'Sudo AI', l: "Coming soon. Quick answers about SudoTag and your vehicles, right inside the app.",
       b: ['Ask in plain language', 'Knows the vehicles in your garage', 'Points you to the right screen'],
       s: '<p class="st-ph-title">Sudo AI</p><div class="st-ph-card"><div>How do I use Lost Mode?</div></div><div class="st-ph-card" style="border-color:var(--signal)"><i class="bi bi-stars"></i><div>Open your vehicle, tap Lost Mode and switch it on. Anyone who scans your tag can then send you tips.</div></div><div class="st-ph-btn">Open Lost Mode</div>' },
     order: { k: 'Shop', t: 'Order QR tags', l: 'Got a new vehicle? Order another official SudoTag straight from the app.',
@@ -955,6 +1088,82 @@
   if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
     $$('[data-app-link]').forEach(function (a) { a.href = 'https://apps.apple.com/in/app/sudotag/id6761091033'; });
   }
+
+  /* =================================================================
+     Viewfinder cursor (mouse / trackpad only)
+     dot = the SudoTag beacon; corners trail it, lock onto buttons,
+     turn into a scanner over stickers / QR, ENCRYPT over the number wall.
+     ================================================================= */
+  (function cursor() {
+    if (!finePointer || !window.requestAnimationFrame) return;
+    var el = document.createElement('div');
+    el.className = 'st-cursor'; el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<span class="st-cursor__frame"><i></i><i></i><i></i><i></i><span class="st-cursor__line"></span></span>' +
+      '<span class="st-cursor__dot"></span><span class="st-cursor__label st-mono"></span>';
+    body.appendChild(el);
+    root.classList.add('st-cursor-on');
+    var frame = el.firstChild, dot = el.children[1], label = el.children[2];
+    var LOCK = 'a[href], button:not([disabled]), [role="button"], [role="tab"], [role="radio"], label.st-btn, summary, .st-tile, [data-cursor="lock"]';
+    var SCAN = '[data-cursor="scan"], .st-tag3d, .st-cam, .g-qr, .g-stick, .st-sc--glass, .st-dz__stage';
+    var TEXT = 'input, textarea, select, [contenteditable="true"]';
+    var mx = -100, my = -100, x = -100, y = -100, w = 34, h = 34, shown = false, mode = '', target = null, lab = '';
+    var hero = $('#hero'), wall = $('#stNumwall');
+
+    function setMode(m, t, text) {
+      target = t;
+      if (m !== mode) { el.classList.remove('is-' + mode); if (m) el.classList.add('is-' + m); mode = m; }
+      if (text !== lab) { lab = text; label.textContent = text; }
+    }
+    function resolve(node) {
+      if (!node || !node.closest) return setMode('', null, '');
+      if (node.closest(TEXT)) return setMode('text', null, '');
+      var s = node.closest(SCAN);
+      var l = node.closest(LOCK);
+      if (l && (!s || s.contains(l))) {
+        var r = l.getBoundingClientRect();
+        if (r.width < 560 && r.height < 280) return setMode('lock', l, l.getAttribute('data-cursor-label') || '');
+      }
+      if (s) return setMode('scan', s, s.getAttribute('data-cursor-label') || 'Scan');
+      if (wall && hero && hero.contains(node) && !node.closest('.st-hero__copy, .st-beacon-stage')) return setMode('enc', null, 'Encrypt');
+      setMode('', null, '');
+    }
+    document.addEventListener('pointermove', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+      mx = e.clientX; my = e.clientY;
+      if (!shown) { shown = true; x = mx - w / 2; y = my - h / 2; el.classList.add('is-on'); }
+      resolve(e.target);
+    }, { passive: true });
+    document.addEventListener('pointerdown', function () {
+      el.classList.remove('is-press'); void el.offsetWidth; el.classList.add('is-press');
+      var ping = document.createElement('span'); ping.className = 'st-cursor__ping';
+      ping.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+      el.appendChild(ping); setTimeout(function () { ping.remove(); }, 700);
+    });
+    document.addEventListener('mouseleave', function () { shown = false; el.classList.remove('is-on'); });
+    window.addEventListener('blur', function () { shown = false; el.classList.remove('is-on'); });
+    /* the page scrolls under a still mouse: re-check what is under it */
+    window.addEventListener('scroll', function () { if (shown) resolve(document.elementFromPoint(mx, my)); }, { passive: true });
+
+    (function tick() {
+      var tx, ty, tw, th, k;
+      if (mode === 'lock' && target && target.isConnected) {
+        var r = target.getBoundingClientRect(), pad = 6;
+        tx = r.left - pad; ty = r.top - pad; tw = r.width + pad * 2; th = r.height + pad * 2; k = .3;
+      } else if (mode === 'scan') {
+        tw = th = 72; tx = mx - 36; ty = my - 36; k = .22;
+      } else if (mode === 'enc') {
+        tw = th = 52; tx = mx - 26; ty = my - 26; k = .2;
+      } else {
+        tw = th = 34; tx = mx - 17; ty = my - 17; k = reduce ? 1 : .2;
+      }
+      x += (tx - x) * k; y += (ty - y) * k; w += (tw - w) * k; h += (th - h) * k;
+      frame.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+      frame.style.width = w.toFixed(1) + 'px'; frame.style.height = h.toFixed(1) + 'px';
+      dot.style.transform = 'translate(' + mx + 'px,' + my + 'px)';
+      label.style.transform = 'translate(' + (x + w / 2).toFixed(1) + 'px,' + (y + h + 8).toFixed(1) + 'px)';
+      requestAnimationFrame(tick);
+    })();
+  })();
 
   /* =================================================================
      Page transition: signal scan-line wipe on internal navigation

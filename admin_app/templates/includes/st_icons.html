@@ -1,0 +1,66 @@
+<!-- SudoTag icon set: 24px grid, 1.7 rounded strokes, orange "beacon dot" accent.
+     Use: <i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i>
+     Accent colours come from --ico-accent / --ico-plate on any ancestor. -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- Indian number plate: IND strip with emblem, chunky registration characters -->
+    <symbol id="i-plate" viewBox="0 0 24 24">
+      <rect x="1.6" y="6.4" width="20.8" height="11.2" rx="2.6"/>
+      <rect x="2.5" y="7.3" width="3.6" height="9.4" rx="1.3" style="fill:var(--ico-plate,#3D7BFF);stroke:none"/>
+      <circle cx="4.3" cy="10.1" r=".85" style="fill:#fff;stroke:none"/>
+      <path d="M3.4 14.2h1.8" style="stroke:#fff;stroke-width:1.1"/>
+      <path d="M8.6 12h1.5M11.7 12h2M15.3 12h1.2M17.9 12h2.2" style="stroke-width:2.3"/>
+    </symbol>
+
+    <!-- Scan: viewfinder corners around a mini QR, beacon dot as the 4th finder -->
+    <symbol id="i-scan" viewBox="0 0 24 24">
+      <path d="M3 8.2V5.6A2.6 2.6 0 0 1 5.6 3h2.6M15.8 3h2.6A2.6 2.6 0 0 1 21 5.6v2.6M21 15.8v2.6a2.6 2.6 0 0 1-2.6 2.6h-2.6M8.2 21H5.6A2.6 2.6 0 0 1 3 18.4v-2.6"/>
+      <rect x="7" y="7" width="4" height="4" rx="1.1"/>
+      <rect x="13" y="7" width="4" height="4" rx="1.1"/>
+      <rect x="7" y="13" width="4" height="4" rx="1.1"/>
+      <circle cx="15" cy="15" r="2.1" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+    </symbol>
+
+    <!-- Camera with a lens that doubles as the beacon -->
+    <symbol id="i-camera" viewBox="0 0 24 24">
+      <path d="M3 9a2.6 2.6 0 0 1 2.6-2.6h1.8L8.9 4.3h6.2l1.5 2.1h1.8A2.6 2.6 0 0 1 21 9v7.6a2.6 2.6 0 0 1-2.6 2.6H5.6A2.6 2.6 0 0 1 3 16.6z"/>
+      <circle cx="12" cy="12.8" r="3.7"/>
+      <circle cx="12" cy="12.8" r="1.4" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+    </symbol>
+
+    <!-- Buy: a SudoTag tag (sticker tag with a punched beacon hole) -->
+    <symbol id="i-tag" viewBox="0 0 24 24">
+      <path d="M3.4 12.4V5A1.6 1.6 0 0 1 5 3.4h7.4l8.2 8.2a1.7 1.7 0 0 1 0 2.4l-6.6 6.6a1.7 1.7 0 0 1-2.4 0z"/>
+      <circle cx="8.2" cy="8.2" r="1.9" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+      <path d="M11.4 15.6l4.2-4.2" style="stroke-width:1.5;opacity:.7"/>
+    </symbol>
+
+    <!-- App: phone with a live beacon notification -->
+    <symbol id="i-app" viewBox="0 0 24 24">
+      <path d="M15.6 2.6H8.6A2.6 2.6 0 0 0 6 5.2v13.6a2.6 2.6 0 0 0 2.6 2.6h6.8a2.6 2.6 0 0 0 2.6-2.6V9.4"/>
+      <path d="M10.6 18.4h2.8"/>
+      <circle cx="18" cy="5" r="2.6" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+    </symbol>
+
+    <!-- Help: chat bubble, question mark with beacon dot -->
+    <symbol id="i-help" viewBox="0 0 24 24">
+      <path d="M4 6a2.6 2.6 0 0 1 2.6-2.6h10.8A2.6 2.6 0 0 1 20 6v7.6a2.6 2.6 0 0 1-2.6 2.6h-6.1L7 20.2v-4H6.6A2.6 2.6 0 0 1 4 13.6z"/>
+      <path d="M10 8.4a2.05 2.05 0 1 1 2.9 1.9c-.55.3-.9.75-.9 1.4"/>
+      <circle cx="12" cy="13.9" r="1.05" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+    </symbol>
+
+    <!-- Activate: sticker square, check, beacon corner -->
+    <symbol id="i-activate" viewBox="0 0 24 24">
+      <path d="M15.4 3.4H7.4a4 4 0 0 0-4 4v9.2a4 4 0 0 0 4 4h9.2a4 4 0 0 0 4-4V8.6"/>
+      <path d="M8.2 12.3l2.6 2.6 5-5.4"/>
+      <circle cx="19" cy="5" r="2.2" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+    </symbol>
+
+    <!-- Steps: a route with start ring and beacon destination -->
+    <symbol id="i-route" viewBox="0 0 24 24">
+      <circle cx="5.5" cy="5.5" r="2.3"/>
+      <path d="M7.8 5.5h7.4a3.4 3.4 0 0 1 0 6.8H8.8a3.4 3.4 0 0 0 0 6.8h6.6"/>
+      <circle cx="18.4" cy="19.1" r="2.3" style="fill:var(--ico-accent,#FF7A1A);stroke:none"/>
+    </symbol>
+  </defs>
+</svg>

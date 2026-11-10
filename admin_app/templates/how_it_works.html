@@ -1,215 +1,245 @@
 {% load static custom_filters %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
   <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>How SudoTag Works — 5 Clear Steps</title>
-  <meta name="description" content="SudoTag is simple: order a QR, activate it, stick it on your vehicle, manage from the app, get private alerts. No shared phone numbers.">
-  <meta name="keywords" content="SudoTag, how it works, QR tag, vehicle, private contact">
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+  <title>How SudoTag Works — From sticker to solved</title>
+  <meta name="description" content="SudoTag in five steps: order a QR tag, activate it in the app or your phone browser, stick it on your vehicle, manage it from the app and get private alerts. Your number is never shared.">
+  <meta name="keywords" content="SudoTag, how it works, QR tag, vehicle, private contact, activate QR">
+  <meta name="theme-color" content="#07080B">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SudoTag">
+  <meta property="og:title" content="How SudoTag works — from sticker to solved">
+  <meta property="og:description" content="Five steps. Zero numbers shared.">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% landing_asset 'img/sudotag-sticker.png' %}">
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('st-js');
+      try {
+        var t = localStorage.getItem('st-theme');
+        if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
+      } catch (e) {}
+      setTimeout(function () { if (!window.__stBooted) d.classList.remove('st-js'); }, 6000);
+    })();
+  </script>
 
-  {% include 'includes/landing_head.html' %}
+  {% include 'includes/favicon_links.html' %}
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-
-  <link href="{% static 'landing/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% landing_asset 'css/main.css' %}" rel="stylesheet">
-  <link href="{% url 'how_it_works_css' %}" rel="stylesheet">
-  <link rel="preload" as="image" href="{% landing_asset 'img/sudotag-windshield-tag.png' %}">
-
-  <style>
-    .header .logo .header-logo-img {
-      height: 80px; max-height: none; width: auto; max-width: 320px;
-      object-fit: contain; display: block;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.85));
-    }
-    @media (max-width: 991px) {
-      .header .logo .header-logo-img { height: 56px; max-width: 220px; }
-    }
-    @media (max-width: 575px) {
-      .header .logo .header-logo-img { height: 44px; max-width: 170px; }
-      .hiw-page .header .btn-getstarted { padding: 6px 12px; font-size: 12px; margin-right: 36px; }
-    }
-  </style>
+  <link href="{% landing_asset 'css/signal.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/guide.css' %}" rel="stylesheet">
 </head>
 
-<body class="index-page hiw-page preloader-active">
+<body class="st-guide">
 
-  {% include 'includes/landing_preloader.html' %}
+  {% include 'includes/st_icons.html' %}
 
-  <div class="cl-bg" aria-hidden="true">
-    <span class="cl-bg__glow"></span>
-  </div>
+  <div class="st-fx" aria-hidden="true"><span class="st-fx__grain"></span><span class="st-fx__vignette"></span></div>
+  <div class="st-progress" id="stProgress" aria-hidden="true"></div>
+  <div class="st-wipe" id="stWipe" aria-hidden="true"><span></span></div>
 
-  <header id="header" class="header d-flex align-items-center fixed-top">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
-      <a href="{% url 'index' %}" class="logo d-flex align-items-center me-auto me-lg-0" aria-label="SudoTag home">
-        <img src="{% url 'landing_header_logo_png' %}" alt="SudoTag" class="header-logo-img" width="320" height="80" decoding="async">
-      </a>
-      <nav id="navmenu" class="navmenu" aria-label="Primary">
-        <ul>
-          <li><a href="{% url 'index' %}">Home</a></li>
-          <li><a href="{% url 'index' %}#features">Features</a></li>
-          <li><a href="{% url 'how_it_works' %}" class="active" aria-current="page">How It Works</a></li>
-          <li><a href="{% url 'index' %}#find-vehicle">Scan QR</a></li>
-          <li><a href="{% url 'index' %}#contact">Contact</a></li>
-        </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list" role="button" tabindex="0" aria-label="Open menu"></i>
+  <!-- ============ Header ============ -->
+  <header class="st-header" id="stHeader">
+    <div class="st-wrap st-header__bar">
+      <a href="{% url 'index' %}" class="st-logo" aria-label="SudoTag home">SudoTag<i aria-hidden="true"></i></a>
+
+      <nav class="st-nav" id="stNav" aria-label="Main">
+        <a href="#steps">Five steps</a>
+        <a href="#activate">Activate</a>
+        <a href="#remember">The rule</a>
+        <a href="{% url 'index' %}#features">Features</a>
+        <a href="{% url 'buy_now' %}" class="st-nav__mobile-only">Buy SudoTag</a>
       </nav>
-      <a class="btn-getstarted btn-buy-now" href="{% url 'buy_now' %}">
-        <i class="bi bi-bag-check-fill" aria-hidden="true"></i>
-        <span>Buy Now</span>
-      </a>
+
+      <div class="st-header__actions">
+        <button type="button" class="st-iconbtn" id="stTheme" aria-label="Switch to light mode">
+          <i class="bi bi-sun" aria-hidden="true"></i><i class="bi bi-moon-stars" aria-hidden="true"></i>
+        </button>
+        <a class="st-btn st-btn--line st-btn--sm st-hide-sm" href="{% url 'buy_now' %}" data-magnetic>Buy</a>
+        <a class="st-btn st-btn--signal st-btn--sm" href="{% url 'index' %}#scan" data-magnetic>
+          <i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan</span>
+        </a>
+        <button type="button" class="st-burger" id="stBurger" aria-label="Open menu" aria-expanded="false" aria-controls="stNav">
+          <span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <main class="main" id="main-content">
+  <main id="main">
 
-    <!-- 1. Instant understanding -->
-    <section class="cl-hero" aria-labelledby="cl-title">
-      <div class="container cl-hero__box" data-aos="fade-up">
-        <p class="cl-label">How SudoTag works</p>
-        <h1 id="cl-title">Someone scans your QR.<br><span>You get alerted privately.</span></h1>
-        <p class="cl-hero__one">
-          Your phone number stays hidden. That is the whole idea.
-        </p>
+    <!-- ============ 1 · Hero: the signal trace ============ -->
+    <section class="g-hero" id="hero" aria-labelledby="gTitle">
+      <div class="st-wrap g-hero__inner">
+        <p class="st-kicker st-in" style="--i:0">How it works · field guide</p>
+        <h1 id="gTitle" class="st-in" style="--i:1">From sticker to solved<br>in <span class="st-grad">five signals.</span></h1>
+        <p class="g-hero__lede st-in" style="--i:2">Someone scans your QR, and you get alerted privately. Your phone number stays hidden the whole way. That's the whole idea.</p>
 
-        <div class="cl-formula" role="list" aria-label="SudoTag in three words">
-          <div class="cl-formula__item" role="listitem">
-            <i class="bi bi-bag-check" aria-hidden="true"></i>
-            <strong>Buy</strong>
-          </div>
-          <span class="cl-formula__arrow" aria-hidden="true">→</span>
-          <div class="cl-formula__item" role="listitem">
-            <i class="bi bi-upc-scan" aria-hidden="true"></i>
-            <strong>Activate</strong>
-          </div>
-          <span class="cl-formula__arrow" aria-hidden="true">→</span>
-          <div class="cl-formula__item" role="listitem">
-            <i class="bi bi-bell" aria-hidden="true"></i>
-            <strong>Get alerts</strong>
-          </div>
+        <div class="g-hero__cta st-in" style="--i:3">
+          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Get your SudoTag</span></a>
+          <a class="st-btn st-btn--line st-btn--lg" href="#activate" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-activate"/></svg></i><span>Activate a tag</span></a>
         </div>
+      </div>
 
-        <div class="cl-hero__actions">
-          <a class="cl-btn cl-btn--orange" href="{% url 'buy_now' %}">Get Your SudoTag</a>
-          <a class="cl-btn cl-btn--outline" href="#cl-activate">Activate QR steps</a>
+      <!-- Oscilloscope: five pulses, a sweeping playhead, live read-outs -->
+      <div class="g-scope st-in" style="--i:4" id="gScope">
+        <div class="st-wrap">
+          <div class="g-scope__frame">
+            <div class="g-scope__top st-mono" aria-hidden="true">
+              <span><i class="g-rec"></i>Signal ST-7F3A</span>
+              <span class="g-scope__read">Numbers exposed <b>0</b></span>
+            </div>
+            <div class="g-scope__screen">
+              <svg class="g-scope__wave" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
+                <path class="g-scope__base" d="M0 60 H1000"/>
+                <path class="g-scope__line" pathLength="1" d="M0 60 H70 L85 60 L95 18 L105 102 L115 60 H270 L285 60 L295 10 L305 110 L315 60 H470 L485 60 L495 22 L505 98 L515 60 H670 L685 60 L695 14 L705 106 L715 60 H870 L885 60 L895 4 L905 116 L915 60 H1000"/>
+              </svg>
+              <span class="g-scope__head" aria-hidden="true"></span>
+              <ol class="g-scope__marks">
+                <li style="--x:10%"><a href="#step-1"><b class="st-mono">01</b>Order</a></li>
+                <li style="--x:30%"><a href="#step-2"><b class="st-mono">02</b>Activate</a></li>
+                <li style="--x:50%"><a href="#step-3"><b class="st-mono">03</b>Stick</a></li>
+                <li style="--x:70%"><a href="#step-4"><b class="st-mono">04</b>Manage</a></li>
+                <li style="--x:90%"><a href="#step-5"><b class="st-mono">05</b>Get alerts</a></li>
+              </ol>
+            </div>
+            <div class="g-scope__foot st-mono" aria-hidden="true">
+              <span>Buy</span><i class="bi bi-arrow-right"></i><span>Activate</span><i class="bi bi-arrow-right"></i><span class="g-hl">Get alerts</span>
+              <span class="g-scope__time" data-scope-clock>T+00:00</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 2. Crystal clear vertical steps -->
-    <section class="cl-steps" id="cl-steps" aria-labelledby="cl-steps-title">
-      <div class="container">
-        <header class="cl-steps__head" data-aos="fade-up">
-          <h2 id="cl-steps-title">5 steps. A few minutes.</h2>
-          <p>Read top to bottom. That is everything you need to start.</p>
+    <!-- ============ 2 · Five steps on a live circuit ============ -->
+    <section class="st-section g-steps" id="steps" aria-labelledby="stepsTitle">
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">The circuit</p>
+          <h2 id="stepsTitle">Five steps. <span class="st-grad">A few minutes.</span></h2>
+          <p>Read top to bottom. Each node lights up as you pass it, and that's everything you need to start.</p>
         </header>
 
-        <div class="cl-line" data-cl-track>
-          <div class="cl-line__bar" aria-hidden="true">
-            <div class="cl-line__fill" data-cl-progress></div>
-          </div>
+        <div class="g-circuit" id="gCircuit">
+          <span class="g-circuit__rail" aria-hidden="true"><i></i></span>
 
-          <ol class="cl-list">
-            <li class="cl-row" data-cl-step data-aos="fade-up">
-              <div class="cl-row__num" aria-hidden="true"><span>1</span></div>
-              <div class="cl-row__card">
-                <div class="cl-row__icon" aria-hidden="true"><i class="bi bi-bag-check-fill"></i></div>
-                <div class="cl-row__text">
-                  <h3>Order your SudoTag</h3>
-                  <p>Buy the official QR sticker on the website. It ships to your address.</p>
-                  <a class="cl-text-link" href="{% url 'buy_now' %}">Buy Now <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+          <ol class="g-circuit__list">
+            <!-- 01 -->
+            <li class="g-node" id="step-1">
+              <span class="g-node__dot" aria-hidden="true"><b class="st-mono">01</b></span>
+              <div class="g-node__body st-reveal">
+                <p class="g-node__stamp st-mono">Step 01 · 2 min</p>
+                <h3>Order your SudoTag</h3>
+                <p>Buy the official QR sticker on the website. It ships to your door, with no battery and no setup kit.</p>
+                <a class="g-link" href="{% url 'buy_now' %}">Buy now <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+              </div>
+              <div class="g-spec g-spec--ship st-glass st-reveal" style="--d:120ms" aria-hidden="true">
+                <div class="g-spec__head st-mono"><span>Order #ST-2041</span><span class="g-ok">In transit</span></div>
+                <div class="g-ship">
+                  <span class="g-ship__pin"><i class="bi bi-shop"></i><small>SudoTag</small></span>
+                  <span class="g-ship__road"><i class="g-ship__van"><i class="bi bi-truck"></i></i></span>
+                  <span class="g-ship__pin g-ship__pin--home"><i class="bi bi-house-door-fill"></i><small>Your door</small></span>
                 </div>
-                <div class="cl-row__visual" aria-hidden="true">
-                  <div class="cl-pill"><i class="bi bi-box-seam"></i> Delivered to you</div>
+                <div class="g-ship__box"><img src="{% landing_asset 'img/sudotag-sticker.webp' %}" alt="" width="1181" height="591" loading="lazy"></div>
+              </div>
+            </li>
+
+            <!-- 02 -->
+            <li class="g-node" id="step-2">
+              <span class="g-node__dot" aria-hidden="true"><b class="st-mono">02</b></span>
+              <div class="g-node__body st-reveal">
+                <p class="g-node__stamp st-mono">Step 02 · 1 min</p>
+                <h3>Activate the QR</h3>
+                <p>Use the <strong>SudoTag app</strong> or your <strong>phone browser</strong>. Both work. Scan the sticker, add your vehicle and confirm with an OTP.</p>
+                <a class="g-link" href="#activate">See app &amp; browser steps <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+              </div>
+              <div class="g-spec g-spec--qr st-glass st-reveal" style="--d:120ms" aria-hidden="true">
+                <div class="g-spec__head st-mono"><span>Tag status</span><span class="g-flip"><span>Unclaimed</span><span>Active ✓</span></span></div>
+                <div class="g-qr">
+                  <span class="st-vf"><i></i><i></i><i></i><i></i><span class="st-vf__line"></span></span>
+                  {% if scan_demo_qr_uri %}
+                  <img src="{{ scan_demo_qr_uri }}" alt="" width="132" height="132" loading="lazy" decoding="async">
+                  {% else %}
+                  <img src="{% landing_asset 'img/sudotag-qr-code.png' %}" alt="" width="132" height="132" loading="lazy" decoding="async">
+                  {% endif %}
+                </div>
+                <div class="g-otp st-mono"><span>4</span><span>8</span><span>1</span><span>7</span></div>
+              </div>
+            </li>
+
+            <!-- 03 -->
+            <li class="g-node" id="step-3">
+              <span class="g-node__dot" aria-hidden="true"><b class="st-mono">03</b></span>
+              <div class="g-node__body st-reveal">
+                <p class="g-node__stamp st-mono">Step 03 · 10 sec</p>
+                <h3>Stick it on your vehicle</h3>
+                <p>Place the tag where people can scan it, on the windshield, a body panel, the helmet or the scooter apron.</p>
+              </div>
+              <div class="g-spec g-spec--stick st-glass st-reveal" style="--d:120ms">
+                <div class="g-spec__head st-mono" aria-hidden="true"><span>Placement</span><span>Inside windshield · top corner</span></div>
+                <div class="g-stick">
+                  <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="SudoTag sticker on a car windshield" width="440" height="240" loading="lazy" decoding="async">
+                  <span class="g-stick__lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                  <span class="g-stick__tip st-mono" aria-hidden="true">Scannable from 1 m</span>
                 </div>
               </div>
             </li>
 
-            <li class="cl-row" data-cl-step data-aos="fade-up">
-              <div class="cl-row__num" aria-hidden="true"><span>2</span></div>
-              <div class="cl-row__card">
-                <div class="cl-row__icon" aria-hidden="true"><i class="bi bi-upc-scan"></i></div>
-                <div class="cl-row__text">
-                  <h3>Activate the QR</h3>
-                  <p>Use the <strong>SudoTag app</strong> or your <strong>phone browser</strong>. Both work — pick one below.</p>
-                  <a class="cl-text-link" href="#cl-activate">See app &amp; mobile steps <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            <!-- 04 -->
+            <li class="g-node" id="step-4">
+              <span class="g-node__dot" aria-hidden="true"><b class="st-mono">04</b></span>
+              <div class="g-node__body st-reveal">
+                <p class="g-node__stamp st-mono">Step 04 · anytime</p>
+                <h3>Manage from the app</h3>
+                <p>Manage your vehicles, tags and private alerts in one place. Live Status, family access, Lost Mode and documents are coming soon.</p>
+                <div class="g-stores">
+                  <a class="st-store" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-google-play" aria-hidden="true"></i><span><small>Get it on</small>Google Play</span>
+                  </a>
+                  <a class="st-store" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-apple" aria-hidden="true"></i><span><small>Download on the</small>App Store</span>
+                  </a>
                 </div>
-                <div class="cl-row__visual" aria-hidden="true">
-                  <div class="cl-qr-mini">
-                    {% if scan_demo_qr_uri %}
-                    <img src="{{ scan_demo_qr_uri }}" alt="" width="72" height="72" loading="lazy" decoding="async">
-                    {% else %}
-                    <img src="{% landing_asset 'img/sudotag-qr-code.png' %}" alt="" width="72" height="72" loading="lazy" decoding="async">
-                    {% endif %}
-                    <span>Scan</span>
-                  </div>
+              </div>
+              <div class="g-spec g-spec--app st-glass st-reveal" style="--d:120ms" aria-hidden="true">
+                <div class="g-spec__head st-mono"><span>KL 11 AB 1234</span><span class="g-ok">Tag live</span></div>
+                <p class="g-spec__note st-mono"><span class="g-soon">Soon</span>Live Status</p>
+                <div class="g-status" id="gStatus">
+                  <span class="g-status__pill"></span>
+                  <button type="button" tabindex="-1" data-st="safe">Available</button>
+                  <button type="button" tabindex="-1" data-st="amber">Busy</button>
+                  <button type="button" tabindex="-1" data-st="signal">Driving</button>
+                  <button type="button" tabindex="-1" data-st="alert">DND</button>
                 </div>
+                <ul class="g-toggles">
+                  <li><i class="bi bi-geo-alt"></i>Lost Mode<span class="g-soon st-mono">Soon</span></li>
+                  <li><i class="bi bi-people"></i>Family access<span class="g-soon st-mono">Soon</span></li>
+                  <li><i class="bi bi-file-earmark-text"></i>Documents<span class="g-soon st-mono">Soon</span></li>
+                </ul>
               </div>
             </li>
 
-            <li class="cl-row" data-cl-step data-aos="fade-up">
-              <div class="cl-row__num" aria-hidden="true"><span>3</span></div>
-              <div class="cl-row__card">
-                <div class="cl-row__icon" aria-hidden="true"><i class="bi bi-car-front-fill"></i></div>
-                <div class="cl-row__text">
-                  <h3>Stick it on your vehicle</h3>
-                  <p>Place the tag where people can scan it — windshield or body panel.</p>
-                </div>
-                <div class="cl-row__visual cl-row__visual--photo">
-                  <img src="{% landing_asset 'img/sudotag-windshield-tag.png' %}" alt="SudoTag sticker on a car windshield" width="220" height="120" loading="lazy" decoding="async">
-                </div>
+            <!-- 05 -->
+            <li class="g-node" id="step-5">
+              <span class="g-node__dot" aria-hidden="true"><b class="st-mono">05</b></span>
+              <div class="g-node__body st-reveal">
+                <p class="g-node__stamp st-mono">Step 05 · every scan</p>
+                <h3>Get alerts. <span class="st-grad">Stay private.</span></h3>
+                <p>When someone scans, you get a notification, chat, SMS or masked call, and your number is never shown.</p>
               </div>
-            </li>
-
-            <li class="cl-row" data-cl-step data-aos="fade-up">
-              <div class="cl-row__num" aria-hidden="true"><span>4</span></div>
-              <div class="cl-row__card">
-                <div class="cl-row__icon" aria-hidden="true"><i class="bi bi-phone-fill"></i></div>
-                <div class="cl-row__text">
-                  <h3>Manage from the app</h3>
-                  <p>Control Live Status, documents, family access, and Lost Mode in one place.</p>
-                  <div class="cl-store-row">
-                    <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-                      <i class="bi bi-google-play" aria-hidden="true"></i><span>Google Play</span>
-                    </a>
-                    <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-                      <i class="bi bi-apple" aria-hidden="true"></i><span>App Store</span>
-                    </a>
-                  </div>
-                </div>
-                <div class="cl-row__visual" aria-hidden="true">
-                  <ul class="cl-mini">
-                    <li>Live Status</li>
-                    <li>Documents</li>
-                    <li>Lost Mode</li>
-                  </ul>
-                </div>
-              </div>
-            </li>
-
-            <li class="cl-row" data-cl-step data-aos="fade-up">
-              <div class="cl-row__num" aria-hidden="true"><span>5</span></div>
-              <div class="cl-row__card">
-                <div class="cl-row__icon" aria-hidden="true"><i class="bi bi-shield-fill-check"></i></div>
-                <div class="cl-row__text">
-                  <h3>Get alerts. Stay private.</h3>
-                  <p>When someone scans, you get notify / chat / SMS / masked call — without showing your number.</p>
-                </div>
-                <div class="cl-row__visual" aria-hidden="true">
-                  <div class="cl-alert">
-                    <i class="bi bi-bell-fill"></i>
-                    <div>
-                      <strong>New scan alert</strong>
-                      <span>Number stays private</span>
-                    </div>
-                  </div>
+              <div class="g-spec g-spec--alert st-glass st-reveal" style="--d:120ms" aria-hidden="true">
+                <div class="g-spec__head st-mono"><span>Incoming</span><span class="g-ok">Masked</span></div>
+                <div class="g-feed">
+                  <div class="g-toast"><i class="bi bi-bell-fill"></i><span><b>Someone scanned your tag</b><small>"Your car is blocking the gate."</small></span><em class="st-mono">now</em></div>
+                  <div class="g-toast g-toast--chat"><i class="bi bi-chat-dots-fill"></i><span><b>New message</b><small>"Lights are on, FYI 🙂"</small></span><em class="st-mono">2m</em></div>
+                  <div class="g-toast g-toast--call"><i class="bi bi-telephone-fill"></i><span><b>Masked call</b><small class="st-mono" data-scramble-loop data-alt="•••• ••••• HIDDEN">+91 98470 12345</small></span><em class="st-mono">5m</em></div>
                 </div>
               </div>
             </li>
@@ -218,222 +248,226 @@
       </div>
     </section>
 
-    <!-- Activate QR: App + Mobile web (required detail) -->
-    <section class="cl-activate" id="cl-activate" aria-labelledby="cl-activate-title">
-      <div class="container">
-        <header class="cl-steps__head" data-aos="fade-up">
-          <p class="cl-label cl-label--center">QR activation</p>
-          <h2 id="cl-activate-title">Activate on App or Mobile web</h2>
-          <p>Same result either way — your QR is linked to your vehicle and ready for private scans.</p>
+    <!-- ============ 3 · Activation simulator ============ -->
+    <section class="st-section g-act" id="activate" aria-labelledby="actTitle">
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">QR activation</p>
+          <h2 id="actTitle">Two doors. <span class="st-grad">Same room.</span></h2>
+          <p>Activate in the app or in your phone browser. Either way your QR gets linked to your vehicle and is ready for private scans.</p>
         </header>
 
-        <div class="cl-activate__grid" data-aos="fade-up">
-          <!-- App path -->
-          <article class="cl-activate__card">
-            <div class="cl-activate__badge">
-              <i class="bi bi-phone" aria-hidden="true"></i>
-              <span>SudoTag App</span>
+        <div class="g-sim st-reveal" id="gSim" data-mode="app" data-step="0">
+          <div class="g-sim__side">
+            <div class="st-seg g-sim__seg" role="tablist" aria-label="Activation method">
+              <span class="st-seg__pill" aria-hidden="true"></span>
+              <button type="button" role="tab" aria-selected="true" data-sim-mode="app"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>SudoTag app</span></button>
+              <button type="button" role="tab" aria-selected="false" data-sim-mode="web"><i class="bi bi-globe2" aria-hidden="true"></i><span>Phone browser</span></button>
             </div>
-            <h3>Activate in the mobile app</h3>
-            <p class="cl-activate__lead">Best if you already use SudoTag on Android or iPhone.</p>
-            <ol class="cl-activate__steps">
-              <li>
-                <span class="cl-activate__n">1</span>
-                <div>
-                  <strong>Open SudoTag &amp; sign in</strong>
-                  <span>Download from Google Play or App Store if needed.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">2</span>
-                <div>
-                  <strong>Tap Activate QR</strong>
-                  <span>From your home / dashboard, choose Activate QR.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">3</span>
-                <div>
-                  <strong>Scan your sticker</strong>
-                  <span>Point the camera at the SudoTag QR (or pick from gallery).</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">4</span>
-                <div>
-                  <strong>Enter vehicle details</strong>
-                  <span>Registration number, vehicle info, and owner details.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">5</span>
-                <div>
-                  <strong>Submit — QR is active</strong>
-                  <span>Optional: add emergency contacts, then finish.</span>
-                </div>
-              </li>
-            </ol>
-            <div class="cl-store-row">
-              <a class="app-store-btn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-google-play" aria-hidden="true"></i><span>Google Play</span>
-              </a>
-              <a class="app-store-btn" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-apple" aria-hidden="true"></i><span>App Store</span>
-              </a>
-            </div>
-          </article>
 
-          <!-- Mobile / web path -->
-          <article class="cl-activate__card cl-activate__card--web">
-            <div class="cl-activate__badge cl-activate__badge--web">
-              <i class="bi bi-globe2" aria-hidden="true"></i>
-              <span>Mobile website</span>
-            </div>
-            <h3>Activate on phone browser</h3>
-            <p class="cl-activate__lead">No app install required to activate — use Safari / Chrome on your phone.</p>
-            <ol class="cl-activate__steps">
-              <li>
-                <span class="cl-activate__n">1</span>
-                <div>
-                  <strong>Open Scan QR on the website</strong>
-                  <span>Or scan the sticker with your phone camera — the link opens SudoTag.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">2</span>
-                <div>
-                  <strong>Scan or paste the QR</strong>
-                  <span>Use camera, gallery, or paste the QR link / ID.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">3</span>
-                <div>
-                  <strong>If QR is new → activation form</strong>
-                  <span>Inactive tags open activate. Already active tags open notify.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">4</span>
-                <div>
-                  <strong>Fill vehicle &amp; owner info</strong>
-                  <span>Complete the form on your mobile browser and submit.</span>
-                </div>
-              </li>
-              <li>
-                <span class="cl-activate__n">5</span>
-                <div>
-                  <strong>Check email &amp; open the app</strong>
-                  <span>Login details are sent by email. Download the app to manage your tag.</span>
-                </div>
-              </li>
+            <p class="g-sim__lead" data-sim-for="app">Best if you already use SudoTag on Android or iPhone.</p>
+            <p class="g-sim__lead" data-sim-for="web" hidden>No app install needed to activate. Use Safari or Chrome on your phone.</p>
+
+            <ol class="g-sim__steps" data-sim-for="app">
+              <li><button type="button" data-sim-go="0"><span class="st-mono">01</span><span><b>Open SudoTag &amp; sign in</b><small>Download from Google Play or the App Store if needed.</small></span></button></li>
+              <li><button type="button" data-sim-go="1"><span class="st-mono">02</span><span><b>Tap Activate QR</b><small>From your home dashboard, choose Activate QR.</small></span></button></li>
+              <li><button type="button" data-sim-go="2"><span class="st-mono">03</span><span><b>Scan your sticker</b><small>Point the camera at the SudoTag QR, or pick it from the gallery.</small></span></button></li>
+              <li><button type="button" data-sim-go="3"><span class="st-mono">04</span><span><b>Enter vehicle details</b><small>Registration number, vehicle info and owner details.</small></span></button></li>
+              <li><button type="button" data-sim-go="4"><span class="st-mono">05</span><span><b>Submit, and the QR is active</b><small>Optionally add emergency contacts, then finish.</small></span></button></li>
             </ol>
-            <a class="cl-btn cl-btn--orange" href="{% url 'index' %}#find-vehicle">Activate on Mobile Web</a>
-          </article>
+            <ol class="g-sim__steps" data-sim-for="web" hidden>
+              <li><button type="button" data-sim-go="0"><span class="st-mono">01</span><span><b>Open Scan QR on the website</b><small>Or scan the sticker with your phone camera. The link opens SudoTag.</small></span></button></li>
+              <li><button type="button" data-sim-go="1"><span class="st-mono">02</span><span><b>Scan or paste the QR</b><small>Use the camera or gallery, or paste the QR link or ID.</small></span></button></li>
+              <li><button type="button" data-sim-go="2"><span class="st-mono">03</span><span><b>New QR opens the activation form</b><small>Inactive tags open activation. Already active tags open notify.</small></span></button></li>
+              <li><button type="button" data-sim-go="3"><span class="st-mono">04</span><span><b>Fill in vehicle &amp; owner info</b><small>Complete the form in your mobile browser and submit.</small></span></button></li>
+              <li><button type="button" data-sim-go="4"><span class="st-mono">05</span><span><b>Check email &amp; open the app</b><small>Login details arrive by email. Download the app to manage your tag.</small></span></button></li>
+            </ol>
+
+            <div class="g-sim__cta">
+              <div class="g-stores" data-sim-for="app">
+                <a class="st-store" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer"><i class="bi bi-google-play" aria-hidden="true"></i><span><small>Get it on</small>Google Play</span></a>
+                <a class="st-store" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer"><i class="bi bi-apple" aria-hidden="true"></i><span><small>Download on the</small>App Store</span></a>
+              </div>
+              <a class="st-btn st-btn--signal" href="{% url 'index' %}#scan" data-sim-for="web" hidden><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Activate on mobile web</span></a>
+            </div>
+          </div>
+
+          <!-- Phone: one screen per step, per mode -->
+          <div class="g-phone" aria-hidden="true">
+            <div class="g-phone__body">
+              <span class="g-phone__island"></span>
+              <div class="g-phone__bar st-mono"><span>9:41</span><span class="g-phone__url"><i class="bi bi-lock-fill"></i>sudotag.com</span><span><i class="bi bi-reception-4"></i> <i class="bi bi-battery-full"></i></span></div>
+
+              <div class="g-screens">
+                <!-- APP -->
+                <section class="g-scr" data-scr="app-0">
+                  <span class="st-logo g-scr__logo">SudoTag<i></i></span>
+                  <p class="g-scr__t">Sign in</p>
+                  <span class="g-in st-mono"><b>+91</b>98470 •••••</span>
+                  <span class="g-otp g-otp--sm st-mono"><span>4</span><span>8</span><span>1</span><span>7</span></span>
+                  <span class="g-cta">Continue</span>
+                </section>
+                <section class="g-scr" data-scr="app-1">
+                  <p class="g-scr__t">Good evening 👋</p>
+                  <span class="g-card"><i class="bi bi-car-front"></i><span><b>My garage</b><small>0 vehicles</small></span></span>
+                  <span class="g-big g-tap"><i aria-hidden="true"><svg class="st-ico"><use href="#i-activate"/></svg></i>Activate QR</span>
+                  <span class="g-card g-card--dim"><i class="bi bi-broadcast"></i><span><b>Live Status</b><small>Coming soon</small></span></span>
+                </section>
+                <section class="g-scr g-scr--cam" data-scr="app-2">
+                  <span class="g-cam">
+                    <span class="st-vf"><i></i><i></i><i></i><i></i><span class="st-vf__line"></span></span>
+                    <i class="bi bi-qr-code"></i>
+                  </span>
+                  <span class="g-chip st-mono">Point at the sticker</span>
+                  <span class="g-cam__btns"><i class="bi bi-images"></i><b></b><i class="bi bi-lightning"></i></span>
+                </section>
+                <section class="g-scr" data-scr="app-3">
+                  <p class="g-scr__t">Vehicle details</p>
+                  <span class="g-plate st-mono"><b>IND</b><span data-type="KL 11 AB 1234">KL 11 AB 1234</span></span>
+                  <span class="g-chips"><span class="is-on">Car</span><span>Bike</span><span>Scooter</span></span>
+                  <span class="g-in">Owner name</span>
+                  <span class="g-cta">Submit</span>
+                </section>
+                <section class="g-scr g-scr--done" data-scr="app-4">
+                  <span class="g-done"><i class="bi bi-check-lg"></i></span>
+                  <p class="g-scr__t">QR is active</p>
+                  <small>KL 11 AB 1234 is ready for private scans.</small>
+                  <span class="g-card g-card--dim"><i class="bi bi-person-plus"></i><span><b>Emergency contact</b><small>Optional</small></span></span>
+                </section>
+
+                <!-- WEB -->
+                <section class="g-scr" data-scr="web-0">
+                  <span class="st-logo g-scr__logo">SudoTag<i></i></span>
+                  <p class="g-scr__t">Park freely. Stay private.</p>
+                  <span class="g-big g-tap"><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i>Scan QR</span>
+                  <span class="g-card g-card--dim"><i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i><span><b>Plate number</b><small>Find an owner</small></span></span>
+                </section>
+                <section class="g-scr" data-scr="web-1">
+                  <p class="g-scr__t">Scan &amp; find</p>
+                  <span class="g-cam g-cam--sm">
+                    <span class="st-vf"><i></i><i></i><i></i><i></i><span class="st-vf__line"></span></span>
+                    <i class="bi bi-qr-code"></i>
+                  </span>
+                  <span class="g-or st-mono">or paste link / ID</span>
+                  <span class="g-in st-mono g-in--type"><i class="bi bi-link-45deg"></i><span>sudotag.com/q/A7F3</span></span>
+                </section>
+                <section class="g-scr" data-scr="web-2">
+                  <p class="g-scr__t">Tag #A7F3</p>
+                  <span class="g-fork">
+                    <span class="g-fork__src st-mono">Scanned</span>
+                    <span class="g-fork__opt is-on"><i class="bi bi-stars"></i>New → Activate</span>
+                    <span class="g-fork__opt"><i class="bi bi-bell"></i>Active → Notify</span>
+                  </span>
+                  <span class="g-cta">Start activation</span>
+                </section>
+                <section class="g-scr" data-scr="web-3">
+                  <p class="g-scr__t">Activate tag</p>
+                  <span class="g-plate st-mono"><b>IND</b><span>KL 10 AY 2121</span></span>
+                  <span class="g-in">Owner name</span>
+                  <span class="g-in">Email for login</span>
+                  <span class="g-cta">Submit</span>
+                </section>
+                <section class="g-scr" data-scr="web-4">
+                  <p class="g-scr__t">Inbox</p>
+                  <span class="g-mail is-new"><i class="bi bi-envelope-open-fill"></i><span><b>Your SudoTag login</b><small>Your tag is active. Here's how to sign in…</small></span></span>
+                  <span class="g-mail"><i class="bi bi-envelope"></i><span><b>Welcome to SudoTag</b><small>Get the app to manage…</small></span></span>
+                  <span class="g-cta"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i> Get the app</span>
+                </section>
+              </div>
+
+              <span class="g-phone__prog"><i></i></span>
+            </div>
+          </div>
         </div>
 
-        <p class="cl-activate__note" data-aos="fade-up">
-          <i class="bi bi-info-circle" aria-hidden="true"></i>
-          Tip: After activation, stick the QR on the vehicle (step 3), then manage everything in the app.
-        </p>
+        <p class="g-tip st-reveal"><i class="bi bi-info-circle" aria-hidden="true"></i>Tip: after activating, stick the QR on the vehicle (step 03), then manage everything in the app.</p>
       </div>
     </section>
 
-    <!-- 3. One-line takeaway -->
-    <section class="cl-takeaway" aria-labelledby="cl-takeaway-title">
-      <div class="container" data-aos="fade-up">
-        <div class="cl-takeaway__card">
-          <h2 id="cl-takeaway-title">Remember this</h2>
-          <p class="cl-takeaway__big">
-            Scan QR → reach owner → <em>no phone number shared</em>
-          </p>
-          <ul class="cl-takeaway__list">
-            <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Private notify, chat, SMS, call</li>
-            <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Lost Mode when a vehicle is missing</li>
-            <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> You control who can reach you</li>
-          </ul>
-        </div>
+    <!-- ============ 4 · The one rule ============ -->
+    <section class="st-section g-rule" id="remember" aria-labelledby="ruleTitle">
+      <div class="st-wrap">
+        <p class="st-kicker st-reveal">Remember this</p>
+        <h2 id="ruleTitle" class="g-rule__eq st-reveal">
+          <span>Scan QR</span><i class="bi bi-arrow-right" aria-hidden="true"></i><span>reach owner</span><i class="bi bi-arrow-right" aria-hidden="true"></i><span class="g-rule__zero"><b class="st-mono" data-zero>98470 12345</b> numbers shared</span>
+        </h2>
+        <ul class="g-rule__list">
+          <li class="st-glass st-reveal"><i class="bi bi-chat-square-dots" aria-hidden="true"></i><b>Private contact</b><span>Notify, chat, SMS and masked call.</span></li>
+          <li class="st-glass st-reveal" style="--d:80ms"><i class="bi bi-geo-alt" aria-hidden="true"></i><b>Lost Mode <span class="g-soon st-mono">Soon</span></b><span>For when a vehicle goes missing. Coming soon.</span></li>
+          <li class="st-glass st-reveal" style="--d:160ms"><i class="bi bi-sliders" aria-hidden="true"></i><b>You're in control</b><span>Decide who can reach you, and when.</span></li>
+        </ul>
       </div>
     </section>
 
-    <!-- 4. CTA -->
-    <section class="cl-cta" aria-labelledby="cl-cta-title">
-      <div class="container cl-cta__inner" data-aos="zoom-in">
-        <h2 id="cl-cta-title">Ready to protect your vehicle?</h2>
-        <p>Start with a SudoTag sticker, or download the app if you already have one.</p>
-        <div class="cl-cta__actions">
-          <a class="cl-btn cl-btn--orange" href="{% url 'buy_now' %}">Get Your SudoTag</a>
-          <a class="cl-btn cl-btn--dark" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">Download App</a>
+    <!-- ============ 5 · Closing CTA ============ -->
+    <section class="st-final" id="contact" aria-labelledby="finalTitle">
+      <div class="st-final__field" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="st-wrap st-final__inner st-reveal">
+        <span class="st-logo st-logo--xl" aria-hidden="true">SudoTag<i></i></span>
+        <h2 id="finalTitle">Ready to protect <span class="st-grad">your vehicle?</span></h2>
+        <p>Start with a SudoTag sticker, or get the app if you already have one.</p>
+        <div class="st-hero__cta st-final__cta">
+          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Get your SudoTag</span></a>
+          <a class="st-btn st-btn--line st-btn--lg" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>Download the app</span></a>
         </div>
       </div>
     </section>
 
   </main>
 
-  <div class="cl-mobile-bar" role="region" aria-label="Quick actions">
-    <a class="cl-mobile-bar__buy" href="{% url 'buy_now' %}">
-      <i class="bi bi-bag-check-fill" aria-hidden="true"></i>
-      <span>Get Your SudoTag</span>
-    </a>
-    <a class="cl-mobile-bar__scan" href="{% url 'index' %}#find-vehicle">
-      <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
-      <span>Scan</span>
-    </a>
-  </div>
-
-  <footer id="footer" class="footer dark-background">
-    <div class="footer-top">
-      <div class="container">
-        <div class="row gy-4">
-          <div class="col-lg-4 col-md-6 footer-about">
-            <a href="{% url 'index' %}" class="logo d-flex align-items-center">
-              <span class="sitename">SudoTag</span>
-            </a>
-            <div class="footer-contact pt-3">
-              <p>Calicut, Kerala, India</p>
-              <p class="mt-3"><strong>Phone:</strong> <span>+91 7907965255</span></p>
-              <p><strong>Email:</strong> <span>sudotagonline@gmail.com</span></p>
-            </div>
-            <div class="social-links d-flex mt-4">
-              <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
-            </div>
-          </div>
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Useful Links</h4>
-            <ul>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'index' %}">Home</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'how_it_works' %}">How It Works</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'index' %}#find-vehicle">Scan QR</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'buy_now' %}">Buy Now</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Legal</h4>
-            <ul>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'privacy' %}">Privacy Policy</a></li>
-              <li><i class="bi bi-chevron-right"></i> <a href="{% url 'terms' %}">Terms of Service</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-4 col-md-12 footer-newsletter">
-            <h4>SudoTag</h4>
-            <p>Private QR contact for vehicles.</p>
-          </div>
-        </div>
+  <!-- ============ Footer ============ -->
+  <footer class="st-footer">
+    <div class="st-wrap st-footer__grid">
+      <div class="st-footer__brand">
+        <span class="st-logo">SudoTag<i></i></span>
+        <p>The private signal between vehicles and people.<br>Calicut, Kerala, India</p>
+      </div>
+      <nav class="st-footer__col" aria-label="Explore">
+        <h4>Explore</h4>
+        <a href="{% url 'index' %}">Home</a>
+        <a href="{% url 'index' %}#features">Features</a>
+        <a href="{% url 'index' %}#vehicles">Vehicles</a>
+        <a href="{% url 'how_it_works' %}">How it works</a>
+      </nav>
+      <nav class="st-footer__col" aria-label="Owners">
+        <h4>Owners</h4>
+        <a href="{% url 'buy_now' %}">Buy SudoTag</a>
+        <a href="{% url 'index' %}#scan">Activate a tag</a>
+        <a href="{% url 'index' %}#scan">Find by plate</a>
+        <a href="{% url 'index' %}#help">Help &amp; FAQ</a>
+      </nav>
+      <div class="st-footer__col">
+        <h4>Contact</h4>
+        <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> +91 79079 65255</a>
+        <a href="mailto:sudotagonline@gmail.com"><i class="bi bi-envelope"></i> sudotagonline@gmail.com</a>
+        <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> @sudotag</a>
       </div>
     </div>
-    <div class="copyright text-center">
-      <div class="container">
-        <p>© <span>Copyright</span> <strong class="px-1 sitename">SudoTag</strong> <span>All Rights Reserved</span></p>
-      </div>
+    <div class="st-wrap st-footer__legal">
+      <span>© SudoTag. All rights reserved.</span>
+      <span><a href="{% url 'privacy' %}">Privacy Policy</a> · <a href="{% url 'terms' %}">Terms &amp; Conditions</a></span>
     </div>
   </footer>
 
-  <a href="#main-content" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center" aria-label="Back to top">
-    <i class="bi bi-arrow-up-short" aria-hidden="true"></i>
-  </a>
+  <nav class="st-dock st-dock--fab" id="stDock" aria-label="Quick actions">
+    <span class="st-dock__bg" aria-hidden="true"></span>
+    <span class="st-dock__mark" aria-hidden="true"></span>
+    <a href="#steps" data-dock="steps"><i aria-hidden="true"><svg class="st-ico"><use href="#i-route"/></svg></i><span>Steps</span></a>
+    <a href="{% url 'buy_now' %}" data-dock="buy"><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy</span></a>
+    <a href="{% url 'index' %}#scan" class="st-dock__fab" data-dock="scan" aria-label="Scan a SudoTag QR">
+      <span class="st-dock__orb" aria-hidden="true">
+        <span class="st-dock__ring"></span>
+        <span class="st-dock__vf"><i></i><i></i><i></i><i></i></span>
+        <i class="st-dock__ico" aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><i class="st-dock__ico st-dock__ico--cam" aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
+        <span class="st-dock__line"></span>
+      </span>
+      <span class="st-dock__lbl" data-dock-label>Scan</span>
+    </a>
+    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link data-dock="app"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>App</span></a>
+    <a href="#activate" data-dock="activate"><i aria-hidden="true"><svg class="st-ico"><use href="#i-activate"/></svg></i><span>Activate</span></a>
+  </nav>
 
-  <script src="{% static 'landing/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'landing/vendor/aos/aos.js' %}"></script>
-  <script src="{% url 'how_it_works_js' %}" defer></script>
+  <script src="{% landing_asset 'js/signal.js' %}" defer></script>
+  <script src="{% landing_asset 'js/guide.js' %}" defer></script>
 </body>
 </html>
