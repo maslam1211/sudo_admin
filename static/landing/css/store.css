@@ -275,3 +275,8 @@ body.checkout-loader-open { overflow: hidden; }
   .sx-road__line i { width: 100%; }
   .sx-road__van { left: 100%; }
 }
+
+/* social proof under the buy button */
+.sx-proof { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 14px; color: var(--text-lo); }
+.sx-proof i { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: rgba(0, 229, 168, .12); color: var(--safe); }
+.sx-proof b { color: var(--text-hi); font-weight: 700; }

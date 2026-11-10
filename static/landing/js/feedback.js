@@ -49,6 +49,13 @@
     return html;
   }
 
+  /* Rating shown as phone signal bars (1–5) */
+  function barsHtml(rating) {
+    let html = '<span class="st-bars" aria-label="' + rating + ' out of 5">';
+    for (let i = 1; i <= 5; i += 1) html += i <= rating ? '<i class="is-on"></i>' : '<i></i>';
+    return html + '<b class="st-mono">' + rating + '/5</b></span>';
+  }
+
   function setVisible(el, show) {
     if (!el) return;
     el.hidden = !show;
@@ -77,6 +84,7 @@
     if (!slidesEl) return;
     if (!list || !list.length) {
       slidesEl.innerHTML = '';
+      document.dispatchEvent(new CustomEvent('st:feedback', { detail: [] }));
       setVisible(swiperEl, false);
       setVisible(emptyEl, true);
       setVisible(errorEl, false);
@@ -90,22 +98,21 @@
       const message = escapeHtml(fb.feedback || '');
       const date = escapeHtml(fb.createdAt || '');
       const img = escapeHtml(fb.profileImage || defaultAvatar);
-      const rating = Number(fb.rating) || 0;
+      const rating = Math.max(0, Math.min(5, Number(fb.rating) || 0));
       return `
         <div class="swiper-slide">
-          <div class="testimonial-item">
-            <img src="${img}" class="testimonial-img" alt="${name}" loading="lazy">
-            <h3>${name}</h3>
-            ${date ? `<h4>${date}</h4>` : ''}
-            <div class="stars" aria-label="${rating} out of 5 stars">${starsHtml(rating)}</div>
-            <p>
-              <i class="bi bi-quote quote-icon-left"></i>
-              <span>${message}</span>
-              <i class="bi bi-quote quote-icon-right"></i>
-            </p>
-          </div>
+          <article class="st-msg" data-rating="${rating}">
+            <header class="st-msg__top st-mono"><span class="st-msg__rx"><i></i>Signal received</span>${date ? `<time>${date}</time>` : ''}</header>
+            ${barsHtml(rating)}
+            <p class="st-msg__text">${message}</p>
+            <footer class="st-msg__from">
+              <img src="${img}" alt="" loading="lazy" width="38" height="38">
+              <span><b>${name}</b><small><i class="bi bi-shield-check" aria-hidden="true"></i>Checked by SudoTag</small></span>
+            </footer>
+          </article>
         </div>`;
     }).join('');
+    document.dispatchEvent(new CustomEvent('st:feedback', { detail: list }));
 
     setVisible(emptyEl, false);
     setVisible(errorEl, false);

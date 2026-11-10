@@ -476,7 +476,12 @@
             </a>
           </div>
 
-          <div class="st-persona st-in" style="--i:7">
+          <div class="st-trust st-in" style="--i:7">
+            <span class="st-trust__stack" aria-hidden="true"><i style="--k:0"><svg viewBox="0 0 240 120"><use href="#v-car"/></svg></i><i style="--k:1"><svg viewBox="0 0 240 120"><use href="#v-bike"/></svg></i><i style="--k:2"><svg viewBox="0 0 240 120"><use href="#v-scooter"/></svg></i><i style="--k:3"><svg viewBox="0 0 240 120"><use href="#v-auto"/></svg></i></span>
+            <span class="st-trust__txt"><b>{% users_countdown %} owners</b> already park without sharing their number<span class="st-trust__live"><i></i>Live</span></span>
+          </div>
+
+          <div class="st-persona st-in" style="--i:8">
             <span class="st-persona__label">I drive a…</span>
             <div class="st-persona__chips" role="radiogroup" aria-label="Choose your vehicle">
               <button type="button" role="radio" aria-checked="true" data-persona="car">Car</button>
@@ -1123,7 +1128,15 @@
     <!-- ============ 8 · Numbers ============ -->
     <section class="st-numbers" aria-label="SudoTag in numbers">
       <div class="st-wrap st-numbers__grid">
-        <div class="st-num st-reveal"><b data-count="0" data-from="9847012345">0</b><span>phone numbers shown to scanners</span></div>
+        <div class="st-num st-num--lead st-reveal">
+          <div class="st-num__main"><b>{% users_countdown %}</b><span>owners on the SudoTag app</span></div>
+          <div class="st-meter" style="--p:{% users_meter %}%" aria-hidden="true">
+            <p class="st-meter__top st-mono"><span><i></i>Live on the road</span><span>Next stop 300</span></p>
+            <div class="st-meter__track"><i></i></div>
+            <p class="st-meter__scale st-mono"><span>0</span><span>100</span><span>200</span><span>300</span></p>
+          </div>
+        </div>
+        <div class="st-num st-reveal" style="--d:60ms"><b data-count="0" data-from="9847012345">0</b><span>phone numbers shown to scanners</span></div>
         <div class="st-num st-reveal" style="--d:80ms"><b data-count="4">4</b><span>private ways to reach you</span></div>
         <div class="st-num st-reveal" style="--d:160ms"><b data-count="6">6</b><span>vehicle types, one tag</span></div>
         <div class="st-num st-reveal" style="--d:240ms"><b data-count="0" data-from="100">0</b><span>batteries to charge, ever</span></div>
@@ -1173,6 +1186,7 @@
           </div>
           <button type="submit" class="st-btn st-btn--signal"><i class="bi bi-whatsapp"></i><span>Join on WhatsApp</span></button>
           <small>Opens WhatsApp with your details filled in. Nothing is stored on this page.</small>
+        </form>
       </div>
     </section>
 
@@ -1228,98 +1242,140 @@
       <div class="st-wrap">
         <header class="st-head st-reveal">
           <p class="st-kicker">Stories</p>
-          <h2>From the people who park with us.</h2>
+          <h2>Signals from the people <span class="st-grad">who park with us.</span></h2>
+          <p>Real reviews from SudoTag owners. Every one is checked before it appears here.</p>
         </header>
 
-        <div id="feedback-loading" class="st-voices__state" hidden>
-          <div class="st-skeleton" aria-hidden="true"></div>
-          <p>Loading feedback…</p>
-        </div>
-        <div id="feedback-empty" class="st-voices__state" {% if approved_feedbacks %}hidden{% endif %}>
-          <p>No reviews yet. Be the first to share yours below.</p>
-        </div>
-        <div id="feedback-error" class="st-voices__state" hidden>
-          <p>Unable to load feedback right now. Please try again later.</p>
-        </div>
+        <div class="st-voices__grid">
+          <!-- Signal strength: live summary of the approved reviews -->
+          <aside class="st-score st-glass st-reveal" id="stScore" aria-live="polite">
+            <p class="st-score__k st-mono"><i class="st-score__rx"></i>Signal strength</p>
+            <div class="st-score__big">
+              <b data-score-avg>–</b>
+              <span class="st-bars st-bars--lg" data-score-bars aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            </div>
+            <p class="st-score__n"><b data-score-n>0</b> <span data-score-noun>reviews</span> from SudoTag owners</p>
+            <ul class="st-score__dist" data-score-dist>
+              <li data-r="5"><span class="st-mono">5</span><i><b></b></i><em class="st-mono">0</em></li>
+              <li data-r="4"><span class="st-mono">4</span><i><b></b></i><em class="st-mono">0</em></li>
+              <li data-r="3"><span class="st-mono">3</span><i><b></b></i><em class="st-mono">0</em></li>
+              <li data-r="2"><span class="st-mono">2</span><i><b></b></i><em class="st-mono">0</em></li>
+              <li data-r="1"><span class="st-mono">1</span><i><b></b></i><em class="st-mono">0</em></li>
+            </ul>
+            <div class="st-score__foot">
+              <p class="st-stamp st-mono"><span>{% users_countdown %}</span>owners &amp; counting</p>
+              <a class="st-btn st-btn--signal st-btn--sm" href="#stReview" data-open-review><i class="bi bi-pencil-square" aria-hidden="true"></i><span>Write a review</span></a>
+            </div>
+          </aside>
 
-        <div class="swiper st-reveal" id="feedback-swiper" {% if not approved_feedbacks %}hidden{% endif %}>
-          <script type="application/json" class="swiper-config">
-            {
-              "loop": true,
-              "speed": 6000,
-              "autoplay": { "delay": 0, "disableOnInteraction": false, "pauseOnMouseEnter": true },
-              "freeMode": { "enabled": true, "momentum": false },
-              "slidesPerView": 1.1,
-              "spaceBetween": 16,
-              "breakpoints": {
-                "768": { "slidesPerView": 2.2, "spaceBetween": 20 },
-                "1200": { "slidesPerView": 3.2, "spaceBetween": 24 }
-              },
-              "pagination": { "el": ".swiper-pagination", "type": "bullets", "clickable": true }
-            }
-          </script>
-          <div class="swiper-wrapper" id="feedback-slides">
-            {% for fb in approved_feedbacks %}
-            <div class="swiper-slide">
-              <div class="testimonial-item">
-                {% if fb.profileImage %}
-                <img src="{{ fb.profileImage }}" class="testimonial-img" alt="{{ fb.name }}" loading="lazy">
-                {% else %}
-                <img src="{% landing_asset 'img/testimonials/testimonials-1.jpg' %}" class="testimonial-img" alt="{{ fb.name }}" loading="lazy">
-                {% endif %}
-                <h3>{{ fb.name }}</h3>
-                {% if fb.createdAt %}<h4>{{ fb.createdAt }}</h4>{% endif %}
-                <div class="stars" aria-label="{{ fb.rating }} out of 5 stars">
-                  {% for i in "12345" %}
-                    {% if forloop.counter <= fb.rating %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}
-                  {% endfor %}
+          <div class="st-voices__wall">
+            <div id="feedback-loading" class="st-voices__state" hidden>
+              <div class="st-skeleton" aria-hidden="true"></div>
+              <p>Loading feedback…</p>
+            </div>
+            <div id="feedback-empty" class="st-voices__state" {% if approved_feedbacks %}hidden{% endif %}>
+              <p>No signals yet. Be the first to share yours below.</p>
+            </div>
+            <div id="feedback-error" class="st-voices__state" hidden>
+              <p>Unable to load feedback right now. Please try again later.</p>
+            </div>
+
+            <!-- Still by default: no auto-scrolling. Swipe / drag, or use the arrows and dots. -->
+            <div class="swiper st-reveal" id="feedback-swiper" {% if not approved_feedbacks %}hidden{% endif %}>
+              <script type="application/json" class="swiper-config">
+                {
+                  "loop": false,
+                  "speed": 500,
+                  "grabCursor": true,
+                  "slidesPerView": 1.08,
+                  "spaceBetween": 14,
+                  "breakpoints": {
+                    "640": { "slidesPerView": 1.6, "spaceBetween": 16 },
+                    "1024": { "slidesPerView": 1.7, "spaceBetween": 18 },
+                    "1280": { "slidesPerView": 2.2, "spaceBetween": 20 }
+                  },
+                  "navigation": { "prevEl": ".st-voices__prev", "nextEl": ".st-voices__next" },
+                  "pagination": { "el": ".swiper-pagination", "type": "bullets", "clickable": true }
+                }
+              </script>
+              <div class="swiper-wrapper" id="feedback-slides">
+                {% for fb in approved_feedbacks %}
+                <div class="swiper-slide">
+                  <article class="st-msg" data-rating="{{ fb.rating }}">
+                    <header class="st-msg__top st-mono"><span class="st-msg__rx"><i></i>Signal received</span>{% if fb.createdAt %}<time>{{ fb.createdAt }}</time>{% endif %}</header>
+                    <span class="st-bars" aria-label="{{ fb.rating }} out of 5"><i{% if fb.rating >= 1 %} class="is-on"{% endif %}></i><i{% if fb.rating >= 2 %} class="is-on"{% endif %}></i><i{% if fb.rating >= 3 %} class="is-on"{% endif %}></i><i{% if fb.rating >= 4 %} class="is-on"{% endif %}></i><i{% if fb.rating >= 5 %} class="is-on"{% endif %}></i><b class="st-mono">{{ fb.rating }}/5</b></span>
+                    <p class="st-msg__text">{{ fb.feedback }}</p>
+                    <footer class="st-msg__from">
+                      <img src="{% if fb.profileImage %}{{ fb.profileImage }}{% else %}{% landing_asset 'img/testimonials/testimonials-1.jpg' %}{% endif %}" alt="" loading="lazy" width="38" height="38">
+                      <span><b>{{ fb.name }}</b><small><i class="bi bi-shield-check" aria-hidden="true"></i>Checked by SudoTag</small></span>
+                    </footer>
+                  </article>
                 </div>
-                <p>
-                  <i class="bi bi-quote quote-icon-left"></i>
-                  <span>{{ fb.feedback }}</span>
-                  <i class="bi bi-quote quote-icon-right"></i>
-                </p>
+                {% endfor %}
+              </div>
+              <div class="st-voices__nav">
+                <button type="button" class="st-round st-voices__prev" aria-label="Previous review"><i class="bi bi-arrow-left"></i></button>
+                <div class="swiper-pagination"></div>
+                <button type="button" class="st-round st-voices__next" aria-label="Next review"><i class="bi bi-arrow-right"></i></button>
               </div>
             </div>
-            {% endfor %}
           </div>
-          <div class="swiper-pagination"></div>
         </div>
 
         <details class="st-review st-glass st-reveal" id="stReview">
           <summary>
-            <span><i class="bi bi-pencil-square" aria-hidden="true"></i>Using SudoTag? Share your experience</span>
-            <i class="bi bi-plus-lg st-review__plus" aria-hidden="true"></i>
+            <span class="st-review__sum">
+              <i class="st-review__ico bi bi-broadcast" aria-hidden="true"></i>
+              <span class="st-review__txt"><b>Using SudoTag? Send us your signal</b><small>Takes under a minute. Reviews are checked before they appear here.</small></span>
+            </span>
+            <span class="st-review__cta"><span class="st-review__word">Write</span><i class="bi bi-plus-lg st-review__plus" aria-hidden="true"></i></span>
           </summary>
-          <p class="st-review__lead">Reviews are checked before they appear here.</p>
-          <form id="landing-feedback-form" class="st-form" novalidate>
-            {% csrf_token %}
-            <div class="st-form__grid">
-              <label class="st-form__field">
-                <span>Name *</span>
-                <input type="text" id="fb-name" name="name" required maxlength="80" placeholder="Your name" autocomplete="name">
-              </label>
-              <label class="st-form__field">
-                <span>Email (optional)</span>
-                <input type="email" id="fb-email" name="email" maxlength="120" placeholder="you@email.com" autocomplete="email">
-              </label>
-              <div class="st-form__field st-form__field--full">
-                <span>Rating *</span>
-                <div class="feedback-rating" role="radiogroup" aria-label="Rating">
-                  {% for i in "12345" %}
-                  <button type="button" class="feedback-star" data-value="{{ i }}" aria-label="{{ i }} stars"><i class="bi bi-star"></i></button>
-                  {% endfor %}
+          <div class="st-composer">
+            <form id="landing-feedback-form" class="st-form" novalidate>
+              {% csrf_token %}
+              <div class="st-form__grid">
+                <label class="st-form__field">
+                  <span>Name *</span>
+                  <input type="text" id="fb-name" name="name" required maxlength="80" placeholder="Your name" autocomplete="name">
+                </label>
+                <label class="st-form__field">
+                  <span>Email (optional)</span>
+                  <input type="email" id="fb-email" name="email" maxlength="120" placeholder="you@email.com" autocomplete="email">
+                </label>
+                <div class="st-form__field st-form__field--full">
+                  <span>Signal strength (your rating) *</span>
+                  <div class="st-rate">
+                    <div class="feedback-rating" role="radiogroup" aria-label="Rating">
+                      {% for i in "12345" %}
+                      <button type="button" class="feedback-star" data-value="{{ i }}" aria-label="{{ i }} out of 5"><i class="bi bi-star"></i></button>
+                      {% endfor %}
+                    </div>
+                    <p class="st-rate__word st-mono" data-rate-word aria-live="polite">Tap a bar</p>
+                  </div>
+                  <input type="hidden" name="rating" id="fb-rating" value="" required>
                 </div>
-                <input type="hidden" name="rating" id="fb-rating" value="" required>
+                <label class="st-form__field st-form__field--full">
+                  <span class="st-form__row"><span>Your review *</span><small class="st-mono" data-fb-count>0 / 1000</small></span>
+                  <textarea id="fb-message" name="feedback" rows="4" required maxlength="1000" placeholder="How has SudoTag helped you?"></textarea>
+                </label>
               </div>
-              <label class="st-form__field st-form__field--full">
-                <span>Your review *</span>
-                <textarea id="fb-message" name="feedback" rows="4" required maxlength="1000" placeholder="How has SudoTag helped you?"></textarea>
-              </label>
-            </div>
-            <button type="submit" class="st-btn st-btn--signal" id="fb-submit-btn"><span>Submit review</span></button>
-            <div id="fb-form-alert" class="feedback-alert" hidden role="status"></div>
-          </form>
+              <button type="submit" class="st-btn st-btn--signal" id="fb-submit-btn"><i class="bi bi-send" aria-hidden="true"></i><span>Send review</span></button>
+              <div id="fb-form-alert" class="feedback-alert" hidden role="status"></div>
+            </form>
+
+            <aside class="st-preview" aria-hidden="true">
+              <p class="st-preview__k st-mono">Live preview</p>
+              <article class="st-msg" id="stPreview">
+                <header class="st-msg__top st-mono"><span class="st-msg__rx"><i></i>Signal draft</span><time>Today</time></header>
+                <span class="st-bars" data-prev-bars><i></i><i></i><i></i><i></i><i></i><b class="st-mono" data-prev-score>–/5</b></span>
+                <p class="st-msg__text is-empty" data-prev-text>Your words will appear here as you type.</p>
+                <footer class="st-msg__from">
+                  <span class="st-preview__av" data-prev-av>?</span>
+                  <span><b data-prev-name>Your name</b><small><i class="bi bi-hourglass-split" aria-hidden="true"></i>Checked before it goes live</small></span>
+                </footer>
+              </article>
+            </aside>
+          </div>
           <span class="st-burst" aria-hidden="true"><i></i><i></i><i></i></span>
         </details>
       </div>
@@ -1403,6 +1459,7 @@
         <span class="st-logo st-logo--xl" aria-hidden="true">SudoTag<i></i></span>
         <h2 id="finalTitle">One scan. <span class="st-grad">Zero exposure.</span></h2>
         <p>Every vehicle gets a voice and your number stays silent.</p>
+        <p class="st-join"><span class="st-beacon" aria-hidden="true"></span>Join <b>{% users_countdown %} owners</b> who never hand out their number.</p>
         <div class="st-hero__cta st-final__cta">
           <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy SudoTag</span></a>
           <a class="st-btn st-btn--line st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan a tag</span></a>

@@ -925,6 +925,29 @@
   })();
 
   /* =================================================================
+     Owners figure: starts at 300 and counts DOWN to the real number
+     (e.g. 300+ -> 100+) the first time it scrolls into view.
+     ================================================================= */
+  $$('[data-countdown]').forEach(function (el) {
+    var from = +el.getAttribute('data-countdown'), to = +el.getAttribute('data-to');
+    if (reduce || !(from > to)) return;
+    el.textContent = from + '+';
+    var done = false;
+    whenVisible(el, function () {
+      if (done) return; done = true;
+      var t0 = null, D = 1500;
+      setTimeout(function () {
+        requestAnimationFrame(function f(t) {
+          if (t0 === null) t0 = t;
+          var p = clamp((t - t0) / D, 0, 1);
+          el.textContent = Math.round(from - (from - to) * easeOut(p)) + '+';
+          if (p < 1) requestAnimationFrame(f); else el.classList.add('is-done');
+        });
+      }, 250);
+    }, null, '0px 0px -10% 0px');
+  });
+
+  /* =================================================================
      Numbers: count up; the "0" counts DOWN from a phone number
      ================================================================= */
   $$('[data-count]').forEach(function (el) {
@@ -1046,6 +1069,72 @@
   }
 
   /* =================================================================
+     Stories: "signal strength" summary computed from approved reviews
+     ================================================================= */
+  (function score() {
+    var box = $('#stScore'); if (!box) return;
+    var avgEl = $('[data-score-avg]', box), nEl = $('[data-score-n]', box), nounEl = $('[data-score-noun]', box);
+    var bars = $$('[data-score-bars] i', box), rows = $$('[data-score-dist] li', box);
+    function paint(ratings) {
+      var n = ratings.length, sum = 0, counts = [0, 0, 0, 0, 0, 0];
+      ratings.forEach(function (r) { r = clamp(Math.round(r), 1, 5); sum += r; counts[r]++; });
+      var avg = n ? sum / n : 0;
+      box.classList.toggle('is-empty', !n);
+      if (avgEl) avgEl.textContent = n ? avg.toFixed(1) : '–';
+      if (nEl) nEl.textContent = n;
+      if (nounEl) nounEl.textContent = n === 1 ? 'review' : 'reviews';
+      bars.forEach(function (b, i) { b.classList.toggle('is-on', n && avg >= i + .5); });
+      rows.forEach(function (li) {
+        var r = +li.getAttribute('data-r'), c = counts[r] || 0;
+        li.querySelector('em').textContent = c;
+        li.querySelector('b').style.width = (n ? c / n * 100 : 0) + '%';
+      });
+    }
+    paint($$('#feedback-slides .st-msg[data-rating]').map(function (m) { return +m.getAttribute('data-rating'); }));
+    document.addEventListener('st:feedback', function (e) {
+      paint((e.detail || []).map(function (fb) { return Number(fb.rating) || 0; }).filter(Boolean));
+    });
+    /* "Write a review" opens the form and scrolls to it */
+    $$('[data-open-review]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        var d = $('#stReview'); if (!d) return;
+        e.preventDefault(); d.open = true;
+        d.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+        var f = $('#fb-name'); if (f) setTimeout(function () { f.focus({ preventScroll: true }); }, 500);
+      });
+    });
+  })();
+
+  /* =================================================================
+     Review composer: live preview, rating word, character count.
+     Submission itself stays in feedback.js.
+     ================================================================= */
+  (function composer() {
+    var form = $('#landing-feedback-form'), prev = $('#stPreview'); if (!form || !prev) return;
+    var nameIn = $('#fb-name'), msgIn = $('#fb-message'), rateIn = $('#fb-rating');
+    var count = $('[data-fb-count]'), word = $('[data-rate-word]');
+    var pName = $('[data-prev-name]', prev), pAv = $('[data-prev-av]', prev), pText = $('[data-prev-text]', prev);
+    var pScore = $('[data-prev-score]', prev), pBars = $$('[data-prev-bars] i', prev);
+    var WORDS = ['Tap a bar', 'Weak signal', 'Fair signal', 'Good signal', 'Strong signal', 'Full signal'];
+    var EMPTY = pText.textContent;
+    function sync() {
+      var n = nameIn.value.trim(), m = msgIn.value.trim(), r = +rateIn.value || 0;
+      pName.textContent = n || 'Your name';
+      pAv.textContent = n ? n.charAt(0).toUpperCase() : '?';
+      pText.textContent = m || EMPTY;
+      pText.classList.toggle('is-empty', !m);
+      pScore.textContent = (r || '–') + '/5';
+      pBars.forEach(function (b, i) { b.classList.toggle('is-on', i < r); });
+      if (word) { word.textContent = WORDS[r]; word.classList.toggle('is-set', r > 0); }
+      if (count) { count.textContent = msgIn.value.length + ' / 1000'; count.classList.toggle('is-near', msgIn.value.length > 900); }
+    }
+    form.addEventListener('input', sync);
+    form.addEventListener('click', function (e) { if (e.target.closest('.feedback-star')) sync(); });
+    form.addEventListener('reset', function () { setTimeout(sync, 0); });
+    sync();
+  })();
+
+  /* =================================================================
      Help: search-as-you-type FAQ
      ================================================================= */
   (function faq() {
@@ -1102,6 +1191,21 @@
       '<span class="st-cursor__dot"></span><span class="st-cursor__label st-mono"></span>';
     body.appendChild(el);
     root.classList.add('st-cursor-on');
+    /* Modal <dialog>s render in the browser's top layer, above any z-index.
+       The cursor joins the top layer as a manual popover and is re-raised
+       whenever a dialog opens, so it always stays above popups. Without
+       popover support, fall back to the native pointer while a dialog is open. */
+    var canPop = typeof el.showPopover === 'function';
+    if (canPop) el.setAttribute('popover', 'manual');
+    function lift() {
+      var modal = !!document.querySelector('dialog[open]');
+      if (!canPop) { root.classList.toggle('st-cursor-on', !modal); el.style.display = modal ? 'none' : ''; return; }
+      try { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } catch (err) {}
+    }
+    lift();
+    if ('MutationObserver' in window) new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) if (ms[i].target.tagName === 'DIALOG') { setTimeout(lift, 0); return; }
+    }).observe(body, { subtree: true, attributes: true, attributeFilter: ['open'] });
     var frame = el.firstChild, dot = el.children[1], label = el.children[2];
     var LOCK = 'a[href], button:not([disabled]), [role="button"], [role="tab"], [role="radio"], label.st-btn, summary, .st-tile, [data-cursor="lock"]';
     var SCAN = '[data-cursor="scan"], .st-tag3d, .st-cam, .g-qr, .g-stick, .st-sc--glass, .st-dz__stage';

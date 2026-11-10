@@ -309,3 +309,8 @@
 .g-spec__note .g-soon { margin-left: 0; }
 .g-spec--app .g-status { opacity: .55; filter: saturate(.6); }
 .g-rule__list b .g-soon { margin-left: 6px; vertical-align: 2px; }
+
+/* social proof under the hero CTAs */
+.g-proof { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; padding: 8px 16px 8px 8px; border-radius: 14px; background: linear-gradient(90deg, rgba(0, 229, 168, .1), transparent); border-left: 2px solid var(--safe); color: var(--text-mid); font-size: 14.5px; }
+.g-proof > i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: rgba(0, 229, 168, .14); color: var(--safe); font-size: 16px; --ico-accent: var(--safe); }
+.g-proof b { color: var(--text-hi); }

@@ -162,3 +162,45 @@ def to_ist_format(value):
         return dt.strftime("%A, %B %d, %Y - %I:%M %p")
     
     return value
+
+# ---------------------------------------------------------------------------
+# Public "owners on SudoTag" figure shown on the landing pages.
+# Set SUDOTAG_PUBLIC_USERS in settings (or change the default below) when the
+# real number grows. Shown as "N+" and kept between 1 and 299 on purpose.
+# ---------------------------------------------------------------------------
+_PUBLIC_USERS_DEFAULT = 100
+
+
+def _public_users():
+    try:
+        n = int(getattr(settings, 'SUDOTAG_PUBLIC_USERS', _PUBLIC_USERS_DEFAULT))
+    except (TypeError, ValueError):
+        n = _PUBLIC_USERS_DEFAULT
+    return max(1, min(n, 299))
+
+
+@register.simple_tag
+def users_plus():
+    """e.g. '100+'"""
+    return f'{_public_users()}+'
+
+
+@register.simple_tag
+def users_count():
+    """Bare number for count-up animations, e.g. 100"""
+    return _public_users()
+
+
+@register.simple_tag
+def users_countdown(start=300):
+    """'100+' wrapped so signal.js counts it DOWN from `start` (default 300)
+    to the real figure when it scrolls into view. Without JS it simply reads '100+'."""
+    from django.utils.html import format_html
+    n = _public_users()
+    return format_html('<span class="st-cd" data-countdown="{}" data-to="{}">{}+</span>', max(int(start), n), n, n)
+
+
+@register.simple_tag
+def users_meter(goal=300):
+    """Percent of the way to `goal`, for the owners meter on the landing page."""
+    return round(_public_users() / goal * 100, 1)
