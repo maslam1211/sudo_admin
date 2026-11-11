@@ -1,0 +1,50 @@
+{% load static custom_filters %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+  <title>{% block title %}SudoTag{% endblock %}</title>
+  <meta name="description" content="{% block description %}SudoTag is a private QR tag for every vehicle.{% endblock %}">
+  <meta name="theme-color" content="#07080B">
+  <meta property="og:site_name" content="SudoTag">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% landing_asset 'img/sudotag-sticker.png' %}">
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('st-js');
+      try { var t = localStorage.getItem('st-theme'); if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t); } catch (e) {}
+      setTimeout(function () { if (!window.__stBooted) d.classList.remove('st-js'); }, 6000);
+    })();
+  </script>
+  {% include 'includes/favicon_links.html' %}
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="{% static 'landing/vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% landing_asset 'css/signal.css' %}" rel="stylesheet">
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body class="st-page {% block body_class %}{% endblock %}">
+  {% include 'includes/st_icons.html' %}
+  {% include 'includes/st_vehicle_defs.html' %}
+  <div class="st-fx" aria-hidden="true"><span class="st-fx__grain"></span><span class="st-fx__vignette"></span></div>
+  <div class="st-progress" id="stProgress" aria-hidden="true"></div>
+  <div class="st-wipe" id="stWipe" aria-hidden="true"><span></span></div>
+
+  {% include 'includes/st_header.html' %}
+
+  <main id="main">
+{% block content %}{% endblock %}
+{% include 'includes/st_cta.html' %}
+  </main>
+
+  {% include 'includes/st_footer.html' %}
+  {% include 'includes/st_dock.html' %}
+
+  {% block extra_js %}{% endblock %}
+  <script src="{% landing_asset 'js/signal.js' %}" defer></script>
+</body>
+</html>

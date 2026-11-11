@@ -101,7 +101,7 @@
   /* =================================================================
      Header, progress, dock, menu, scroll spy
      ================================================================= */
-  var header = $('#stHeader'), progress = $('#stProgress'), dock = $('#stDock'), hero = $('#hero');
+  var header = $('#stHeader'), progress = $('#stProgress'), dock = $('#stDock'), hero = $('#hero') || $('main > section');
   var lastY = 0, ticking = false;
   function onScroll() {
     var y = window.scrollY;
@@ -469,6 +469,15 @@
     var HUD = [['TAG ARMED', 'IDLE', ''], ['SCAN DETECTED', 'HANDSHAKE', 'var(--amber)'], ['RELAY · MASKING', 'ENCRYPTED', 'var(--signal-2)'], ['OWNER PINGED', 'DELIVERED', 'var(--safe)'], ['CHANNEL OPEN', 'LIVE', 'var(--safe)']];
     var desktop = window.matchMedia('(min-width: 1024px)');
     function scrollMode() { return desktop.matches && !reduce; }
+    var PHASE = [0, 0, 1, 2, 2], PWORD = ['SCAN', 'SIGNAL', 'RESPOND'], SPAN = [[0, 2], [2, 3], [3, 5]];
+    var phases = $$('.st-phase li', st), pword = $('[data-phase-word]', st), sweep = $('.st-sweep', st);
+    /* fill each phase segment by story progress (x chapters out of 5) */
+    function phaseFill(x) {
+      phases.forEach(function (li, i) {
+        var a = SPAN[i][0], b = SPAN[i][1];
+        li.style.setProperty('--f', clamp((x - a) / (b - a), 0, 1).toFixed(3));
+      });
+    }
 
     function set(n) {
       n = clamp(n, 0, 4); if (n === cur) return; cur = n;
@@ -483,6 +492,13 @@
       if (hudLink) hudLink.textContent = HUD[n][1];
       if (stage) { if (HUD[n][2]) stage.style.setProperty('--hud-c', HUD[n][2]); else stage.style.removeProperty('--hud-c'); }
       if (num) { num.textContent = lbl; num.classList.remove('is-tick'); void num.offsetWidth; num.classList.add('is-tick'); }
+      /* Scan → Signal → Respond phase bar, backdrop word, beam sweep */
+      var ph = PHASE[n];
+      phases.forEach(function (li, i) { li.classList.toggle('is-on', i === ph); li.classList.toggle('is-done', i < ph); });
+      st.setAttribute('data-phase', ph);
+      if (pword && pword.textContent !== PWORD[ph]) { if (reduce) pword.textContent = PWORD[ph]; else scramble(pword, PWORD[ph], 700); }
+      if (sweep && !reduce) { sweep.classList.remove('is-go'); void sweep.offsetWidth; sweep.classList.add('is-go'); }
+      if (!scrollMode()) phaseFill(n + 1, 5);
       if (glyph) {
         if (n === 2) scramble(glyph, '#&%@ MASKED %$#!', 1200);
         else if (n > 2) glyph.textContent = '•••• MASKED ••••';
@@ -499,7 +515,10 @@
     function onScroll() {
       if (!scrollMode()) return;
       var r = st.getBoundingClientRect(), total = st.offsetHeight - window.innerHeight;
-      set(Math.floor(clamp(-r.top / (total || 1), 0, .999) * 5));
+      var prog = clamp(-r.top / (total || 1), 0, .999);
+      set(Math.floor(prog * 5));
+      phaseFill(prog * 5);
+      st.style.setProperty('--sp', prog.toFixed(3));
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     rail.forEach(function (b, i) {
@@ -519,8 +538,15 @@
   /* =================================================================
      Scan console: tab links, plate "snap"
      ================================================================= */
+  /* Coming from another page via a Scan / Plate link: open the right tab */
+  (function () {
+    var want = null; try { want = sessionStorage.getItem('st-scan-tab'); sessionStorage.removeItem('st-scan-tab'); } catch (e) {}
+    var t = want && $('.find-vehicle-tab[data-tab="' + want + '"]');
+    if (t && !t.classList.contains('is-active')) setTimeout(function () { t.click(); }, 300);
+  })();
   document.addEventListener('click', function (e) {
     var link = e.target.closest('[data-scan-tab]'); if (!link) return;
+    if (!$('#findVehicleCard')) { try { sessionStorage.setItem('st-scan-tab', link.getAttribute('data-scan-tab')); } catch (err) {} return; }
     var tab = $('.find-vehicle-tab[data-tab="' + link.getAttribute('data-scan-tab') + '"]');
     if (tab && !tab.classList.contains('is-active')) tab.click();
     var card = $('#findVehicleCard'); if (card) card.setAttribute('data-mode', link.getAttribute('data-scan-tab'));

@@ -1,0 +1,19 @@
+{% with u=request.resolver_match.url_name %}
+  <nav class="st-dock st-dock--fab" id="stDock" aria-label="Quick actions">
+    <span class="st-dock__bg" aria-hidden="true"></span>
+    <span class="st-dock__mark" aria-hidden="true"></span>
+    <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="plate" data-dock="plate"><i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i><span>Plate</span></a>
+    <a href="{% url 'buy_now' %}" data-dock="buy"><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy</span></a>
+    <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr" class="st-dock__fab" data-dock="scan" aria-label="Scan a SudoTag QR">
+      <span class="st-dock__orb" aria-hidden="true">
+        <span class="st-dock__ring"></span>
+        <span class="st-dock__vf"><i></i><i></i><i></i><i></i></span>
+        <i class="st-dock__ico" aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><i class="st-dock__ico st-dock__ico--cam" aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
+        <span class="st-dock__line"></span>
+      </span>
+      <span class="st-dock__lbl" data-dock-label>Scan</span>
+    </a>
+    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link data-dock="app"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>App</span></a>
+    <a href="{% url 'help' %}" data-dock="help"><i aria-hidden="true"><svg class="st-ico"><use href="#i-help"/></svg></i><span>Help</span></a>
+  </nav>
+{% endwith %}

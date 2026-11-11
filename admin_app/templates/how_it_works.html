@@ -45,32 +45,7 @@
   <div class="st-wipe" id="stWipe" aria-hidden="true"><span></span></div>
 
   <!-- ============ Header ============ -->
-  <header class="st-header" id="stHeader">
-    <div class="st-wrap st-header__bar">
-      <a href="{% url 'index' %}" class="st-logo" aria-label="SudoTag home">SudoTag<i aria-hidden="true"></i></a>
-
-      <nav class="st-nav" id="stNav" aria-label="Main">
-        <a href="#steps">Five steps</a>
-        <a href="#activate">Activate</a>
-        <a href="#remember">The rule</a>
-        <a href="{% url 'index' %}#features">Features</a>
-        <a href="{% url 'buy_now' %}" class="st-nav__mobile-only">Buy SudoTag</a>
-      </nav>
-
-      <div class="st-header__actions">
-        <button type="button" class="st-iconbtn" id="stTheme" aria-label="Switch to light mode">
-          <i class="bi bi-sun" aria-hidden="true"></i><i class="bi bi-moon-stars" aria-hidden="true"></i>
-        </button>
-        <a class="st-btn st-btn--line st-btn--sm st-hide-sm" href="{% url 'buy_now' %}" data-magnetic>Buy</a>
-        <a class="st-btn st-btn--signal st-btn--sm" href="{% url 'index' %}#scan" data-magnetic>
-          <i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan</span>
-        </a>
-        <button type="button" class="st-burger" id="stBurger" aria-label="Open menu" aria-expanded="false" aria-controls="stNav">
-          <span></span><span></span>
-        </button>
-      </div>
-    </div>
-  </header>
+  {% include 'includes/st_header.html' %}
 
   <main id="main">
 
@@ -417,56 +392,9 @@
   </main>
 
   <!-- ============ Footer ============ -->
-  <footer class="st-footer">
-    <div class="st-wrap st-footer__grid">
-      <div class="st-footer__brand">
-        <span class="st-logo">SudoTag<i></i></span>
-        <p>The private signal between vehicles and people.<br>Calicut, Kerala, India</p>
-      </div>
-      <nav class="st-footer__col" aria-label="Explore">
-        <h4>Explore</h4>
-        <a href="{% url 'index' %}">Home</a>
-        <a href="{% url 'index' %}#features">Features</a>
-        <a href="{% url 'index' %}#vehicles">Vehicles</a>
-        <a href="{% url 'how_it_works' %}">How it works</a>
-      </nav>
-      <nav class="st-footer__col" aria-label="Owners">
-        <h4>Owners</h4>
-        <a href="{% url 'buy_now' %}">Buy SudoTag</a>
-        <a href="{% url 'index' %}#scan">Activate a tag</a>
-        <a href="{% url 'index' %}#scan">Find by plate</a>
-        <a href="{% url 'index' %}#help">Help &amp; FAQ</a>
-      </nav>
-      <div class="st-footer__col">
-        <h4>Contact</h4>
-        <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> +91 79079 65255</a>
-        <a href="mailto:sudotagonline@gmail.com"><i class="bi bi-envelope"></i> sudotagonline@gmail.com</a>
-        <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> @sudotag</a>
-      </div>
-    </div>
-    <div class="st-wrap st-footer__legal">
-      <span>© SudoTag. All rights reserved.</span>
-      <span><a href="{% url 'privacy' %}">Privacy Policy</a> · <a href="{% url 'terms' %}">Terms &amp; Conditions</a></span>
-    </div>
-  </footer>
+  {% include 'includes/st_footer.html' %}
 
-  <nav class="st-dock st-dock--fab" id="stDock" aria-label="Quick actions">
-    <span class="st-dock__bg" aria-hidden="true"></span>
-    <span class="st-dock__mark" aria-hidden="true"></span>
-    <a href="#steps" data-dock="steps"><i aria-hidden="true"><svg class="st-ico"><use href="#i-route"/></svg></i><span>Steps</span></a>
-    <a href="{% url 'buy_now' %}" data-dock="buy"><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy</span></a>
-    <a href="{% url 'index' %}#scan" class="st-dock__fab" data-dock="scan" aria-label="Scan a SudoTag QR">
-      <span class="st-dock__orb" aria-hidden="true">
-        <span class="st-dock__ring"></span>
-        <span class="st-dock__vf"><i></i><i></i><i></i><i></i></span>
-        <i class="st-dock__ico" aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><i class="st-dock__ico st-dock__ico--cam" aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
-        <span class="st-dock__line"></span>
-      </span>
-      <span class="st-dock__lbl" data-dock-label>Scan</span>
-    </a>
-    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link data-dock="app"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>App</span></a>
-    <a href="#activate" data-dock="activate"><i aria-hidden="true"><svg class="st-ico"><use href="#i-activate"/></svg></i><span>Activate</span></a>
-  </nav>
+  {% include 'includes/st_dock.html' %}
 
   <script src="{% landing_asset 'js/signal.js' %}" defer></script>
   <script src="{% landing_asset 'js/guide.js' %}" defer></script>

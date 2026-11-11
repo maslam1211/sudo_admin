@@ -1,0 +1,24 @@
+{% load custom_filters %}{% with u=request.resolver_match.url_name %}
+    <!-- ============ Closing CTA over pulse field ============ -->
+    <section class="st-final" id="contact" aria-labelledby="finalTitle">
+      <div class="st-final__field" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="st-wrap st-final__inner st-reveal">
+        <span class="st-logo st-logo--xl" aria-hidden="true">SudoTag<i></i></span>
+        <h2 id="finalTitle">One scan. <span class="st-grad">Zero exposure.</span></h2>
+        <p>Every vehicle gets a voice and your number stays silent.</p>
+        <p class="st-join"><span class="st-beacon" aria-hidden="true"></span>Join <b>{% users_countdown %} owners</b> who never hand out their number.</p>
+        <div class="st-hero__cta st-final__cta">
+          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy SudoTag</span></a>
+          <a class="st-btn st-btn--line st-btn--lg" href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan a tag</span></a>
+        </div>
+        <div class="st-stores">
+          <a class="st-store" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-google-play" aria-hidden="true"></i><span><small>Get it on</small>Google Play</span>
+          </a>
+          <a class="st-store" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-apple" aria-hidden="true"></i><span><small>Download on the</small>App Store</span>
+          </a>
+        </div>
+      </div>
+    </section>
+{% endwith %}

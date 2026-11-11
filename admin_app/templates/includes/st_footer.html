@@ -1,0 +1,36 @@
+{% with u=request.resolver_match.url_name %}
+  <footer class="st-footer">
+    <div class="st-wrap st-footer__grid">
+      <div class="st-footer__brand">
+        <span class="st-logo">SudoTag<i></i></span>
+        <p>The private signal between vehicles and people.<br>Calicut, Kerala, India</p>
+      </div>
+      <nav class="st-footer__col" aria-label="Explore">
+        <h4>Explore</h4>
+        <a href="{% url 'index' %}">Home</a>
+        <a href="{% url 'how_it_works' %}">How it works</a>
+        <a href="{% url 'features' %}">Features</a>
+        <a href="{% url 'fleet' %}">Fleet (coming soon)</a>
+        <a href="{% url 'help' %}">Help &amp; FAQ</a>
+      </nav>
+      <nav class="st-footer__col" aria-label="Owners">
+        <h4>Owners</h4>
+        <a href="{% url 'buy_now' %}">Buy SudoTag</a>
+        <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr">Activate a tag</a>
+        <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="plate">Find by plate</a>
+        <a href="{% url 'privacy' %}">Privacy Policy</a>
+        <a href="{% url 'terms' %}">Terms &amp; Conditions</a>
+      </nav>
+      <div class="st-footer__col">
+        <h4>Contact</h4>
+        <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> +91 79079 65255</a>
+        <a href="mailto:sudotagonline@gmail.com"><i class="bi bi-envelope"></i> sudotagonline@gmail.com</a>
+        <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> @sudotag</a>
+      </div>
+    </div>
+    <div class="st-wrap st-footer__legal">
+      <span>© SudoTag. All rights reserved.</span>
+      <span><a href="{% url 'privacy' %}">Privacy Policy</a> · <a href="{% url 'terms' %}">Terms &amp; Conditions</a></span>
+    </div>
+  </footer>
+{% endwith %}

@@ -1,0 +1,53 @@
+{% extends "landing_base.html" %}
+{% load static custom_filters %}
+{% block title %}Fleet · SudoTag{% endblock %}
+{% block description %}SudoTag for fleets: private contact for every vehicle today, fleet tools coming soon. Get early access.{% endblock %}
+{% block content %}
+    <span id="hero" class="st-anchor" aria-hidden="true"></span>
+<!-- ============ 9 · Fleet ============ -->
+    <section class="st-section st-fleet st-page-first" id="fleet" aria-labelledby="fleetTitle">
+      <div class="st-wrap">
+        <div class="st-offer-banner st-reveal">
+          <span class="st-offer-banner__badge">Early access</span>
+          <p>Activate your SudoTag now and get <b>1 year free fleet access</b> when Fleet launches.</p>
+          <a class="st-btn st-btn--signal st-btn--sm" href="{% url 'buy_now' %}">Get a tag</a>
+        </div>
+
+        <div class="st-fleet__grid">
+          <header class="st-head st-reveal">
+            <p class="st-kicker">Fleet <span class="st-soon st-soon--lg">Coming soon</span></p>
+            <h2 id="fleetTitle">Fleet tools are <span class="st-grad">on the way.</span></h2>
+            <p>Every SudoTag already works on trucks, taxis, buses and delivery vehicles today. Next, we're building tools to run a whole fleet from one place.</p>
+            <ul class="st-fleet__list">
+              <li class="is-live"><i class="bi bi-shield-check"></i><div><b>Private contact for every vehicle <span class="st-tagpill st-tagpill--live">Available now</span></b><span>Anyone can scan a tag and alert the driver. Numbers stay hidden on both sides.</span></div></li>
+              <li><i class="bi bi-grid-1x2"></i><div><b>Fleet dashboard <span class="st-tagpill">Soon</span></b><span>Every vehicle and every alert in one view.</span></div></li>
+              <li><i class="bi bi-person-badge"></i><div><b>Driver assignment by shift <span class="st-tagpill">Soon</span></b><span>Route each vehicle's alerts to whoever is driving it.</span></div></li>
+              <li><i class="bi bi-calendar2-check"></i><div><b>Document expiry reminders <span class="st-tagpill">Soon</span></b><span>Insurance, PUC and permits flagged before they lapse.</span></div></li>
+            </ul>
+          </header>
+
+          <div class="st-fleet__dash st-glass st-reveal" aria-hidden="true">
+            <div class="st-fleet__bar"><span class="st-dot" style="background:var(--amber)"></span><span class="st-mono">FLEET · PREVIEW</span><span class="st-fleet__count st-mono">Coming soon</span></div>
+            <canvas id="stFleet"></canvas>
+            <div class="st-fleet__toasts" id="stFleetToasts"></div>
+            <span class="st-fleet__ribbon st-mono">Preview of what's coming</span>
+          </div>
+        </div>
+
+        <form class="st-lead st-glass st-reveal" id="stLead" aria-labelledby="leadTitle">
+          <h3 id="leadTitle">Get early access to Fleet</h3>
+          <p class="st-lead__lead">Tell us about your vehicles and we'll reach out when Fleet launches.</p>
+          <div class="st-lead__grid">
+            <label><span>Name</span><input name="name" required autocomplete="name" placeholder="Your name"></label>
+            <label><span>Company</span><input name="company" autocomplete="organization" placeholder="Company"></label>
+            <label><span>Fleet size</span>
+              <select name="size"><option>2–10</option><option>11–50</option><option>51–200</option><option>200+</option></select>
+            </label>
+            <label><span>Phone</span><input name="phone" type="tel" autocomplete="tel" placeholder="+91" inputmode="tel"></label>
+          </div>
+          <button type="submit" class="st-btn st-btn--signal"><i class="bi bi-whatsapp"></i><span>Join on WhatsApp</span></button>
+          <small>Opens WhatsApp with your details filled in. Nothing is stored on this page.</small>
+        </form>
+      </div>
+    </section>
+{% endblock %}

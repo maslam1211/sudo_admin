@@ -202,36 +202,7 @@
   <a class="st-skip" href="#main">Skip to content</a>
 
   <!-- SVG sprite: vehicle line-art (pathLength=1 so every outline draws in the same time) -->
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-    <defs>
-      <symbol id="v-car" viewBox="0 0 240 120">
-        <path pathLength="1" d="M14 86V68q0-10 12-12l26-4 24-24q6-6 16-6h56q10 0 18 8l20 22 28 4q12 2 12 14v16h-20M170 86H66M30 86H14"/>
-        <path pathLength="1" d="M84 50l14-18h48l16 18zM122 32v18"/>
-        <circle pathLength="1" cx="48" cy="88" r="16"/><circle pathLength="1" cx="188" cy="88" r="16"/>
-      </symbol>
-      <symbol id="v-bike" viewBox="0 0 240 120">
-        <circle pathLength="1" cx="50" cy="86" r="24"/><circle pathLength="1" cx="190" cy="86" r="24"/>
-        <path pathLength="1" d="M50 86l36-32h54l26 32M86 54l18 32h36M140 54l20-20h18M160 34l30 52M98 54q10-16 36-12"/>
-      </symbol>
-      <symbol id="v-scooter" viewBox="0 0 240 120">
-        <circle pathLength="1" cx="54" cy="92" r="17"/><circle pathLength="1" cx="186" cy="92" r="17"/>
-        <path pathLength="1" d="M54 92h28q16 0 20-18h48q16 0 20 18M100 74q-4-22 18-22h30q12 0 6 22M174 92L160 30M148 30h26"/>
-      </symbol>
-      <symbol id="v-auto" viewBox="0 0 240 120">
-        <circle pathLength="1" cx="60" cy="94" r="14"/><circle pathLength="1" cx="184" cy="94" r="14"/>
-        <path pathLength="1" d="M30 94V42q0-22 30-22h92q22 2 30 24l18 34v16h-4M170 94H74M46 94H30M150 20v58H30M150 60h44"/>
-      </symbol>
-      <symbol id="v-taxi" viewBox="0 0 240 120">
-        <path pathLength="1" d="M14 86V68q0-10 12-12l26-4 24-24q6-6 16-6h56q10 0 18 8l20 22 28 4q12 2 12 14v16h-20M170 86H66M30 86H14"/>
-        <path pathLength="1" d="M106 22v-10h28v10M84 50l14-18h48l16 18z"/>
-        <circle pathLength="1" cx="48" cy="88" r="16"/><circle pathLength="1" cx="188" cy="88" r="16"/>
-      </symbol>
-      <symbol id="v-truck" viewBox="0 0 240 120">
-        <path pathLength="1" d="M12 90V24h138v66M150 40h36l26 24h14v26h-14M178 90H74M40 90H12M186 40v24h28"/>
-        <circle pathLength="1" cx="57" cy="92" r="16"/><circle pathLength="1" cx="195" cy="92" r="16"/>
-      </symbol>
-    </defs>
-  </svg>
+  {% include 'includes/st_vehicle_defs.html' %}
 
   <!-- ============ Splash: viewfinder locks on, branded QR assembles from the
        centre out, progress follows real loading, one pulse opens the page ============ -->
@@ -411,38 +382,11 @@
   <div class="st-progress" id="stProgress" aria-hidden="true"></div>
   <div class="st-wipe" id="stWipe" aria-hidden="true"><span></span></div>
 
-  <!-- ============ Header ============ -->
-  <header class="st-header" id="stHeader">
-    <div class="st-wrap st-header__bar">
-      <a href="{% url 'index' %}" class="st-logo" aria-label="SudoTag home">SudoTag<i aria-hidden="true"></i></a>
-
-      <nav class="st-nav" id="stNav" aria-label="Main">
-        <a href="#how">How it works</a>
-        <a href="#vehicles">Vehicles</a>
-        <a href="#features">Features</a>
-        <a href="#fleet">Fleet <span class="st-soon">Soon</span></a>
-        <a href="#help">Help</a>
-        <a href="{% url 'buy_now' %}" class="st-nav__mobile-only">Buy SudoTag</a>
-      </nav>
-
-      <div class="st-header__actions">
-        <button type="button" class="st-iconbtn" id="stTheme" aria-label="Switch to light mode">
-          <i class="bi bi-sun" aria-hidden="true"></i><i class="bi bi-moon-stars" aria-hidden="true"></i>
-        </button>
-        <a class="st-btn st-btn--line st-btn--sm st-hide-sm" href="{% url 'buy_now' %}" data-magnetic>Buy</a>
-        <a class="st-btn st-btn--signal st-btn--sm" href="#scan" data-scan-tab="qr" data-magnetic>
-          <i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan</span>
-        </a>
-        <button type="button" class="st-burger" id="stBurger" aria-label="Open menu" aria-expanded="false" aria-controls="stNav">
-          <span></span><span></span>
-        </button>
-      </div>
-    </div>
-  </header>
+  {% include 'includes/st_header.html' %}
 
   <main id="main">
 
-    <!-- ============ 1 · Hero ============ -->
+<!-- ============ 1 · Hero ============ -->
     <section class="st-hero" id="hero" data-persona="car">
       <canvas class="st-hero__canvas" id="stRoad" aria-hidden="true"></canvas>
       <div class="st-hero__fallback" aria-hidden="true"></div>
@@ -529,7 +473,7 @@
         </div>
       </div>
 
-      <a href="#privacy" class="st-scrollcue" aria-label="Scroll to learn more"><span></span></a>
+      <a href="#how" class="st-scrollcue" aria-label="Scroll to learn more"><span></span></a>
     </section>
 
     <!-- Ticker -->
@@ -548,22 +492,6 @@
       </div>
     </section>
 
-    <!-- ============ 2 · Privacy moment (pinned): number → particles → logo ============ -->
-    <section class="st-privacy" id="privacy" aria-labelledby="privacyTitle">
-      <div class="st-privacy__pin">
-        <canvas class="st-privacy__canvas" id="stDissolve" aria-hidden="true"></canvas>
-        <div class="st-privacy__static" aria-hidden="true"><span class="st-mono">+91 98••• •••••</span><span class="st-privacy__arrow">→</span><span class="st-logo st-logo--xl">SudoTag<i></i></span></div>
-        <div class="st-privacy__captions">
-          <p class="st-kicker">The privacy moment</p>
-          <h2 id="privacyTitle">
-            <span class="st-cap is-on" data-cap="0">A number on the dashboard is an open door.</span>
-            <span class="st-cap" data-cap="1">With SudoTag, it dissolves.</span>
-            <span class="st-cap" data-cap="2">They reach you. <em>They never see you.</em></span>
-          </h2>
-        </div>
-      </div>
-    </section>
-
     <!-- ============ 3 · How it works — 5-chapter pinned story ============ -->
     <section class="st-section st-how" id="how" aria-labelledby="howTitle">
       <div class="st-wrap">
@@ -576,6 +504,7 @@
 
       <div class="st-story" id="stStory" data-chapter="0">
         <div class="st-story__pin">
+          <span class="st-phase-word" aria-hidden="true" data-phase-word>SCAN</span>
           <div class="st-wrap st-story__grid">
             <ol class="st-rail" aria-label="Chapters">
               <li><button type="button" data-go="0"><span>01</span>Stick the tag</button></li>
@@ -585,7 +514,14 @@
               <li><button type="button" data-go="4"><span>05</span>Talk, privately</button></li>
             </ol>
 
+            <div class="st-story__col">
+            <ol class="st-phase" aria-label="Phase">
+              <li data-phase="0"><span class="st-phase__bars" aria-hidden="true"><i></i><i></i><i></i></span><b>Scan</b><span class="st-phase__fill" aria-hidden="true"></span></li>
+              <li data-phase="1"><span class="st-phase__bars" aria-hidden="true"><i></i><i></i><i></i></span><b>Signal</b><span class="st-phase__fill" aria-hidden="true"></span></li>
+              <li data-phase="2"><span class="st-phase__bars" aria-hidden="true"><i></i><i></i><i></i></span><b>Respond</b><span class="st-phase__fill" aria-hidden="true"></span></li>
+            </ol>
             <div class="st-story__stage st-glass" aria-hidden="true">
+              <span class="st-sweep"></span>
               <!-- HUD: live channel read-out -->
               <span class="st-hud__corners"><i></i><i></i><i></i><i></i></span>
               <div class="st-hud st-mono">
@@ -641,6 +577,7 @@
                 <small>Owner</small>
               </div>
             </div>
+            </div>
 
             <div class="st-story__text" aria-live="polite">
               <span class="st-story__num" aria-hidden="true" data-story-num>01</span>
@@ -664,7 +601,7 @@
       </div>
     </section>
 
-    <!-- ============ 4 · Scan & Find (find_vehicle.js hooks preserved) ============ -->
+<!-- ============ 4 · Scan & Find (find_vehicle.js hooks preserved) ============ -->
     <section class="st-section st-scan" id="scan" aria-labelledby="scanTitle">
       <span id="find-vehicle" class="st-anchor" aria-hidden="true"></span>
       <span id="activate-qr" class="st-anchor" aria-hidden="true"></span>
@@ -829,303 +766,26 @@
       </div>
     </div>
 
-    <!-- ============ 5 · Features bento (tiles expand into sheets) ============ -->
-    <section class="st-section st-features" id="features" aria-labelledby="featTitle">
-      <div class="st-wrap">
-        <header class="st-head st-reveal">
-          <p class="st-kicker">More than a sticker</p>
-          <h2 id="featTitle">Your whole garage, <span class="st-grad">in one app.</span></h2>
-          <p>Tap any tile to open it.</p>
-        </header>
-
-        <div class="st-bento">
-          <button type="button" class="st-tile st-tile--xl st-glass st-reveal" data-feature="qr" data-tilt>
-            <span class="st-tile__fx st-fx-qr"><span class="st-pulse st-pulse--sm"><i></i><i></i><i></i></span><i class="bi bi-qr-code"></i></span>
-            <h3>Private QR contact</h3><p>Anyone can reach you. Nobody sees behind the tag.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--wide st-glass st-reveal" data-feature="garage" style="--d:60ms" data-tilt>
-            <span class="st-tile__fx st-fx-garage"><span class="st-mini-plate">KL 11 AB 1234</span><span class="st-mini-plate">KL 10 AY 2121</span><span class="st-mini-plate">KL 07 CD 5678</span></span>
-            <h3>Multi-vehicle garage</h3><p>Every car, bike and scooter on one account.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="locker" style="--d:120ms" data-tilt>
-            <span class="st-soon-badge">Coming soon</span>
-            <span class="st-tile__fx st-fx-locker"><span class="st-fx-locker__doc">RC</span><span class="st-fx-locker__door"></span></span>
-            <h3>Document locker</h3><p>RC, insurance and PUC in the app. On the way.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="assign" style="--d:60ms" data-tilt>
-            <span class="st-soon-badge">Coming soon</span>
-            <span class="st-tile__fx st-fx-assign"><i class="bi bi-person-fill"></i><span></span><i class="bi bi-person"></i></span>
-            <h3>Family &amp; temp assign</h3><p>Soon: hand alerts to whoever is driving today.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--alert st-tile--soon st-glass st-reveal" data-feature="lost" style="--d:120ms" data-tilt>
-            <span class="st-soon-badge">Coming soon</span>
-            <span class="st-tile__fx st-fx-lost"><span></span><span></span><span></span><i class="bi bi-geo-alt-fill"></i></span>
-            <h3>Lost Mode + tips</h3><p>Soon: community scans send you sightings with location.</p>
-          </button>
-          <button type="button" class="st-tile st-glass st-reveal" data-feature="channels" style="--d:180ms" data-tilt>
-            <span class="st-tile__fx st-fx-channels"><span class="st-mono" data-scramble-loop>98470 12345</span></span>
-            <h3>Chat · SMS · masked call</h3><p>Talk without either side seeing a number.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="status" style="--d:60ms" data-tilt>
-            <span class="st-soon-badge">Coming soon</span>
-            <span class="st-tile__fx st-fx-status"><span>Available</span><span>Busy</span><span>Driving</span><span>DND</span></span>
-            <h3>Live Status</h3><p>Soon: let scanners know what to expect before they wait.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--soon st-glass st-reveal" data-feature="ai" style="--d:120ms" data-tilt>
-            <span class="st-soon-badge">Coming soon</span>
-            <span class="st-tile__fx st-fx-ai"><i class="bi bi-stars"></i><span class="st-fx-ai__type">How do I use Lost Mode?</span></span>
-            <h3>Sudo AI</h3><p>Soon: quick answers for everyday ownership.</p>
-          </button>
-          <button type="button" class="st-tile st-glass st-reveal" data-feature="order" style="--d:180ms" data-tilt>
-            <span class="st-tile__fx st-fx-order"><i class="bi bi-box-seam"></i></span>
-            <h3>Order QR tags</h3><p>Extra tags for new vehicles, right from the app.</p>
-          </button>
-          <button type="button" class="st-tile st-tile--signal st-glass st-reveal" data-feature="refer" style="--d:240ms" data-tilt>
-            <span class="st-tile__fx st-fx-refer"><i class="bi bi-gift"></i></span>
-            <h3>Refer &amp; earn</h3><p>Invite friends and earn rewards when they join.</p>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <dialog class="st-sheet" id="stSheet" aria-labelledby="stSheetTitle">
-      <div class="st-sheet__inner">
-        <button type="button" class="st-round st-sheet__close" data-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
-        <div class="st-sheet__phone" aria-hidden="true">
-          <span class="st-sc__island"></span>
-          <div class="st-sheet__screen" id="stSheetScreen"></div>
-        </div>
-        <div class="st-sheet__copy">
-          <p class="st-kicker" id="stSheetKicker">Feature</p>
-          <h3 id="stSheetTitle">Feature</h3>
-          <p id="stSheetLead"></p>
-          <ul id="stSheetList"></ul>
-          <div class="st-sheet__cta">
-            <a class="st-btn st-btn--signal" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>Get the app</span></a>
-            <a class="st-btn st-btn--line" href="{% url 'buy_now' %}">Buy a tag</a>
-          </div>
-        </div>
-      </div>
-    </dialog>
-
-    <!-- ============ 6 · For every vehicle ============ -->
-    <section class="st-section st-vehicles" id="vehicles" aria-labelledby="vehTitle">
+    <!-- ============ 5 · Features (teaser; everything on /features/) ============ -->
+    <section class="st-section st-teaser" id="features" aria-labelledby="featTitle">
       <div class="st-wrap">
         <header class="st-head st-head--row st-reveal">
           <div>
-            <p class="st-kicker">For every vehicle</p>
-            <h2 id="vehTitle">Two wheels, three or eighteen.</h2>
+            <p class="st-kicker">More than a sticker</p>
+            <h2 id="featTitle">Your whole garage, <span class="st-grad">in one app.</span></h2>
           </div>
-          <div class="st-vehicles__nav">
-            <button type="button" class="st-round" data-veh-step="-1" aria-label="Previous vehicle"><i class="bi bi-arrow-left"></i></button>
-            <button type="button" class="st-round" data-veh-step="1" aria-label="Next vehicle"><i class="bi bi-arrow-right"></i></button>
-          </div>
+          <a class="st-btn st-btn--line" href="{% url 'features' %}"><span>All features</span><i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </header>
-        <div class="st-vehicles__switch st-reveal" role="tablist" aria-label="I drive a…">
-          <button type="button" role="tab" data-veh="0" aria-selected="true">Car</button>
-          <button type="button" role="tab" data-veh="1" aria-selected="false">Bike</button>
-          <button type="button" role="tab" data-veh="2" aria-selected="false">Scooter</button>
-          <button type="button" role="tab" data-veh="3" aria-selected="false">Auto</button>
-          <button type="button" role="tab" data-veh="4" aria-selected="false">Taxi</button>
-          <button type="button" role="tab" data-veh="5" aria-selected="false">Truck</button>
-        </div>
-      </div>
-
-      <div class="st-vtrack" id="stVTrack" tabindex="0" aria-label="Vehicle stories">
-        <article class="st-vslide" style="--tint:#FF7A1A" data-veh-slide="0">
-          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-car"/></svg><span class="st-pin" style="--x:44%;--y:30%"><i></i>Inside windshield, top corner</span></div>
-          <div class="st-vslide__copy">
-            <p class="st-kicker">Car</p>
-            <h3>Blocked in. Lights on. Tow truck coming.</h3>
-            <p>The classic parking headache. They scan your windshield and you get the reason instantly, with no number on the glass.</p>
-            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="car">Tag my car</a>
-          </div>
-        </article>
-        <article class="st-vslide" style="--tint:#00E5A8" data-veh-slide="1">
-          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-bike"/></svg><span class="st-pin" style="--x:62%;--y:30%"><i></i>Headlight visor or tank</span></div>
-          <div class="st-vslide__copy">
-            <p class="st-kicker">Bike</p>
-            <h3>Key left in. Helmet on the seat.</h3>
-            <p>Bikes get moved, tipped and towed. A tag on the visor lets anyone warn you before it becomes a problem.</p>
-            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="bike">Tag my bike</a>
-          </div>
-        </article>
-        <article class="st-vslide" style="--tint:#3D7BFF" data-veh-slide="2">
-          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-scooter"/></svg><span class="st-pin" style="--x:46%;--y:52%"><i></i>Front apron</span></div>
-          <div class="st-vslide__copy">
-            <p class="st-kicker">Scooter</p>
-            <h3>Parked in a sea of identical scooters.</h3>
-            <p>Anyone who spots it can reach you privately. Lost Mode, with tips and location from the community, is coming soon.</p>
-            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="scooter">Tag my scooter</a>
-          </div>
-        </article>
-        <article class="st-vslide" style="--tint:#FFB547" data-veh-slide="3">
-          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-auto"/></svg><span class="st-pin" style="--x:40%;--y:40%"><i></i>Inside the cabin, passenger side</span></div>
-          <div class="st-vslide__copy">
-            <p class="st-kicker">Auto-rickshaw</p>
-            <h3>A passenger forgot their bag.</h3>
-            <p>They scan the cabin tag and reach the driver. Neither side has to share a personal number.</p>
-            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="auto">Tag my auto</a>
-          </div>
-        </article>
-        <article class="st-vslide" style="--tint:#FFD400" data-veh-slide="4">
-          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-taxi"/></svg><span class="st-pin" style="--x:44%;--y:30%"><i></i>Rear window, guest-facing</span></div>
-          <div class="st-vslide__copy">
-            <p class="st-kicker">Taxi</p>
-            <h3>Guests reach you. Your number stays yours.</h3>
-            <p>Lost items, pickup changes and feedback all reach you through masked channels, ride after ride.</p>
-            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="taxi">Tag my taxi</a>
-          </div>
-        </article>
-        <article class="st-vslide" style="--tint:#FF4D5E" data-veh-slide="5">
-          <div class="st-vslide__art"><svg viewBox="0 0 240 120"><use href="#v-truck"/></svg><span class="st-pin" style="--x:74%;--y:46%"><i></i>Cab door or windshield</span></div>
-          <div class="st-vslide__copy">
-            <p class="st-kicker">Truck</p>
-            <h3>Blocking a loading dock at 3 AM.</h3>
-            <p>Anyone at the dock can scan the cab tag and alert the driver privately, with no number painted on the door. Tools for whole fleets are coming soon.</p>
-            <a class="st-btn st-btn--signal" href="#designer" data-design-veh="truck">Tag my truck</a>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <!-- ============ 6b · Design your tag (live configurator) ============ -->
-    <section class="st-section st-designer" id="designer" aria-labelledby="designTitle"
-             data-buy-url="{% url 'buy_now' %}"
-             data-price="{% if tag_price is not None %}{{ tag_price|floatformat:0 }}{% endif %}"
-             data-shipping="{% if tag_shipping is not None %}{{ tag_shipping|floatformat:0 }}{% endif %}">
-      <div class="st-wrap">
-        <header class="st-head st-reveal">
-          <p class="st-kicker">Design your tag</p>
-          <h2 id="designTitle">Make it <span class="st-grad">yours.</span></h2>
-          <p>Pick your vehicle, add your number plate and choose a pack. Drag the tag to turn it, or flip it to see the back.</p>
-        </header>
-
-        <div class="st-dz">
-          <!-- Stage -->
-          <div class="st-dz__stage st-glass st-reveal" id="stDzStage">
-            <div class="st-dz__bg" aria-hidden="true">
-              <svg class="st-dz__veh" viewBox="0 0 240 120"><use href="#v-car" id="stDzVeh"/></svg>
-              <span class="st-dz__pin" id="stDzPin"><i></i></span>
-            </div>
-
-            <div class="st-dz__scene" id="stDzScene" role="img" aria-label="SudoTag sticker preview">
-              <div class="st-dz__stack" id="stDzStack" aria-hidden="true"></div>
-              <div class="st-dz__card" id="stDzCard">
-                <div class="st-dz__face st-dz__face--front">
-                  <picture>
-                    <source srcset="{% landing_asset 'img/sudotag-sticker.webp' %}" type="image/webp">
-                    <img src="{% landing_asset 'img/sudotag-sticker.png' %}" alt="" width="1181" height="591" loading="lazy" draggable="false">
-                  </picture>
-                  <span class="st-dz__holo" aria-hidden="true"></span>
-                  <span class="st-dz__scan" aria-hidden="true"></span>
-                </div>
-                <div class="st-dz__face st-dz__face--back" aria-hidden="true">
-                  <span class="st-dz__liner"></span>
-                  <span class="st-dz__peel">Peel here</span>
-                  <div class="st-dz__backcopy">
-                    <span class="st-logo">SudoTag<i></i></span>
-                    <ol>
-                      <li><b>1</b>Clean &amp; dry the glass</li>
-                      <li><b>2</b>Peel and press from the centre out</li>
-                      <li><b>3</b>Scan once to activate</li>
-                    </ol>
-                    <span class="st-mono st-dz__for">For your <b id="stDzBackVeh">car</b></span>
-                  </div>
-                </div>
-              </div>
-              <span class="st-dz__shadow" aria-hidden="true"></span>
-            </div>
-
-            <div class="st-dz__link" aria-hidden="true">
-              <span class="st-dz__line"><i></i></span>
-            </div>
-            <div class="st-dz__plate" id="stDzPlateView" aria-live="polite">
-              <span class="st-dz__plate-ind"><i class="bi bi-circle"></i>IND</span>
-              <span class="st-dz__plate-num" id="stDzPlateNum">KL 11 AB 1234</span>
-            </div>
-            <p class="st-dz__caption">Your plate is linked in the app when you activate. <b>It is never printed on the tag.</b></p>
-
-            <div class="st-dz__tools">
-              <button type="button" class="st-round" id="stDzFlip" aria-label="Flip the tag"><i class="bi bi-arrow-repeat"></i></button>
-              <span class="st-dz__hint"><i class="bi bi-hand-index"></i>Drag to rotate</span>
-              <span class="st-dz__count st-mono" id="stDzCount">×1</span>
-            </div>
-          </div>
-
-          <!-- Controls -->
-          <form class="st-dz__panel st-glass st-reveal" id="stDzForm" onsubmit="return false">
-            <fieldset class="st-dz__group">
-              <legend><span>01</span>Your vehicle</legend>
-              <div class="st-dz__vehicles" role="radiogroup" aria-label="Vehicle type">
-                <label><input type="radio" name="veh" value="car" checked><span><svg viewBox="0 0 240 120"><use href="#v-car"/></svg>Car</span></label>
-                <label><input type="radio" name="veh" value="bike"><span><svg viewBox="0 0 240 120"><use href="#v-bike"/></svg>Bike</span></label>
-                <label><input type="radio" name="veh" value="scooter"><span><svg viewBox="0 0 240 120"><use href="#v-scooter"/></svg>Scooter</span></label>
-                <label><input type="radio" name="veh" value="auto"><span><svg viewBox="0 0 240 120"><use href="#v-auto"/></svg>Auto</span></label>
-                <label><input type="radio" name="veh" value="taxi"><span><svg viewBox="0 0 240 120"><use href="#v-taxi"/></svg>Taxi</span></label>
-                <label><input type="radio" name="veh" value="truck"><span><svg viewBox="0 0 240 120"><use href="#v-truck"/></svg>Truck</span></label>
-              </div>
-              <p class="st-dz__where"><i class="bi bi-geo"></i><span id="stDzWhere">Stick it inside the windshield, top corner.</span></p>
-            </fieldset>
-
-            <fieldset class="st-dz__group">
-              <legend><span>02</span>Number plate <small>(optional)</small></legend>
-              <label class="st-field st-field--plate" id="stDzPlateField">
-                <span class="st-field__ind" aria-hidden="true"><i class="bi bi-circle"></i>IND</span>
-                <input type="text" id="stDzPlate" maxlength="13" placeholder="KL 11 AB 1234" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Vehicle registration number">
-              </label>
-            </fieldset>
-
-            <fieldset class="st-dz__group">
-              <legend><span>03</span>Pack size</legend>
-              <div class="st-dz__packs" role="radiogroup" aria-label="Pack size">
-                <label><input type="radio" name="qty" value="1" checked><span><b>1</b>Single</span></label>
-                <label><input type="radio" name="qty" value="2"><span><b>2</b>Couple</span></label>
-                <label><input type="radio" name="qty" value="5"><span><b>5</b>Family</span></label>
-                <label><input type="radio" name="qty" value="10"><span><b>10</b>Bulk</span></label>
-              </div>
-            </fieldset>
-
-            <div class="st-dz__summary" aria-live="polite">
-              <div><span>Tags</span><b id="stDzSumQty">1 × SudoTag</b></div>
-              <div id="stDzSumShipRow"><span>Shipping</span><b id="stDzSumShip">—</b></div>
-              <div class="st-dz__total"><span>Total</span><b id="stDzSumTotal">Shown at checkout</b></div>
-              <small>Coupons can be applied at checkout.</small>
-            </div>
-
-            <a class="st-btn st-btn--signal st-btn--lg st-dz__buy" id="stDzBuy" href="{% url 'buy_now' %}" data-magnetic>
-              <i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy this tag</span>
-            </a>
-          </form>
+        <div class="st-feat4">
+          <a class="st-feat4__card st-glass st-reveal" href="{% url 'features' %}#features"><i class="bi bi-qr-code" aria-hidden="true"></i><h3>Private QR contact</h3><p>Anyone can reach you. Nobody sees behind the tag.</p></a>
+          <a class="st-feat4__card st-glass st-reveal" style="--d:60ms" href="{% url 'features' %}#features"><i class="bi bi-telephone" aria-hidden="true"></i><h3>Chat · SMS · masked call</h3><p>Talk without either side seeing a number.</p></a>
+          <a class="st-feat4__card st-glass st-reveal" style="--d:120ms" href="{% url 'features' %}#vehicles"><i class="bi bi-car-front" aria-hidden="true"></i><h3>Every vehicle</h3><p>Car, bike, scooter, auto, taxi or truck, one tag each.</p></a>
+          <a class="st-feat4__card st-glass st-reveal" style="--d:180ms" href="{% url 'features' %}#designer"><i class="bi bi-palette" aria-hidden="true"></i><h3>Design your tag</h3><p>Pick your vehicle, add your plate and see it live.</p></a>
         </div>
       </div>
     </section>
 
-    <!-- ============ 7 · Lost Mode beacon map ============ -->
-    <section class="st-section st-lost" id="lost" aria-labelledby="lostTitle">
-      <div class="st-wrap st-lost__grid">
-        <div class="st-lost__map st-glass st-reveal" id="stLostMap" aria-hidden="true">
-          <svg class="st-lost__roads" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
-            <path d="M0 80 H400 M0 210 H400 M90 0 V300 M260 0 V300 M0 300 L180 0 M330 0 Q300 150 400 260"/>
-          </svg>
-          <span class="st-lost__target"><i class="bi bi-bicycle"></i></span>
-          <div class="st-lost__dots"></div>
-          <div class="st-lost__toasts"></div>
-        </div>
-        <header class="st-head st-reveal">
-          <p class="st-kicker st-kicker--alert">Lost Mode <span class="st-soon st-soon--lg">Coming soon</span></p>
-          <h2 id="lostTitle">A whole city becomes your search party.</h2>
-          <p>Coming soon to the app: mark a vehicle lost, and anyone who scans its tag can send a tip with location straight to you. You'll never have to post your number on a group chat.</p>
-          <ul class="st-checks">
-            <li><i class="bi bi-check2"></i>One tap to switch on, one to switch off</li>
-            <li><i class="bi bi-check2"></i>Tips arrive with location and time</li>
-            <li><i class="bi bi-check2"></i>Finders stay anonymous too</li>
-          </ul>
-        </header>
-      </div>
-    </section>
-
-    <!-- ============ 8 · Numbers ============ -->
+<!-- ============ 8 · Numbers ============ -->
     <section class="st-numbers" aria-label="SudoTag in numbers">
       <div class="st-wrap st-numbers__grid">
         <div class="st-num st-num--lead st-reveal">
@@ -1143,54 +803,7 @@
       </div>
     </section>
 
-    <!-- ============ 9 · Fleet ============ -->
-    <section class="st-section st-fleet" id="fleet" aria-labelledby="fleetTitle">
-      <div class="st-wrap">
-        <div class="st-offer-banner st-reveal">
-          <span class="st-offer-banner__badge">Early access</span>
-          <p>Activate your SudoTag now and get <b>1 year free fleet access</b> when Fleet launches.</p>
-          <a class="st-btn st-btn--signal st-btn--sm" href="{% url 'buy_now' %}">Get a tag</a>
-        </div>
-
-        <div class="st-fleet__grid">
-          <header class="st-head st-reveal">
-            <p class="st-kicker">Fleet <span class="st-soon st-soon--lg">Coming soon</span></p>
-            <h2 id="fleetTitle">Fleet tools are <span class="st-grad">on the way.</span></h2>
-            <p>Every SudoTag already works on trucks, taxis, buses and delivery vehicles today. Next, we're building tools to run a whole fleet from one place.</p>
-            <ul class="st-fleet__list">
-              <li class="is-live"><i class="bi bi-shield-check"></i><div><b>Private contact for every vehicle <span class="st-tagpill st-tagpill--live">Available now</span></b><span>Anyone can scan a tag and alert the driver. Numbers stay hidden on both sides.</span></div></li>
-              <li><i class="bi bi-grid-1x2"></i><div><b>Fleet dashboard <span class="st-tagpill">Soon</span></b><span>Every vehicle and every alert in one view.</span></div></li>
-              <li><i class="bi bi-person-badge"></i><div><b>Driver assignment by shift <span class="st-tagpill">Soon</span></b><span>Route each vehicle's alerts to whoever is driving it.</span></div></li>
-              <li><i class="bi bi-calendar2-check"></i><div><b>Document expiry reminders <span class="st-tagpill">Soon</span></b><span>Insurance, PUC and permits flagged before they lapse.</span></div></li>
-            </ul>
-          </header>
-
-          <div class="st-fleet__dash st-glass st-reveal" aria-hidden="true">
-            <div class="st-fleet__bar"><span class="st-dot" style="background:var(--amber)"></span><span class="st-mono">FLEET · PREVIEW</span><span class="st-fleet__count st-mono">Coming soon</span></div>
-            <canvas id="stFleet"></canvas>
-            <div class="st-fleet__toasts" id="stFleetToasts"></div>
-            <span class="st-fleet__ribbon st-mono">Preview of what's coming</span>
-          </div>
-        </div>
-
-        <form class="st-lead st-glass st-reveal" id="stLead" aria-labelledby="leadTitle">
-          <h3 id="leadTitle">Get early access to Fleet</h3>
-          <p class="st-lead__lead">Tell us about your vehicles and we'll reach out when Fleet launches.</p>
-          <div class="st-lead__grid">
-            <label><span>Name</span><input name="name" required autocomplete="name" placeholder="Your name"></label>
-            <label><span>Company</span><input name="company" autocomplete="organization" placeholder="Company"></label>
-            <label><span>Fleet size</span>
-              <select name="size"><option>2–10</option><option>11–50</option><option>51–200</option><option>200+</option></select>
-            </label>
-            <label><span>Phone</span><input name="phone" type="tel" autocomplete="tel" placeholder="+91" inputmode="tel"></label>
-          </div>
-          <button type="submit" class="st-btn st-btn--signal"><i class="bi bi-whatsapp"></i><span>Join on WhatsApp</span></button>
-          <small>Opens WhatsApp with your details filled in. Nothing is stored on this page.</small>
-        </form>
-      </div>
-    </section>
-
-    <!-- ============ Offers (admin-managed banner ads) ============ -->
+<!-- ============ Offers (admin-managed banner ads) ============ -->
     <section class="st-section st-offers" id="offers" aria-labelledby="offersTitle">
       <div class="st-wrap">
         <header class="st-head st-head--row st-reveal">
@@ -1233,7 +846,7 @@
       </div>
     </section>
 
-    <!-- ============ 10 · Stories (feedback.js hooks preserved) ============ -->
+<!-- ============ 10 · Stories (feedback.js hooks preserved) ============ -->
     <section class="st-section st-voices testimonials" id="testimonials"
       data-feedback-api="{{ approved_feedbacks_api_url }}"
       data-submit-url="{{ submit_feedback_url }}"
@@ -1381,155 +994,30 @@
       </div>
     </section>
 
-    <!-- ============ 11 · Help: searchable FAQ + contact ============ -->
-    <section class="st-section st-help" id="help" aria-labelledby="helpTitle">
-      <span id="faq" class="st-anchor" aria-hidden="true"></span>
-      <div class="st-wrap st-help__grid">
-        <div>
-          <header class="st-head st-reveal">
-            <p class="st-kicker">Help</p>
-            <h2 id="helpTitle">Good to know before you tag.</h2>
-          </header>
-          <label class="st-search st-reveal">
-            <i class="bi bi-search" aria-hidden="true"></i>
-            <input type="search" id="stFaqSearch" placeholder="Search: activation, privacy, plate…" aria-label="Search questions" autocomplete="off">
-          </label>
-          <div class="st-faq" id="stFaq">
-            <details class="st-qa st-reveal" open>
-              <summary>Can people who scan my tag see my phone number?</summary>
-              <div><p>No. They reach you through SudoTag's private channels (notify, chat, SMS or masked call), and your personal number is never shown to them.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>How do I activate my SudoTag?</summary>
-              <div><p>Use <a href="#scan" data-scan-tab="qr">Scan &amp; Find</a> on this page or in the app. Scan your new sticker, verify your mobile number with an OTP and add your vehicle details. Your login details are shown on screen and emailed to you.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>How do I contact a vehicle's owner?</summary>
-              <div><p>Scan the tag with your phone camera, or search the <a href="#scan" data-scan-tab="plate">number plate</a>. Pick notify, chat, SMS or masked call. You don't need to install anything.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>Does the tag need a battery or charging?</summary>
-              <div><p>No. SudoTag is a weatherproof QR sticker with nothing to charge or replace. All the smarts live in the app.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>What if someone else is driving my vehicle?</summary>
-              <div><p>Family and temporary assign is coming soon. You'll be able to send alerts to the person driving for the time you choose, and they'll come back to you afterwards.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>What is Lost Mode? <span class="st-soon">Soon</span></summary>
-              <div><p>Lost Mode is coming soon. It will mark a vehicle as missing, so when someone scans it they can send you tips and their location to help you recover it faster.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>Does it work for bikes, autos and trucks?</summary>
-              <div><p>Yes. One tag works on any vehicle: car, bike, scooter, auto-rickshaw, taxi, truck or bus. Tools to manage a whole fleet together are coming soon.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>How do I order a tag?</summary>
-              <div><p>Tap <a href="{% url 'buy_now' %}">Buy SudoTag</a> to order official stickers online. When it arrives, stick it on and activate it here or in the app.</p></div>
-            </details>
-            <details class="st-qa st-reveal">
-              <summary>How do I get support?</summary>
-              <div><p>Message us on <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">WhatsApp</a>, reach support in the app, or email <b>sudotagonline@gmail.com</b>.</p></div>
-            </details>
-            <p class="st-faq__empty" id="stFaqEmpty" hidden>No match. <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">Ask us on WhatsApp</a>; a real person replies.</p>
-          </div>
-        </div>
-
-        <aside class="st-contact" aria-label="Contact SudoTag">
-          <a class="st-contact__card st-contact__card--wa st-glass st-reveal" href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">
-            <i class="bi bi-whatsapp" aria-hidden="true"></i><span><b>WhatsApp</b><small>+91 79079 65255 · fastest reply</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
-          </a>
-          <a class="st-contact__card st-glass st-reveal" href="mailto:sudotagonline@gmail.com">
-            <i class="bi bi-envelope" aria-hidden="true"></i><span><b>Email</b><small>sudotagonline@gmail.com</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
-          </a>
-          <a class="st-contact__card st-glass st-reveal" href="tel:+917907965255">
-            <i class="bi bi-telephone" aria-hidden="true"></i><span><b>Phone</b><small>+91 79079 65255</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
-          </a>
-          <a class="st-contact__card st-glass st-reveal" href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer">
-            <i class="bi bi-instagram" aria-hidden="true"></i><span><b>Instagram</b><small>@sudotag</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
-          </a>
-        </aside>
-      </div>
-    </section>
-
-    <!-- ============ Closing CTA over pulse field ============ -->
-    <section class="st-final" id="contact" aria-labelledby="finalTitle">
-      <div class="st-final__field" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-      <div class="st-wrap st-final__inner st-reveal">
-        <span class="st-logo st-logo--xl" aria-hidden="true">SudoTag<i></i></span>
-        <h2 id="finalTitle">One scan. <span class="st-grad">Zero exposure.</span></h2>
-        <p>Every vehicle gets a voice and your number stays silent.</p>
-        <p class="st-join"><span class="st-beacon" aria-hidden="true"></span>Join <b>{% users_countdown %} owners</b> who never hand out their number.</p>
-        <div class="st-hero__cta st-final__cta">
-          <a class="st-btn st-btn--signal st-btn--lg" href="{% url 'buy_now' %}" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy SudoTag</span></a>
-          <a class="st-btn st-btn--line st-btn--lg" href="#scan" data-scan-tab="qr" data-magnetic><i aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><span>Scan a tag</span></a>
-        </div>
-        <div class="st-stores">
-          <a class="st-store" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer">
-            <i class="bi bi-google-play" aria-hidden="true"></i><span><small>Get it on</small>Google Play</span>
-          </a>
-          <a class="st-store" href="https://apps.apple.com/in/app/sudotag/id6761091033" target="_blank" rel="noopener noreferrer">
-            <i class="bi bi-apple" aria-hidden="true"></i><span><small>Download on the</small>App Store</span>
-          </a>
+    <!-- ============ Explore: one card per page ============ -->
+    <section class="st-section st-hub" aria-labelledby="hubTitle">
+      <div class="st-wrap">
+        <header class="st-head st-reveal">
+          <p class="st-kicker">Explore SudoTag</p>
+          <h2 id="hubTitle">Where to <span class="st-grad">next?</span></h2>
+        </header>
+        <div class="st-hub__grid">
+          <a class="st-hub__card st-reveal" href="{% url 'how_it_works' %}"><span class="st-hub__n st-mono">01</span><i class="bi bi-signpost-split" aria-hidden="true"></i><b>How it works</b><small>The five steps, and activating in the app or browser.</small><em class="bi bi-arrow-up-right" aria-hidden="true"></em></a>
+          <a class="st-hub__card st-reveal" style="--d:60ms" href="{% url 'features' %}"><span class="st-hub__n st-mono">02</span><i class="bi bi-grid-1x2" aria-hidden="true"></i><b>Features</b><small>Every tool, every vehicle, and designing your tag.</small><em class="bi bi-arrow-up-right" aria-hidden="true"></em></a>
+          <a class="st-hub__card st-reveal" style="--d:120ms" href="{% url 'fleet' %}"><span class="st-hub__n st-mono">03</span><i class="bi bi-truck" aria-hidden="true"></i><b>Fleet <span class="st-soon">Soon</span></b><small>Run many vehicles from one place. Join early access.</small><em class="bi bi-arrow-up-right" aria-hidden="true"></em></a>
+          <a class="st-hub__card st-reveal" style="--d:180ms" href="{% url 'help' %}"><span class="st-hub__n st-mono">04</span><i class="bi bi-life-preserver" aria-hidden="true"></i><b>Help &amp; FAQ</b><small>Quick answers, plus WhatsApp, email and phone.</small><em class="bi bi-arrow-up-right" aria-hidden="true"></em></a>
         </div>
       </div>
     </section>
+
+{% include 'includes/st_cta.html' %}
 
   </main>
 
-  <!-- ============ Footer ============ -->
-  <footer class="st-footer">
-    <div class="st-wrap st-footer__grid">
-      <div class="st-footer__brand">
-        <span class="st-logo">SudoTag<i></i></span>
-        <p>The private signal between vehicles and people.<br>Calicut, Kerala, India</p>
-      </div>
-      <nav class="st-footer__col" aria-label="Explore">
-        <h4>Explore</h4>
-        <a href="#how">How it works</a>
-        <a href="#vehicles">Vehicles</a>
-        <a href="#features">Features</a>
-        <a href="#fleet">Fleet (coming soon)</a>
-        <a href="{% url 'how_it_works' %}">Full guide</a>
-      </nav>
-      <nav class="st-footer__col" aria-label="Owners">
-        <h4>Owners</h4>
-        <a href="{% url 'buy_now' %}">Buy SudoTag</a>
-        <a href="#scan" data-scan-tab="qr">Activate a tag</a>
-        <a href="#scan" data-scan-tab="plate">Find by plate</a>
-        <a href="#help">Help &amp; FAQ</a>
-      </nav>
-      <div class="st-footer__col">
-        <h4>Contact</h4>
-        <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> +91 79079 65255</a>
-        <a href="mailto:sudotagonline@gmail.com"><i class="bi bi-envelope"></i> sudotagonline@gmail.com</a>
-        <a href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i> @sudotag</a>
-      </div>
-    </div>
-    <div class="st-wrap st-footer__legal">
-      <span>© SudoTag. All rights reserved.</span>
-      <span><a href="{% url 'privacy' %}">Privacy Policy</a> · <a href="{% url 'terms' %}">Terms &amp; Conditions</a></span>
-    </div>
-  </footer>
+  {% include 'includes/st_footer.html' %}
 
   <!-- Mobile floating dock: Scan QR · Plate · Buy · App -->
-  <nav class="st-dock st-dock--fab" id="stDock" aria-label="Quick actions">
-    <span class="st-dock__bg" aria-hidden="true"></span>
-    <span class="st-dock__mark" aria-hidden="true"></span>
-    <a href="#scan" data-scan-tab="plate" data-dock="plate"><i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i><span>Plate</span></a>
-    <a href="{% url 'buy_now' %}" data-dock="buy"><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy</span></a>
-    <a href="#scan" data-scan-tab="qr" class="st-dock__fab" data-dock="scan" aria-label="Scan a SudoTag QR">
-      <span class="st-dock__orb" aria-hidden="true">
-        <span class="st-dock__ring"></span>
-        <span class="st-dock__vf"><i></i><i></i><i></i><i></i></span>
-        <i class="st-dock__ico" aria-hidden="true"><svg class="st-ico"><use href="#i-scan"/></svg></i><i class="st-dock__ico st-dock__ico--cam" aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
-        <span class="st-dock__line"></span>
-      </span>
-      <span class="st-dock__lbl" data-dock-label>Scan</span>
-    </a>
-    <a href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener noreferrer" data-app-link data-dock="app"><i aria-hidden="true"><svg class="st-ico"><use href="#i-app"/></svg></i><span>App</span></a>
-    <a href="#help" data-dock="help"><i aria-hidden="true"><svg class="st-ico"><use href="#i-help"/></svg></i><span>Help</span></a>
-  </nav>
+  {% include 'includes/st_dock.html' %}
 
   <script src="{% static 'landing/vendor/swiper/swiper-bundle.min.js' %}" defer></script>
   <script src="{% landing_asset 'js/signal.js' %}" defer></script>

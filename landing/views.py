@@ -125,3 +125,26 @@ def referral_invite(request, code):
         'app_store_url': APP_STORE_URL,
         'referrer_name': (code_info or {}).get('userName') or '',
     })
+
+
+def _tag_pricing():
+    """Tag price + shipping for the designer section (None when unavailable)."""
+    try:
+        from admin_app.checkout_views import _checkout_pricing
+        product, tag_shipping, _settings = _checkout_pricing()
+        return product.get('price'), tag_shipping
+    except Exception:
+        return None, None
+
+
+def features(request):
+    tag_price, tag_shipping = _tag_pricing()
+    return render(request, 'features.html', {'tag_price': tag_price, 'tag_shipping': tag_shipping})
+
+
+def fleet(request):
+    return render(request, 'fleet.html')
+
+
+def help_page(request):
+    return render(request, 'help.html')

@@ -7,6 +7,9 @@ urlpatterns = [
     path('terms/', views.terms, name='terms'),
     path('privacy/', views.privacy, name='privacy'),
     path('how-it-works/', views.how_it_works, name='how_it_works'),
+    path('features/', views.features, name='features'),
+    path('fleet/', views.fleet, name='fleet'),
+    path('help/', views.help_page, name='help'),
     # Mobile shares https://sudotag.com/r/{CODE} (no trailing slash).
     # Accept both forms so APPEND_SLASH / nginx never 404 the invite.
     re_path(

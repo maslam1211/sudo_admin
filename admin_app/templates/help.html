@@ -1,0 +1,77 @@
+{% extends "landing_base.html" %}
+{% load static custom_filters %}
+{% block title %}Help & FAQ · SudoTag{% endblock %}
+{% block description %}Answers about activating your SudoTag, privacy, plates and orders, plus every way to reach us.{% endblock %}
+{% block content %}
+    <span id="hero" class="st-anchor" aria-hidden="true"></span>
+<!-- ============ 11 · Help: searchable FAQ + contact ============ -->
+    <section class="st-section st-help st-page-first" id="help" aria-labelledby="helpTitle">
+      <span id="faq" class="st-anchor" aria-hidden="true"></span>
+      <div class="st-wrap st-help__grid">
+        <div>
+          <header class="st-head st-reveal">
+            <p class="st-kicker">Help</p>
+            <h2 id="helpTitle">Good to know before you tag.</h2>
+          </header>
+          <label class="st-search st-reveal">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="stFaqSearch" placeholder="Search: activation, privacy, plate…" aria-label="Search questions" autocomplete="off">
+          </label>
+          <div class="st-faq" id="stFaq">
+            <details class="st-qa st-reveal" open>
+              <summary>Can people who scan my tag see my phone number?</summary>
+              <div><p>No. They reach you through SudoTag's private channels (notify, chat, SMS or masked call), and your personal number is never shown to them.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I activate my SudoTag?</summary>
+              <div><p>Use <a href="{% url 'index' %}#scan" data-scan-tab="qr">Scan &amp; Find</a> on this page or in the app. Scan your new sticker, verify your mobile number with an OTP and add your vehicle details. Your login details are shown on screen and emailed to you.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I contact a vehicle's owner?</summary>
+              <div><p>Scan the tag with your phone camera, or search the <a href="{% url 'index' %}#scan" data-scan-tab="plate">number plate</a>. Pick notify, chat, SMS or masked call. You don't need to install anything.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>Does the tag need a battery or charging?</summary>
+              <div><p>No. SudoTag is a weatherproof QR sticker with nothing to charge or replace. All the smarts live in the app.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>What if someone else is driving my vehicle?</summary>
+              <div><p>Family and temporary assign is coming soon. You'll be able to send alerts to the person driving for the time you choose, and they'll come back to you afterwards.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>What is Lost Mode? <span class="st-soon">Soon</span></summary>
+              <div><p>Lost Mode is coming soon. It will mark a vehicle as missing, so when someone scans it they can send you tips and their location to help you recover it faster.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>Does it work for bikes, autos and trucks?</summary>
+              <div><p>Yes. One tag works on any vehicle: car, bike, scooter, auto-rickshaw, taxi, truck or bus. Tools to manage a whole fleet together are coming soon.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I order a tag?</summary>
+              <div><p>Tap <a href="{% url 'buy_now' %}">Buy SudoTag</a> to order official stickers online. When it arrives, stick it on and activate it here or in the app.</p></div>
+            </details>
+            <details class="st-qa st-reveal">
+              <summary>How do I get support?</summary>
+              <div><p>Message us on <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">WhatsApp</a>, reach support in the app, or email <b>sudotagonline@gmail.com</b>.</p></div>
+            </details>
+            <p class="st-faq__empty" id="stFaqEmpty" hidden>No match. <a href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">Ask us on WhatsApp</a>; a real person replies.</p>
+          </div>
+        </div>
+
+        <aside class="st-contact" aria-label="Contact SudoTag">
+          <a class="st-contact__card st-contact__card--wa st-glass st-reveal" href="https://wa.me/917907965255" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i><span><b>WhatsApp</b><small>+91 79079 65255 · fastest reply</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+          <a class="st-contact__card st-glass st-reveal" href="mailto:sudotagonline@gmail.com">
+            <i class="bi bi-envelope" aria-hidden="true"></i><span><b>Email</b><small>sudotagonline@gmail.com</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+          <a class="st-contact__card st-glass st-reveal" href="tel:+917907965255">
+            <i class="bi bi-telephone" aria-hidden="true"></i><span><b>Phone</b><small>+91 79079 65255</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+          <a class="st-contact__card st-glass st-reveal" href="https://www.instagram.com/sudotag?igsh=YmxvYXYzdXh5aHBn" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-instagram" aria-hidden="true"></i><span><b>Instagram</b><small>@sudotag</small></span><i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+          </a>
+        </aside>
+      </div>
+    </section>
+{% endblock %}
