@@ -687,7 +687,7 @@
               <button type="button" class="find-vehicle-scan-btn st-scanbtn" id="findVehicleScanBtn" data-scan-mode="qr" aria-label="Scan a SudoTag QR with camera or gallery">
                 <span class="st-scanbtn__ring" aria-hidden="true"></span>
                 <i aria-hidden="true"><svg class="st-ico"><use href="#i-camera"/></svg></i>
-                <span><strong>Scan QR</strong><small>Camera or gallery</small></span>
+                <span><strong>Scan QR</strong><small>Scan or activate a tag</small></span>
               </button>
               <label class="st-btn st-btn--quiet find-vehicle-file-btn">
                 <i class="bi bi-image" aria-hidden="true"></i> Gallery
@@ -737,6 +737,10 @@
               <div class="find-vehicle-preview__guide is-qr" id="findVehicleGuide" aria-hidden="true"></div>
               <canvas id="findVehicleCanvas" hidden></canvas>
             </div>
+            <p class="st-onecam st-mono">
+              <span><i class="st-dot st-dot--safe"></i>Live tag → alert</span>
+              <span><i class="st-dot"></i>New tag → activate</span>
+            </p>
             <div class="find-vehicle-preview__bar">
               <button type="button" class="st-btn st-btn--signal" id="findVehicleCaptureBtn" hidden>Capture</button>
               <button type="button" class="st-btn st-btn--quiet" id="findVehicleStopBtn" hidden>Stop</button>

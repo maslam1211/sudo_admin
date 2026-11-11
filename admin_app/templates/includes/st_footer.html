@@ -16,7 +16,7 @@
       <nav class="st-footer__col" aria-label="Owners">
         <h4>Owners</h4>
         <a href="{% url 'buy_now' %}">Buy SudoTag</a>
-        <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr">Activate a tag</a>
+        <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr" data-scan-open>Activate a tag</a>
         <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="plate">Find by plate</a>
         <a href="{% url 'privacy' %}">Privacy Policy</a>
         <a href="{% url 'terms' %}">Terms &amp; Conditions</a>

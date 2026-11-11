@@ -1446,6 +1446,31 @@
     });
   }
 
+  /* One camera for both jobs: the dock / "Activate a tag" open the QR
+     camera straight away. Inactive tag → activation, live tag → notify. */
+  function openQrCamera(fallbackToSheet) {
+    var qrTab = card.querySelector('.find-vehicle-tab[data-tab="qr"]');
+    if (qrTab && !qrTab.classList.contains('is-active')) qrTab.click();
+    if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      (document.getElementById('scan') || card).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (fallbackToSheet) openSheet('qr'); else startCamera('qr');
+      return;
+    }
+    startCamera('qr');
+    /* bring the live camera itself to the middle of the screen */
+    var el = previewWrap && !previewWrap.hidden ? previewWrap : card, r = el.getBoundingClientRect();
+    var dock = document.getElementById('stDock'), dockH = dock && dock.offsetParent ? dock.offsetHeight + 40 : 24;
+    /* bottom just above the dock, but never push the top under the header */
+    var y = window.scrollY + Math.min(r.bottom - (window.innerHeight - dockH), r.top - 80);
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }
+  window.SudoScan = { openQrCamera: openQrCamera, openSheet: openSheet };
+  (function () {
+    var want = null;
+    try { want = sessionStorage.getItem('st-scan-open'); sessionStorage.removeItem('st-scan-open'); } catch (e) {}
+    if (want) setTimeout(function () { openQrCamera(true); }, 450);
+  })();
+
   window.addEventListener('pagehide', function () {
     stopCamera();
   });

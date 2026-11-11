@@ -4,7 +4,7 @@
     <span class="st-dock__mark" aria-hidden="true"></span>
     <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="plate" data-dock="plate"><i aria-hidden="true"><svg class="st-ico"><use href="#i-plate"/></svg></i><span>Plate</span></a>
     <a href="{% url 'buy_now' %}" data-dock="buy"><i aria-hidden="true"><svg class="st-ico"><use href="#i-tag"/></svg></i><span>Buy</span></a>
-    <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr" class="st-dock__fab" data-dock="scan" aria-label="Scan a SudoTag QR">
+    <a href="{% if u == 'index' %}#scan{% else %}{% url 'index' %}#scan{% endif %}" data-scan-tab="qr" class="st-dock__fab" data-dock="scan" aria-label="Open camera: scan or activate a SudoTag QR">
       <span class="st-dock__orb" aria-hidden="true">
         <span class="st-dock__ring"></span>
         <span class="st-dock__vf"><i></i><i></i><i></i><i></i></span>

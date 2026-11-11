@@ -1751,3 +1751,11 @@ html.st-cursor-on select { cursor: pointer !important; }
   .st-sweep { display: none; }
   .st-phase li.is-on .st-phase__bars i { animation: none; opacity: 1; }
 }
+
+/* One camera, two jobs: hint inside the live QR camera */
+.find-vehicle-preview__frame { position: relative; }
+.st-onecam { display: flex; gap: 6px; margin: 10px 0 0; flex-wrap: wrap; justify-content: center; }
+.st-onecam span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--r-pill); background: var(--bg-raise); border: 1px solid var(--line); color: var(--text-mid); font-size: 10px; letter-spacing: .08em; white-space: nowrap; }
+.find-vehicle-preview.is-plate .st-onecam { display: none; }
+#findVehiclePreviewWrap { scroll-margin-top: 90px; scroll-margin-bottom: 24px; }
+@media (max-width: 767px) { #findVehiclePreviewWrap { scroll-margin-bottom: 130px; } }

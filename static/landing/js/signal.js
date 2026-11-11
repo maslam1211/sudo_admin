@@ -546,6 +546,10 @@
   })();
   document.addEventListener('click', function (e) {
     var link = e.target.closest('[data-scan-tab]'); if (!link) return;
+    if (link.hasAttribute('data-scan-open')) {
+      if (window.SudoScan) { e.preventDefault(); window.SudoScan.openQrCamera(); return; }
+      try { sessionStorage.setItem('st-scan-open', '1'); } catch (err) {}
+    }
     if (!$('#findVehicleCard')) { try { sessionStorage.setItem('st-scan-tab', link.getAttribute('data-scan-tab')); } catch (err) {} return; }
     var tab = $('.find-vehicle-tab[data-tab="' + link.getAttribute('data-scan-tab') + '"]');
     if (tab && !tab.classList.contains('is-active')) tab.click();
@@ -646,7 +650,6 @@
         d.classList.toggle('is-cam', inScan);
         if (inScan) d.classList.remove('is-tuck');
         if (lbl) lbl.textContent = inScan ? 'Camera' : 'Scan';
-        if (fab) fab.setAttribute('aria-label', inScan ? 'Open the camera to scan' : 'Scan a SudoTag QR');
         place(hit);
       }, { rootMargin: '-45% 0px -45% 0px' });
       map.forEach(function (m) { var t = $(m[0]); if (t) io.observe(t); });
@@ -656,9 +659,9 @@
     if (fab) fab.addEventListener('click', function (e) {
       fab.classList.remove('is-tap'); void fab.offsetWidth; fab.classList.add('is-tap');
       if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
-      if (!inScan) return;
-      var card = $('#findVehicleCard'), btn = $(card && card.getAttribute('data-mode') === 'plate' ? '#findVehiclePlateScanBtn' : '#findVehicleScanBtn');
-      if (btn) { e.preventDefault(); e.stopPropagation(); btn.click(); }
+      /* one tap → the same QR camera that scans AND activates tags */
+      if (window.SudoScan) { e.preventDefault(); e.stopPropagation(); window.SudoScan.openQrCamera(); return; }
+      try { sessionStorage.setItem('st-scan-open', '1'); } catch (err) {}
     });
     /* tuck away while reading down, return on the way up */
     var ticking = false, idle = 0;
