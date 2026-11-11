@@ -180,26 +180,43 @@ def build_lost_mode_sms_message(
     reason: str = '',
     latitude: Any = None,
     longitude: Any = None,
+    maps_url: str = '',
+    shared_at_display: str = '',
     max_len: int = 200,
 ) -> str:
     """
     MSG91 campaign ``var`` text (max ~200 chars).
 
-    When coords are present, append a Google Maps link so owners without
-    FCM can open the spotter location from SMS alone.
+    When coords are present, the SMS carries the same Google Maps link as the
+    push so owners without FCM can open the spotter location from SMS alone.
+    The link is always built from the coordinates; a client-supplied
+    ``maps_url`` is only used if it is the identical Google Maps URL, so a
+    reporter can't put an arbitrary link in the owner's SMS.
     """
     base = (reason or '').strip() or TIP_REASON
     coords = maps_coordinates(latitude, longitude)
     if not coords:
         return base[:max_len]
     url = google_maps_url(coords[0], coords[1])
-    combined = f'{base} {url}'
-    if len(combined) <= max_len:
-        return combined
-    room = max_len - len(url) - 1
+    supplied = (maps_url or '').strip()
+    if supplied and supplied != url:
+        logger.debug('Ignoring client maps_url that does not match coordinates')
+
+    intro = 'A person has shared their location while reporting your vehicle.'
+    link = f'View Location: {url}'
+    when = (shared_at_display or '').strip()
+    candidates = []
+    if when:
+        candidates.append(f'{intro} {link} Shared at {when}')
+    candidates.append(f'{intro} {link}')
+    for text in candidates:
+        if len(text) <= max_len:
+            return text
+    # Very long URL/limit: keep the link whole, trim the intro.
+    room = max_len - len(link) - 1
     if room < 8:
         return url[:max_len]
-    return f'{base[:room].rstrip()} {url}'
+    return f'{intro[:room].rstrip()} {link}'
 
 
 def build_spotter_location_notification(

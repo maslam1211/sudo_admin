@@ -3306,6 +3306,65 @@ def activate_id_otp_verify(request, qr_id):
     return JsonResponse({'status': 'success', 'message': 'Mobile number verified.'})
 
 
+ACTIVATE_ID_PHOTO_MAX_BYTES = 8 * 1024 * 1024
+
+
+def _activate_id_payload(request):
+    """JSON body, or multipart form when the activation page attaches vehicle photos.
+
+    Returns (data, photo_files); data is None when the body can't be parsed.
+    """
+    content_type = (request.content_type or '').lower()
+    if content_type.startswith('multipart/'):
+        data = {key: request.POST.get(key) for key in request.POST}
+        return data, request.FILES.getlist('photos')
+    try:
+        data = json.loads(request.body or b'{}')
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None, []
+    return data, []
+
+
+def _activate_id_validate_photos(photo_files):
+    """Error message for the vehicle photos field, or None when they are fine."""
+    from .vehicle_photos import MAX_VEHICLE_PHOTOS
+
+    if len(photo_files) > MAX_VEHICLE_PHOTOS:
+        return f'Maximum of {MAX_VEHICLE_PHOTOS} photos allowed.'
+    for upload in photo_files:
+        if not (getattr(upload, 'content_type', '') or '').lower().startswith('image/'):
+            return 'Only image files can be uploaded.'
+        if getattr(upload, 'size', 0) > ACTIVATE_ID_PHOTO_MAX_BYTES:
+            return 'Each photo must be 8 MB or smaller.'
+    return None
+
+
+def _activate_id_upload_photos(owner_id, vehicle_id, photo_files):
+    """Upload validated photos to Cloudinary; on failure, delete the ones already sent."""
+    from .vehicle_photos import upload_vehicle_photo_bytes
+
+    urls = []
+    try:
+        for upload in photo_files:
+            urls.append(upload_vehicle_photo_bytes(
+                owner_id=owner_id,
+                vehicle_id=vehicle_id,
+                content=upload.read(),
+                content_type=(upload.content_type or 'image/jpeg').lower(),
+            ))
+    except Exception:
+        _activate_id_discard_photos(urls)
+        raise
+    return urls
+
+
+def _activate_id_discard_photos(urls):
+    from .vehicle_photos import delete_storage_url
+
+    for url in urls or []:
+        delete_storage_url(url)
+
+
 @ensure_csrf_cookie
 def activate_id(request, qr_id):
     try:
@@ -3323,10 +3382,7 @@ def activate_id(request, qr_id):
         
         if request.method == 'POST':
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                try:
-                    data = json.loads(request.body or b'{}')
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    data = None
+                data, photo_files = _activate_id_payload(request)
                 if not isinstance(data, dict):
                     return JsonResponse({
                         'status': 'error',
@@ -3395,6 +3451,10 @@ def activate_id(request, qr_id):
                         errors['contactNumber'] = (
                             'Please verify your mobile number with the OTP sent to your phone.'
                         )
+
+                photo_err = _activate_id_validate_photos(photo_files)
+                if photo_err:
+                    errors['vehiclePhotos'] = photo_err
 
                 if errors:
                     return JsonResponse({
@@ -3580,6 +3640,27 @@ def activate_id(request, qr_id):
                     # Create vehicle document (for both new and existing users).
                     vehicle_id = str(uuid.uuid4())
                     reg_no = data.get('registrationNumber')
+
+                    # Photos go up before the QR is claimed so the vehicle is
+                    # created with its gallery in one write.
+                    photo_urls = []
+                    if photo_files:
+                        try:
+                            photo_urls = _activate_id_upload_photos(
+                                user_id, vehicle_id, photo_files,
+                            )
+                        except Exception:
+                            logger.exception('activate_id vehicle photo upload failed')
+                            _activate_id_rollback_new_user(
+                                auth_user, user_id, is_new_user, delete_profile=created_user_doc,
+                            )
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Could not upload the vehicle photos. Please try again.',
+                                'errors': {
+                                    'vehiclePhotos': 'Could not upload the photos. Try again or remove them.',
+                                },
+                            }, status=502)
                     vehicle_data = {
                         'ownerId': user_id,
                         'ownerFullName': data.get('fullName'),
@@ -3593,8 +3674,8 @@ def activate_id(request, qr_id):
                         'isQrGenerated': True,
                         'qrCodeId': qr_id,
                         'adminAddedUser': admin_added_user,
-                        # Additive — empty until owner/admin uploads (Flutter uses same field).
-                        'photoUrls': [],
+                        # Same field the Flutter app and admin gallery use.
+                        'photoUrls': photo_urls,
                     }
                     
                     vehicle_ref = db.collection('vehicles').document(vehicle_id)
@@ -3607,6 +3688,7 @@ def activate_id(request, qr_id):
                         _activate_id_rollback_new_user(
                             auth_user, user_id, is_new_user, delete_profile=created_user_doc,
                         )
+                        _activate_id_discard_photos(photo_urls)
                         return JsonResponse({
                             'status': 'error',
                             'error_type': 'already_activated',
@@ -3655,6 +3737,7 @@ def activate_id(request, qr_id):
                     
                 except Exception:
                     logger.exception('activate_id registration failed')
+                    _activate_id_discard_photos(locals().get('photo_urls'))
                     _activate_id_rollback_new_user(
                         auth_user,
                         locals().get('user_id'),

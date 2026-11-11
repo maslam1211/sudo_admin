@@ -187,6 +187,57 @@ class ActivateIdTests(_FakeDBMixin, TestCase):
         self.delete_user.assert_not_called()
         self.assertIn('UID1', self.fake.store['users'])
 
+    def _post_with_photos(self, files, payload=None):
+        data = {**(payload or ACTIVATION_PAYLOAD), 'photos': files}
+        return self.client.post(
+            self.url, data=data, HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+    def _jpeg(self, name='car.jpg'):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return SimpleUploadedFile(name, b'\xff\xd8\xff fake', content_type='image/jpeg')
+
+    def test_multipart_activation_saves_vehicle_photos(self):
+        with patch(
+            'admin_app.vehicle_photos.upload_vehicle_photo_bytes',
+            side_effect=['https://img/1.jpg', 'https://img/2.jpg'],
+        ) as upload:
+            res = self._post_with_photos([self._jpeg('a.jpg'), self._jpeg('b.jpg')])
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(upload.call_count, 2)
+        qr = self.fake.store['qrcodes']['QR1']
+        vehicle = self.fake.store['vehicles'][qr['vehicleID']]
+        self.assertEqual(vehicle['photoUrls'], ['https://img/1.jpg', 'https://img/2.jpg'])
+        self.assertEqual(vehicle['registrationNumber'], 'KL07AB1234')
+        self.assertEqual(upload.call_args.kwargs['vehicle_id'], qr['vehicleID'])
+
+    def test_non_image_photo_is_rejected_before_account_creation(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        bad = SimpleUploadedFile('x.pdf', b'%PDF', content_type='application/pdf')
+        res = self._post_with_photos([bad])
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('vehiclePhotos', res.json()['errors'])
+        self.create_or_update_firebase_user.assert_not_called()
+        self.assertFalse(self.fake.store['qrcodes']['QR1']['isAssigned'])
+
+    def test_too_many_photos_are_rejected(self):
+        res = self._post_with_photos([self._jpeg(f'{i}.jpg') for i in range(6)])
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('vehiclePhotos', res.json()['errors'])
+
+    def test_photo_upload_failure_rolls_back_and_cleans_up(self):
+        with patch(
+            'admin_app.vehicle_photos.upload_vehicle_photo_bytes',
+            side_effect=['https://img/1.jpg', RuntimeError('cloudinary down')],
+        ), patch('admin_app.vehicle_photos.delete_storage_url') as delete_url:
+            res = self._post_with_photos([self._jpeg('a.jpg'), self._jpeg('b.jpg')])
+        self.assertEqual(res.status_code, 502)
+        self.assertIn('vehiclePhotos', res.json()['errors'])
+        delete_url.assert_called_once_with('https://img/1.jpg')
+        self.delete_user.assert_called_once_with('UID1')
+        self.assertFalse(self.fake.store['qrcodes']['QR1']['isAssigned'])
+        self.assertFalse(self.fake.store.get('vehicles'))
+
     def test_lost_race_returns_409_and_removes_new_account(self):
         # Another activation claims the QR after the page-level check passed.
         real_claim = views._activate_id_claim_qr

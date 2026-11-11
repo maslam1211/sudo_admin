@@ -137,6 +137,23 @@
     .plate-ocr-status.is-ok { color: #6ddf8c; }
     .plate-ocr-status.is-error { color: #ff8f7a; }
 
+    .vehicle-photos { margin-top: 4px; }
+    .vehicle-photos__row { display: flex; gap: 10px; overflow-x: auto; margin: 8px 0 10px; }
+    .vehicle-photos__row[hidden] { display: none; }
+    .vehicle-photo {
+      position: relative; flex: 0 0 auto; width: 84px; height: 84px;
+      border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.14); background: #111;
+    }
+    .vehicle-photo img { width: 100%; height: 100%; object-fit: cover; display: block; margin: 0; }
+    .vehicle-photo button {
+      position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%;
+      border: 0; background: rgba(0,0,0,0.7); color: #fff; font-size: 14px; line-height: 24px; padding: 0; cursor: pointer;
+    }
+    .vehicle-photo span {
+      position: absolute; left: 4px; bottom: 4px; font-size: 10px; padding: 1px 6px;
+      border-radius: 6px; background: rgba(229,129,71,0.9); color: #fff;
+    }
+
     .phone-input-container {
       display: flex;
       flex-direction: row;
@@ -551,7 +568,7 @@
                   </button>
                   <label class="btn plate-ocr-btn plate-ocr-btn--ghost" for="plateOcrFile">
                     <i class="bi bi-image" aria-hidden="true"></i> Gallery
-                    <input type="file" id="plateOcrFile" accept="image/*" capture="environment" hidden>
+                    <input type="file" id="plateOcrFile" accept="image/*" hidden>
                   </label>
                 </div>
                 <div class="plate-ocr-preview" id="plateOcrPreview" hidden>
@@ -620,6 +637,31 @@
               <select class="form-control" id="yearOfManufacturing" required>
                 <option value="" disabled selected>Select year</option>
               </select>
+            </div>
+
+            <div class="form-group vehicle-photos" id="vehiclePhotos">
+              <label class="form-label">Vehicle photos <small style="opacity:.6">(optional, up to 5)</small></label>
+              <p class="plate-ocr-hint">Take photos with your camera or pick from the gallery. The first photo is the main one.</p>
+              <div class="vehicle-photos__row" id="vehiclePhotoRow" hidden></div>
+              <div class="plate-ocr-actions">
+                <button type="button" class="btn plate-ocr-btn" id="vehiclePhotoCameraBtn">
+                  <i class="bi bi-camera-fill" aria-hidden="true"></i> Camera
+                </button>
+                <button type="button" class="btn plate-ocr-btn plate-ocr-btn--ghost" id="vehiclePhotoGalleryBtn">
+                  <i class="bi bi-image" aria-hidden="true"></i> Gallery
+                </button>
+              </div>
+              <input type="file" id="vehiclePhotoCameraInput" accept="image/*" capture="environment" hidden>
+              <input type="file" id="vehiclePhotoGalleryInput" accept="image/*" multiple hidden>
+              <div class="plate-ocr-preview" id="vehiclePhotoPreview" hidden>
+                <video id="vehiclePhotoVideo" playsinline muted></video>
+                <canvas id="vehiclePhotoCanvas" hidden></canvas>
+                <div class="plate-ocr-preview__bar">
+                  <button type="button" class="btn plate-ocr-btn" id="vehiclePhotoSnapBtn">Take photo</button>
+                  <button type="button" class="btn plate-ocr-btn plate-ocr-btn--ghost" id="vehiclePhotoDoneBtn">Done</button>
+                </div>
+              </div>
+              <p class="plate-ocr-status" id="vehiclePhotoStatus" role="status" aria-live="polite"></p>
             </div>
           </section>
 
@@ -1703,14 +1745,35 @@
         loadingSpinner.classList.add('active');
         
         // Send data to server
+        if (window.sudoVehiclePhotos && window.sudoVehiclePhotos.isBusy()) {
+          showFieldError(document.getElementById('vehiclePhotos'), 'Photos are still being prepared. Try again in a moment.');
+          return;
+        }
+        if (window.sudoVehiclePhotos) window.sudoVehiclePhotos.stop();
+        const vehiclePhotoFiles = (window.sudoVehiclePhotos && window.sudoVehiclePhotos.getFiles()) || [];
+        const requestHeaders = {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest'
+        };
+        let requestBody;
+        if (vehiclePhotoFiles.length) {
+          // Multipart so the photos travel with the activation; the browser sets the boundary.
+          requestBody = new FormData();
+          Object.keys(formData).forEach(function (key) {
+            requestBody.append(key, String(formData[key]));
+          });
+          vehiclePhotoFiles.forEach(function (file, i) {
+            requestBody.append('photos', file, file.name || ('vehicle-' + (i + 1) + '.jpg'));
+          });
+        } else {
+          requestHeaders['Content-Type'] = 'application/json';
+          requestBody = JSON.stringify(formData);
+        }
+
         fetch('', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: JSON.stringify(formData)
+          headers: requestHeaders,
+          body: requestBody
         })
         .then(response => {
           if (!response.ok) {
@@ -1884,5 +1947,6 @@
     });
   </script>
   <script src="{% landing_asset 'js/activate_id_plate_ocr.js' %}" defer></script>
+  <script src="{% landing_asset 'js/activate_id_vehicle_photos.js' %}" defer></script>
 </body>
 </html>
