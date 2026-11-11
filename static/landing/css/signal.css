@@ -1731,7 +1731,7 @@ html.st-cursor-on select { cursor: pointer !important; }
 @keyframes stPhaseBar { 0%, 100% { opacity: .35; } 40% { opacity: 1; } }
 
 /* giant outlined word behind the pinned stage */
-.st-phase-word { position: absolute; z-index: 0; left: 50%; top: 52%; transform: translate(calc(-50% + (var(--sp, 0) - .5) * -8%), -50%); font: 800 clamp(120px, 19vw, 300px)/1 var(--font-display); letter-spacing: -.03em; white-space: nowrap; color: transparent; -webkit-text-stroke: 1px var(--line); opacity: .7; pointer-events: none; user-select: none; transition: -webkit-text-stroke-color var(--t-scene) var(--ease); }
+.st-phase-word { position: absolute; z-index: 0; left: 50%; bottom: 0; transform: translate(calc(-50% + (var(--sp, 0) - .5) * -10%), 34%); font: 800 clamp(120px, 17vw, 260px)/1 var(--font-display); letter-spacing: -.03em; white-space: nowrap; color: transparent; -webkit-text-stroke: 1px var(--line); opacity: .7; pointer-events: none; user-select: none; transition: -webkit-text-stroke-color var(--t-scene) var(--ease); }
 .st-story[data-phase="0"] .st-phase-word { -webkit-text-stroke-color: color-mix(in srgb, var(--signal) 28%, transparent); }
 .st-story[data-phase="1"] .st-phase-word { -webkit-text-stroke-color: color-mix(in srgb, var(--signal-2) 30%, transparent); }
 .st-story[data-phase="2"] .st-phase-word { -webkit-text-stroke-color: color-mix(in srgb, var(--safe) 28%, transparent); }
@@ -1743,7 +1743,7 @@ html.st-cursor-on select { cursor: pointer !important; }
 @keyframes stSweep { 0% { opacity: 1; background-position: 100% 0; } 85% { opacity: 1; } 100% { opacity: 0; background-position: 0 0; } }
 
 @media (max-width: 1023px) {
-  .st-phase-word { font-size: clamp(64px, 22vw, 150px); top: 40px; transform: translateX(-50%); opacity: .5; }
+  .st-phase-word { display: none; }
   .st-story__pin { overflow: visible; }
   .st-phase li { padding: 8px 9px 11px; font-size: 10px; gap: 7px; justify-content: center; }
 }
