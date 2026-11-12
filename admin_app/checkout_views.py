@@ -83,6 +83,28 @@ def _err(message, status=400, **extra):
     return JsonResponse(payload, status=status)
 
 
+def _clean_delivery_location(raw):
+    """Optional browser GPS fix from the buy page; returns None when absent/invalid."""
+    if not isinstance(raw, dict):
+        return None
+    try:
+        lat = float(raw.get('latitude'))
+        lng = float(raw.get('longitude'))
+    except (TypeError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180) or (lat == 0 and lng == 0):
+        return None
+    loc = {'latitude': round(lat, 6), 'longitude': round(lng, 6)}
+    try:
+        acc = raw.get('accuracy')
+        if acc is not None:
+            loc['accuracy'] = max(0, int(float(acc)))
+    except (TypeError, ValueError):
+        pass
+    loc['mapsUrl'] = f"https://maps.google.com/?q={loc['latitude']},{loc['longitude']}"
+    return loc
+
+
 def _validate_checkout_payload(data: dict):
     errors = {}
 
@@ -178,7 +200,10 @@ def _validate_checkout_payload(data: dict):
     vehicle_number = (data.get('vehicleNumber') or '').strip() or 'N/A'
     vehicle_category = (data.get('vehicleCategory') or 'Website').strip() or 'Website'
 
+    delivery_location = _clean_delivery_location(data.get('deliveryLocation'))
+
     cleaned = {
+        'deliveryLocation': delivery_location,
         'fullName': full_name,
         'mobile': mobile,
         'email': email,
@@ -370,6 +395,8 @@ def checkout_create_order(request):
         order_doc['coupon'] = cleaned.get('coupon') or {}
     if cleaned['email']:
         order_doc['email'] = cleaned['email']
+    if cleaned.get('deliveryLocation'):
+        order_doc['deliveryLocation'] = cleaned['deliveryLocation']
 
     try:
         # Step 1: create Firestore order (OrderRepository.createOrder)

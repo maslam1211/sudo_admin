@@ -125,6 +125,18 @@ ACTIVATION_PAYLOAD = {
 }
 
 
+def verify_email_in_session(client, qr_id, email, typed=''):
+    """What a successful email-OTP verify leaves in the session."""
+    import time
+    from admin_app import activation_email_otp as email_otp
+
+    session = client.session
+    verified = dict(session.get(email_otp.SESSION_KEY) or {})
+    verified[qr_id] = {'email': email, 'typed': typed or email, 'at': time.time()}
+    session[email_otp.SESSION_KEY] = verified
+    session.save()
+
+
 class _FakeDBMixin:
     def setUp(self):
         self.fake = FakeDB()
@@ -159,6 +171,10 @@ class ActivateIdTests(_FakeDBMixin, TestCase):
             p = patch(target, **kwargs)
             setattr(self, target.rsplit('.', 1)[-1], p.start())
             self.addCleanup(p.stop)
+        p = patch('admin_app.views.auth.update_user')
+        self.update_user = p.start()
+        self.addCleanup(p.stop)
+        verify_email_in_session(self.client, 'QR1', 'asha@example.com', 'Asha@Example.com')
 
     def _post(self, payload=None, raw=None):
         return self.client.post(
@@ -284,15 +300,19 @@ class ActivateIdTests(_FakeDBMixin, TestCase):
         self.send_welcome_email_for_id.assert_called_once()
         self.assertEqual(self.fake.store['qrcodes']['QR1']['userID'], 'U9')
 
-    def test_profile_without_login_and_other_phone_is_rejected(self):
+    def test_profile_without_login_is_restored_by_verified_email_alone(self):
+        # Ownership is proven by the email OTP, so a different phone no longer blocks it.
         self.fake.store['users'] = {'U9': {
             'emailAddress': 'asha@example.com',
             'contactNumber': '+919999999999',
+            'fullName': 'Asha Nair',
         }}
         res = self._post()
-        self.assertEqual(res.status_code, 400)
-        self.create_user.assert_not_called()
-        self.assertFalse(self.fake.store['qrcodes']['QR1']['isAssigned'])
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(self.create_user.call_args.kwargs['uid'], 'U9')
+        self.assertEqual(self.fake.store['qrcodes']['QR1']['userID'], 'U9')
+        vehicle = self.fake.store['vehicles'][self.fake.store['qrcodes']['QR1']['vehicleID']]
+        self.assertEqual(vehicle['ownerContact'], '+919999999999')
 
     def test_failure_after_restoring_login_keeps_profile(self):
         self.fake.store['users'] = {'U9': {
@@ -328,18 +348,23 @@ class ActivateIdTests(_FakeDBMixin, TestCase):
         self.assertEqual(res.status_code, 400)
         self.assertIn('fullName', res.json()['errors'])
 
-    def test_existing_user_with_other_phone_is_not_modified(self):
-        self.fake.store['users'] = {'U9': {
-            'emailAddress': 'asha@example.com',
-            'contactNumber': '+919999999999',
-            'adminAddedUser': False,
-        }}
-        self.get_user_by_email.side_effect = None
-        self.get_user_by_email.return_value = SimpleNamespace(uid='U9')
+    def test_activation_requires_verified_email(self):
+        session = self.client.session
+        session.pop('activate_email_verified', None)
+        session.save()
         res = self._post()
         self.assertEqual(res.status_code, 400)
-        self.assertFalse(self.fake.store['users']['U9']['adminAddedUser'])
+        self.assertEqual(res.json()['error_type'], 'email_not_verified')
+        self.create_or_update_firebase_user.assert_not_called()
         self.assertFalse(self.fake.store['qrcodes']['QR1']['isAssigned'])
+
+    def test_email_in_payload_cannot_override_verified_email(self):
+        res = self._post({**ACTIVATION_PAYLOAD, 'emailAddress': 'victim@example.com'})
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(
+            self.create_or_update_firebase_user.call_args.kwargs['email'], 'asha@example.com',
+        )
+        self.assertEqual(self.fake.store['users']['UID1']['emailAddress'], 'asha@example.com')
 
 
 class AdminAccessTests(_FakeDBMixin, TestCase):

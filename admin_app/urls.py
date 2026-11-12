@@ -5,6 +5,7 @@ from . import views
 from . import checkout_views
 from . import checkout_coupon_views
 from . import referral_views
+from . import app_version_views
 from . import wallet_views
 from . import fleet_views
 from . import promotion_notification_views
@@ -48,6 +49,8 @@ urlpatterns = [
     path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
     # Referral management (read / analytics / export — writes via Cloud Functions)
     path('rewards/', wallet_views.manage_rewards, name='manage_rewards'),
+    path('app-versions/', app_version_views.manage_app_versions, name='manage_app_versions'),
+    path('app-versions/<str:platform>/publish/', app_version_views.publish_app_version, name='publish_app_version'),
     path('referrals/', referral_views.manage_referrals, name='manage_referrals'),
     path('referrals/table/', referral_views.referrals_table, name='referrals_table'),
     path('referrals/export/', referral_views.export_referrals_csv, name='export_referrals_csv'),
@@ -74,6 +77,16 @@ urlpatterns = [
         name='public_lookup_vehicle',
     ),
     path('activate-id/<str:qr_id>/', views.activate_id, name='activate_id'),
+    path(
+        'activate-id/<str:qr_id>/email/send/',
+        views.activate_id_email_send,
+        name='activate_id_email_send',
+    ),
+    path(
+        'activate-id/<str:qr_id>/email/verify/',
+        views.activate_id_email_verify,
+        name='activate_id_email_verify',
+    ),
     path(
         'activate-id/<str:qr_id>/otp/send/',
         views.activate_id_otp_send,

@@ -267,6 +267,9 @@
                             <div class="text-muted">{{ entry.order.address.landmark }}</div>
                             <div>{{ entry.order.address.city }}, {{ entry.order.address.state }}</div>
                             <div>{{ entry.order.address.pincode }}</div>
+                            {% if entry.order.deliveryLocation.mapsUrl %}
+                            <div><a href="{{ entry.order.deliveryLocation.mapsUrl }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-geo-alt-fill"></i> GPS location{% if entry.order.deliveryLocation.accuracy %} (±{{ entry.order.deliveryLocation.accuracy }} m){% endif %}</a></div>
+                            {% endif %}
                         </div>
                     </td>
                     

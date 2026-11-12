@@ -151,6 +151,13 @@
 .sx-plate input#vehicleNumber { min-height: 0; padding: 0 12px; border: 0; background: none; box-shadow: none; animation: none; color: var(--plate-ink); font: 700 20px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 .sx-plate input#vehicleNumber:focus { box-shadow: none; }
 .sx-help { margin-top: 8px; font-size: 13px; color: var(--text-lo); }
+.sx-locate { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 16px; }
+.sx-locate__btn { gap: 8px; }
+.sx-locate__btn i { color: var(--signal); }
+.sx-locate__btn[aria-busy="true"] { opacity: .75; pointer-events: none; }
+.sx-locate__status { margin: 0; font-size: 13px; color: var(--text-lo); min-width: 0; }
+.sx-locate__status.is-ok { color: #22C55E; }
+.sx-locate__status.is-error { color: #F87171; }
 
 /* What happens next: little van driving the route */
 .sx-next { padding: clamp(20px, 3vw, 28px); }

@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from pathlib import Path
@@ -262,7 +263,13 @@ urlpatterns = [
         name='vehicle_brands_models_json',
     ),
     path('django-admin/', admin.site.urls),
+    path('api/v1/', include('admin_app.app_version_urls')),
     path('admin/', include('admin_app.urls')),
+    # Short activation link (/activate-id/<qr>/) → the real page under /admin/.
+    path(
+        'activate-id/<str:qr_id>/',
+        RedirectView.as_view(pattern_name='activate_id', permanent=False),
+    ),
     path('', include('landing.urls')),  # Landing page at root path
     # No catch-all redirect - invalid paths will show 404 error instead
 ]

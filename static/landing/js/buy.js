@@ -484,8 +484,192 @@
       selectedItem: product.key,
       quantity: parseInt(qtyInput.value, 10) || 1,
       couponCode: appliedCoupon ? (appliedCoupon.code || getCouponCodeValue()) : getCouponCodeValue(),
+      deliveryLocation: deliveryLocation,
     };
   }
+
+  /* —— "Use my current location" — GPS + reverse geocode to prefill the address —— */
+  var deliveryLocation = null;
+  var locateBtn = document.getElementById('sxLocateBtn');
+  var locateStatus = document.getElementById('sxLocateStatus');
+  var locateBusy = false;
+
+  function setLocateStatus(msg, kind) {
+    if (!locateStatus) return;
+    locateStatus.textContent = msg || '';
+    locateStatus.hidden = !msg;
+    locateStatus.classList.toggle('is-ok', kind === 'ok');
+    locateStatus.classList.toggle('is-error', kind === 'error');
+  }
+
+  function setLocateBusy(on) {
+    locateBusy = on;
+    if (!locateBtn) return;
+    locateBtn.setAttribute('aria-busy', on ? 'true' : 'false');
+    var spin = locateBtn.querySelector('.sx-locate__spinner');
+    var icon = locateBtn.querySelector('.bi');
+    if (spin) spin.hidden = !on;
+    if (icon) icon.hidden = on;
+  }
+
+  function fillField(id, value, overwrite) {
+    var el = fieldEl(id);
+    if (!el || !value) return false;
+    if (!overwrite && String(el.value || '').trim()) return false;
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    var field = el.closest('.field');
+    if (field) field.classList.remove('is-invalid');
+    var err = form.querySelector('.field-error[data-for="' + id + '"]');
+    if (err) { err.hidden = true; err.textContent = ''; }
+    return true;
+  }
+
+  async function reverseGeocode(lat, lng) {
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18' +
+      '&accept-language=en&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng);
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 10000) : null;
+    try {
+      var res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl ? ctrl.signal : undefined });
+      if (!res.ok) throw new Error('Geocode failed');
+      return await res.json();
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  function applyGeocodedAddress(data, approximate) {
+    var a = (data && data.address) || {};
+    var filled = 0;
+    var pin = String(a.postcode || '').replace(/\D/g, '');
+    if (/^[1-9][0-9]{5}$/.test(pin) && fillField('pincode', pin, true)) filled++;
+    var city = a.state_district || a.county || a.city || a.town || a.city_district || a.village || '';
+    city = String(city).replace(/\s+district$/i, '');
+    if (fillField('city', city, true)) filled++;
+    if (fillField('state', a.state || '', true)) filled++;
+    if (a.country && fillField('country', a.country, true)) filled++;
+    var streetParts = [
+      a.road || a.pedestrian || a.residential,
+      a.neighbourhood || a.quarter,
+      a.suburb || a.hamlet,
+      a.village || a.town || a.city,
+    ].filter(Boolean).filter(function (v, i, arr) { return arr.indexOf(v) === i; });
+    // Coarse fix (desktop Wi-Fi/IP): street-level guesses would be wrong.
+    if (approximate) return filled;
+    // Don't clobber a hand-typed street/house; only fill when empty.
+    if (fillField('street', streetParts.join(', '), false)) filled++;
+    if (a.house_number && fillField('houseNumber', a.house_number, false)) filled++;
+    if (a.amenity || a.shop || a.building) {
+      if (fillField('landmark', a.amenity || a.shop || a.building, false)) filled++;
+    }
+    return filled;
+  }
+
+  // Rough platform sniffing — only used to pick the right "how to fix" hint.
+  var geoPlatform = (function () {
+    var ua = navigator.userAgent || '';
+    var inApp = /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|Twitter|LinkedInApp|GSA\//i.test(ua);
+    var ios = /iPhone|iPad|iPod/i.test(ua) ||
+      (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+    var android = /Android/i.test(ua);
+    var mac = !ios && /Macintosh|Mac OS X/i.test(ua);
+    var windows = /Windows/i.test(ua);
+    var browser = /Edg\//.test(ua) ? 'Edge'
+      : /Firefox|FxiOS/.test(ua) ? 'Firefox'
+      : /CriOS|Chrome/.test(ua) ? 'Chrome'
+      : /Safari/.test(ua) ? 'Safari' : 'your browser';
+    return { inApp: inApp, ios: ios, android: android, mac: mac, windows: windows, browser: browser,
+      mobile: ios || android };
+  })();
+
+  function geoFixHint() {
+    var p = geoPlatform, b = p.browser;
+    if (p.inApp) return 'This in-app browser can’t share location — open this page in Safari or Chrome.';
+    if (p.ios) {
+      return b === 'Safari'
+        ? 'On iPhone/iPad: Settings → Privacy & Security → Location Services → Safari Websites → “While Using”. Then tap “aA” → Website Settings → Location → Allow.'
+        : 'On iPhone/iPad: Settings → Privacy & Security → Location Services → ' + b + ' → “While Using”, then allow location for this site.';
+    }
+    if (p.android) return 'On Android: turn on Location in quick settings, then in ' + b + ' tap the 🔒 icon → Permissions → Location → Allow.';
+    if (p.mac) return 'On Mac: System Settings → Privacy & Security → Location Services → turn on for ' + b + ', and allow location for this site (🔒 icon in the address bar).';
+    if (p.windows) return 'On Windows: Settings → Privacy & security → Location → turn on Location services and “Let desktop apps access your location”, then allow this site in ' + b + '.';
+    return 'Allow location for this site in your browser and device settings.';
+  }
+
+  function geoErrorMessage(err) {
+    if (!err) return 'Could not get your location. Please type your address.';
+    if (err.code === 1) return 'Location permission is off. ' + geoFixHint() + ' Or just type your address.';
+    if (err.code === 2) return 'Location unavailable. ' + geoFixHint();
+    if (err.code === 3) return 'Location request timed out. Move near a window / turn on Wi-Fi and try again, or type your address.';
+    return 'Could not get your location. Please type your address.';
+  }
+
+  // Phones: try GPS first. Desktops (Mac/Windows have no GPS) and GPS failures:
+  // fall back to Wi-Fi/network positioning, which is faster and works indoors.
+  function getPosition(onOk, onFail) {
+    var geo = navigator.geolocation;
+    var lowAcc = { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 };
+    if (!geoPlatform.mobile) {
+      geo.getCurrentPosition(onOk, onFail, lowAcc);
+      return;
+    }
+    geo.getCurrentPosition(onOk, function (err) {
+      if (err && err.code === 1) return onFail(err); // denied — retrying won't help
+      geo.getCurrentPosition(onOk, onFail, lowAcc);
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+
+  function handleLocate() {
+    if (locateBusy) return;
+    if (!window.isSecureContext) {
+      setLocateStatus('Location needs a secure (https) connection.', 'error');
+      return;
+    }
+    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
+      setLocateStatus('Your browser does not support location. Please type your address.', 'error');
+      return;
+    }
+    setLocateBusy(true);
+    setLocateStatus('Fetching your location…');
+    if (geoPlatform.inApp) {
+      // Most in-app WebViews silently deny; still try, but warn up front.
+      setLocateStatus('Fetching your location… (if nothing happens, open this page in Safari or Chrome)');
+    }
+    // Must start in the same tap for iOS Safari — no awaits before this call.
+    getPosition(
+      async function (pos) {
+        var c = pos.coords;
+        deliveryLocation = {
+          latitude: Math.round(c.latitude * 1e6) / 1e6,
+          longitude: Math.round(c.longitude * 1e6) / 1e6,
+          accuracy: c.accuracy != null ? Math.round(c.accuracy) : null,
+        };
+        setLocateStatus('Location found. Looking up your address…');
+        try {
+          var data = await reverseGeocode(c.latitude, c.longitude);
+          var approximate = c.accuracy != null && c.accuracy > 1000;
+          var n = applyGeocodedAddress(data, approximate);
+          setLocateStatus(
+            !n ? 'Location saved. We could not read an address here, please type it.'
+              : approximate ? 'Approximate location — filled city/state/PIN. Please type your street and house number.'
+              : 'Address filled from your location — please check it and add your house number.',
+            'ok'
+          );
+        } catch (e) {
+          setLocateStatus('Location saved, but address lookup failed. Please type your address.', 'error');
+        } finally {
+          setLocateBusy(false);
+        }
+      },
+      function (err) {
+        setLocateBusy(false);
+        setLocateStatus(geoErrorMessage(err), 'error');
+      }
+    );
+  }
+
+  if (locateBtn) locateBtn.addEventListener('click', handleLocate);
 
   async function postJson(url, body) {
     var res = await fetch(url, {

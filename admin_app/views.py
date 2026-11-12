@@ -4,6 +4,7 @@ import uuid, os
 import json
 import math
 import requests
+import smtplib
 import logging
 
 from django.shortcuts import render, redirect
@@ -70,6 +71,7 @@ from .firestore_admin_added_user import (
 )
 from .fcm_push import send_push_to_tokens
 from .firebase_user_auth import create_or_update_firebase_user, generate_random_password
+from . import activation_email_otp as email_otp
 from .msg91_otp import (
     Msg91OtpError,
     clear_activate_phone_verified,
@@ -3098,10 +3100,12 @@ def _activate_id_qr_guard(qr_id):
     qr_doc = qr_ref.get()
     if not qr_doc.exists:
         return None, JsonResponse({'status': 'error', 'message': 'Invalid QR Code'}, status=404)
-    if qr_doc.to_dict().get('isAssigned', False):
+    if (qr_doc.to_dict() or {}).get('isAssigned', False):
         return None, JsonResponse({
             'status': 'error',
+            'error_type': 'already_activated',
             'message': 'This QR code is already activated.',
+            'redirect_url': reverse('send_notification', args=[qr_id]),
         }, status=400)
     return qr_doc, None
 
@@ -3110,11 +3114,14 @@ class QrAlreadyAssigned(Exception):
     """The QR was claimed by someone else between the page load and the claim."""
 
 
-def _activate_id_claim_qr(qr_ref, vehicle_ref, vehicle_data, user_id):
+def _activate_id_claim_qr(qr_ref, vehicle_ref, vehicle_data, user_id, user_updates=None):
     """
-    Atomically: confirm the QR is still free, create the vehicle, mark the QR assigned.
+    Atomically: confirm the QR is still free, create the vehicle, mark the QR assigned,
+    and (when given) apply `user_updates` to users/{user_id} — e.g. the vehicle count.
     Raises QrAlreadyAssigned if another activation got there first.
     """
+    user_ref = db.collection('users').document(user_id) if user_updates else None
+
     @firestore.transactional
     def _claim(transaction):
         snap = qr_ref.get(transaction=transaction)
@@ -3127,8 +3134,243 @@ def _activate_id_claim_qr(qr_ref, vehicle_ref, vehicle_data, user_id):
             'userID': user_id,
             'assignedAt': firestore.SERVER_TIMESTAMP,
         })
+        if user_ref is not None:
+            transaction.update(user_ref, user_updates)
 
     _claim(db.transaction())
+
+
+# Account kinds for an OTP-verified activation email.
+ACCOUNT_EXISTING = 'existing'      # Firebase login + users/ profile
+ACCOUNT_RESTORABLE = 'restorable'  # users/ profile whose login was deleted
+ACCOUNT_INCOMPLETE = 'incomplete'  # Firebase login without a users/ profile
+ACCOUNT_NEW = 'new'
+
+
+def _activation_account_lookup(email, email_as_typed=''):
+    """
+    Resolve the SudoTag account behind an email the customer has already verified.
+
+    Returns {kind, user_id, profile, auth_user, vehicles}. The Firebase uid (the
+    users/ document id) — not the email — is what vehicles are linked to.
+    Errors other than "no such login" propagate so a transient Firebase failure
+    can never be mistaken for "new customer" and create a duplicate account.
+    """
+    profile_snap = None
+    # Older user docs may store the email with its original casing.
+    for variant in dict.fromkeys([email, email_as_typed]):
+        if not variant:
+            continue
+        rows = db.collection('users').where(
+            filter=FieldFilter('emailAddress', '==', variant)
+        ).limit(1).get()
+        if rows:
+            profile_snap = rows[0]
+            break
+
+    try:
+        auth_user = auth.get_user_by_email(email)
+    except auth.UserNotFoundError:
+        auth_user = None
+
+    if auth_user is not None and profile_snap is None:
+        snap = db.collection('users').document(auth_user.uid).get()
+        if snap.exists:
+            profile_snap = snap
+
+    if profile_snap is not None:
+        kind = ACCOUNT_EXISTING if auth_user is not None else ACCOUNT_RESTORABLE
+        user_id = profile_snap.id
+    elif auth_user is not None:
+        kind, user_id = ACCOUNT_INCOMPLETE, auth_user.uid
+    else:
+        kind, user_id = ACCOUNT_NEW, None
+
+    vehicles = []
+    if user_id:
+        vehicles = list(
+            db.collection('vehicles')
+            .where(filter=FieldFilter('ownerId', '==', user_id))
+            .stream()
+        )
+    return {
+        'kind': kind,
+        'user_id': user_id,
+        'profile': (profile_snap.to_dict() or {}) if profile_snap is not None else {},
+        'auth_user': auth_user,
+        'vehicles': vehicles,
+    }
+
+
+def _account_summary(account, email, qr_id):
+    """What the activation page may show once the email is verified."""
+    kind = account['kind']
+    return {
+        'exists': kind != ACCOUNT_NEW,
+        'needsDetails': kind in (ACCOUNT_NEW, ACCOUNT_INCOMPLETE),
+        'email': email,
+        'vehicleCount': len(account['vehicles']),
+        'qrId': qr_id,
+    }
+
+
+def _mark_auth_email_verified(uid):
+    """The customer just proved this inbox with an OTP; reflect that on the login."""
+    try:
+        auth.update_user(uid, email_verified=True)
+    except Exception as exc:
+        logger.warning('Could not mark email verified for %s: %s', uid, exc)
+
+
+def _activate_id_json_body(request):
+    try:
+        data = json.loads(request.body or '{}')
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _activate_id_valid_email(raw):
+    """(error, email_lower, email_as_typed)."""
+    from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
+
+    typed = str(raw or '').strip()
+    email = email_otp.normalize_email(typed)
+    if not email:
+        return 'Enter your email address.', None, None
+    try:
+        validate_email(email)
+    except ValidationError:
+        return 'Enter a valid email address.', None, None
+    return None, email, typed
+
+
+@ensure_csrf_cookie
+@require_POST
+def activate_id_email_send(request, qr_id):
+    """
+    Email a 6-digit code. The response is identical whether or not an account
+    exists for the address, so this endpoint cannot be used to probe accounts.
+    """
+    _, err_resp = _activate_id_qr_guard(qr_id)
+    if err_resp:
+        return err_resp
+    data = _activate_id_json_body(request)
+    if data is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+    err, email, _typed = _activate_id_valid_email(data.get('email'))
+    if err:
+        return JsonResponse(
+            {'status': 'error', 'message': err, 'errors': {'email': err}}, status=400,
+        )
+    dummy = email_otp.dummy_code()
+    if dummy:
+        # Local test mode: fixed code, no email sent.
+        email_otp.issue_code(email, qr_id, email_otp.client_ip(request), fixed_code=dummy)
+        email_otp.clear_verified(request, qr_id)
+        logger.warning('Dummy email OTP mode: code for %s on %s is %s', email, qr_id, dummy)
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Test mode: no email sent.',
+            'masked_email': email_otp.mask_email(email),
+            'resend_in': email_otp.RESEND_COOLDOWN_SECONDS,
+            'code_length': email_otp.OTP_LENGTH,
+            'test_code': dummy,
+        })
+    try:
+        code = email_otp.issue_code(email, qr_id, email_otp.client_ip(request))
+    except email_otp.EmailOtpError as exc:
+        return JsonResponse({
+            'status': 'error',
+            'error_type': 'rate_limited',
+            'message': str(exc),
+            'retry_after': exc.retry_after,
+        }, status=429)
+    try:
+        email_otp.send_code_email(email, code)
+    except smtplib.SMTPRecipientsRefused:
+        # The mail server refused this address: the customer can fix it.
+        email_otp.discard_latest_code(email, qr_id)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'This email address could not receive mail. Check it and try again.',
+            'errors': {'email': 'Check this email address.'},
+        }, status=400)
+    except Exception as exc:
+        # Our side (SMTP login, network, Gmail limits) — not the customer's address.
+        if isinstance(exc, smtplib.SMTPAuthenticationError) or 'BadCredentials' in str(exc):
+            logger.error(
+                'activate_id email OTP: SMTP login rejected — update EMAIL_HOST_PASSWORD '
+                '(Gmail App Password) in .env'
+            )
+        else:
+            logger.exception('activate_id email OTP delivery failed')
+        if settings.DEBUG:
+            # Local development only: keep the flow testable without working email.
+            logger.warning('DEBUG: activation code for %s on %s is %s', email, qr_id, code)
+        else:
+            email_otp.discard_latest_code(email, qr_id)
+            return JsonResponse({
+                'status': 'error',
+                'message': "We couldn't send your verification code right now. Please try again in a few minutes.",
+            }, status=503)
+    email_otp.clear_verified(request, qr_id)
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Verification code sent.',
+        'masked_email': email_otp.mask_email(email),
+        'resend_in': email_otp.RESEND_COOLDOWN_SECONDS,
+        'code_length': email_otp.OTP_LENGTH,
+    })
+
+
+@ensure_csrf_cookie
+@require_POST
+def activate_id_email_verify(request, qr_id):
+    """
+    Check the emailed code; on success bind the email to this session + QR and
+    only then report whether it belongs to an existing SudoTag account.
+    Posting just {email} again after a success re-reads the account (retry path).
+    """
+    _, err_resp = _activate_id_qr_guard(qr_id)
+    if err_resp:
+        return err_resp
+    data = _activate_id_json_body(request)
+    if data is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+    err, email, typed = _activate_id_valid_email(data.get('email'))
+    if err:
+        return JsonResponse(
+            {'status': 'error', 'message': err, 'errors': {'email': err}}, status=400,
+        )
+    otp = str(data.get('otp') or '').strip()
+    already_verified = email_otp.verified_email(request, qr_id)[0] == email
+    if otp or not already_verified:
+        try:
+            email_otp.check_code(email, qr_id, otp)
+        except email_otp.EmailOtpError as exc:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(exc),
+                'errors': {'otp': str(exc)},
+            }, status=400)
+        email_otp.mark_verified(request, qr_id, email, typed)
+
+    try:
+        account = _activation_account_lookup(email, typed)
+    except Exception:
+        logger.exception('activate_id account lookup failed')
+        return JsonResponse({
+            'status': 'error',
+            'error_type': 'lookup_failed',
+            'message': 'Your email is verified, but we could not load your account. Please try again.',
+        }, status=503)
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Email verified.',
+        'account': _account_summary(account, email, qr_id),
+    })
 
 
 def _recreate_login_for_profile(user_id, email, full_name):
@@ -3180,15 +3422,15 @@ def _activate_id_send_emails_async(email, name, vehicle_data, temp_password):
 
 def _activate_id_rollback_new_user(auth_user, user_id, is_new_user, delete_profile=True):
     """
-    Undo a login created earlier in this activation request. The profile doc is
-    removed only when this request created it (delete_profile).
+    Undo what this activation request created: the login (only when is_new_user)
+    and the profile doc (only when delete_profile — i.e. this request wrote it).
+    An existing customer's login and profile are never touched.
     """
-    if not is_new_user or auth_user is None:
-        return
-    try:
-        auth.delete_user(auth_user.uid)
-    except Exception as exc:
-        logger.warning('Failed to cleanup auth user %s: %s', auth_user.uid, exc)
+    if is_new_user and auth_user is not None:
+        try:
+            auth.delete_user(auth_user.uid)
+        except Exception as exc:
+            logger.warning('Failed to cleanup auth user %s: %s', auth_user.uid, exc)
     if user_id and delete_profile:
         try:
             db.collection('users').document(user_id).delete()
@@ -3389,21 +3631,42 @@ def activate_id(request, qr_id):
                         'message': 'Invalid request body',
                     }, status=400)
                 admin_added_user = truthy_admin_added_user_from_json(data, default=False)
-                
+
+                # The account is chosen by the email this session proved with an OTP,
+                # never by an email typed into the form.
+                verified_email_addr, email_as_typed = email_otp.verified_email(request, qr_id)
+                if not verified_email_addr:
+                    return JsonResponse({
+                        'status': 'error',
+                        'error_type': 'email_not_verified',
+                        'message': 'Please verify your email address to continue.',
+                        'errors': {'emailAddress': 'Verify your email address first.'},
+                    }, status=400)
+
+                try:
+                    account = _activation_account_lookup(verified_email_addr, email_as_typed)
+                except Exception:
+                    logger.exception('activate_id account lookup failed')
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Could not load your account. Please try again.',
+                    }, status=503)
+                account_kind = account['kind']
+                # Existing customers keep their profile; owner details (and the phone
+                # OTP) are only collected when there is no profile to take them from.
+                needs_owner_details = account_kind in (ACCOUNT_NEW, ACCOUNT_INCOMPLETE)
+
                 # Validate required fields
                 required_fields = {
-                    'user': ['fullName', 'contactNumber', 'city', 'emailAddress'],
+                    'user': ['fullName', 'contactNumber', 'city'] if needs_owner_details else [],
                     'vehicle': ['make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing']
                 }
-                
+
                 # Trim string inputs so whitespace-only values count as missing.
                 for key, value in list(data.items()):
                     if isinstance(value, str):
                         data[key] = value.strip()
-                # Firebase Auth treats email as case-insensitive; store and match lowercase.
-                email_as_typed = str(data.get('emailAddress') or '')
-                if data.get('emailAddress'):
-                    data['emailAddress'] = str(data['emailAddress']).lower()
+                data['emailAddress'] = verified_email_addr
 
                 errors = {}
                 for field in required_fields['user']:
@@ -3431,26 +3694,18 @@ def activate_id(request, qr_id):
                     except (TypeError, ValueError):
                         errors['yearOfManufacturing'] = 'Select a valid year'
                 
-                # Validate email format
-                if data.get('emailAddress'):
-                    from django.core.validators import validate_email
-                    from django.core.exceptions import ValidationError
-                    try:
-                        validate_email(data['emailAddress'])
-                    except ValidationError:
-                        errors['emailAddress'] = 'Enter a valid email address'
-
-                cn_err, cn_canon = activate_id_normalize_contact(
-                    data.get('contactNumber', '')
-                )
-                if cn_err:
-                    errors['contactNumber'] = cn_err
-                else:
-                    data['contactNumber'] = cn_canon
-                    if not is_activate_phone_verified(request, qr_id, cn_canon):
-                        errors['contactNumber'] = (
-                            'Please verify your mobile number with the OTP sent to your phone.'
-                        )
+                if needs_owner_details:
+                    cn_err, cn_canon = activate_id_normalize_contact(
+                        data.get('contactNumber', '')
+                    )
+                    if cn_err:
+                        errors['contactNumber'] = cn_err
+                    else:
+                        data['contactNumber'] = cn_canon
+                        if not is_activate_phone_verified(request, qr_id, cn_canon):
+                            errors['contactNumber'] = (
+                                'Please verify your mobile number with the OTP sent to your phone.'
+                            )
 
                 photo_err = _activate_id_validate_photos(photo_files)
                 if photo_err:
@@ -3467,101 +3722,42 @@ def activate_id(request, qr_id):
                     new_user_temp_password = None
                     is_new_user = False
                     created_user_doc = False
-                    auth_user = None
+                    auth_user = account['auth_user']
+                    user_id = account['user_id']
+                    profile = account['profile']
 
-                    # Older user docs may store the email with its original casing.
-                    user_query = []
-                    for email_variant in dict.fromkeys([data['emailAddress'], email_as_typed]):
-                        if not email_variant:
-                            continue
-                        user_query = db.collection('users').where(
-                            filter=FieldFilter('emailAddress', '==', email_variant)
-                        ).limit(1).get()
-                        if user_query:
-                            break
-                    user_exists_in_firestore = len(user_query) > 0
+                    # Refuse a plate this account already has before creating or
+                    # touching anything (stored plates may be canonical or as typed).
+                    reg_canon = data['registrationNumber']
+                    owned_vehicles = account['vehicles']
+                    if any(
+                        normalize_vehicle_registration(
+                            (v.to_dict() or {}).get('registrationNumber')
+                        ) == reg_canon
+                        for v in owned_vehicles
+                    ):
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'This vehicle is already registered to your account',
+                            'errors': {'registrationNumber': 'This vehicle is already registered'}
+                        }, status=400)
 
-                    try:
-                        auth.get_user_by_email(data['emailAddress'])
-                        user_exists_in_auth = True
-                    except auth.UserNotFoundError:
-                        user_exists_in_auth = False
-                    except Exception:
-                        user_exists_in_auth = False
-
-                    if user_exists_in_auth and user_exists_in_firestore:
-                        user_doc = user_query[0]
-                        user_data = user_doc.to_dict()
-                        user_id = user_doc.id
-
-                        stored_phone = user_data.get('contactNumber', '') or ''
-                        sub_digits = normalize_phone_number(data.get('contactNumber', ''))
-                        stored_digits = normalize_phone_number(stored_phone)
-                        phone_mismatch = (
-                            (sub_digits and stored_digits and sub_digits != stored_digits)
-                            or (
-                                (not sub_digits or not stored_digits)
-                                and stored_phone.replace(' ', '')
-                                != (data.get('contactNumber') or '').replace(' ', '')
-                            )
-                        )
-                        if phone_mismatch:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'This email is already registered',
-                                'errors': {
-                                    'emailAddress': (
-                                        'This email is already registered. Enter the mobile number linked to this account.'
-                                    )
-                                }
-                            }, status=400)
-
-                        try:
-                            auth_user = auth.get_user_by_email(data['emailAddress'])
-                        except auth.UserNotFoundError:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'Account error. Please contact support.',
-                            }, status=400)
-
-                        # Only touch the existing account once its phone has matched.
+                    if account_kind == ACCOUNT_EXISTING:
+                        # Same uid, same profile: the vehicle is simply added to it.
                         db.collection('users').document(user_id).update(
                             admin_added_user_update_payload(admin_added_user)
                         )
 
-                    elif user_exists_in_auth and not user_exists_in_firestore:
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': 'Account exists but data is incomplete. Please contact support.',
-                            'errors': {'emailAddress': 'Account issue detected'}
-                        }, status=400)
-
-                    elif not user_exists_in_auth and user_exists_in_firestore:
+                    elif account_kind == ACCOUNT_RESTORABLE:
                         # Profile exists but its login is gone (e.g. an earlier failed
-                        # activation deleted it). The phone was just OTP-verified, so if
-                        # it matches the profile, recreate the login under the same uid
-                        # so existing vehicles/QRs stay linked.
-                        user_doc = user_query[0]
-                        user_data = user_doc.to_dict() or {}
-                        user_id = user_doc.id
-                        if (
-                            normalize_phone_number(user_data.get('contactNumber'))
-                            != normalize_phone_number(data.get('contactNumber'))
-                        ):
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'This email is already registered',
-                                'errors': {
-                                    'emailAddress': (
-                                        'This email is already registered. Enter the mobile number linked to this account.'
-                                    )
-                                }
-                            }, status=400)
+                        # activation deleted it). The email was just OTP-verified, so
+                        # recreate the login under the same uid so existing vehicles/QRs
+                        # stay linked.
                         try:
                             auth_user, new_user_temp_password = _recreate_login_for_profile(
                                 user_id,
                                 data['emailAddress'],
-                                user_data.get('fullName') or data['fullName'],
+                                profile.get('fullName') or '',
                             )
                         except Exception:
                             logger.exception('Recreating login for profile %s failed', user_id)
@@ -3576,20 +3772,27 @@ def activate_id(request, qr_id):
                         )
 
                     else:
-                        password = generate_random_password(12)
-                        try:
-                            auth_user, password, is_new_user = create_or_update_firebase_user(
-                                email=data['emailAddress'],
-                                full_name=data['fullName'],
-                                password=password,
-                            )
-                        except Exception as exc:
-                            logger.exception('Firebase Auth user creation failed')
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': f'Failed to create account: {exc}',
-                            }, status=500)
+                        if account_kind == ACCOUNT_NEW:
+                            password = generate_random_password(12)
+                            try:
+                                auth_user, password, is_new_user = create_or_update_firebase_user(
+                                    email=data['emailAddress'],
+                                    full_name=data['fullName'],
+                                    password=password,
+                                )
+                            except Exception as exc:
+                                logger.exception('Firebase Auth user creation failed')
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'message': f'Failed to create account: {exc}',
+                                }, status=500)
+                            # The password is emailed only after activation is committed
+                            # (see below), never for a login that might still be rolled back.
+                            new_user_temp_password = password
+                        # ACCOUNT_INCOMPLETE: the login exists (e.g. app sign-up whose
+                        # profile write failed); keep it and its password, add the profile.
                         created_user_doc = True
+                        user_id = auth_user.uid
 
                         user_data = {
                             'id': auth_user.uid,
@@ -3597,8 +3800,11 @@ def activate_id(request, qr_id):
                             'contactNumber': data.get('contactNumber'),
                             'city': data.get('city'),
                             'emailAddress': data.get('emailAddress'),
+                            'emailVerified': True,
+                            'vehicleCount': 0,
                             'enableIdCheck': True,
                             'createdAt': firestore.SERVER_TIMESTAMP,
+                            'updatedAt': firestore.SERVER_TIMESTAMP,
                             'profilePicture': 'default_profile.png',
                             'roleId': 0,
                             'mustChangePassword': False,
@@ -3606,37 +3812,11 @@ def activate_id(request, qr_id):
                             'adminAddedUser': admin_added_user,
                         }
 
-                        user_ref = db.collection('users').document(auth_user.uid)
+                        user_ref = db.collection('users').document(user_id)
                         user_ref.set(user_data)
-                        user_id = auth_user.uid
                         user_ref.update(admin_added_user_update_payload(admin_added_user))
+                        profile = user_data
 
-                        # The password is emailed only after activation is committed
-                        # (see below), never for a login that might still be rolled back.
-                        new_user_temp_password = password
-
-                    # Check if this vehicle is already registered to this user
-                    # (stored plates may be canonical or as originally typed).
-                    reg_canon = data['registrationNumber']
-                    already_registered = any(
-                        normalize_vehicle_registration(
-                            (v.to_dict() or {}).get('registrationNumber')
-                        ) == reg_canon
-                        for v in db.collection('vehicles')
-                        .where(filter=FieldFilter('ownerId', '==', user_id))
-                        .stream()
-                    )
-
-                    if already_registered:
-                        _activate_id_rollback_new_user(
-                            auth_user, user_id, is_new_user, delete_profile=created_user_doc,
-                        )
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': 'This vehicle is already registered to your account',
-                            'errors': {'registrationNumber': 'This vehicle is already registered'}
-                        }, status=400)
-                    
                     # Create vehicle document (for both new and existing users).
                     vehicle_id = str(uuid.uuid4())
                     reg_no = data.get('registrationNumber')
@@ -3663,8 +3843,9 @@ def activate_id(request, qr_id):
                             }, status=502)
                     vehicle_data = {
                         'ownerId': user_id,
-                        'ownerFullName': data.get('fullName'),
-                        'ownerContact': data.get('contactNumber'),
+                        # Existing customers: owner details come from their profile.
+                        'ownerFullName': profile.get('fullName') or data.get('fullName') or '',
+                        'ownerContact': profile.get('contactNumber') or data.get('contactNumber') or '',
                         'make': data.get('make'),
                         'model': data.get('model'),
                         'registrationNumber': reg_no,
@@ -3683,7 +3864,16 @@ def activate_id(request, qr_id):
                     # Create the vehicle and mark the QR assigned in one transaction,
                     # so two people activating the same sticker at once cannot both win.
                     try:
-                        _activate_id_claim_qr(qr_ref, vehicle_ref, vehicle_data, user_id)
+                        _activate_id_claim_qr(
+                            qr_ref, vehicle_ref, vehicle_data, user_id,
+                            user_updates={
+                                # Recounted from vehicles/ so legacy profiles without
+                                # the field (or with a drifted one) self-correct.
+                                'vehicleCount': len(owned_vehicles) + 1,
+                                'emailVerified': True,
+                                'updatedAt': firestore.SERVER_TIMESTAMP,
+                            },
+                        )
                     except QrAlreadyAssigned:
                         _activate_id_rollback_new_user(
                             auth_user, user_id, is_new_user, delete_profile=created_user_doc,
@@ -3697,6 +3887,8 @@ def activate_id(request, qr_id):
                         }, status=409)
 
                     clear_activate_phone_verified(request, qr_id)
+                    email_otp.clear_verified(request, qr_id)
+                    _mark_auth_email_verified(user_id)
 
                     # Activation is committed. Emails go out in the background so a slow
                     # SMTP server can't time the request out and show a false error;
@@ -3704,7 +3896,7 @@ def activate_id(request, qr_id):
                     # doesn't lock the customer out.
                     _activate_id_send_emails_async(
                         email=data['emailAddress'],
-                        name=data['fullName'],
+                        name=profile.get('fullName') or data.get('fullName') or '',
                         vehicle_data=vehicle_data,
                         temp_password=new_user_temp_password,
                     )
@@ -3720,6 +3912,10 @@ def activate_id(request, qr_id):
                             'year_of_manufacturing': vehicle_data['yearOfManufacturing'],
                         },
                         'account_welcome': None,
+                        'account_email': data['emailAddress'],
+                        'qr_id': qr_id,
+                        'vehicle_count': len(owned_vehicles) + 1,
+                        'is_existing_account': account_kind != ACCOUNT_NEW,
                     }
                     if new_user_temp_password:
                         ui_notice['account_welcome'] = {

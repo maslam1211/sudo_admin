@@ -404,7 +404,7 @@
           if (target) {
             if (goActivate) {
               setStatus('QR not activated — opening activation…', 'ok');
-              navigateWithLoader(target, 'Opening activation…');
+              navigateWithLoader(target, 'Processing Your QR Activation...');
             } else {
               setStatus('Opening notify screen…', 'ok');
               navigateWithLoader(target, 'Opening notify…');

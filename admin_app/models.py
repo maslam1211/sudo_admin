@@ -45,3 +45,28 @@ class CallRouteIntent(models.Model):
 
     def __str__(self) -> str:
         return f'{self.caller_key}->{self.destination}'
+
+
+class ActivationEmailOtp(models.Model):
+    """
+    One emailed 6-digit code for the web QR-activation flow (activate-id).
+
+    Only an HMAC of the code is stored. Rows double as the send log used for
+    per-email and per-IP rate limits, so they live in the shared DB rather than
+    the per-process cache.
+    """
+
+    email = models.CharField(max_length=255, db_index=True)
+    qr_id = models.CharField(max_length=64)
+    code_hash = models.CharField(max_length=64)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'activation_email_otp'
+
+    def __str__(self) -> str:
+        return f'ActivationEmailOtp({self.qr_id}, consumed={self.consumed})'

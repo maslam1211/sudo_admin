@@ -261,8 +261,14 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_HOST_USER = 'sudotagonline@gmail.com'
-EMAIL_HOST_PASSWORD = 'bhai mtkd xyhg mefr'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or 'sudotagonline@gmail.com'
+# Gmail App Password (Google Account → Security → App passwords). Set it in .env;
+# the inline value is the old one, which Gmail now rejects (535 BadCredentials).
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') or 'bhai mtkd xyhg mefr'
+
+# Local testing only: a fixed 6-digit activation email code (no email is sent).
+# Honoured only while DEBUG is on. Never set this on the production server.
+ACTIVATION_DUMMY_EMAIL_OTP = os.getenv('ACTIVATION_DUMMY_EMAIL_OTP', '')
 DEFAULT_FROM_EMAIL = 'sudotagonline@gmail.com'
 SERVER_EMAIL = 'sudotagonline@gmail.com'
 EMAIL_TIMEOUT = 30

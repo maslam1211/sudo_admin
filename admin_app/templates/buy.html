@@ -196,6 +196,14 @@
 
               <fieldset class="sx-group">
                 <legend><i class="bi bi-geo-alt" aria-hidden="true"></i>Address</legend>
+                <div class="sx-locate">
+                  <button type="button" class="st-btn st-btn--line st-btn--sm sx-locate__btn" id="sxLocateBtn">
+                    <i class="bi bi-crosshair" aria-hidden="true"></i>
+                    <span class="sx-locate__label">Use my current location</span>
+                    <span class="buy-pay-btn__spinner sx-locate__spinner" hidden aria-hidden="true"></span>
+                  </button>
+                  <p class="sx-locate__status" id="sxLocateStatus" role="status" aria-live="polite" hidden></p>
+                </div>
                 <div class="field-grid">
                   <div class="field">
                     <label for="houseNumber">House / flat number <span class="req">*</span></label>
