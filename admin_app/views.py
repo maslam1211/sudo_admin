@@ -3306,15 +3306,13 @@ def activate_id_email_send(request, qr_id):
             )
         else:
             logger.exception('activate_id email OTP delivery failed')
-        if settings.DEBUG:
-            # Local development only: keep the flow testable without working email.
-            logger.warning('DEBUG: activation code for %s on %s is %s', email, qr_id, code)
-        else:
-            email_otp.discard_latest_code(email, qr_id)
-            return JsonResponse({
-                'status': 'error',
-                'message': "We couldn't send your verification code right now. Please try again in a few minutes.",
-            }, status=503)
+        # Never report "sent" when it wasn't: the live site also runs with DEBUG on.
+        # For local testing without email use ACTIVATION_DUMMY_EMAIL_OTP instead.
+        email_otp.discard_latest_code(email, qr_id)
+        return JsonResponse({
+            'status': 'error',
+            'message': "We couldn't send your verification code right now. Please try again in a few minutes.",
+        }, status=503)
     email_otp.clear_verified(request, qr_id)
     return JsonResponse({
         'status': 'success',
