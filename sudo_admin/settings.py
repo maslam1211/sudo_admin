@@ -257,10 +257,11 @@ SESSION_CACHE_ALIAS = 'default'
 
 # Email Configuration
 EMAIL_BACKEND = 'admin_app.email_backend.CustomEmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
+EMAIL_HOST = os.getenv('EMAIL_HOST') or 'smtp.gmail.com'
+# 587 + TLS by default. If the host blocks 587, set EMAIL_PORT=465 in .env (uses SSL).
+EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)
+EMAIL_USE_SSL = EMAIL_PORT == 465
+EMAIL_USE_TLS = not EMAIL_USE_SSL
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or 'sudotagonline@gmail.com'
 # Gmail App Password (Google Account → Security → App passwords). Set it in .env;
 # the inline value is the old one, which Gmail now rejects (535 BadCredentials).
