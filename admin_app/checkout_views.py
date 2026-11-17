@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from .razorpay_service import (
     create_razorpay_order,
@@ -503,14 +504,14 @@ def checkout_verify_payment(request):
         if order_doc is None:
             docs = list(
                 db.collection('orders')
-                .where('paymentOrderId', '==', razorpay_order_id)
+                .where(filter=FieldFilter('paymentOrderId', '==', razorpay_order_id))
                 .limit(1)
                 .stream()
             )
             if not docs and actual_order_id != razorpay_order_id:
                 docs = list(
                     db.collection('orders')
-                    .where('paymentOrderId', '==', actual_order_id)
+                    .where(filter=FieldFilter('paymentOrderId', '==', actual_order_id))
                     .limit(1)
                     .stream()
                 )

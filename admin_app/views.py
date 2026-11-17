@@ -5,6 +5,7 @@ import json
 import math
 import requests
 import smtplib
+import hmac
 import logging
 
 from django.shortcuts import render, redirect
@@ -94,6 +95,15 @@ from .msg91_otp import (
 
 # Set up logger
 logger = logging.getLogger(__name__)
+
+
+def _secret_matches(provided, setting_name):
+    """Constant-time compare against a settings secret; fails closed when it is unset."""
+    expected = (getattr(settings, setting_name, '') or '').strip()
+    provided = (provided or '').strip()
+    if not expected or not provided:
+        return False
+    return hmac.compare_digest(provided.encode('utf-8'), expected.encode('utf-8'))
 
 
 
@@ -411,7 +421,7 @@ def verify_auth_pin(request):
     """PIN verification page for login/register access"""
     if request.method == 'POST':
         pin = request.POST.get('pin', '').strip()
-        if pin == getattr(settings, 'ADMIN_GATE_PIN', '4455'):
+        if _secret_matches(pin, 'ADMIN_GATE_PIN'):
             request.session['auth_pin_verified'] = True
             request.session.modified = True
             nxt = (request.POST.get('next') or '').strip()
@@ -458,7 +468,6 @@ def admin_login(request):
         'otp_phone_masked': mask_phone_for_display(otp_phone),
     }
 
-    admin_password = getattr(settings, 'ADMIN_PANEL_PASSWORD', 'Sudo@123')
 
     if request.method == 'POST':
         if not is_admin_login_otp_verified(request):
@@ -470,7 +479,7 @@ def admin_login(request):
         password = request.POST.get('password')
 
         # Verify password
-        if password != admin_password:
+        if not _secret_matches(password, 'ADMIN_PANEL_PASSWORD'):
             messages.error(request, 'Invalid email or password.')
             return render(request, 'login.html', login_ctx)
 
@@ -1500,7 +1509,7 @@ def register_admin(request):
 
     if request.method == 'POST':
         if not pin_gate_done:
-            if request.POST.get('panel_pin', '').strip() != getattr(settings, 'ADMIN_GATE_PIN', '4455'):
+            if not _secret_matches(request.POST.get('panel_pin', ''), 'ADMIN_GATE_PIN'):
                 messages.error(request, 'Invalid admin PIN. Enter the panel PIN to register.')
                 return render(
                     request,
@@ -2762,7 +2771,7 @@ def multipurpose_qr_contact(request, qr_id):
             try:
                 matches = list(
                     db.collection('users')
-                    .where('contactNumber', 'in', [digits, '+91' + digits])
+                    .where(filter=FieldFilter('contactNumber', 'in', [digits, '+91' + digits]))
                     .limit(1)
                     .stream()
                 )
@@ -2787,7 +2796,7 @@ def multipurpose_qr_contact(request, qr_id):
         try:
             vehicle_snaps = (
                 db.collection('vehicles')
-                .where('ownerId', '==', user_doc.id)
+                .where(filter=FieldFilter('ownerId', '==', user_doc.id))
                 .limit(8)
                 .stream()
             )
@@ -5570,7 +5579,7 @@ def archive_deleted_user_webhook(request):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
-    # Simple shared-secret validation (optional if secret is unset)
+    # Shared-secret validation (requests are rejected when the secret is unset)
     expected = getattr(settings, 'DELETION_WEBHOOK_SECRET', '') or ''
     
     # Try multiple ways to get the token (Django converts headers to HTTP_X_WEBHOOK_TOKEN)
@@ -5582,17 +5591,19 @@ def archive_deleted_user_webhook(request):
         ''
     )
     
-    if expected:
-        if not provided:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Unauthorized: Missing X-Webhook-Token header or token parameter'
-            }, status=401)
-        if provided != expected:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Unauthorized: Invalid token'
-            }, status=401)
+    if not expected:
+        logger.error('DELETION_WEBHOOK_SECRET is not configured; rejecting deletion webhook')
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=401)
+    if not provided:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Unauthorized: Missing X-Webhook-Token header or token parameter'
+        }, status=401)
+    if not _secret_matches(provided, 'DELETION_WEBHOOK_SECRET'):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Unauthorized: Invalid token'
+        }, status=401)
 
     # Get user_id from URL parameter (for easy testing) or JSON body
     user_id = request.GET.get('user_id') or request.GET.get('uid') or request.GET.get('userId')
@@ -7539,7 +7550,7 @@ def verify_delete_pin(request):
     
     if request.method == 'POST':
         pin = request.POST.get('pin', '').strip()
-        if pin == getattr(settings, 'ADMIN_GATE_PIN', '4455'):
+        if _secret_matches(pin, 'ADMIN_GATE_PIN'):
             request.session['delete_data_verified'] = True
             next_url = request.POST.get('next', '/admin/delete-data/')
             return redirect(next_url)
@@ -7727,19 +7738,19 @@ def delete_with_conditions(request):
             
             # Build query based on operator
             if operator == '==':
-                query = collection_ref.where(field, '==', value)
+                query = collection_ref.where(filter=FieldFilter(field, '==', value))
             elif operator == '!=':
-                query = collection_ref.where(field, '!=', value)
+                query = collection_ref.where(filter=FieldFilter(field, '!=', value))
             elif operator == '>':
-                query = collection_ref.where(field, '>', value)
+                query = collection_ref.where(filter=FieldFilter(field, '>', value))
             elif operator == '<':
-                query = collection_ref.where(field, '<', value)
+                query = collection_ref.where(filter=FieldFilter(field, '<', value))
             elif operator == '>=':
-                query = collection_ref.where(field, '>=', value)
+                query = collection_ref.where(filter=FieldFilter(field, '>=', value))
             elif operator == '<=':
-                query = collection_ref.where(field, '<=', value)
+                query = collection_ref.where(filter=FieldFilter(field, '<=', value))
             elif operator == 'array_contains':
-                query = collection_ref.where(field, 'array_contains', value)
+                query = collection_ref.where(filter=FieldFilter(field, 'array_contains', value))
             else:
                 messages.error(request, 'Invalid operator')
                 return redirect('delete_data')

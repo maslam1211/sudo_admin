@@ -17,11 +17,8 @@ MSG91_VEHICLE_ISSUE_CAMPAIGN_URL = (
 
 
 def _auth_key() -> str:
-    # Same default as mobile SmsService / settings.MSG91_AUTH_KEY.
-    return (
-        (getattr(settings, 'MSG91_AUTH_KEY', '') or '').strip()
-        or '486400AG4Dnr6QVFs695b464eP1'
-    )
+    # settings.MSG91_AUTH_KEY comes from the environment / .env.
+    return (getattr(settings, 'MSG91_AUTH_KEY', '') or '').strip()
 
 
 def _api_has_error(value: Any) -> bool:

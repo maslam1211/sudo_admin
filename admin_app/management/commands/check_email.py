@@ -28,7 +28,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Settings file DEBUG     : {settings.DEBUG}')
         self.stdout.write(f'SMTP host / port        : {settings.EMAIL_HOST}:{settings.EMAIL_PORT}')
         self.stdout.write(f'Login user              : {settings.EMAIL_HOST_USER}')
-        source = '.env / environment' if os.getenv('EMAIL_HOST_PASSWORD') else 'OLD value inside settings.py'
+        source = '.env / environment' if os.getenv('EMAIL_HOST_PASSWORD') else 'not set (add EMAIL_HOST_PASSWORD to .env)'
         self.stdout.write(f'Password comes from     : {source}')
         letters = len(password.replace(' ', ''))
         line = f'Password length         : {letters} letters (Gmail app passwords have 16)'

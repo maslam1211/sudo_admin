@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 import sys
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Load environment variables
 load_dotenv()
@@ -23,22 +24,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-no=2un6zvm5r&cupj9%k_%zjn)!7#*lyf#ca6mizl28ls#sdxk'
+# Secrets and environment flags come from the environment / .env (never commit values).
+# Local .env sets DJANGO_DEBUG=1; the production .env on the VPS leaves it unset.
+DEBUG = os.getenv('DJANGO_DEBUG', '').lower() in ('1', 'true', 'yes')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Set to False in production
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is off.')
+    SECRET_KEY = 'django-insecure-local-dev-only'
 
 # Updated ALLOWED_HOSTS with specific IPs and domains
 
 ALLOWED_HOSTS = [
     '103.163.64.190',
-    '43.205.192.146',
     'sudotag.com',
     'www.sudotag.com',
     'backend.pbx.bonvoice.com',
     'pbx.bonvoice.com',
-    'sudo-admin.onrender.com',
     'localhost',
     '127.0.0.1',
     '104.237.2.231',
@@ -54,8 +57,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1",
     "http://localhost",
-    "http://43.205.192.146",
-    "https://43.205.192.146",
 
     "http://sudotag.com",
     "https://sudotag.com",
@@ -74,9 +75,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://104.237.2.231",
     "https://104.237.2.231",
 
-    "http://sudo-admin.onrender.com",
-    "https://sudo-admin.onrender.com",
-
     # Local development (Origin includes port)
     "http://127.0.0.1:8000",
     "http://localhost:8000",
@@ -87,14 +85,14 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Shared password for admin panel login/register (override in production via env)
-ADMIN_PANEL_PASSWORD = os.getenv('ADMIN_PANEL_PASSWORD', 'Sudo@123')
+ADMIN_PANEL_PASSWORD = os.getenv('ADMIN_PANEL_PASSWORD', '')
 
 # Razorpay — same live key as mobile app / Cloud Functions (override via env in production)
-RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_live_Rg6xvNzdCRcQe5')
-RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'nJ1E1oDIunkKkCLT5hLCMnm3')
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
 
 # PIN shown before login/register and for delete-data flow (override in production via env)
-ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '4455')
+ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '')
 
 # Local dev: common ports (avoids 403 "Origin checking failed" when CSRF_TRUSTED_ORIGINS is set)
 if DEBUG:
@@ -105,8 +103,8 @@ if DEBUG:
                 CSRF_TRUSTED_ORIGINS.append(_o)
 
 # Cookies - Updated for security
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-CSRF_COOKIE_SECURE = False     # Set to True in production with HTTPS
+SESSION_COOKIE_SECURE = not DEBUG  # HTTPS-only cookies in production
+CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True  # Recommended for security
 
 # CSRF Settings - Allow all API calls without strict CSRF checking
@@ -120,10 +118,7 @@ CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF cookie
 
 # CORS Settings - FIXED format (must include scheme)
 CORS_ALLOWED_ORIGINS = [
-    'http://43.205.192.146',
-    'https://43.205.192.146',
     'https://sudotag.com',
-    'https://sudo-admin.onrender.com',
     'https://backend.pbx.bonvoice.com',
     'http://backend.pbx.bonvoice.com',
     'https://pbx.bonvoice.com',
@@ -135,7 +130,7 @@ CORS_ALLOWED_ORIGINS = [
 # For development, you can also allow all origins (not recommended for production)
 # CORS_ALLOW_ALL_ORIGINS = True
 
-# Trust X-Forwarded-Proto from a TLS-terminating proxy (e.g. Render).
+# Trust X-Forwarded-Proto from the TLS-terminating nginx proxy on the VPS.
 # When DEBUG is True locally, leave unset so stray "https" headers do not mark requests as secure.
 # Set USE_TLS_PROXY=1 in .env if you need this while DEBUG=True (e.g. ngrok + runserver).
 USE_TLS_PROXY = os.getenv('USE_TLS_PROXY', '').lower() in ('1', 'true', 'yes')
@@ -263,9 +258,8 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)
 EMAIL_USE_SSL = EMAIL_PORT == 465
 EMAIL_USE_TLS = not EMAIL_USE_SSL
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or 'sudotagonline@gmail.com'
-# Gmail App Password (Google Account → Security → App passwords). Set it in .env;
-# the inline value is the old one, which Gmail now rejects (535 BadCredentials).
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') or 'bhai mtkd xyhg mefr'
+# Gmail App Password (Google Account → Security → App passwords). Set it in .env.
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
 # Local testing only: a fixed 6-digit activation email code (no email is sent).
 # Honoured only while DEBUG is on. Never set this on the production server.
@@ -282,7 +276,7 @@ TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 
 # MSG91 OTP (activate-id mobile verification — same keys as mobile app)
-MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '486400AG4Dnr6QVFs695b464eP1')
+MSG91_AUTH_KEY = os.getenv('MSG91_AUTH_KEY', '')
 MSG91_OTP_TEMPLATE_ID = os.getenv('MSG91_OTP_TEMPLATE_ID', '69d7aa6f30bcfff61b0c68e5')
 
 # QR generation gate — OTP is sent only to this number before generate/download is allowed.
@@ -298,20 +292,20 @@ import cloudinary.uploader
 import cloudinary.api
 
 CLOUDINARY_CONFIG = {
-    'cloud_name': 'djuvhdtfs',
-    'api_key': '288376169192531',
-    'api_secret': 'sewn3kJI6egEEqFtoWjrTsbcboo',
+    'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+    'api_key': os.getenv('CLOUDINARY_API_KEY', ''),
+    'api_secret': os.getenv('CLOUDINARY_API_SECRET', ''),
     'secure': True
 }
 
 cloudinary.config(**CLOUDINARY_CONFIG)
 
 # Webhook secret
-DELETION_WEBHOOK_SECRET = "QWERTY123"
+DELETION_WEBHOOK_SECRET = os.getenv('DELETION_WEBHOOK_SECRET', '')
 
 # PBX webhook POST /admin/api/call — require Authorization: Bearer <key> or X-API-Key when non-empty.
-# Rotate by changing this value and updating your PBX + curl if exposed.
-CALL_ROUTING_API_KEY = 'SudoTag4455'
+# Rotate by changing CALL_ROUTING_API_KEY in .env and updating your PBX + curl.
+CALL_ROUTING_API_KEY = os.getenv('CALL_ROUTING_API_KEY', '')
 
 # Caller identity for the Contact Owner voice bridge when the page does not send a mobile number.
 # Set COMPANY_PHONE_NUMBER in the environment to override.

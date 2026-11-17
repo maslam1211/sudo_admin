@@ -91,10 +91,11 @@ def _provided_call_routing_api_key(request):
 
 
 def _reject_bad_call_routing_api_key(request):
-    """When CALL_ROUTING_API_KEY is set, webhook must send Bearer or X-API-Key."""
+    """Webhook must send Bearer or X-API-Key matching CALL_ROUTING_API_KEY (rejected when unset)."""
     expected = getattr(settings, 'CALL_ROUTING_API_KEY', '') or ''
     if not expected:
-        return None
+        logger.error('CALL_ROUTING_API_KEY is not configured; rejecting call-routing webhook')
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
     got = _provided_call_routing_api_key(request)
     if len(got) != len(expected) or not secrets.compare_digest(
         got.encode('utf-8'), expected.encode('utf-8')

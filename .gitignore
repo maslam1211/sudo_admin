@@ -47,3 +47,6 @@ wbkt ypis bsgl lxf
 # Firebase / Google service account keys: keep them on the server only, never commit
 *firebase-adminsdk*.json
 *service-account*.json
+
+# Local environment (secrets / key paths)
+.env

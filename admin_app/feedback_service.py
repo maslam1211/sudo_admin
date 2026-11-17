@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 import pytz
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ def list_approved_feedbacks(limit: int = 50) -> list[dict]:
         query = (
             _db()
             .collection(COLLECTION)
-            .where('isApproved', '==', True)
+            .where(filter=FieldFilter('isApproved', '==', True))
             .limit(limit)
         )
         for doc in query.stream():

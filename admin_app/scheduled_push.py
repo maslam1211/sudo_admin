@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def resolve_user(db, raw: str) -> str:
     if '@' in text:
         for value in (text.lower(), text):
             matches = list(
-                db.collection('users').where('emailAddress', '==', value).limit(1).stream()
+                db.collection('users').where(filter=FieldFilter('emailAddress', '==', value)).limit(1).stream()
             )
             if matches:
                 return matches[0].id
@@ -168,7 +169,7 @@ def _run_due(db, now: datetime) -> int:
     from .fcm_push import send_push_to_user
 
     sent = 0
-    for doc in db.collection(COLLECTION).where('enabled', '==', True).stream():
+    for doc in db.collection(COLLECTION).where(filter=FieldFilter('enabled', '==', True)).stream():
         data = doc.to_dict() or {}
         next_run = _as_utc(data.get('nextRunAt'))
         if next_run is None or next_run > now:

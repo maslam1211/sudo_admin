@@ -13,6 +13,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 
 def _require_admin(request):
@@ -50,11 +51,11 @@ def _resolve_uid(db, raw):
         return ''
     if '@' in text:
         matches = list(
-            db.collection('users').where('emailAddress', '==', text.lower()).limit(1).stream()
+            db.collection('users').where(filter=FieldFilter('emailAddress', '==', text.lower())).limit(1).stream()
         )
         if not matches:
             matches = list(
-                db.collection('users').where('emailAddress', '==', text).limit(1).stream()
+                db.collection('users').where(filter=FieldFilter('emailAddress', '==', text)).limit(1).stream()
             )
         return matches[0].id if matches else ''
     return text
@@ -116,9 +117,9 @@ def _load_wallet(db, uid):
 def _load_reports(db, uid, status, category, vehicle_id):
     query = db.collection('issue_reports')
     if uid:
-        query = query.where('reporterUid', '==', uid)
+        query = query.where(filter=FieldFilter('reporterUid', '==', uid))
     elif status:
-        query = query.where('status', '==', status)
+        query = query.where(filter=FieldFilter('status', '==', status))
     query = query.order_by('createdAt', direction=firestore.Query.DESCENDING).limit(80)
     reports = []
     for doc in query.stream():
@@ -147,10 +148,10 @@ def _load_reports(db, uid, status, category, vehicle_id):
 def _load_redemptions(db, status):
     query = db.collection('reward_redemptions')
     if status == 'manually_redeemed':
-        query = query.where('manualRedeemed', '==', True).limit(40)
+        query = query.where(filter=FieldFilter('manualRedeemed', '==', True)).limit(40)
     else:
         if status:
-            query = query.where('status', '==', status)
+            query = query.where(filter=FieldFilter('status', '==', status))
         query = query.order_by('createdAt', direction=firestore.Query.DESCENDING).limit(40)
     rows = []
     for doc in query.stream():

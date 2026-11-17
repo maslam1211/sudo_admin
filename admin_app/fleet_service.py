@@ -194,7 +194,7 @@ def get_fleet(db, fleet_id: str) -> Optional[dict]:
 def list_shift_logs(db, fleet_id: str, limit: int = 20) -> list[dict]:
     """Recent shift windows for this fleet. Newest start first."""
     rows = []
-    for doc in db.collection('fleet_shift_logs').where('fleetId', '==', fleet_id).stream():
+    for doc in db.collection('fleet_shift_logs').where(filter=FieldFilter('fleetId', '==', fleet_id)).stream():
         data = doc.to_dict() or {}
         data['id'] = doc.id
         data['startedAtDt'] = _to_dt(data.get('startedAt'))
@@ -210,7 +210,7 @@ def list_shift_logs(db, fleet_id: str, limit: int = 20) -> list[dict]:
 
 def list_drivers(db, fleet_id: str) -> list[dict]:
     rows = []
-    for doc in db.collection('fleet_drivers').where('fleetId', '==', fleet_id).stream():
+    for doc in db.collection('fleet_drivers').where(filter=FieldFilter('fleetId', '==', fleet_id)).stream():
         data = doc.to_dict() or {}
         data['id'] = doc.id
         data['createdAtDt'] = _to_dt(data.get('createdAt'))
