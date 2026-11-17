@@ -1,0 +1,11 @@
+{# Shared footer for customer emails: checkered flag and support line. #}
+  <tr><td style="font-size:0;line-height:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">
+      <tr>{% for _ in "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" %}<td style="height:12px;background-color:{% cycle '#11141b' '#ffffff' %};"></td>{% endfor %}</tr>
+      <tr>{% for _ in "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" %}<td style="height:12px;background-color:{% cycle '#ffffff' '#11141b' %};"></td>{% endfor %}</tr>
+    </table>
+  </td></tr>
+  <tr><td style="background-color:#11141b;padding:22px 32px;" align="center">
+    <p style="margin:0 0 6px 0;font-size:12px;color:#8a93a6;">Need a hand? <a href="mailto:{{ support_email }}" style="color:#ffb020;text-decoration:none;font-weight:700;">{{ support_email }}</a></p>
+    <p style="margin:0;font-size:11px;color:#5c6577;">&copy; SudoTag &middot; Smart QR tags for every vehicle</p>
+  </td></tr>

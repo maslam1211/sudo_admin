@@ -325,6 +325,62 @@ class ActivateIdTests(_FakeDBMixin, TestCase):
         self.delete_user.assert_called_once_with('U9')
         self.assertIn('U9', self.fake.store['users'])
 
+    def _existing_customer(self, profile_email='asha@example.com'):
+        """Asha already has a login + profile (U1) and one vehicle from an earlier QR."""
+        self.fake.store['users'] = {'U1': {
+            'id': 'U1', 'emailAddress': profile_email, 'fullName': 'Asha Nair',
+            'contactNumber': '+919876543210', 'city': 'Kochi', 'vehicleCount': 1,
+        }}
+        self.fake.store['vehicles'] = {'V1': {
+            'ownerId': 'U1', 'registrationNumber': 'KL07AA0001', 'qrCodeId': 'QR0',
+        }}
+        self.get_user_by_email.side_effect = None
+        self.get_user_by_email.return_value = SimpleNamespace(uid='U1', email='asha@example.com')
+
+    def test_existing_account_second_qr_adds_vehicle_to_same_user(self):
+        self._existing_customer()
+        vehicle_only = {k: ACTIVATION_PAYLOAD[k] for k in (
+            'make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing')}
+        res = self._post(vehicle_only)
+        self.assertEqual(res.status_code, 200, res.content)
+        # No new login, no new profile, no password email.
+        self.create_or_update_firebase_user.assert_not_called()
+        self.create_user.assert_not_called()
+        self.send_welcome_email_for_id.assert_not_called()
+        self.send_vehicle_registration_email.assert_called_once()
+        self.assertEqual(list(self.fake.store['users']), ['U1'])
+        # Second vehicle sits under the same user, next to the first.
+        qr = self.fake.store['qrcodes']['QR1']
+        self.assertEqual(qr['userID'], 'U1')
+        owned = [v for v in self.fake.store['vehicles'].values() if v['ownerId'] == 'U1']
+        self.assertEqual(len(owned), 2)
+        new_vehicle = self.fake.store['vehicles'][qr['vehicleID']]
+        self.assertEqual(new_vehicle['ownerFullName'], 'Asha Nair')
+        self.assertEqual(new_vehicle['ownerContact'], '+919876543210')
+        self.assertEqual(self.fake.store['users']['U1']['vehicleCount'], 2)
+        notice = res.json()['ui_notice']
+        self.assertTrue(notice['is_existing_account'])
+        self.assertIsNone(notice['account_welcome'])
+        self.assertEqual(notice['vehicle_count'], 2)
+        self.assertFalse(res.json()['is_new_user'])
+
+    def test_existing_account_found_when_profile_email_differs(self):
+        # App sign-up stored the email differently; the login's uid still finds the profile.
+        self._existing_customer(profile_email='')
+        res = self._post({k: ACTIVATION_PAYLOAD[k] for k in (
+            'make', 'model', 'registrationNumber', 'vehicleType', 'yearOfManufacturing')})
+        self.assertEqual(res.status_code, 200, res.content)
+        self.create_or_update_firebase_user.assert_not_called()
+        self.assertEqual(self.fake.store['qrcodes']['QR1']['userID'], 'U1')
+        self.send_welcome_email_for_id.assert_not_called()
+
+    def test_existing_account_same_plate_is_refused(self):
+        self._existing_customer()
+        payload = dict(ACTIVATION_PAYLOAD, registrationNumber='kl 07 aa 0001')
+        res = self._post(payload)
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(self.fake.store['qrcodes']['QR1']['isAssigned'])
+
     def test_already_activated_qr_redirects_to_notify(self):
         self.fake.store['qrcodes']['QR1']['isAssigned'] = True
         res = self._post()

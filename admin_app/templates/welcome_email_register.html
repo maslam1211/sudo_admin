@@ -1,86 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Sudo</title>
-    {% include 'includes/favicon_links.html' %}
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f7fa;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            color: #4361ee;
-            margin-bottom: 10px;
-        }
-        .content-box {
-            background-color: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-        .credentials {
-            background-color: #f0f8ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-        .btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: #4361ee;
-            color: white !important;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            margin: 15px 0;
-        }
-        .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #6c757d;
-            text-align: center;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Welcome to SudoTag</title>
 </head>
-<body>
-    <div class="header">
-        <div class="logo">SUDO</div>
-        <h2>Welcome to Sudo, {{ name }}!</h2>
-    </div>
-    
-    <div class="content-box">
-        <h3 style="margin-top: 0;">Your Account Details</h3>
-        <p>Thank you for registering with Sudo. Here are your login credentials:</p>
-        
-        <div class="credentials">
-            <p><strong>Email:</strong> {{ email }}</p>
-            <p><strong>Temporary Password:</strong> {{ password }}</p>
-        </div>
-        
-        <p>For security reasons, we recommend changing your password after first login.</p>
-        
-        <a href="{{ login_url }}" class="btn">Login to Your Account</a>
-    </div>
-    
-    <p>If you have any questions or need assistance, please don't hesitate to contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
-    
-    <div class="footer">
-        <p>&copy; 2025 Sudo. All rights reserved.</p>
-        <p>This email was sent to {{ email }} as part of your Sudo account registration.</p>
-    </div>
+<body style="margin:0;padding:0;background-color:#0b0d12;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your SudoTag account is ready, {{ name }}. Here are your sign-in details.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0b0d12;">
+<tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border-radius:18px;overflow:hidden;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+{% include 'includes/email_header.html' %}
+
+  <!-- Hero -->
+  <tr><td style="padding:36px 32px 8px 32px;">
+    <p style="margin:0 0 6px 0;font-size:12px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#eb722b;">Engine started</p>
+    <h1 style="margin:0 0 12px 0;font-size:26px;line-height:1.25;font-weight:800;color:#11141b;">Welcome to the garage, {{ name }}!</h1>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#4b5263;">Your SudoTag account is ready. Anyone who scans your QR can now reach you about your vehicle &mdash; without ever seeing your phone number.</p>
+  </td></tr>
+
+  <!-- Key card -->
+  <tr><td style="padding:24px 32px 8px 32px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#11141b;border-radius:14px;border:1px solid #262b36;">
+      <tr><td style="padding:20px 22px 4px 22px;font-size:11px;font-weight:700;letter-spacing:3px;color:#8a93a6;text-transform:uppercase;">&#128273;&nbsp; Your keys</td></tr>
+      <tr><td style="padding:10px 22px 0 22px;">
+        <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1.5px;color:#8a93a6;text-transform:uppercase;">Email</p>
+        <p style="margin:2px 0 0 0;font-size:16px;font-weight:700;color:#ffffff;word-break:break-all;">{{ email }}</p>
+      </td></tr>
+      <tr><td style="padding:14px 22px 22px 22px;">
+        <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1.5px;color:#8a93a6;text-transform:uppercase;">Temporary password</p>
+        <p style="margin:2px 0 0 0;font-family:'SFMono-Regular',Menlo,Consolas,'Courier New',monospace;font-size:20px;font-weight:800;letter-spacing:2px;color:#ffb020;">{{ password }}</p>
+      </td></tr>
+    </table>
+    <p style="margin:12px 0 0 0;font-size:13px;line-height:1.5;color:#b42318;font-weight:600;">&#9888;&nbsp; Change this password after your first sign-in, and don&rsquo;t share it with anyone.</p>
+  </td></tr>
+
+  <!-- CTA -->
+  <tr><td align="center" style="padding:24px 32px 8px 32px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="background-color:#eb722b;border-radius:12px;">
+        <a href="{{ login_url }}" style="display:inline-block;padding:15px 34px;font-size:15px;font-weight:800;letter-spacing:1px;color:#ffffff;text-decoration:none;text-transform:uppercase;">Get the SudoTag app &nbsp;&rarr;</a>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <!-- Quick start -->
+  <tr><td style="padding:24px 32px 32px 32px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td width="33%" valign="top" style="padding:0 6px 0 0;">
+          <p style="margin:0;font-size:22px;font-weight:900;font-style:italic;color:#eb722b;">01</p>
+          <p style="margin:2px 0 0 0;font-size:13px;line-height:1.45;color:#4b5263;"><strong style="color:#11141b;">Sign in</strong><br>Use the keys above.</p>
+        </td>
+        <td width="33%" valign="top" style="padding:0 6px;">
+          <p style="margin:0;font-size:22px;font-weight:900;font-style:italic;color:#eb722b;">02</p>
+          <p style="margin:2px 0 0 0;font-size:13px;line-height:1.45;color:#4b5263;"><strong style="color:#11141b;">Stick the tag</strong><br>Windscreen or rear glass.</p>
+        </td>
+        <td width="33%" valign="top" style="padding:0 0 0 6px;">
+          <p style="margin:0;font-size:22px;font-weight:900;font-style:italic;color:#eb722b;">03</p>
+          <p style="margin:2px 0 0 0;font-size:13px;line-height:1.45;color:#4b5263;"><strong style="color:#11141b;">Drive easy</strong><br>Get alerts when it&rsquo;s scanned.</p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+{% include 'includes/email_footer.html' %}
+
+</table>
+</td></tr>
+</table>
 </body>
 </html>

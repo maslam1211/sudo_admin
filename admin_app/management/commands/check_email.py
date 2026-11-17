@@ -4,10 +4,14 @@ Diagnose outgoing email on this server.
     python manage.py check_email                 # config + Gmail login only
     python manage.py check_email you@example.com # also send one test email
 
+With EMAIL_DELIVERY=firebase it queues the test email in Firestore instead and
+waits for the Trigger Email extension to report SUCCESS or ERROR.
+
 Prints which step fails, without ever printing the password.
 """
 import os
 import socket
+import time
 
 from django.conf import settings
 from django.core.mail import get_connection, send_mail
@@ -23,6 +27,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         ok = self.style.SUCCESS
         bad = self.style.ERROR
+        if getattr(settings, 'EMAIL_DELIVERY', 'smtp') == 'firebase':
+            return self._check_firebase(options.get('to'), ok, bad)
         password = settings.EMAIL_HOST_PASSWORD or ''
 
         self.stdout.write(f'Settings file DEBUG     : {settings.DEBUG}')
@@ -67,3 +73,35 @@ class Command(BaseCommand):
                 self.stdout.write(ok(f'Test email sent to      : {to}'))
             except Exception as exc:
                 self.stdout.write(bad(f'Test email              : FAILED ({type(exc).__name__}: {exc})'))
+
+    def _check_firebase(self, to, ok, bad):
+        from firebase_admin import firestore
+
+        from admin_app.firebase_init import ensure_firebase_app
+        from admin_app.firestore_email_backend import mail_collection
+
+        app = ensure_firebase_app()
+        self.stdout.write(f'Delivery                : Firebase Trigger Email ({app.project_id}/{mail_collection()})')
+        if not to:
+            self.stdout.write('Pass an address to queue a test email, e.g. check_email you@example.com')
+            return
+        db = firestore.client(app)
+        _, ref = db.collection(mail_collection()).add({
+            'to': [to],
+            'from': settings.DEFAULT_FROM_EMAIL,
+            'message': {'subject': 'SudoTag email test', 'text': 'Email through Firebase works.'},
+            'createdAt': firestore.SERVER_TIMESTAMP,
+        })
+        self.stdout.write(f'Queued                  : {mail_collection()}/{ref.id}')
+        for _ in range(30):
+            time.sleep(2)
+            delivery = (ref.get().to_dict() or {}).get('delivery') or {}
+            state = delivery.get('state')
+            if state == 'SUCCESS':
+                self.stdout.write(ok(f'Test email sent to      : {to}'))
+                return
+            if state == 'ERROR':
+                self.stdout.write(bad(f'Extension error         : {delivery.get("error")}'))
+                return
+        self.stdout.write(bad('No delivery result after 60s: is the Trigger Email extension installed '
+                              f'and watching the "{mail_collection()}" collection?'))

@@ -251,7 +251,19 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_CACHE_ALIAS = 'default'
 
 # Email Configuration
-EMAIL_BACKEND = 'admin_app.email_backend.CustomEmailBackend'
+# EMAIL_DELIVERY=firebase sends every email through Firebase's "Trigger Email from
+# Firestore" extension on sudotag-faa80 (a document in FIREBASE_MAIL_COLLECTION).
+# EMAIL_DELIVERY=console (local, DEBUG only) prints emails in the server terminal.
+# Anything else (default) sends directly over SMTP with the settings below.
+EMAIL_DELIVERY = (os.getenv('EMAIL_DELIVERY') or 'smtp').strip().lower()
+FIREBASE_MAIL_COLLECTION = os.getenv('FIREBASE_MAIL_COLLECTION') or 'mail'
+if EMAIL_DELIVERY == 'firebase':
+    EMAIL_BACKEND = 'admin_app.firestore_email_backend.FirestoreEmailBackend'
+elif EMAIL_DELIVERY == 'console' and DEBUG:
+    # Local testing: print emails in the runserver terminal instead of sending them.
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'admin_app.email_backend.CustomEmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST') or 'smtp.gmail.com'
 # 587 + TLS by default. If the host blocks 587, set EMAIL_PORT=465 in .env (uses SSL).
 EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)

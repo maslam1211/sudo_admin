@@ -528,6 +528,251 @@
         transform: translateX(-50%);
       }
     }
+
+    /* ---- Email-first activation steps ---- */
+    .activation-step[hidden],
+    #formCardHeader[hidden],
+    #ownerSection[hidden] { display: none !important; }
+
+    .activation-step {
+      animation: otpCardIn 0.35s ease-out;
+    }
+
+    .step-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+      margin: 4px 0 22px;
+    }
+
+    .step-hero-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      color: var(--accent-orange);
+      background: radial-gradient(circle at 30% 25%, rgba(229, 129, 71, 0.32), rgba(229, 129, 71, 0.1));
+      border: 1px solid rgba(229, 129, 71, 0.35);
+      box-shadow: 0 10px 28px rgba(229, 129, 71, 0.18);
+    }
+
+    .step-title {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-white);
+      text-transform: none;
+    }
+
+    .step-sub {
+      margin: 0;
+      max-width: 34ch;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.62);
+      text-transform: none;
+    }
+
+    .step-sub strong {
+      color: var(--text-white);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .step-secure-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 16px 0 0;
+      font-size: 0.76rem;
+      color: rgba(255, 255, 255, 0.45);
+      text-transform: none;
+    }
+
+    .btn-link-plain {
+      padding: 0;
+      border: none;
+      background: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .btn-link-plain:hover { color: var(--text-white); }
+
+    #emailOtpStep .otp-boxes-wrap { max-width: 340px; }
+    #emailOtpStep .otp-boxes { grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    #emailOtpStep .otp-digit { font-size: 1.15rem; min-height: 44px; }
+
+    /* Inline "busy" state for step buttons */
+    .btn-busy-spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .btn-busy-spinner[hidden] { display: none; }
+
+    /* Linked-account chip at the top of the vehicle form */
+    .linked-account-chip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.28);
+      text-transform: none;
+    }
+
+    .linked-account-chip > i {
+      font-size: 1.35rem;
+      color: #4caf50;
+      flex-shrink: 0;
+    }
+
+    .linked-account-chip .chip-body { flex: 1; min-width: 0; }
+
+    .linked-account-chip .chip-label {
+      display: block;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .linked-account-chip .chip-email {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-white);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-list {
+      margin: 0;
+      padding: 4px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      text-align: left;
+    }
+
+    .detail-list > div {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .detail-list > div:last-child { border-bottom: none; }
+
+    .detail-list dt {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.55);
+      flex-shrink: 0;
+    }
+
+    .detail-list dd {
+      margin: 0;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-white);
+      text-align: right;
+      word-break: break-all;
+      text-transform: none;
+    }
+
+    .btn-ghost-light {
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: transparent;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 600;
+    }
+
+    .btn-ghost-light:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-white);
+    }
+
+    /* Full-screen activation loader: hidden until .active (it used to sit
+       permanently at the bottom of the page because nothing hid it). */
+    body.activate-app .spinner-container {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+    }
+
+    body.activate-app .spinner-container.active { display: flex; }
+
+    body.activate-app .spinner-container .spinner {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 4px solid var(--secondary-gray);
+      border-top-color: var(--accent-orange);
+      animation: spin 0.9s linear infinite;
+    }
+
+    body.activate-app .spinner-container .spinner-label {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    #emailOtpMasked { white-space: nowrap; word-break: normal; }
+
+    /* Long values (plate, email) drop below their label instead of splitting mid-word. */
+    .detail-list > div { flex-wrap: wrap; row-gap: 2px; }
+    .detail-list dd { margin-left: auto; word-break: normal; overflow-wrap: break-word; max-width: 100%; }
+
+    #continueBtn.btn-ghost-light {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .dock-terms-note {
+      margin: 0 0 10px;
+      font-size: 0.74rem;
+      line-height: 1.4;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.55);
+      text-transform: none;
+    }
+    .dock-terms-note a { color: var(--accent-orange); }
+    .dock-terms-note[hidden], #dockTermsBox[hidden], #linkedAccountMeta[hidden] { display: none !important; }
+    #linkedAccountMeta { margin-top: 2px; }
+
+    #successDetails { margin: 0 0 16px; }
+    #successDetails[hidden] { display: none; }
+    #openAppBtn { margin-bottom: 10px; }
   </style>
   {# Theme served by Django so dark shell + orange accents still apply when /static/ is wrong on production. #}
   <link href="{% url 'sudo_mobile_flow_css' %}" rel="stylesheet">
@@ -543,15 +788,87 @@
 
   <main class="app-main sudo-app-main">
     <div class="content-card" id="contentCard">
-      <div class="card-header-block" id="formCardHeader">
-        <p class="card-title">Vehicle registration</p>
-        <p class="card-subtitle">Enter your vehicle and contact details</p>
+      <div class="card-header-block" id="formCardHeader" hidden>
+        <p class="card-title" id="formCardTitle">Vehicle registration</p>
+        <p class="card-subtitle" id="formCardSubtitle">Enter your vehicle and contact details</p>
       </div>
 
       <div class="form-body">
-      <div id="activationFormContainer">
+
+      <!-- Step 1: email -->
+      <section class="activation-step" id="emailStep" aria-labelledby="emailStepTitle">
+        <div class="step-hero">
+          <div class="step-hero-icon" aria-hidden="true"><i class="bi bi-qr-code-scan"></i></div>
+          <h2 class="step-title" id="emailStepTitle">Activate Your SudoTag</h2>
+          <p class="step-sub">Enter your email address to securely link this vehicle to your SudoTag account.</p>
+        </div>
+        <form id="emailStepForm" novalidate>
+          <div class="form-group">
+            <label for="activationEmail" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="activationEmail" name="email"
+              placeholder="you@example.com" autocomplete="email" inputmode="email" required>
+          </div>
+          <button type="submit" class="btn btn-verify-otp" id="emailContinueBtn">
+            <span class="btn-busy-spinner" id="emailContinueSpinner" hidden></span>
+            <span id="emailContinueLabel">Continue</span>
+          </button>
+          <div class="otp-status-msg" id="emailStepStatus" role="status" aria-live="polite" hidden>
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <span id="emailStepStatusText"></span>
+          </div>
+        </form>
+        <p class="step-secure-note">
+          <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+          Already use SudoTag? Use the same email to add this vehicle to your account.
+        </p>
+      </section>
+
+      <!-- Step 2: email OTP -->
+      <section class="activation-step" id="emailOtpStep" aria-labelledby="emailOtpTitle" hidden>
+        <div class="step-hero">
+          <div class="step-hero-icon" aria-hidden="true"><i class="bi bi-envelope-check-fill"></i></div>
+          <h2 class="step-title" id="emailOtpTitle">Verify Your Email</h2>
+          <p class="step-sub">We have sent a verification code to <strong id="emailOtpMasked"></strong></p>
+        </div>
+        <div class="otp-boxes-wrap" id="emailOtpBoxesWrap">
+          <div class="otp-boxes" id="emailOtpBoxes" role="group" aria-label="6-digit verification code">
+            <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Digit 1" autocomplete="one-time-code">
+            <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Digit 2" autocomplete="off">
+            <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Digit 3" autocomplete="off">
+            <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Digit 4" autocomplete="off">
+            <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Digit 5" autocomplete="off">
+            <input type="text" class="otp-digit" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Digit 6" autocomplete="off">
+          </div>
+        </div>
+        <button type="button" class="btn btn-verify-otp" id="emailVerifyBtn">
+          <span class="btn-busy-spinner" id="emailVerifySpinner" hidden></span>
+          <span id="emailVerifyLabel">Verify &amp; Continue</span>
+        </button>
+        <div class="otp-footer">
+          <button type="button" class="btn-resend-otp" id="emailResendBtn" disabled>Resend code</button>
+          <span class="otp-resend-timer" id="emailResendTimer" hidden></span>
+          <button type="button" class="btn-link-plain" id="emailChangeBtn">Change email</button>
+        </div>
+        <div class="otp-status-msg" id="emailOtpStatus" role="status" aria-live="polite" hidden>
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <span id="emailOtpStatusText"></span>
+        </div>
+      </section>
+
+      <!-- Step 3: vehicle (+ owner details for new accounts) -->
+      <div id="activationFormContainer" class="activation-step" hidden>
         <form id="activationForm">
           <input type="hidden" id="adminAddedUser" value="true">
+
+          <div class="linked-account-chip" id="linkedAccountChip">
+            <i class="bi bi-patch-check-fill" aria-hidden="true"></i>
+            <div class="chip-body">
+              <span class="chip-label" id="linkedAccountLabel">Verified email</span>
+              <span class="chip-email" id="linkedAccountEmail"></span>
+              <span class="chip-label" id="linkedAccountMeta" hidden></span>
+            </div>
+            <button type="button" class="btn-link-plain" id="linkedAccountChangeBtn">Change</button>
+          </div>
 
           <section class="form-section" aria-labelledby="vehicleSectionLabel">
             <h3 class="section-label" id="vehicleSectionLabel">
@@ -665,7 +982,7 @@
             </div>
           </section>
 
-          <section class="form-section" aria-labelledby="ownerSectionLabel">
+          <section class="form-section" id="ownerSection" aria-labelledby="ownerSectionLabel">
             <h3 class="section-label" id="ownerSectionLabel">
               <i class="bi bi-person-fill" aria-hidden="true"></i> Your details
             </h3>
@@ -728,11 +1045,6 @@
           </div>
           
           <div class="form-group">
-            <label for="emailAddress" class="form-label">Email Address</label>
-            <input type="email" class="form-control" id="emailAddress" placeholder="Enter your email address (e.g., john.smith@email.com)" required>
-          </div>
-          
-          <div class="form-group">
             <label for="city" class="form-label">City</label>
             <input type="text" class="form-control" id="city" placeholder="Enter your city name (e.g., Mumbai, Delhi, Bangalore)" required>
           </div>
@@ -748,6 +1060,15 @@
           <h3 class="success-title" id="successTitle">Activation Successful!</h3>
           <p class="success-text" id="successText">Your vehicle QR code is now active. Others can scan it to contact you.</p>
         </div>
+
+        <dl class="detail-list" id="successDetails" hidden>
+          <div><dt>Vehicle Registration Number</dt><dd id="successPlate"></dd></div>
+          <div><dt>QR Tag ID</dt><dd id="successQrId"></dd></div>
+          <div><dt>Account Email</dt><dd id="successEmail"></dd></div>
+        </dl>
+        <a class="btn btn-verify-otp" id="openAppBtn" href="https://play.google.com/store/apps/details?id=com.sudotag.sudo&amp;hl=en_GB" target="_blank" rel="noopener" style="display: none;">
+          <i class="bi bi-phone-fill" aria-hidden="true"></i> Open SudoTag App
+        </a>
 
         <div id="uiEmailMirrorPanel" class="email-mirror-panel" aria-live="polite">
           <h4 id="mirrorPanelTitle">Also sent to your email</h4>
@@ -769,9 +1090,14 @@
     </div>
   </main>
 
-  <footer id="activationDock" class="activation-dock sudo-bottom-dock" aria-label="Complete registration">
+  <footer id="activationDock" class="activation-dock sudo-bottom-dock" aria-label="Complete registration" style="display: none;">
     <div class="activation-dock-inner">
-      <div class="sudo-dock-terms-box">
+      <p class="dock-terms-note" id="dockTermsNote" hidden>
+        By adding this vehicle you agree to the
+        <a href="{% url 'terms' %}" target="_blank" class="terms-link">Terms</a> and
+        <a href="{% url 'privacy' %}" target="_blank" class="terms-link">Privacy Policy</a>.
+      </p>
+      <div class="sudo-dock-terms-box" id="dockTermsBox">
         <div class="form-check">
           <input type="checkbox" class="form-check-input" id="termsCheck" form="activationForm" required>
           <label class="form-check-label" for="termsCheck">
@@ -839,7 +1165,7 @@
   <!-- Loading Spinner -->
   <div class="spinner-container" id="loadingSpinner">
     <div class="spinner" role="status" aria-label="Loading"></div>
-    <p class="spinner-label">Activating your QR code…</p>
+    <p class="spinner-label" id="loadingSpinnerLabel">Activating your QR code…</p>
   </div>
 
   <!-- Toast notifications removed - using inline error messages instead -->
@@ -870,7 +1196,7 @@
       const verifyOtpBtn = document.getElementById('verifyOtpBtn');
       const resendOtpBtn = document.getElementById('resendOtpBtn');
       const resendOtpTimer = document.getElementById('resendOtpTimer');
-      const otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
+      const otpDigits = Array.from(document.querySelectorAll('#otpBoxes .otp-digit'));
       const otpBoxesWrap = document.getElementById('otpBoxesWrap');
       const otpAutofillCapture = document.getElementById('otpAutofillCapture');
       const otpSentToLine = document.getElementById('otpSentToLine');
@@ -1584,6 +1910,328 @@
 
       verifyOtpBtn.addEventListener('click', submitOtpVerify);
 
+      // ---- Email-first flow: email → OTP → (welcome back | new account) → vehicle ----
+      // The server only reveals whether an account exists after the code is verified.
+      const EMAIL_SEND_URL = '{% url "activate_id_email_send" qr_id=qr_id %}';
+      const EMAIL_VERIFY_URL = '{% url "activate_id_email_verify" qr_id=qr_id %}';
+      const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const EMAIL_OTP_LENGTH = 6;
+      const emailStep = document.getElementById('emailStep');
+      const emailOtpStep = document.getElementById('emailOtpStep');
+      const emailStepForm = document.getElementById('emailStepForm');
+      const activationEmail = document.getElementById('activationEmail');
+      const emailContinueBtn = document.getElementById('emailContinueBtn');
+      const emailContinueSpinner = document.getElementById('emailContinueSpinner');
+      const emailContinueLabel = document.getElementById('emailContinueLabel');
+      const emailStepStatus = document.getElementById('emailStepStatus');
+      const emailOtpMasked = document.getElementById('emailOtpMasked');
+      const emailOtpDigits = Array.from(document.querySelectorAll('#emailOtpBoxes .otp-digit'));
+      const emailVerifyBtn = document.getElementById('emailVerifyBtn');
+      const emailVerifySpinner = document.getElementById('emailVerifySpinner');
+      const emailVerifyLabel = document.getElementById('emailVerifyLabel');
+      const emailResendBtn = document.getElementById('emailResendBtn');
+      const emailResendTimer = document.getElementById('emailResendTimer');
+      const emailChangeBtn = document.getElementById('emailChangeBtn');
+      const emailOtpStatus = document.getElementById('emailOtpStatus');
+      const formCardHeader = document.getElementById('formCardHeader');
+      const formCardTitle = document.getElementById('formCardTitle');
+      const formCardSubtitle = document.getElementById('formCardSubtitle');
+      const ownerSection = document.getElementById('ownerSection');
+      const linkedAccountLabel = document.getElementById('linkedAccountLabel');
+      const linkedAccountEmail = document.getElementById('linkedAccountEmail');
+      const activationDock = document.getElementById('activationDock');
+      const activateSubmitLabel = document.querySelector('#activateSubmitBtn span');
+      let emailForOtp = '';
+      let verifiedAccount = null;   // {exists, needsDetails, email, vehicleCount, qrId}
+      let emailResendTimerId = null;
+      let emailRequestInFlight = false;
+      let emailLookupPending = false; // verified, but account lookup failed — retry without a code
+
+      function setInlineStatus(box, message, type) {
+        const textEl = box.querySelector('span');
+        const iconEl = box.querySelector('i');
+        box.classList.remove('is-error', 'is-success');
+        if (!message) {
+          box.hidden = true;
+          textEl.textContent = '';
+          return;
+        }
+        box.hidden = false;
+        textEl.textContent = message;
+        if (type === 'error') box.classList.add('is-error');
+        if (type === 'success') box.classList.add('is-success');
+        iconEl.className = 'bi ' + (
+          type === 'error' ? 'bi-exclamation-circle' : type === 'success' ? 'bi-check-circle' : 'bi-info-circle'
+        );
+      }
+
+      function setButtonBusy(btn, spinner, label, busyText, idleText, busy) {
+        btn.disabled = busy;
+        spinner.hidden = !busy;
+        label.textContent = busy ? busyText : idleText;
+      }
+
+      function postJson(url, payload) {
+        return fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(payload || {})
+        }).then(function(response) {
+          return response.json().catch(function() { return {}; }).then(function(data) {
+            if (!response.ok) {
+              data.httpStatus = response.status;
+              throw data;
+            }
+            return data;
+          });
+        });
+      }
+
+      function redirectIfActivated(err) {
+        if (err && err.error_type === 'already_activated' && err.redirect_url) {
+          window.location.href = err.redirect_url;
+          return true;
+        }
+        return false;
+      }
+
+      function showStep(step) {
+        emailStep.hidden = step !== 'email';
+        emailOtpStep.hidden = step !== 'otp';
+        activationFormContainer.hidden = step !== 'form';
+        formCardHeader.hidden = step !== 'form';
+        activationDock.style.display = step === 'form' ? '' : 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function getEmailOtpValue() {
+        return emailOtpDigits.map(function(el) { return el.value.replace(/\D/g, ''); }).join('');
+      }
+
+      function fillEmailOtp(raw) {
+        const chars = String(raw || '').replace(/\D/g, '').slice(0, EMAIL_OTP_LENGTH);
+        emailOtpDigits.forEach(function(el, i) {
+          el.value = chars[i] || '';
+          el.classList.toggle('filled', !!chars[i]);
+        });
+        return chars;
+      }
+
+      function stopEmailResendCountdown() {
+        if (emailResendTimerId) {
+          clearInterval(emailResendTimerId);
+          emailResendTimerId = null;
+        }
+        emailResendTimer.hidden = true;
+        emailResendBtn.disabled = false;
+      }
+
+      function startEmailResendCountdown(seconds) {
+        stopEmailResendCountdown();
+        let remaining = Math.max(1, parseInt(seconds, 10) || OTP_RESEND_SECONDS);
+        emailResendBtn.disabled = true;
+        emailResendTimer.hidden = false;
+        emailResendTimer.textContent = 'Resend in ' + remaining + 's';
+        emailResendTimerId = setInterval(function() {
+          remaining -= 1;
+          if (remaining <= 0) {
+            stopEmailResendCountdown();
+            return;
+          }
+          emailResendTimer.textContent = 'Resend in ' + remaining + 's';
+        }, 1000);
+      }
+
+      function sendEmailCode(isResend) {
+        if (emailRequestInFlight) return;
+        const email = isResend ? emailForOtp : activationEmail.value.trim();
+        activationEmail.classList.remove('is-invalid');
+        const oldErr = activationEmail.parentNode.querySelector('.invalid-feedback');
+        if (oldErr) oldErr.remove();
+        if (!EMAIL_PATTERN.test(email)) {
+          showFieldError(activationEmail, 'Enter a valid email address');
+          activationEmail.focus();
+          return;
+        }
+        emailRequestInFlight = true;
+        if (isResend) {
+          emailResendBtn.disabled = true;
+          setInlineStatus(emailOtpStatus, 'Sending a new code…', 'info');
+        } else {
+          setInlineStatus(emailStepStatus, '');
+          setButtonBusy(emailContinueBtn, emailContinueSpinner, emailContinueLabel,
+            'Checking your SudoTag account...', 'Continue', true);
+        }
+        postJson(EMAIL_SEND_URL, { email: email })
+          .then(function(data) {
+            emailForOtp = email;
+            emailLookupPending = false;
+            emailOtpMasked.textContent = data.masked_email || email;
+            fillEmailOtp('');
+            showStep('otp');
+            if (data.test_code) {
+              setInlineStatus(emailOtpStatus, 'Test mode: no email sent. Use code ' + data.test_code + '.', 'info');
+            } else {
+              setInlineStatus(emailOtpStatus, isResend
+                ? 'A new code is on its way. Earlier codes no longer work.'
+                : 'Code sent. Check your inbox (and spam folder).', 'success');
+            }
+            startEmailResendCountdown(data.resend_in);
+            setTimeout(function() { emailOtpDigits[0].focus(); }, 250);
+          })
+          .catch(function(err) {
+            if (redirectIfActivated(err)) return;
+            const msg = (err && err.message) || 'Could not send the code. Please try again.';
+            if (isResend) {
+              setInlineStatus(emailOtpStatus, msg, 'error');
+              if (err && err.retry_after) startEmailResendCountdown(err.retry_after);
+              else emailResendBtn.disabled = false;
+            } else if (err && err.errors && err.errors.email) {
+              showFieldError(activationEmail, err.errors.email);
+            } else {
+              setInlineStatus(emailStepStatus, msg, 'error');
+            }
+          })
+          .finally(function() {
+            emailRequestInFlight = false;
+            setButtonBusy(emailContinueBtn, emailContinueSpinner, emailContinueLabel,
+              'Checking your SudoTag account...', 'Continue', false);
+          });
+      }
+
+      function verifyEmailCode() {
+        if (emailRequestInFlight) return;
+        const otp = getEmailOtpValue();
+        if (!emailLookupPending && otp.length !== EMAIL_OTP_LENGTH) {
+          setInlineStatus(emailOtpStatus, 'Enter the 6-digit code from your email.', 'error');
+          emailOtpDigits[Math.min(otp.length, EMAIL_OTP_LENGTH - 1)].focus();
+          return;
+        }
+        emailRequestInFlight = true;
+        setInlineStatus(emailOtpStatus, '');
+        setButtonBusy(emailVerifyBtn, emailVerifySpinner, emailVerifyLabel,
+          'Verifying…', 'Verify & Continue', true);
+        const payload = emailLookupPending ? { email: emailForOtp } : { email: emailForOtp, otp: otp };
+        postJson(EMAIL_VERIFY_URL, payload)
+          .then(function(data) {
+            emailLookupPending = false;
+            stopEmailResendCountdown();
+            onEmailVerified(data.account);
+          })
+          .catch(function(err) {
+            if (redirectIfActivated(err)) return;
+            if (err && err.error_type === 'lookup_failed') {
+              emailLookupPending = true;
+              setInlineStatus(emailOtpStatus, err.message + ' Tap "Verify & Continue" to retry.', 'error');
+              return;
+            }
+            setInlineStatus(emailOtpStatus, (err && err.message) || 'Incorrect code. Try again or resend.', 'error');
+            fillEmailOtp('');
+            emailOtpDigits[0].focus();
+          })
+          .finally(function() {
+            emailRequestInFlight = false;
+            setButtonBusy(emailVerifyBtn, emailVerifySpinner, emailVerifyLabel,
+              'Verifying…', 'Verify & Continue', false);
+          });
+      }
+
+      function onEmailVerified(account) {
+        // No confirmation popup: existing customers go straight to the vehicle
+        // form, with a "Welcome back" card summarising the account on top.
+        verifiedAccount = account;
+        linkedAccountEmail.textContent = account.email;
+        enterVehicleForm();
+      }
+
+      function enterVehicleForm() {
+        const existing = verifiedAccount.exists;
+        ownerSection.hidden = !verifiedAccount.needsDetails;
+        // Hidden owner inputs must not keep `required`, or native validation
+        // silently blocks the submit for existing customers.
+        ['fullName', 'contactNumber', 'city'].forEach(function(id) {
+          document.getElementById(id).required = !!verifiedAccount.needsDetails;
+        });
+        linkedAccountLabel.textContent = existing ? 'Welcome back! Adding to your account' : 'Creating a new SudoTag account';
+        const meta = document.getElementById('linkedAccountMeta');
+        meta.hidden = !existing;
+        if (existing) {
+          const n = verifiedAccount.vehicleCount;
+          meta.textContent = n + (n === 1 ? ' vehicle' : ' vehicles') + ' · New QR ' + verifiedAccount.qrId;
+        }
+        formCardTitle.textContent = existing ? 'Add your vehicle' : 'Vehicle registration';
+        formCardSubtitle.textContent = existing
+          ? 'Just the vehicle details — your account info is already saved'
+          : 'Enter your vehicle and contact details';
+        if (activateSubmitLabel) {
+          activateSubmitLabel.textContent = existing ? 'Add Vehicle' : 'Activate QR Code';
+        }
+        // Existing customers accepted the terms when they signed up: show a
+        // one-line notice instead of another checkbox to tick.
+        const termsCheck = document.getElementById('termsCheck');
+        document.getElementById('dockTermsBox').hidden = existing;
+        document.getElementById('dockTermsNote').hidden = !existing;
+        termsCheck.required = !existing;
+        if (existing) termsCheck.checked = true;
+        showStep('form');
+      }
+
+      function resetToEmailStep(message) {
+        verifiedAccount = null;
+        emailForOtp = '';
+        emailLookupPending = false;
+        stopEmailResendCountdown();
+        fillEmailOtp('');
+        setInlineStatus(emailOtpStatus, '');
+        setInlineStatus(emailStepStatus, message || '', message ? 'error' : null);
+        showStep('email');
+        setTimeout(function() { activationEmail.focus(); }, 250);
+      }
+
+      emailStepForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendEmailCode(false);
+      });
+      emailResendBtn.addEventListener('click', function() {
+        if (!emailResendBtn.disabled) sendEmailCode(true);
+      });
+      emailVerifyBtn.addEventListener('click', verifyEmailCode);
+      emailChangeBtn.addEventListener('click', function() { resetToEmailStep(); });
+      document.getElementById('linkedAccountChangeBtn').addEventListener('click', function() { resetToEmailStep(); });
+
+      emailOtpDigits.forEach(function(input, index) {
+        input.addEventListener('input', function() {
+          const raw = this.value.replace(/\D/g, '');
+          if (raw.length > 1) {
+            // Autofill / paste into one box: spread across all of them.
+            const filled = fillEmailOtp(raw);
+            if (filled.length === EMAIL_OTP_LENGTH) verifyEmailCode();
+            else emailOtpDigits[filled.length].focus();
+            return;
+          }
+          this.value = raw;
+          this.classList.toggle('filled', !!raw);
+          setInlineStatus(emailOtpStatus, '');
+          if (raw && index < EMAIL_OTP_LENGTH - 1) emailOtpDigits[index + 1].focus();
+          if (getEmailOtpValue().length === EMAIL_OTP_LENGTH) verifyEmailCode();
+        });
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Backspace' && !this.value && index > 0) emailOtpDigits[index - 1].focus();
+          if (e.key === 'Enter') verifyEmailCode();
+        });
+        input.addEventListener('paste', function(e) {
+          e.preventDefault();
+          const pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
+          const filled = fillEmailOtp(pasted);
+          if (filled.length === EMAIL_OTP_LENGTH) verifyEmailCode();
+          else if (filled.length) emailOtpDigits[filled.length].focus();
+        });
+      });
+
       // Phone number formatting - restrict to digits only
       contactNumber.addEventListener('input', function(e) {
         // Clear any existing errors when user starts typing
@@ -1644,9 +2292,18 @@
       });
 
       // Form submission
+      let activationSubmitInFlight = false;
       activationForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+        if (activationSubmitInFlight) {
+          return;
+        }
+        if (!verifiedAccount) {
+          resetToEmailStep('Please verify your email address first.');
+          return;
+        }
+        const needsDetails = !!verifiedAccount.needsDetails;
+
         // Clear previous errors
         document.querySelectorAll('.is-invalid').forEach(el => {
           el.classList.remove('is-invalid');
@@ -1656,10 +2313,10 @@
         });
         
         // Validate form
-        const requiredFields = [
-          'registrationNumber', 'vehicleType', 'yearOfManufacturing',
-          'fullName', 'contactNumber', 'emailAddress', 'city'
-        ];
+        const requiredFields = ['registrationNumber', 'vehicleType', 'yearOfManufacturing'];
+        if (needsDetails) {
+          requiredFields.push('fullName', 'contactNumber', 'city');
+        }
         
         let isValid = true;
         requiredFields.forEach(field => {
@@ -1695,15 +2352,8 @@
           isValid = false;
         }
         
-        // Validate email format
-        const email = document.getElementById('emailAddress');
-        if (email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-          showFieldError(email, 'Enter a valid email address');
-          isValid = false;
-        }
-        
         const phone = document.getElementById('contactNumber');
-        const phoneValue = phone.value.trim();
+        const phoneValue = needsDetails ? phone.value.trim() : '';
         if (phoneValue && !INDIA_PHONE_PATTERN.test(phoneValue)) {
           showFieldError(phone, 'Enter a valid 10-digit mobile number');
           isValid = false;
@@ -1728,27 +2378,33 @@
         }
         
         // Prepare data for submission (append country code to phone)
+        // The server links the vehicle to the email verified in this session;
+        // emailAddress is sent for display/logging only.
         const formData = {
           make: getVehicleMakeValue(),
           model: getVehicleModelValue(),
           registrationNumber: document.getElementById('registrationNumber').value.trim(),
           vehicleType: vehicleTypeSelect.value,
           yearOfManufacturing: document.getElementById('yearOfManufacturing').value,
-          fullName: document.getElementById('fullName').value.trim(),
-          contactNumber: INDIA_COUNTRY_CODE + document.getElementById('contactNumber').value.trim(),
-          emailAddress: document.getElementById('emailAddress').value.trim(),
-          city: document.getElementById('city').value.trim(),
+          emailAddress: verifiedAccount.email,
           adminAddedUser: document.getElementById('adminAddedUser').value === 'true'
         };
-        
-        // Show loading spinner
-        loadingSpinner.classList.add('active');
-        
-        // Send data to server
+        if (needsDetails) {
+          formData.fullName = document.getElementById('fullName').value.trim();
+          formData.contactNumber = INDIA_COUNTRY_CODE + document.getElementById('contactNumber').value.trim();
+          formData.city = document.getElementById('city').value.trim();
+        }
+
         if (window.sudoVehiclePhotos && window.sudoVehiclePhotos.isBusy()) {
           showFieldError(document.getElementById('vehiclePhotos'), 'Photos are still being prepared. Try again in a moment.');
           return;
         }
+
+        // Show loading spinner; block duplicate activation requests until this one settles.
+        activationSubmitInFlight = true;
+        document.getElementById('activateSubmitBtn').disabled = true;
+        document.getElementById('loadingSpinnerLabel').textContent = 'Processing Your QR Activation...';
+        loadingSpinner.classList.add('active');
         if (window.sudoVehiclePhotos) window.sudoVehiclePhotos.stop();
         const vehiclePhotoFiles = (window.sudoVehiclePhotos && window.sudoVehiclePhotos.getFiles()) || [];
         const requestHeaders = {
@@ -1790,13 +2446,25 @@
             document.getElementById('activationDock').style.display = 'none';
             successMessage.style.display = 'block';
             
-            if (data.is_new_user) {
+            const notice = data.ui_notice || {};
+            if (notice.is_existing_account) {
+                successTitle.textContent = 'Your Vehicle Has Been Successfully Added!';
+                successText.textContent = 'Your new vehicle is now linked to your existing SudoTag account.';
+            } else {
                 successTitle.textContent = 'Account & Vehicle Registration Successful!';
                 successText.textContent = 'Your account has been created and your vehicle QR code is now active.';
-            } else {
-                successTitle.textContent = 'Vehicle Registration Successful!';
-                successText.textContent = 'Your new vehicle has been added to your account and the QR code is now active.';
             }
+
+            const successVehicle = notice.vehicle || {};
+            document.getElementById('successPlate').textContent = successVehicle.registration_number || '—';
+            document.getElementById('successQrId').textContent = notice.qr_id || '{{ qr_id|escapejs }}';
+            document.getElementById('successEmail').textContent = notice.account_email || verifiedAccount.email;
+            document.getElementById('successDetails').hidden = false;
+            const openAppBtn = document.getElementById('openAppBtn');
+            if (notice.login_url) openAppBtn.href = notice.login_url;
+            openAppBtn.style.display = 'flex';
+            continueBtn.classList.remove('btn-primary', 'sudo-dock-submit');
+            continueBtn.classList.add('btn-ghost-light', 'w-100');
 
             if (data.ui_notice) {
               const v = data.ui_notice.vehicle;
@@ -1848,7 +2516,9 @@
               }
               const support = data.ui_notice.support_email || 'support@sudo.com';
               mirrorSupportLine.textContent = 'Questions? ' + support;
+              // Existing customers already see plate / QR / email above; skip the long duplicate panel.
               uiEmailMirrorPanel.classList.add('visible');
+              uiEmailMirrorPanel.style.display = notice.is_existing_account ? 'none' : '';
             } else {
               uiEmailMirrorPanel.classList.remove('visible');
               mirrorVehicleDl.innerHTML = '';
@@ -1869,6 +2539,15 @@
           }
         })
         .catch(errorData => {
+          errorData = errorData || {};
+          if (errorData.error_type === 'already_activated' && errorData.redirect_url) {
+            window.location.href = errorData.redirect_url;
+            return;
+          }
+          if (errorData.error_type === 'email_not_verified') {
+            resetToEmailStep('Your email verification expired. Please verify your email again.');
+            return;
+          }
           if (errorData.errors) {
             // Handle field-specific errors
             Object.keys(errorData.errors).forEach(field => {
@@ -1899,6 +2578,8 @@
           }
         })
         .finally(() => {
+          activationSubmitInFlight = false;
+          document.getElementById('activateSubmitBtn').disabled = false;
           loadingSpinner.classList.remove('active');
         });
       });

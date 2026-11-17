@@ -6,6 +6,7 @@ from . import checkout_views
 from . import checkout_coupon_views
 from . import referral_views
 from . import app_version_views
+from . import firebase_usage_views
 from . import wallet_views
 from . import fleet_views
 from . import promotion_notification_views
@@ -50,6 +51,7 @@ urlpatterns = [
     # Referral management (read / analytics / export — writes via Cloud Functions)
     path('rewards/', wallet_views.manage_rewards, name='manage_rewards'),
     path('app-versions/', app_version_views.manage_app_versions, name='manage_app_versions'),
+    path('firebase-usage/', firebase_usage_views.firebase_usage, name='firebase_usage'),
     path('app-versions/<str:platform>/publish/', app_version_views.publish_app_version, name='publish_app_version'),
     path('referrals/', referral_views.manage_referrals, name='manage_referrals'),
     path('referrals/table/', referral_views.referrals_table, name='referrals_table'),

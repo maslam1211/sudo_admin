@@ -73,6 +73,7 @@ from .firestore_admin_added_user import (
 from .fcm_push import send_push_to_tokens
 from .firebase_user_auth import create_or_update_firebase_user, generate_random_password
 from . import activation_email_otp as email_otp
+from .firebase_init import ensure_firebase_app
 from .msg91_otp import (
     Msg91OtpError,
     clear_activate_phone_verified,
@@ -110,35 +111,8 @@ def _secret_matches(provided, setting_name):
 # Load environment variables from .env file
 load_dotenv()
 
-# Ensure Firebase is initialized only once
-if not firebase_admin._apps:
-    # Firebase Admin SDK service account for project sudotag-faa80, from the
-    # environment or the project .env on the VPS (sudotag.com). Never commit the key.
-    #   FIREBASE_SERVICE_ACCOUNT_JSON  the key file's JSON content, or
-    #   GOOGLE_APPLICATION_CREDENTIALS a path to the key file on the server
-    # Get a key: Firebase Console > sudotag-faa80 > Project settings >
-    # Service accounts > Generate new private key.
-    _sa_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '').strip()
-    _sa_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
-    if _sa_json:
-        cred = credentials.Certificate(json.loads(_sa_json))
-    elif _sa_path:
-        cred = credentials.Certificate(_sa_path)
-    else:
-        raise RuntimeError(
-            'Firebase credentials missing: set FIREBASE_SERVICE_ACCOUNT_JSON '
-            '(or GOOGLE_APPLICATION_CREDENTIALS) to the sudotag-faa80 Admin SDK key.'
-        )
-
-    _project_id = getattr(cred, 'project_id', '') or ''
-    if _project_id != 'sudotag-faa80':
-        logger.warning('Firebase Admin is using project %r, not sudotag-faa80', _project_id)
-
-    # storageBucket used for vehicle photo uploads
-    firebase_admin.initialize_app(cred, {
-        'storageBucket': os.environ.get(
-            'FIREBASE_STORAGE_BUCKET', 'sudotag-faa80.firebasestorage.app'),
-    })
+# Ensure Firebase is initialized only once (project sudotag-faa80)
+ensure_firebase_app()
     
 # Now you can use Firebase as usual
 db = firestore.client()
@@ -3021,7 +2995,7 @@ def public_lookup_vehicle(request):
 
 
 def send_welcome_email_for_id(email, name, password):
-    subject = 'Welcome to Sudo - Your Account is Ready!'
+    subject = 'Welcome to SudoTag - your account is ready'
     
     html_message = render_to_string('welcome_email_register.html', {
         'name': name,
@@ -3059,7 +3033,7 @@ def send_welcome_email_for_id(email, name, password):
     )
 
 def send_vehicle_registration_email(email, name, vehicle_data):
-    subject = 'Your Vehicle Registration is Complete!'
+    subject = 'Your vehicle is registered with SudoTag'
     
     html_message = render_to_string('vehicle_registration.html', {
         'name': name,
