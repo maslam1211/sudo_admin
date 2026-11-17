@@ -50,3 +50,6 @@ wbkt ypis bsgl lxf
 
 # Local environment (secrets / key paths)
 .env
+
+# Claude Code personal settings
+.claude/settings.local.json
