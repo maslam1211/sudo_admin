@@ -102,31 +102,32 @@ load_dotenv()
 
 # Ensure Firebase is initialized only once
 if not firebase_admin._apps:
-    # Load Firebase credentials from the environment variables
-    # IMPORTANT: You MUST use a Firebase Admin SDK service account key, NOT App Engine default service account
-    # Get it from: Firebase Console > Project Settings > Service Accounts > Generate New Private Key
-    # The service account email should be like: firebase-adminsdk-xxxxx@PROJECT_ID.iam.gserviceaccount.com
-    # NOT like: PROJECT_ID@appspot.gserviceaccount.com (that's App Engine default, won't work)
-    
-    # Firebase Admin SDK service account credentials
-    # Service Account: firebase-adminsdk-fbsvc@sudotag-57673.iam.gserviceaccount.com
-    cred = credentials.Certificate({
-        "type": "service_account",
-        "project_id": "sudotag-57673",
-        "private_key_id": "78a98b4690e14a81827ee311cb7ddf132ed097b8",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDgcpZgmM2iP4wA\n3pd9kmYvvouySH+R97cOCsMuDVo9Rurb3B1dFV33WsK4ZTTE4IU/9TUm4G6YoU0V\nJDwCeMycqvVoMGuZ68Fn2cwCSqPY39QZEDqvaqadIVG0Py0Iyk6I+BkpNWbgnGv4\nNA0RC26uzdZ9HtY+TvY2dYcBg0atTaQ+nr90oOj2WJGVz7gAF7u8eLa4bGq7iIsW\nMm9wgvwtY2kiG8QgX2AWzJPLC8y3umPVCQfJ4Wwj1fRl/WcLFjGb/pT80FphKfyq\nSCkOEyz85XcKrwg3JeWCCZzYeIjkorJ/JcLEyJr9jxDqxYtnX+Mry3U/K2KeCG2z\nYeYPGchRAgMBAAECggEAHqJlNgAFKR0FTeUTxjbiLagTRx0wFEs8N/VuGG4IIA76\n5VFQzLCq56UCqMpffnOqnEUqoQjG75wsejM84ZV9T/Dhl/vr49FSz4rhlnp7jJFY\nUKdvaxvia9XtYe2xht6eA4HhZUd9qDCRaAoqsmXeEIvVt7Qqx8xdPKej6qfxUJvj\n2d6LUuwW5lajXmdCo/GFPpM0O+RHI8AE5/3Urq8wQW7zEolBmfmD7N6AroGQoQqI\nLsICRaPDmWl8uokXlagRyAw4mdZqeJ+dGjeSeFb6PY0Pvf6LRqZYhlnjIFUAuKWn\nCyeDHcyL9zGeoIdBrAGOLPD15+bTAhKkz7Xhk4H0ZQKBgQD0Nd6ZHjRG9oV/GLwh\njZoTcUD7K0sQAzLjtXbEtpp47prB3K2dwTq4pPRI3U4wYOFSZ9rFw2rX8Yg+XNx7\nBMgK63aJcFQknHS25n1EAKAFN5S7AmoCPNbp3fsVBiwXD8CQvYsLSUBEQCkY2R2U\ncROqrSesrcZ7zkX8iazxrGUCXwKBgQDrSHl7qshG65qWBZn0SMJd93b1TWizlRIt\n43Hz63O4B7bdxvO2YKgbBvfQwKEowcs1vHNmwQDGXHUWVs5+rWUXX/fI+n9ZbU1d\nENha0tptCwYAQlvTQj1giF68pYFyNrGLifPUYRG/PImMSMfBSxcgaV8onk8nSzu7\n72OyNN8TTwKBgH9ruCimdNpt+Hu3WTocmz73wdML5M+HC796SG0dZf4haUgrr773\nOn9rOjbmmcxuUELiA2larF3eHZuEcloRxZrE/wV5Qb4UkGV6X/Pia5wtQwJMoSln\nuy8tbruqi8jApFYhP/J0lv7Fh2v6pQ917LAKRwA3b6/bkfLRlxZGQDH7AoGBAOS+\n3X0iGPz6apyYbYlWg8GfqgPrcnPF5pq+mjcvHp44wcz0dFVHu6grKhvGa+iYINzp\njrjDw+EWWq+RTclTAwmqv9ih0dY7sg9dJTuH69w/72GpImVN7SZA7voxXpyQGCU1\nxd0hUoO+c2v0BmEihCV6zI1M/F+TgUvB/gdv58F5AoGAaNISEyOsjVc1wd4Go+1S\n11TUp3pXFQLKIeFSN+HNjO5KjIDz/GMtaaADVKgfC1OPXLrSN3fJjwWhbwd+Iw1n\n4xSrsXCQlERBp1AbKE4HB9YeTWDLuWtkg5HnPeBOFynfFAjC0u+4vcSsvhQg+L+Z\nvNu/s9t7UMyHG1s2SWzw5Q4=\n-----END PRIVATE KEY-----\n",
-        "client_email": "firebase-adminsdk-fbsvc@sudotag-57673.iam.gserviceaccount.com",
-        "client_id": "108184242657151265897",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sudotag-57673.iam.gserviceaccount.com",
-        "universe_domain": "googleapis.com",
-    })
+    # Firebase Admin SDK service account for project sudotag-faa80, from the
+    # environment or the project .env on the VPS (sudotag.com). Never commit the key.
+    #   FIREBASE_SERVICE_ACCOUNT_JSON  the key file's JSON content, or
+    #   GOOGLE_APPLICATION_CREDENTIALS a path to the key file on the server
+    # Get a key: Firebase Console > sudotag-faa80 > Project settings >
+    # Service accounts > Generate new private key.
+    _sa_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '').strip()
+    _sa_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
+    if _sa_json:
+        cred = credentials.Certificate(json.loads(_sa_json))
+    elif _sa_path:
+        cred = credentials.Certificate(_sa_path)
+    else:
+        raise RuntimeError(
+            'Firebase credentials missing: set FIREBASE_SERVICE_ACCOUNT_JSON '
+            '(or GOOGLE_APPLICATION_CREDENTIALS) to the sudotag-faa80 Admin SDK key.'
+        )
 
-    # Initialize the Firebase app (storageBucket used for vehicle photo uploads)
+    _project_id = getattr(cred, 'project_id', '') or ''
+    if _project_id != 'sudotag-faa80':
+        logger.warning('Firebase Admin is using project %r, not sudotag-faa80', _project_id)
+
+    # storageBucket used for vehicle photo uploads
     firebase_admin.initialize_app(cred, {
-        'storageBucket': 'sudotag-57673.firebasestorage.app',
+        'storageBucket': os.environ.get(
+            'FIREBASE_STORAGE_BUCKET', 'sudotag-faa80.firebasestorage.app'),
     })
     
 # Now you can use Firebase as usual

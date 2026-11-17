@@ -43,3 +43,7 @@ firebase/
 call_api_curl_examples.txtUntitled/
 
 wbkt ypis bsgl lxf
+
+# Firebase / Google service account keys: keep them on the server only, never commit
+*firebase-adminsdk*.json
+*service-account*.json
