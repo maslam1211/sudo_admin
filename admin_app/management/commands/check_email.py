@@ -52,16 +52,23 @@ class Command(BaseCommand):
                               'Ask them to open port 587, or use an email API service.')
             return
 
-        # 2. Does Gmail accept the login?
+        # 2. Does the mail server accept the login?
         conn = get_connection()
         try:
             conn.open()
             conn.close()
-            self.stdout.write(ok('Gmail login             : OK'))
+            self.stdout.write(ok('SMTP login              : OK'))
         except Exception as exc:
-            self.stdout.write(bad(f'Gmail login             : FAILED ({type(exc).__name__}: {exc})'))
-            self.stdout.write('  -> Put a valid 16-letter Gmail App Password in .env as '
-                              'EMAIL_HOST_PASSWORD=..., then restart the server.')
+            self.stdout.write(bad(f'SMTP login              : FAILED ({type(exc).__name__}: {exc})'))
+            reply = self._login_reply(password)
+            if reply:
+                self.stdout.write(bad(f'Server says             : {reply}'))
+            if '535' in (reply or '') and 'gmail' in settings.EMAIL_HOST:
+                self.stdout.write('  -> Gmail rejected the app password. Create a new one while signed in as '
+                                  'EMAIL_HOST_USER (myaccount.google.com/apppasswords, 2-Step Verification on), '
+                                  'put it in EMAIL_HOST_PASSWORD, then restart the server.')
+            else:
+                self.stdout.write('  -> Check EMAIL_HOST_USER / EMAIL_HOST_PASSWORD, then restart the server.')
             return
 
         # 3. Optional real send.
@@ -73,6 +80,38 @@ class Command(BaseCommand):
                 self.stdout.write(ok(f'Test email sent to      : {to}'))
             except Exception as exc:
                 self.stdout.write(bad(f'Test email              : FAILED ({type(exc).__name__}: {exc})'))
+
+    def _login_reply(self, password):
+        """Log in step by step to get the server's own answer (e.g. "535 ... BadCredentials").
+
+        smtplib often reports only "Connection unexpectedly closed" when Gmail
+        rejects a password, which hides the real reason.
+        """
+        import base64
+        import smtplib
+
+        from admin_app.email_backend import CustomEmailBackend
+
+        ctx = CustomEmailBackend().ssl_context
+        try:
+            if settings.EMAIL_USE_SSL:
+                smtp = smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20, context=ctx)
+            else:
+                smtp = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20)
+                smtp.ehlo()
+                smtp.starttls(context=ctx)
+            smtp.ehlo()
+            for line in ('AUTH LOGIN',
+                         base64.b64encode(settings.EMAIL_HOST_USER.encode()).decode(),
+                         base64.b64encode(password.replace(' ', '').encode()).decode()):
+                smtp.putcmd(line)
+                code, msg = smtp.getreply()
+                if code != 334:
+                    smtp.close()
+                    return f'{code} {msg.decode(errors="replace").splitlines()[0][:120]}'
+        except Exception as exc:
+            return f'{type(exc).__name__}: {exc}'
+        return None
 
     def _check_firebase(self, to, ok, bad):
         from firebase_admin import firestore

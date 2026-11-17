@@ -283,8 +283,10 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 # Local testing only: a fixed 6-digit activation email code (no email is sent).
 # Honoured only while DEBUG is on. Never set this on the production server.
 ACTIVATION_DUMMY_EMAIL_OTP = os.getenv('ACTIVATION_DUMMY_EMAIL_OTP', '')
-DEFAULT_FROM_EMAIL = 'sudotagonline@gmail.com'
-SERVER_EMAIL = 'sudotagonline@gmail.com'
+# Sender address. With an email service (Brevo, SendGrid...) this must be a
+# sender verified there, e.g. SudoTag <no-reply@sudotag.com>.
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or 'sudotagonline@gmail.com'
+SERVER_EMAIL = os.getenv('SERVER_EMAIL') or DEFAULT_FROM_EMAIL
 EMAIL_TIMEOUT = 30
 
 BASE_DOMAIN = 'https://sudotag.com'
