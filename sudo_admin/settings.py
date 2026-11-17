@@ -8,8 +8,15 @@ import sys
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
-# Load environment variables
+# Load environment variables.
+# 1. The project's own .env (local development).
+# 2. A server-wide file outside the repo, so deploys (fresh clone, git clean)
+#    can never delete production settings: /etc/sudotag/sudotag.env, or the
+#    path in SUDOTAG_ENV_FILE. Values already set are never overridden.
 load_dotenv()
+_SERVER_ENV_FILE = os.getenv('SUDOTAG_ENV_FILE', '/etc/sudotag/sudotag.env')
+if os.path.isfile(_SERVER_ENV_FILE):
+    load_dotenv(_SERVER_ENV_FILE, override=False)
 
 # gRPC on macOS: the c-ares DNS backend sometimes fails with
 # "DNS resolution failed for firestore.googleapis.com", which breaks Firestore
