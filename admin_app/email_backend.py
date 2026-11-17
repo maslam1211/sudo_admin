@@ -1,10 +1,16 @@
 import ssl
+
+import certifi
 from django.core.mail.backends.smtp import EmailBackend as SmtpEmailBackend
 
+
 class CustomEmailBackend(SmtpEmailBackend):
+    """SMTP backend that verifies the mail server's certificate.
+
+    Uses certifi's CA bundle, so it also works on Python installs that ship
+    without system certificates (python.org builds on macOS).
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        #Create a custom SSL context that ignores certificate verification errors
-        self.ssl_context = ssl.create_default_context()
-        self.ssl_context.check_hostname = False
-        self.ssl_context.verify_mode = ssl.CERT_NONE
+        self.ssl_context = ssl.create_default_context(cafile=certifi.where())

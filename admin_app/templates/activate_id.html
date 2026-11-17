@@ -2514,7 +2514,7 @@
                 mirrorWelcomeSection.style.display = 'none';
                 mirrorWelcomeBox.textContent = '';
               }
-              const support = data.ui_notice.support_email || 'support@sudo.com';
+              const support = data.ui_notice.support_email || '';
               mirrorSupportLine.textContent = 'Questions? ' + support;
               // Existing customers already see plate / QR / email above; skip the long duplicate panel.
               uiEmailMirrorPanel.classList.add('visible');

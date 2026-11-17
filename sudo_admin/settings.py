@@ -304,6 +304,8 @@ GENERATE_QR_OTP_PHONE = os.getenv('GENERATE_QR_OTP_PHONE', '8075576069')
 ADMIN_LOGIN_OTP_PHONE = os.getenv('ADMIN_LOGIN_OTP_PHONE', GENERATE_QR_OTP_PHONE)
 
 FEEDBACK_EMAIL = 'sudotagonline@gmail.com'
+# Shown to customers in emails and on the activation page.
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL') or DEFAULT_FROM_EMAIL
 
 # Cloudinary Configuration
 import cloudinary

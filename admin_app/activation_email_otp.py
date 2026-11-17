@@ -195,7 +195,7 @@ def check_code(email, qr_id, code):
 def send_code_email(email, code):
     """Deliver the code. Raises on SMTP failure so the caller can report it."""
     minutes = int(OTP_TTL.total_seconds() // 60)
-    context = {'code': code, 'minutes': minutes, 'support_email': 'support@sudo.com'}
+    context = {'code': code, 'minutes': minutes, 'support_email': settings.SUPPORT_EMAIL}
     send_mail(
         subject=f'{code} is your SudoTag verification code',
         message=(

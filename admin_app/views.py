@@ -3002,7 +3002,7 @@ def send_welcome_email_for_id(email, name, password):
         'email': email,
         'password': password,
         'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
-        'support_email': 'support@sudo.com'
+        'support_email': settings.SUPPORT_EMAIL
     })
     
     plain_message = f"""
@@ -3017,7 +3017,7 @@ def send_welcome_email_for_id(email, name, password):
     
     We recommend changing your password after first login.
     
-    If you have any questions, please contact our support team at support@sudo.com.
+    If you have any questions, please contact our support team at {settings.SUPPORT_EMAIL}.
     
     Thank you,
     The Sudo Team
@@ -3043,7 +3043,7 @@ def send_vehicle_registration_email(email, name, vehicle_data):
         'registrationNumber': vehicle_data['registrationNumber'],
         'vehicleType': vehicle_data['vehicleType'],
         'yearOfManufacturing': vehicle_data.get('yearOfManufacturing', ''),
-        'support_email': 'support@sudo.com'
+        'support_email': settings.SUPPORT_EMAIL
     })
     
     year_line = ''
@@ -3063,7 +3063,7 @@ def send_vehicle_registration_email(email, name, vehicle_data):
     
     Your QR code is now active and can be scanned by others to contact you about your vehicle.
     
-    If you have any questions, please contact our support team at support@sudo.com.
+    If you have any questions, please contact our support team at {settings.SUPPORT_EMAIL}.
     
     Thank you,
     The Sudo Team
@@ -3884,7 +3884,7 @@ def activate_id(request, qr_id):
                     )
 
                     ui_notice = {
-                        'support_email': 'support@sudo.com',
+                        'support_email': settings.SUPPORT_EMAIL,
                         'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
                         'vehicle': {
                             'make': vehicle_data['make'],
@@ -6192,7 +6192,7 @@ def send_welcome_email(email, name, password):
         'email': email,
         'password': password,
         'login_url': 'https://play.google.com/store/apps/details?id=com.sudotag.sudo&hl=en_GB',
-        'support_email': 'support@sudo.com'
+        'support_email': settings.SUPPORT_EMAIL
     })
     
     # Plain text version
@@ -6208,7 +6208,7 @@ def send_welcome_email(email, name, password):
     
     We recommend changing your password after first login.
     
-    If you have any questions, please contact our support team at support@sudo.com.
+    If you have any questions, please contact our support team at {settings.SUPPORT_EMAIL}.
     
     Thank you,
     The Sudo Team
