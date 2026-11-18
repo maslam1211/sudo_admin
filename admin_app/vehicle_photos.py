@@ -17,8 +17,10 @@ import cloudinary.uploader
 logger = logging.getLogger(__name__)
 
 MAX_VEHICLE_PHOTOS = 5
-# Legacy Firebase Storage bucket (older admin uploads); delete still supported.
-STORAGE_BUCKET = 'sudotag-57673.firebasestorage.app'
+# Firebase Storage bucket for older uploads (now Cloudinary); delete still
+# supported. Photos were migrated from sudotag-57673 to sudotag-faa80.
+STORAGE_BUCKET = 'sudotag-faa80.firebasestorage.app'
+_OLD_BUCKETS = ('sudotag-57673.firebasestorage.app', 'sudotag-57673.appspot.com')
 
 
 def parse_photo_urls(vehicle_data: dict | None) -> list[str]:
@@ -110,10 +112,13 @@ def delete_storage_url(download_url: str) -> None:
             path = unquote(url.split('/o/', 1)[1].split('?', 1)[0])
             bucket.blob(path).delete()
             return
-        marker = f'/{STORAGE_BUCKET}/'
-        if marker in url:
-            path = unquote(url.split(marker, 1)[1].split('?', 1)[0])
-            bucket.blob(path).delete()
+        # storage.googleapis.com/<bucket>/<path>, old or new bucket name.
+        for name in (STORAGE_BUCKET, *_OLD_BUCKETS):
+            marker = f'/{name}/'
+            if marker in url:
+                path = unquote(url.split(marker, 1)[1].split('?', 1)[0])
+                bucket.blob(path).delete()
+                return
     except Exception as exc:
         logger.warning('Vehicle photo storage delete skipped: %s', exc)
 
