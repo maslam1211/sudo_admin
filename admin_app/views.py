@@ -4076,6 +4076,44 @@ def _unlinked_sticker_context():
     }
 
 
+def _push_failed_sms_fallback(request, qr_id, vehicle_data, user_data, reason, last_error):
+    """Push to the owner failed: send the same message by SMS when the owner allows SMS.
+
+    Most owners' FCM tokens can be stale (old Firebase project, app removed), so a
+    failed push must not leave the scanner's message undelivered. Returns a
+    JsonResponse on success, or None when SMS is not allowed or also failed.
+    """
+    digits = effective_contact_number(vehicle_data, user_data)
+    effective = scanner_effective_channels_now(user_data, vehicle_data)
+    prefs = scanner_user_app_prefs_from_merged(
+        scanner_pref_merged_dict(user_data, vehicle_data)
+    )
+    allowed = bool(
+        digits
+        and effective['sms']
+        and prefs['owner_sms_allowed']
+        and parse_owner_live_status(user_data)['allows_messaging']
+    )
+    if not allowed:
+        return None
+    sms_result = send_vehicle_issue_sms(digits_10=digits, message=reason)
+    if not sms_result.get('ok'):
+        logger.error('Push failed and SMS fallback failed for %s: %s', qr_id, sms_result.get('error'))
+        return None
+    logger.info('Push failed for %s (%s); sent SMS instead', qr_id, last_error)
+    msg_meta = record_notify_messaging_success(request, qr_id)
+    return JsonResponse({
+        'status': 'success',
+        'message': 'We have sent your message to the vehicle owner by SMS.',
+        'notification_type': 'sms',
+        'push_delivered': False,
+        'messaging_attempt': msg_meta['attempt'],
+        'redirect_home': False,
+        'session_ttl_sec': msg_meta['session_ttl_sec'],
+        'session_expires_at': msg_meta['session_expires_at'],
+    })
+
+
 @ensure_csrf_cookie
 def send_notification(request, qr_id):
     try:
@@ -4845,11 +4883,18 @@ def send_notification(request, qr_id):
                             'session_expires_at': msg_meta['session_expires_at'],
                         })
 
+                    fallback = _push_failed_sms_fallback(
+                        request, qr_id, vehicle_data, user_data, reason, last_error,
+                    )
+                    if fallback is not None:
+                        return fallback
+
+                    logger.error('Push failed for %s: %s', qr_id, last_error)
                     return JsonResponse({
                         'status': 'error',
-                        'message': f'Failed to send push notification: {str(last_error) if last_error else "Unknown error"}'
+                        'message': "We couldn't reach the owner's phone right now. Please try SMS or a call.",
                     })
-                
+
                 elif notification_method == 'sms':
                     try:
                         if contact_target == 'emergency':
