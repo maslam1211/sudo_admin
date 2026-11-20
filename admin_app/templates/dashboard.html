@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load admin_assets %}
 {% load static humanize custom_filters %}
 {% block title %}Dashboard - SudoTag Admin{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
@@ -262,7 +263,7 @@
 {% block extra_js %}
 {% if trend %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="{% static 'assets/js/sudotag-charts.js' %}"></script>
+<script src="{% admin_asset 'assets/js/sudotag-charts.js' %}"></script>
 <script>
 (function () {
   var clock = document.getElementById('dbClock');

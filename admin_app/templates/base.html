@@ -1,4 +1,4 @@
-{% load static %}
+{% load admin_assets %}{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}">
-    <link rel="stylesheet" href="{% static 'assets/css/sudotag-admin.css' %}">
+    <link rel="stylesheet" href="{% admin_asset 'assets/css/sudotag-admin.css' %}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     {% block extra_head %}{% endblock %}
     {% include 'includes/admin_head.html' %}
@@ -288,7 +288,7 @@
             }
         })();
     </script>
-    <script src="{% static 'assets/js/sudotag-ui.js' %}" defer></script>
+    <script src="{% admin_asset 'assets/js/sudotag-ui.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

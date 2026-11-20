@@ -27,3 +27,21 @@ class ListToolsTests(SimpleTestCase):
         self.assertIn('\'=HYPERLINK', body)
         self.assertIn('Kochi', body)
         self.assertIn('attachment; filename="t-', r['Content-Disposition'])
+
+
+class AdminAssetTests(SimpleTestCase):
+    def test_theme_files_served_without_login(self):
+        for path in ('assets/css/sudotag-admin.css', 'assets/js/sudotag-ui.js'):
+            r = self.client.get('/admin/assets/' + path + '?v=1')
+            self.assertEqual(r.status_code, 200, path)
+            self.assertIn('immutable', r['Cache-Control'])
+        self.assertTrue(self.client.get('/admin/assets/assets/css/sudotag-admin.css')['Content-Type'].startswith('text/css'))
+
+    def test_other_files_refused(self):
+        for path in ('../settings.py', 'assets/css/main.css', '/etc/passwd', 'assets/js/../../../manage.py'):
+            self.assertEqual(self.client.get('/admin/assets/' + path).status_code, 404, path)
+
+    def test_template_tag_versions_url(self):
+        from admin_app.templatetags.admin_assets import admin_asset
+        url = admin_asset('assets/css/sudotag-admin.css')
+        self.assertRegex(url, r'^/admin/assets/assets/css/sudotag-admin\.css\?v=\d+$')
