@@ -4,6 +4,7 @@ from django.views.generic import RedirectView
 from . import views
 from . import analytics_views
 from . import asset_views
+from . import order_delete_views
 from . import checkout_views
 from . import checkout_coupon_views
 from . import referral_views
@@ -70,6 +71,7 @@ urlpatterns = [
     path('view-orders/', views.view_orders, name='view_orders'),
     path('view-payments/', views.view_payments, name='view_payments'),
     path('update_order_status/', views.update_order_status, name='update_order_status'),
+    path('orders/delete/', order_delete_views.orders_delete, name='orders_delete'),
     path('export_orders_with_qr/', views.export_orders_with_qr, name='export_orders_with_qr'),
     path('logout/', views.admin_logout, name='admin_logout'),
     path('register-external-user/', views.external_user_registration, name='external_register'),

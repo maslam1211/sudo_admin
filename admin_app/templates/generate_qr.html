@@ -216,7 +216,7 @@
             <label class="gq-editor-drop" id="designDrop" for="designFile">
               <i class="fas fa-image"></i>
               <strong>Drop your design here or click to choose</strong>
-              <span class="text-muted small">PNG, JPG or WEBP · at least 600px on the short side · up to 10 MB</span>
+              <span class="text-muted small">PNG, JPG or WEBP · at least 600px on the short side · large files are optimised automatically</span>
               <input type="file" id="designFile" name="design_image" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" hidden>
             </label>
             <div id="editorWrap" hidden>
@@ -261,6 +261,7 @@
           </div>
         </div>
         <div class="alert alert-danger mt-3 mb-0" id="designError" hidden></div>
+        <div class="small text-muted mt-2" id="designNote" hidden></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -663,14 +664,76 @@ document.addEventListener('DOMContentLoaded', function() {
         wrap.hidden = false; drop.hidden = true;
     }
 
-    function useFile(file) {
-        showError('');
-        if (!file) return;
+    // The live server's nginx rejects uploads over 1 MB, so large designs are
+    // shrunk in the browser first. 1600px+ wide is still 400+ DPI on a 100 mm sticker.
+    const UPLOAD_LIMIT = 900 * 1024;
+    const noteBox = document.getElementById('designNote');
+    function showNote(msg) { noteBox.textContent = msg; noteBox.hidden = !msg; }
+    function kb(n) { return n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB'; }
+
+    function decode(file) {
+        if (window.createImageBitmap) {
+            return createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => createImageBitmap(file));
+        }
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    function encode(src, w, h, quality) {
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';            // JPEG has no transparency: print on white
+        ctx.fillRect(0, 0, w, h);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(src, 0, 0, w, h);
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    }
+
+    async function shrinkForUpload(file) {
+        if (file.size <= UPLOAD_LIMIT) return file;
+        const src = await decode(file);
+        const sw = src.width, sh = src.height;
+        let scale = Math.min(1, 2400 / Math.max(sw, sh));
+        for (let tries = 0; tries < 8; tries++) {
+            const w = Math.round(sw * scale), h = Math.round(sh * scale);
+            for (const q of [0.92, 0.86, 0.8]) {
+                const blob = await encode(src, w, h, q);
+                if (blob && blob.size <= UPLOAD_LIMIT) {
+                    const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+                    return new File([blob], name, { type: 'image/jpeg' });
+                }
+            }
+            if (Math.min(w, h) * 0.85 < 600) break;   // never go below the 600px print minimum
+            scale *= 0.85;
+        }
+        throw new Error('This design is too detailed to shrink under 1 MB. Save it as a JPG at about 2000px wide and try again.');
+    }
+
+    async function useFile(original) {
+        showError(''); showNote('');
+        if (!original) return;
+        let file = original;
         const ext = (file.name.split('.').pop() || '').toLowerCase();
         if (/^(heic|heif)$/.test(ext) || /hei[cf]/.test(file.type)) return showError('iPhone HEIC photos are not supported. Export the design as JPG or PNG and upload that.');
         if (/^(pdf|svg|ai|psd|cdr|eps)$/.test(ext)) return showError('Export the design as a PNG or JPG first (' + ext.toUpperCase() + ' files can\'t be printed onto QR stickers directly).');
         if (!/^image\/(png|jpe?g|webp)$/.test(file.type) && !/^(png|jpe?g|webp)$/.test(ext)) return showError('Use a PNG, JPG or WEBP image.');
-        if (file.size > 10 * 1024 * 1024) return showError('The design is over 10 MB. Compress it and try again.');
+        if (file.size > 30 * 1024 * 1024) return showError('The design is over 30 MB. Export a smaller copy and try again.');
+        if (file.size > UPLOAD_LIMIT) {
+            showNote('Preparing the image for upload…');
+            try {
+                file = await shrinkForUpload(file);
+            } catch (err) {
+                showNote('');
+                return showError(err.message || 'Could not prepare this image. Save it as a JPG and try again.');
+            }
+            const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
+            showNote('Optimised for upload: ' + kb(original.size) + ' → ' + kb(file.size) + '. Print quality is unchanged.');
+        }
         if (objectUrl) URL.revokeObjectURL(objectUrl);
         objectUrl = URL.createObjectURL(file);
         loadImage(objectUrl, () => {
@@ -679,7 +742,7 @@ document.addEventListener('DOMContentLoaded', function() {
             box.size = Math.min(.32, .7 / ratio);
             box.x = 1 - box.size - .05;
             box.y = (1 - box.size / ratio) / 2;
-            if (!document.getElementById('designName').value) document.getElementById('designName').value = file.name.replace(/\.[^.]+$/, '').slice(0, 60);
+            if (!document.getElementById('designName').value) document.getElementById('designName').value = original.name.replace(/\.[^.]+$/, '').slice(0, 60);
         });
     }
 

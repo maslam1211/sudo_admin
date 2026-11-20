@@ -221,6 +221,10 @@
                 <i class="fas fa-file-pdf"></i>
                 <span>Export Invoice</span>
             </button>
+            <button id="deleteSelectedBtn" class="action-btn action-btn-delete" type="button" disabled>
+                <i class="fas fa-trash-alt"></i>
+                <span>Delete selected (<span id="selectedCount">0</span>)</span>
+            </button>
         </div>
     </div>
     
@@ -243,13 +247,14 @@
                     <th width="10%">Payment</th>
                     <th width="10%">Date</th>
                     <th width="15%">Status</th>
+                    <th width="4%"><span class="visually-hidden">Delete</span></th>
                 </tr>
             </thead>
             <tbody>
                 {% for entry in orders %}
                 <tr>
                     <!-- Checkbox Column -->
-                    <td><input type="checkbox" class="order-checkbox" data-order-id="{{ entry.order.id }}"></td>
+                    <td><input type="checkbox" class="order-checkbox" data-order-id="{{ entry.order.id }}" data-paid="{% if entry.order.paymentStatus == 'paid' %}1{% endif %}"></td>
                     
                     <!-- Order ID Column - Full ID displayed -->
                     <td>
@@ -352,6 +357,16 @@
                                 <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>{{ entry.order.status_text }}
                             </span>
                         </div>
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn-icon btn-icon-delete order-delete-btn"
+                                data-order-id="{{ entry.order.id }}"
+                                data-customer="{{ entry.order.fullName|default:'this customer' }}"
+                                data-amount="{{ entry.order.amount|default:0|floatformat:0 }}"
+                                data-paid="{% if entry.order.paymentStatus == 'paid' %}1{% endif %}"
+                                title="Delete order" aria-label="Delete order {{ entry.order.id }}">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -561,6 +576,60 @@ document.addEventListener('DOMContentLoaded', function() {
         masterCheckbox.checked = false;
     });
     
+    // ---- Delete orders (single and selected). Deleted orders are kept in deleted_orders.
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const selectedCountEl = document.getElementById('selectedCount');
+    function refreshSelected() {
+        const n = document.querySelectorAll('.order-checkbox:checked').length;
+        selectedCountEl.textContent = n;
+        deleteSelectedBtn.disabled = n === 0;
+    }
+    document.addEventListener('change', e => { if (e.target.matches('.order-checkbox, #masterCheckbox')) setTimeout(refreshSelected); });
+    ['selectAllBtn', 'deselectAllBtn'].forEach(id => document.getElementById(id).addEventListener('click', () => setTimeout(refreshSelected)));
+
+    function deleteOrders(ids, button) {
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        return fetch('{% url "orders_delete" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ orderIds: ids })
+        })
+        .then(r => r.json().catch(() => ({ success: false, error: 'The server had a problem (' + r.status + '). Try again.' })))
+        .then(res => {
+            if (!res.success) throw new Error(res.error || 'Could not delete.');
+            res.deleted.forEach(id => {
+                const row = document.querySelector('.order-checkbox[data-order-id="' + CSS.escape(id) + '"]');
+                if (row) row.closest('tr').remove();
+            });
+            showToast(res.deleted.length + (res.deleted.length === 1 ? ' order deleted' : ' orders deleted') + '. A copy is kept in deleted_orders.', 'success');
+            refreshSelected();
+            if (!document.querySelector('.order-checkbox')) window.location.reload();
+        })
+        .catch(err => showToast(err.message, 'error'))
+        .finally(() => { button.disabled = false; button.innerHTML = original; refreshSelected(); });
+    }
+
+    document.querySelectorAll('.order-delete-btn').forEach(btn => btn.addEventListener('click', () => {
+        const d = btn.dataset;
+        let msg = 'Delete order ' + d.orderId + ' from ' + d.customer + ' (₹' + d.amount + ')?';
+        if (d.paid) msg += '\n\nThis order is PAID. Delete it only if it is a duplicate or test order.';
+        msg += '\n\nThe QR code and vehicle are not changed. A copy is kept in deleted_orders.';
+        if (confirm(msg)) deleteOrders([d.orderId], btn);
+    }));
+
+    deleteSelectedBtn.addEventListener('click', () => {
+        const boxes = Array.from(document.querySelectorAll('.order-checkbox:checked'));
+        if (!boxes.length) return;
+        const paid = boxes.filter(b => b.dataset.paid).length;
+        let msg = 'Delete ' + boxes.length + (boxes.length === 1 ? ' order?' : ' orders?');
+        if (paid) msg += '\n\n' + paid + ' of them ' + (paid === 1 ? 'is' : 'are') + ' PAID.';
+        msg += '\n\nQR codes and vehicles are not changed. A copy of each order is kept in deleted_orders.';
+        if (confirm(msg)) deleteOrders(boxes.map(b => b.dataset.orderId), deleteSelectedBtn);
+    });
+
     // Export with QR codes
     document.getElementById('exportWithQrBtn').addEventListener('click', function() {
         const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
