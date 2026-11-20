@@ -11,7 +11,16 @@ OWNER="$(stat -c %U "$PROJECT_DIR")"
 PY=python3
 for v in venv .venv env; do [ -x "$PROJECT_DIR/$v/bin/python" ] && PY="$PROJECT_DIR/$v/bin/python" && break; done
 
-echo "== pull";        sudo -u "$OWNER" git pull --ff-only
+if [ -z "${DEPLOY_PULLED:-}" ]; then
+  BEFORE="$(sha1sum "$0" | cut -d' ' -f1)"
+  echo "== pull";      sudo -u "$OWNER" git pull --ff-only
+  # bash keeps running the old copy of this file after git replaces it, so
+  # restart with the new version when the pull changed this script.
+  if [ "$(sha1sum "$0" | cut -d' ' -f1)" != "$BEFORE" ]; then
+    echo "== deploy.sh changed: restarting it"
+    DEPLOY_PULLED=1 exec bash "$0" "$@"
+  fi
+fi
 echo "== packages";    "$PY" -m pip install -q -r requirements.txt
 echo "== migrate";     "$PY" manage.py migrate --noinput
 echo "== static";      "$PY" manage.py collectstatic --noinput >/dev/null
