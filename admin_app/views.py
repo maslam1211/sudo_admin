@@ -52,6 +52,7 @@ from .vehicle_lost_mode import (
     parse_vehicle_lost_mode,
 )
 from .msg91_vehicle_sms import send_vehicle_issue_sms
+from .ad_image_rules import rules_for_browser, validate_ad_image
 from .family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
@@ -8220,6 +8221,7 @@ def manage_ads(request):
     
     return render(request, 'manage_ads.html', {
         'ads_data': ads_data,
+        'ad_image_rules': rules_for_browser(),
         'messages': get_message_list(request)
     })
 
@@ -8244,6 +8246,10 @@ def add_ad(request):
             # Require image for ALL ad types
             if not image_file:
                 return JsonResponse({'success': False, 'error': 'Image is required for all ad types'})
+
+            image_error = validate_ad_image(ad_type, image_file)
+            if image_error:
+                return JsonResponse({'success': False, 'error': image_error}, status=400)
             
             # Generate unique ID
             ad_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:12]
@@ -8340,6 +8346,11 @@ def update_ad(request):
             image_file = request.FILES.get('image_file')
             
             print(f"Debug: Updating {ad_type} ad {ad_id}")
+
+            if image_file:
+                image_error = validate_ad_image(ad_type, image_file)
+                if image_error:
+                    return JsonResponse({'success': False, 'error': image_error}, status=400)
             
             # Find the correct document across all ads documents
             ads_ref = db.collection('ads')
