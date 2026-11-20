@@ -8,7 +8,7 @@
     <div>
       <form class="d-flex" method="get" action="">
         <input type="text" name="q" value="{{ query }}" class="form-control me-2" placeholder="Search reg no, make, model, ids">
-        <button class="btn btn-primary me-2" type="submit"><i class="fas fa-search"></i> Search</button>
+        <button class="btn btn-dark me-2" type="submit"><i class="fas fa-search"></i> Search</button>
         <a class="btn btn-success" href="{% url 'export_archived_vehicles_csv' %}{% if query %}?q={{ query }}{% endif %}">
           <i class="fas fa-file-csv"></i> Export CSV
         </a>

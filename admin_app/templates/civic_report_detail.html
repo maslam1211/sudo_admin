@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ report.report_id }} - CivicSense - SudoTag Admin{% endblock %}
+{% block page_title %}CivicSense Reports{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cv-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1.25rem; align-items: start; }
+  .cv-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .6rem; margin-top: 1rem; }
+  .cv-gallery a { display: block; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; border: 1px solid var(--st-line); background: var(--st-surface-2); }
+  .cv-gallery img { width: 100%; height: 100%; object-fit: cover; }
+  .cv-body { white-space: pre-wrap; color: var(--st-ink-2); line-height: 1.6; margin: 0; }
+  .cv-h { font-family: var(--st-font-display); font-weight: 600; font-size: 1rem; margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .cv-plate { font-family: var(--st-font-mono); font-weight: 700; letter-spacing: .05em; font-size: 1.05rem; }
+  .cv-sticky { position: sticky; top: calc(var(--st-topbar-h) + 1rem); }
+  .cv-actions { display: grid; gap: .5rem; }
+  .cv-actions .btn { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+  .cv-tl { list-style: none; padding: 0; margin: 0; }
+  .cv-tl li { position: relative; padding: 0 0 1rem 1.4rem; border-left: 2px solid var(--st-line); margin-left: .4rem; }
+  .cv-tl li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .cv-tl li::before { content: ''; position: absolute; left: -7px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--st-surface); border: 2px solid var(--st-line-hi); }
+  .cv-tl .t { font-weight: 600; }
+  .cv-tl .m { color: var(--st-muted); font-size: .8rem; }
+  .cv-private { border: 1px dashed var(--st-line-hi); }
+  .cv-note { font-size: .8rem; color: var(--st-muted); }
+  @media (max-width: 1100px) { .cv-grid { grid-template-columns: 1fr; } .cv-sticky { position: static; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'civic_reports' %}?state={{ back_state }}" class="btn btn-sm btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-1"></i>Back to reports</a>
+
+{% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+
+<div class="cv-grid">
+  <div class="d-flex flex-column gap-3">
+
+    <div class="st-card st-card-pad">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+        {% if report.status == 'submitted' %}<span class="st-badge is-orange">Submitted</span>
+        {% elif report.status == 'under_review' %}<span class="st-badge is-amber">Under review</span>
+        {% elif report.status == 'verified' %}<span class="st-badge is-blue">Verified</span>
+        {% elif report.status == 'resolved' %}<span class="st-badge is-safe">Resolved</span>
+        {% elif report.status == 'rejected' or report.status == 'duplicate' %}<span class="st-badge is-alert">{{ report.status_label }}</span>
+        {% else %}<span class="st-badge">{{ report.status_label }}</span>{% endif %}
+        <span class="st-badge">{{ report.category_label }}</span>
+        {% if report.disputed %}<span class="st-badge is-alert"><i class="fas fa-balance-scale me-1"></i>Owner disputes</span>{% endif %}
+        {% if report.abuse %}<span class="st-badge is-amber"><i class="fas fa-user-shield me-1"></i>Repeat reporter</span>{% endif %}
+      </div>
+      <h2 class="h4 mb-1">{{ report.category_label }}{% if report.plate %} · <span class="cv-plate">{{ report.plate }}</span>{% endif %}</h2>
+      <div class="st-mono text-muted small mb-3">{{ report.report_id }} · doc {{ report.id }}</div>
+      <p class="cv-body">{{ report.description|default:"The reporter added no description." }}</p>
+
+      {% if report.evidence %}
+        <div class="cv-gallery">
+          {% for path in report.evidence %}
+            <a href="{% url 'civic_report_evidence' report.id forloop.counter0 %}" target="_blank" rel="noopener">
+              <img src="{% url 'civic_report_evidence' report.id forloop.counter0 %}" alt="Evidence photo {{ forloop.counter }}" loading="lazy">
+            </a>
+          {% endfor %}
+        </div>
+        {% if report.evidence_delete_after %}<p class="cv-note mt-2 mb-0"><i class="far fa-clock me-1"></i>Photos are deleted automatically after {{ report.evidence_delete_after|date:"d M Y" }}.</p>{% endif %}
+      {% elif report.evidence_deleted %}
+        <div class="alert alert-secondary mt-3 mb-0 small"><i class="fas fa-trash me-1"></i>The photos for this report have been deleted (retention period ended or an admin removed them).</div>
+      {% endif %}
+
+      <dl class="st-kv mt-3 mb-0">
+        <dt>Location</dt>
+        <dd>
+          {% if report.lat is not None %}
+            <a href="https://www.google.com/maps?q={{ report.lat }},{{ report.lng }}" target="_blank" rel="noopener">{{ report.lat|floatformat:5 }}, {{ report.lng|floatformat:5 }}</a>
+            {% if report.accuracy %}<span class="text-muted small">(± {{ report.accuracy|floatformat:0 }} m)</span>{% endif %}
+          {% else %}-{% endif %}
+        </dd>
+        {% if report.address %}<dt>Address</dt><dd>{{ report.address }}</dd>{% endif %}
+        {% if report.landmark %}<dt>Landmark</dt><dd>{{ report.landmark }}</dd>{% endif %}
+        {% if report.created_at %}<dt>Reported</dt><dd>{{ report.created_at|date:"d M Y, h:i A" }}</dd>{% endif %}
+        {% if report.resolution_note %}<dt>Note to reporter</dt><dd>{{ report.resolution_note }}</dd>{% endif %}
+        {% if report.dup_of %}<dt>Duplicate of</dt><dd><a class="st-mono" href="{% url 'civic_report_detail' report.dup_of %}">{{ report.dup_of }}</a></dd>{% endif %}
+        {% if report.reviewed_by %}<dt>Last reviewed by</dt><dd>{{ report.reviewed_by }}</dd>{% endif %}
+      </dl>
+    </div>
+
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-3"><i class="fas fa-stream"></i>Status the reporter sees</h3>
+      <ul class="cv-tl">
+        {% for row in report.timeline %}
+          <li><div class="t">{{ row.label }}</div><div class="m">{% if row.at %}{{ row.at|date:"d M Y, h:i A" }}{% endif %}{% if row.note %} · “{{ row.note }}”{% endif %}</div></li>
+        {% empty %}
+          <li><div class="m">No timeline yet.</div></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-3"><i class="fas fa-history"></i>Activity log</h3>
+      <ul class="cv-tl">
+        {% for row in activity %}
+          <li><div class="t">{{ row.who|capfirst }}: {{ row.action }}</div><div class="m">{% if row.at %}{{ row.at|date:"d M Y, h:i A" }}{% endif %}{% if row.note %} · “{{ row.note }}”{% endif %}</div></li>
+        {% empty %}
+          <li><div class="m">No actions logged.</div></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="cv-sticky d-flex flex-column gap-3">
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-3"><i class="fas fa-gavel"></i>Review</h3>
+      {% if actions %}
+        <form method="post" action="{% url 'civic_report_status' report.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <label class="form-label" for="note">Note to the reporter</label>
+          <textarea class="form-control mb-1" id="note" name="note" rows="3" maxlength="500" placeholder="E.g. Thanks, we contacted the owner. Required to reject or mark duplicate."></textarea>
+          <p class="cv-note mb-3"><i class="fas fa-eye me-1"></i>The reporter sees this note in the app. Do not include owner details.</p>
+          {% if report.status != 'duplicate' %}
+            <label class="form-label" for="dup_of">Duplicate of (doc ID, optional)</label>
+            <input class="form-control form-control-sm mb-3 st-mono" id="dup_of" name="dup_of" maxlength="64" placeholder="Only used for Mark duplicate">
+          {% endif %}
+          <div class="cv-actions">
+            {% for a in actions %}
+              <button class="btn {{ a.css }}" name="status" value="{{ a.status }}"
+                {% if a.status == 'rejected' or a.status == 'duplicate' %}onclick="return confirm('Close this report as {{ a.label|lower }}? Any Civic Points it earned will be taken back and the owner alert will close.')"{% endif %}>
+                <i class="fas {{ a.icon }}"></i>{{ a.label }}
+              </button>
+            {% endfor %}
+          </div>
+        </form>
+        <p class="cv-note mt-3 mb-0">Verified gives the reporter 5 points, resolved gives 10 (daily cap 30). No points while the reporter is flagged.</p>
+      {% else %}
+        <p class="mb-0 text-muted">The reporter withdrew this report, so it can't be changed.</p>
+      {% endif %}
+    </div>
+
+    {% if report.disputed %}
+    <div class="st-card st-card-pad" style="border-color: var(--st-alert, #C02536)">
+      <h3 class="cv-h mb-2"><i class="fas fa-balance-scale text-danger"></i>Owner dispute</h3>
+      <p class="mb-3">“{{ report.dispute_reason|default:"No reason given." }}”</p>
+      <p class="cv-note">If the dispute is right, reject the report above. Otherwise keep it.</p>
+      <form method="post" action="{% url 'civic_report_flag' report.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="dispute_keep">
+        <input class="form-control form-control-sm mb-2" name="note" maxlength="500" placeholder="Internal note (optional)">
+        <button class="btn btn-outline-secondary w-100"><i class="fas fa-check me-1"></i>Reviewed, keep the report</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="st-card st-card-pad cv-private">
+      <h3 class="cv-h mb-1"><i class="fas fa-lock"></i>Private match</h3>
+      <p class="cv-note mb-3">Admin only. Never shown to the reporter.</p>
+      <dl class="st-kv mb-0">
+        <dt>Plate match</dt><dd>{{ report.match_label }}</dd>
+        {% if vehicle %}<dt>Vehicle</dt><dd>{{ vehicle.number }}{% if vehicle.model %} · {{ vehicle.model }}{% endif %}<div class="st-mono small text-muted">{{ vehicle.id }}</div></dd>{% endif %}
+        <dt>Owner push</dt><dd>{{ report.notify_label }}</dd>
+        {% if alert %}
+          <dt>Owner response</dt><dd>{{ alert.owner_status_label|default:"-" }}{% if alert.closed_reason %} <span class="text-muted small">(closed: {{ alert.closed_reason }})</span>{% endif %}</dd>
+          {% if alert.description_safe %}<dt>Owner saw</dt><dd class="small">{{ alert.description_safe }}</dd>{% endif %}
+        {% endif %}
+      </dl>
+      {% if report.owner_uid %}
+        <hr>
+        <div class="fw-semibold mb-1"><i class="fas fa-user-tie me-1"></i>Owner</div>
+        <dl class="st-kv mb-0">
+          <dt>Name</dt><dd>{{ owner.name|default:"-" }}</dd>
+          {% if owner.email %}<dt>Email</dt><dd>{{ owner.email }}</dd>{% endif %}
+          {% if owner.phone %}<dt>Phone</dt><dd>{{ owner.phone }}</dd>{% endif %}
+          <dt>User ID</dt><dd class="st-mono small">{{ report.owner_uid }}</dd>
+          {% for p in owner_points %}<dt>Points</dt><dd>{{ p.points|stringformat:"+d" }} · {{ p.label }}</dd>{% endfor %}
+        </dl>
+      {% endif %}
+    </div>
+
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-3"><i class="far fa-user"></i>Reporter</h3>
+      <dl class="st-kv mb-3">
+        <dt>Name</dt><dd>{{ reporter.name|default:"-" }}</dd>
+        {% if reporter.email %}<dt>Email</dt><dd>{{ reporter.email }}</dd>{% endif %}
+        {% if reporter.phone %}<dt>Phone</dt><dd>{{ reporter.phone }}</dd>{% endif %}
+        <dt>User ID</dt><dd class="st-mono small"><a href="{% url 'civic_member' report.reporter_uid %}">{{ report.reporter_uid }}</a></dd>
+        {% for p in reporter_points %}<dt>Points</dt><dd>{{ p.points|stringformat:"+d" }} · {{ p.label }}</dd>{% endfor %}
+      </dl>
+      <form method="post" action="{% url 'civic_report_flag' report.id %}">
+        {% csrf_token %}
+        {% if report.abuse %}
+          <input type="hidden" name="action" value="unflag">
+          <p class="cv-note">Flagged because this person reported the same plate 3+ times in a week. The owner was not pushed and the report earns no points.</p>
+          <button class="btn btn-sm btn-outline-secondary w-100"><i class="fas fa-user-check me-1"></i>Clear repeat-report flag</button>
+        {% else %}
+          <input type="hidden" name="action" value="flag">
+          <button class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Flag this reporter? This report will earn no Civic Points.')"><i class="fas fa-user-shield me-1"></i>Flag as misuse</button>
+        {% endif %}
+      </form>
+    </div>
+
+    {% if report.evidence %}
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-2"><i class="far fa-images"></i>Evidence</h3>
+      <form method="post" action="{% url 'civic_report_flag' report.id %}" onsubmit="return confirm('Delete all photos for this report now? This cannot be undone.')">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_evidence">
+        <button class="btn btn-sm btn-outline-danger w-100"><i class="fas fa-trash me-1"></i>Delete photos now</button>
+      </form>
+      <p class="cv-note mt-2 mb-0">Use this if a photo shows a face, a home or anything it should not.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

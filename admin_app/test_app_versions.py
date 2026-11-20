@@ -200,7 +200,7 @@ class AdminPageTests(TestCase):
             res = self.client.get(reverse('manage_app_versions'))
         self.assertEqual(res.status_code, 200)
         html = res.content.decode()
-        for text in ('App Version Management', 'Android', 'iOS', 'Not published yet', '1.1.54',
+        for text in ('App Versions', 'Android', 'iOS', 'Not published yet', '1.1.54',
                      'Faster scans', '70.0%', 'ERROR_API_NOT_AVAILABLE', 'Publish Android configuration'):
             self.assertIn(text, html)
         # 25 users, 10 reporting on each platform (mocked for both).

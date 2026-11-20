@@ -31,7 +31,8 @@ def civic_sense_badge(request):
         return {}
     try:
         from .civic_sense import open_report_count
+        from .civic_admin import open_report_count as civic_reports_open
         from .views import db
-        return {'civic_open_reports': open_report_count(db)}
+        return {'civic_open_reports': open_report_count(db), 'civic_reports_open': civic_reports_open(db)}
     except Exception:
         return {}

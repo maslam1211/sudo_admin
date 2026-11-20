@@ -1920,6 +1920,15 @@ def manage_vehicle_detail(request, vehicle_id):
     })
 
 
+def _admin_when(value):
+    """ISO timestamp -> '20 Nov, 10:55 PM' in India time for admin tables."""
+    from . import analytics
+    dt = analytics.to_ist(value)
+    if not dt:
+        return value or '—'
+    return f"{dt.day} {dt.strftime('%b')}, {dt.strftime('%I:%M %p').lstrip('0')}"
+
+
 def manage_live_status(request):
     """Admin monitor: online counts + liveStatus distribution (sampled)."""
     if not request.session.get('admin'):
@@ -1978,8 +1987,8 @@ def manage_live_status(request):
                     'color': live['color'],
                     'status': st,
                     'is_online': live['is_online'],
-                    'updated_at': live.get('updated_at') or '—',
-                    'last_seen': live.get('last_seen') or '—',
+                    'updated_at': _admin_when(live.get('updated_at')),
+                    'last_seen': _admin_when(live.get('last_seen')),
                 }
             )
     except Exception as e:

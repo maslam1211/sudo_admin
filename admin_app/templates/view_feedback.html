@@ -3,7 +3,7 @@
 {% load custom_filters %}
 
 {% block title %}Feedback Management - Admin Panel{% endblock %}
-{% block page_title %}Feedback Management{% endblock %}
+{% block page_title %}Feedback{% endblock %}
 
 {% block content %}
 <style>
@@ -22,7 +22,15 @@
   .fb-badge-rejected { background: #fee2e2; color: #991b1b; }
   .fb-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #e5e7eb; flex-shrink: 0; }
   .fb-msg { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .fb-actions { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .fb-actions { display: inline-flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; }
+  /* Same quiet row buttons as the other tables; colour only on hover */
+  .st-admin .fb-actions .btn { width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; justify-content: center;
+    border: 1px solid var(--st-line-hi); background: var(--st-surface); color: var(--st-ink-2); border-radius: 8px; font-size: .8rem; }
+  .st-admin .fb-actions .btn:hover { border-color: var(--st-ink-2); color: var(--st-ink); background: var(--st-surface-2); }
+  .st-admin .fb-actions .fb-reject:hover { border-color: rgba(217,138,11,.5); color: #9A6205; background: var(--st-amber-soft); }
+  .st-admin .fb-actions .fb-approve:hover { border-color: rgba(14,166,122,.45); color: #0A7F5D; background: var(--st-safe-soft); }
+  .st-admin .fb-actions .fb-delete { color: #C02536; }
+  .st-admin .fb-actions .fb-delete:hover { border-color: rgba(229,56,74,.35); background: var(--st-alert-soft); color: #A31D2D; }
   .fb-actions .btn {
     min-width: 36px;
     min-height: 36px;

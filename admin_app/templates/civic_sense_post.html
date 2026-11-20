@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}Civic Sense post - SudoTag Admin{% endblock %}
-{% block page_title %}Civic Sense Reports{% endblock %}
+{% block title %}Community post - SudoTag Admin{% endblock %}
+{% block page_title %}Community Posts{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -103,7 +103,7 @@
           {% if post.state != 'removed' %}
             {% if post.reports %}<button class="btn btn-outline-secondary" name="action" value="dismiss"><i class="fas fa-check-double"></i>Dismiss reports, keep live</button>{% endif %}
             {% if post.state == 'pending' %}<button class="btn btn-success" name="action" value="approve"><i class="fas fa-check"></i>Approve</button>{% endif %}
-            <button class="btn btn-danger" name="action" value="remove" onclick="return confirm('Remove this post from Civic Sense? Customers will no longer see it.')"><i class="fas fa-ban"></i>Remove post</button>
+            <button class="btn btn-danger" name="action" value="remove" onclick="return confirm('Remove this post from Community? Customers will no longer see it.')"><i class="fas fa-ban"></i>Remove post</button>
           {% else %}
             <button class="btn btn-success" name="action" value="approve"><i class="fas fa-undo"></i>Restore post</button>
           {% endif %}

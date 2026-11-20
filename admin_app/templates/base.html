@@ -102,7 +102,7 @@
             <div class="sidebar-menu-item">
                 <a href="{% url 'manage_users' %}" class="sidebar-menu-link {% if request.path == '/manage-users/' or request.path == '/admin/manage-users/' %}active{% endif %}">
                     <i class="fas fa-users"></i>
-                    <span>Users</span>
+                    <span>Customers</span>
                 </a>
             </div>
 
@@ -170,11 +170,37 @@
 
             <div class="sidebar-menu-item">
                 <a href="{% url 'civic_sense_reports' %}" class="sidebar-menu-link {% if '/civic-sense/' in request.path %}active{% endif %}">
-                    <i class="fas fa-city"></i>
-                    <span>Civic Sense Reports</span>
+                    <i class="fas fa-users"></i>
+                    <span>Community Posts</span>
                     {% if civic_open_reports %}<span class="st-new">{{ civic_open_reports }}</span>{% endif %}
                 </a>
             </div>
+
+            <div class="sidebar-section">CivicSense</div>
+
+            <div class="sidebar-menu-item">
+                <a href="{% url 'civic_reports' %}" class="sidebar-menu-link {% if '/civic-reports/' in request.path %}active{% endif %}">
+                    <i class="fas fa-city"></i>
+                    <span>Vehicle Reports</span>
+                    {% if civic_reports_open %}<span class="st-new">{{ civic_reports_open }}</span>{% endif %}
+                </a>
+            </div>
+
+            <div class="sidebar-menu-item">
+                <a href="{% url 'civic_awareness' %}" class="sidebar-menu-link {% if '/civic-awareness/' in request.path %}active{% endif %}">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Awareness Campaigns</span>
+                </a>
+            </div>
+
+            <div class="sidebar-menu-item">
+                <a href="{% url 'civic_points' %}" class="sidebar-menu-link {% if '/civic-points/' in request.path %}active{% endif %}">
+                    <i class="fas fa-medal"></i>
+                    <span>Civic Points</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section">Content</div>
 
             <div class="sidebar-menu-item">
                 <a href="{% url 'manage_ads' %}" class="sidebar-menu-link {% if request.path == '/manage-ads/' or request.path == '/admin/manage-ads/' %}active{% endif %}">

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}Civic Sense Reports - SudoTag Admin{% endblock %}
-{% block page_title %}Civic Sense Reports{% endblock %}
+{% block title %}Community Posts - SudoTag Admin{% endblock %}
+{% block page_title %}Community Posts{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -28,7 +28,7 @@
 <div class="st-page-head">
   <div>
     <div class="st-eyebrow">Community moderation</div>
-    <h2>Posts customers flagged in Civic Sense</h2>
+    <h2>Posts customers flagged in Community</h2>
     <p>Open a post to see who reported it and why, then keep it, remove it, or dismiss the reports.</p>
   </div>
 </div>
@@ -96,7 +96,7 @@
     <div class="st-empty">
       <i class="fas {% if state == 'reported' %}fa-shield-alt{% else %}fa-city{% endif %}"></i>
       <h3>{% if query %}No posts match “{{ query }}”{% elif state == 'reported' %}No open reports{% else %}Nothing here yet{% endif %}</h3>
-      <p class="mb-0">{% if state == 'reported' and not query %}When a customer reports a Civic Sense post, it shows up here.{% else %}Try another filter.{% endif %}</p>
+      <p class="mb-0">{% if state == 'reported' and not query %}When a customer reports a Community post, it shows up here.{% else %}Try another filter.{% endif %}</p>
     </div>
   {% endif %}
 </div>

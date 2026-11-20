@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 ACTION_MESSAGES = {
     'approve': 'Post approved and kept live. Its reports are marked as kept.',
-    'remove': 'Post removed from Civic Sense. Its reports are marked as removed.',
+    'remove': 'Post removed from Community. Its reports are marked as removed.',
     'dismiss': 'Reports dismissed. The post stays live and its report count is reset.',
 }
 
@@ -47,7 +47,7 @@ def civic_sense_reports(request):
     except Exception as exc:
         logger.exception('civic sense list failed: %s', exc)
         result = {'posts': [], 'counts': {k: 0 for k in civic_sense.FILTERS}}
-        error = 'Could not load Civic Sense posts from Firebase. Try again in a moment.'
+        error = 'Could not load Community posts from Firebase. Try again in a moment.'
     filters = [
         ('reported', 'Reported', 'fa-flag'),
         ('pending', 'Pending review', 'fa-hourglass-half'),

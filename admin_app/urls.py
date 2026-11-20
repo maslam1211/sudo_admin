@@ -14,6 +14,7 @@ from . import wallet_views
 from . import fleet_views
 from . import promotion_notification_views
 from . import civic_sense_views
+from . import civic_admin_views
 from . import qr_design_views
 from .multipurpose_admin import (
     assign_multipurpose_qr,
@@ -158,10 +159,24 @@ urlpatterns = [
     path('qr-designs/save/', qr_design_views.qr_design_save, name='qr_design_save'),
     path('qr-designs/<str:design_id>/update/', qr_design_views.qr_design_update, name='qr_design_update'),
     path('qr-designs/<str:design_id>/delete/', qr_design_views.qr_design_delete, name='qr_design_delete'),
-    # Civic Sense (community post) reports
+    # Community post moderation (older 'Civic Sense' pages)
     path('civic-sense/', civic_sense_views.civic_sense_reports, name='civic_sense_reports'),
     path('civic-sense/<str:post_id>/', civic_sense_views.civic_sense_post, name='civic_sense_post'),
     path('civic-sense/<str:post_id>/moderate/', civic_sense_views.civic_sense_moderate, name='civic_sense_moderate'),
+    # CivicSense: vehicle reports, awareness campaigns, Civic Points
+    path('civic-reports/', civic_admin_views.civic_reports, name='civic_reports'),
+    path('civic-reports/recount/', civic_admin_views.civic_stats_recount, name='civic_stats_recount'),
+    path('civic-reports/<str:doc_id>/', civic_admin_views.civic_report_detail, name='civic_report_detail'),
+    path('civic-reports/<str:doc_id>/status/', civic_admin_views.civic_report_status, name='civic_report_status'),
+    path('civic-reports/<str:doc_id>/flag/', civic_admin_views.civic_report_flag, name='civic_report_flag'),
+    path('civic-reports/<str:doc_id>/evidence/<int:index>/', civic_admin_views.civic_report_evidence, name='civic_report_evidence'),
+    path('civic-awareness/', civic_admin_views.civic_awareness, name='civic_awareness'),
+    path('civic-awareness/new/', civic_admin_views.civic_awareness_edit, name='civic_awareness_new'),
+    path('civic-awareness/<str:campaign_id>/edit/', civic_admin_views.civic_awareness_edit, name='civic_awareness_edit'),
+    path('civic-awareness/<str:campaign_id>/action/', civic_admin_views.civic_awareness_action, name='civic_awareness_action'),
+    path('civic-points/', civic_admin_views.civic_points, name='civic_points'),
+    path('civic-points/<str:uid>/', civic_admin_views.civic_member, name='civic_member'),
+    path('civic-points/<str:uid>/action/', civic_admin_views.civic_member_action, name='civic_member_action'),
     # Ads management URLs
     path('manage-ads/', views.manage_ads, name='manage_ads'),
     path(

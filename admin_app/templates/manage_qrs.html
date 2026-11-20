@@ -2,7 +2,7 @@
 {% load custom_filters %}
 
 {% block title %}Manage QR Codes - Admin Panel{% endblock %}
-{% block page_title %}Manage QR Codes <small class="text-muted">(Total: {{ total_qr_count }})</small>{% endblock %}
+{% block page_title %}QR Codes{% endblock %}
 
 {% block content %}
 <style>
@@ -316,7 +316,7 @@
                         <input type="text" name="search" id="search" class="form-control" 
                                placeholder="Search by QR ID, name, email, phone, or vehicle..." 
                                value="{{ search_query|default:'' }}">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-dark">
                             <i class="fas fa-search"></i> Search
                         </button>
                     </div>

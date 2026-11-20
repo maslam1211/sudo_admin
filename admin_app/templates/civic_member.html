@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Civic Points member - SudoTag Admin{% endblock %}
+{% block page_title %}Civic Points{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cv-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.25rem; align-items: start; }
+  .cv-row { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 1.25rem; border-top: 1px solid var(--st-line); align-items: center; }
+  .cv-row a { color: inherit; }
+  .cv-pts { font-family: var(--st-font-mono); font-weight: 700; white-space: nowrap; }
+  .cv-pts.pos { color: #1E8E5A; }
+  .cv-pts.neg { color: #C02536; }
+  .cv-h { font-family: var(--st-font-display); font-weight: 600; font-size: 1rem; margin: 0; }
+  @media (max-width: 1100px) { .cv-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'civic_points' %}" class="btn btn-sm btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-1"></i>Back to Civic Points</a>
+
+{% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+
+<div class="cv-grid">
+  <div class="d-flex flex-column gap-3">
+    <div class="st-card st-card-pad">
+      <h2 class="h4 mb-1">{{ member.user.name|default:"Unknown user" }}</h2>
+      <div class="text-muted small mb-3">{% if member.user.email %}{{ member.user.email }} · {% endif %}{% if member.user.phone %}{{ member.user.phone }} · {% endif %}<span class="st-mono">{{ member.uid }}</span></div>
+      <div class="st-stats mb-0">
+        <div class="st-stat is-accent"><div class="st-stat-label"><i class="fas fa-medal"></i>Total</div><div class="st-stat-value">{{ member.total }}</div></div>
+        <div class="st-stat"><div class="st-stat-label"><i class="far fa-calendar"></i>This month</div><div class="st-stat-value">{{ member.month_points }}</div></div>
+        <div class="st-stat"><div class="st-stat-label"><i class="fas fa-star"></i>Level</div><div class="st-stat-value" style="font-size:1.1rem">{{ member.level_name }}</div></div>
+      </div>
+    </div>
+
+    <div class="st-card">
+      <div class="st-card-pad pb-3"><h3 class="cv-h"><i class="fas fa-list me-1"></i>Points history</h3></div>
+      {% for e in member.ledger %}
+        <div class="cv-row">
+          <div>
+            <div>{{ e.label }}</div>
+            <div class="small text-muted">
+              {% if e.at %}{{ e.at|date:"d M Y, h:i A" }}{% endif %}
+              {% if e.report_doc_id %} · <a class="st-mono" href="{% url 'civic_report_detail' e.report_doc_id %}">{{ e.report_doc_id|truncatechars:14 }}</a>{% endif %}
+              {% if e.note %} · “{{ e.note }}”{% endif %}{% if e.by %} · {{ e.by }}{% endif %}
+              {% if e.requested and e.requested != e.points %} · capped from {{ e.requested }}{% endif %}
+            </div>
+          </div>
+          <span class="cv-pts {% if e.points > 0 %}pos{% elif e.points < 0 %}neg{% endif %}">{{ e.points|stringformat:"+d" }}</span>
+        </div>
+      {% empty %}
+        <div class="st-empty pt-2"><i class="fas fa-medal"></i><p class="mb-0">No points yet.</p></div>
+      {% endfor %}
+    </div>
+
+    <div class="st-card">
+      <div class="st-card-pad pb-3"><h3 class="cv-h"><i class="fas fa-city me-1"></i>Reports by this member ({{ member.reports|length }})</h3></div>
+      {% for r in member.reports %}
+        <div class="cv-row">
+          <a href="{% url 'civic_report_detail' r.id %}"><strong>{{ r.category_label }}</strong>{% if r.plate %} · <span class="st-mono">{{ r.plate }}</span>{% endif %}<div class="small text-muted">{{ r.report_id }}{% if r.created_at %} · {{ r.created_at|date:"d M Y" }}{% endif %}</div></a>
+          <span class="st-badge">{{ r.status_label }}</span>
+        </div>
+      {% empty %}
+        <div class="st-empty pt-2"><p class="mb-0">No reports. Points may come from responding to alerts as an owner.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="d-flex flex-column gap-3">
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-3"><i class="fas fa-sliders-h me-1"></i>Adjust points</h3>
+      <form method="post" action="{% url 'civic_member_action' member.uid %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="adjust">
+        <label class="form-label" for="points">Points (use a minus sign to take away)</label>
+        <input class="form-control mb-3" type="number" id="points" name="points" min="-{{ max_adjust }}" max="{{ max_adjust }}" step="1" required placeholder="10 or -5">
+        <label class="form-label" for="reason">Reason</label>
+        <input class="form-control mb-1" id="reason" name="reason" maxlength="200" required placeholder="E.g. Correction for report CS-ABC123">
+        <p class="small text-muted mb-3">The member sees “Adjusted by SudoTag” in their history. The reason is for admins only.</p>
+        <button class="btn btn-primary w-100" onclick="return confirm('Apply this points adjustment?')"><i class="fas fa-check me-1"></i>Apply</button>
+      </form>
+    </div>
+
+    <div class="st-card st-card-pad">
+      <h3 class="cv-h mb-2"><i class="fas fa-trophy me-1"></i>Leaderboard name</h3>
+      {% if member.show %}
+        <p class="mb-3">Shown publicly as <strong>“{{ member.public_name }}”</strong>.</p>
+        <form method="post" action="{% url 'civic_member_action' member.uid %}" onsubmit="return confirm('Hide this name from the leaderboard? They will show as SudoTag member and cannot turn their name back on.')">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="hide_name">
+          <button class="btn btn-outline-danger w-100"><i class="far fa-eye-slash me-1"></i>Hide name from leaderboard</button>
+        </form>
+      {% elif member.name_hidden_by_admin %}
+        <p class="mb-0 text-muted">An admin hid this name. They show as “SudoTag member” and can't turn their name back on.</p>
+      {% else %}
+        <p class="mb-0 text-muted">Shown as “SudoTag member”. Members choose to show their name in the app.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

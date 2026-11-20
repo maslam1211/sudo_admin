@@ -3,7 +3,7 @@
 {% load custom_filters %}
 
 {% block title %}Referrals - Admin Panel{% endblock %}
-{% block page_title %}Referral Overview{% endblock %}
+{% block page_title %}Referrals{% endblock %}
 
 {% block content %}
 <style>
@@ -72,11 +72,11 @@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
     <p class="text-muted mb-0 conv-note">{{ conversion_note }}</p>
     <div class="d-flex gap-2">
-        <a href="{% url 'referrals_table' %}" class="btn btn-primary btn-sm">
+        <a href="{% url 'referrals_table' %}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-table me-1"></i> Full Table
         </a>
-        <a href="{% url 'export_referrals_csv' %}" class="btn btn-success btn-sm">
-            <i class="fas fa-file-csv me-1"></i> Export CSV
+        <a href="{% url 'export_referrals_csv' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-file-download me-1"></i> Export CSV
         </a>
     </div>
 </div>

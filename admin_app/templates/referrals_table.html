@@ -2,7 +2,7 @@
 {% load custom_filters %}
 
 {% block title %}Referral Table - Admin Panel{% endblock %}
-{% block page_title %}Referral Table{% endblock %}
+{% block page_title %}Referrals · Full table{% endblock %}
 
 {% block content %}
 <style>
@@ -58,8 +58,8 @@
         <i class="fas fa-arrow-left me-1"></i> Overview
     </a>
     <a href="{% url 'export_referrals_csv' %}{% if query_string %}?{{ query_string }}{% endif %}"
-       class="btn btn-success btn-sm">
-        <i class="fas fa-file-csv me-1"></i> Export Filtered CSV
+       class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-file-download me-1"></i> Export Filtered CSV
     </a>
 </div>
 
@@ -117,7 +117,7 @@
             <input type="hidden" name="sort" value="{{ filters.sort }}">
             <input type="hidden" name="order" value="{{ filters.order }}">
             <div class="col-md-10 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-dark">
                     <i class="fas fa-search me-1"></i> Apply
                 </button>
                 <a href="{% url 'referrals_table' %}" class="btn btn-outline-secondary">Clear</a>

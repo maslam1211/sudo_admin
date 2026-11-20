@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Civic Points - SudoTag Admin{% endblock %}
+{% block page_title %}Civic Points{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cv-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.25rem; align-items: start; }
+  .cv-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .cv-table th { text-align: left; font-weight: 600; color: var(--st-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; padding: .6rem 1.25rem; border-bottom: 1px solid var(--st-line); }
+  .cv-table td { padding: .7rem 1.25rem; border-bottom: 1px solid var(--st-line); vertical-align: middle; }
+  .cv-table tr:last-child td { border-bottom: 0; }
+  .cv-table a { color: inherit; text-decoration: none; }
+  .cv-table tr:hover td { background: #FFF8F2; }
+  .cv-num { font-family: var(--st-font-mono); font-weight: 700; text-align: right; }
+  .cv-lb { list-style: none; margin: 0; padding: 0; counter-reset: rank; }
+  .cv-lb li { display: flex; justify-content: space-between; gap: .5rem; padding: .55rem 0; border-bottom: 1px solid var(--st-line); counter-increment: rank; }
+  .cv-lb li:last-child { border-bottom: 0; }
+  .cv-lb li::before { content: counter(rank); font-family: var(--st-font-mono); color: var(--st-muted); width: 1.6rem; }
+  .cv-lb .n { flex: 1; }
+  .cv-scroll { overflow-x: auto; }
+  @media (max-width: 1100px) { .cv-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="st-page-head">
+  <div>
+    <div class="st-eyebrow">CivicSense</div>
+    <h2>Civic Points</h2>
+    <p>Recognition points, not redeemable. Earned only when a report is verified or resolved, or when an owner responds to an alert.</p>
+  </div>
+</div>
+
+{% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="st-stats">
+  <div class="st-stat is-accent"><div class="st-stat-label"><i class="fas fa-users"></i>Members with points</div><div class="st-stat-value">{{ members|length }}</div></div>
+  <div class="st-stat"><div class="st-stat-label"><i class="fas fa-medal"></i>Points given (all time)</div><div class="st-stat-value">{{ total_points }}</div></div>
+  <div class="st-stat"><div class="st-stat-label"><i class="far fa-eye"></i>Show their name</div><div class="st-stat-value">{{ public_count }}</div></div>
+</div>
+
+<div class="cv-grid">
+  <div class="st-card">
+    <form class="st-toolbar" method="get">
+      <input type="hidden" name="month" value="{{ month }}">
+      <div class="st-search ms-auto">
+        <i class="fas fa-search"></i>
+        <input type="search" class="form-control form-control-sm" name="q" value="{{ query }}" placeholder="Name, email, phone, user ID">
+      </div>
+    </form>
+    <div class="cv-scroll">
+    <table class="cv-table">
+      <thead><tr><th>Member</th><th>Level</th><th class="cv-num">This month</th><th class="cv-num">Total</th></tr></thead>
+      <tbody>
+        {% for m in members %}
+          <tr onclick="location.href='{% url 'civic_member' m.uid %}'" style="cursor:pointer">
+            <td>
+              <a href="{% url 'civic_member' m.uid %}"><strong>{{ m.user.name|default:"Unknown user" }}</strong></a>
+              <div class="small text-muted">{% if m.show %}<i class="far fa-eye me-1"></i>Public as “{{ m.public_name }}”{% else %}<i class="far fa-eye-slash me-1"></i>Shown as SudoTag member{% endif %}</div>
+            </td>
+            <td>{{ m.level_name }}</td>
+            <td class="cv-num">{{ m.month_points }}</td>
+            <td class="cv-num">{{ m.total }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="st-empty"><i class="fas fa-medal"></i><p class="mb-0">{% if query %}No members match “{{ query }}”.{% else %}No one has earned Civic Points yet.{% endif %}</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column gap-3">
+    <div class="st-card st-card-pad">
+      <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+        <h3 class="h6 mb-0"><i class="fas fa-trophy me-1"></i>Leaderboard</h3>
+        <form method="get">
+          {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+          <select class="form-select form-select-sm" name="month" onchange="this.form.submit()" aria-label="Month">
+            {% for key, label in months %}<option value="{{ key }}" {% if key == month %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </form>
+      </div>
+      <p class="small text-muted">What app users see, top 20. Names are opt-in.</p>
+      <ol class="cv-lb">
+        {% for row in leaderboard %}
+          <li><span class="n">{{ row.name }} <span class="small text-muted">· {{ row.level_name }}</span></span><span class="st-mono fw-bold">{{ row.month_points }}</span></li>
+        {% empty %}
+          <li style="counter-increment:none"><span class="text-muted">No points this month.</span></li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <div class="st-card st-card-pad">
+      <h3 class="h6 mb-2"><i class="fas fa-info-circle me-1"></i>How points work</h3>
+      <dl class="st-kv mb-3 small">
+        <dt>Report verified</dt><dd>+{{ points_rules.report_verified }}</dd>
+        <dt>Report resolved</dt><dd>+{{ points_rules.report_resolved }}</dd>
+        <dt>Owner responds</dt><dd>+5 within 30 min, else +2</dd>
+        <dt>Daily cap</dt><dd>{{ points_rules.daily_cap }}</dd>
+        <dt>Rejected / duplicate</dt><dd>Report points taken back</dd>
+      </dl>
+      <div class="small fw-semibold mb-1">Levels (all-time points)</div>
+      <dl class="st-kv mb-0 small">
+        {% for min, key, name in levels %}<dt>{{ name }}</dt><dd>{{ min }}+</dd>{% endfor %}
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

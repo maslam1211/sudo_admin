@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if campaign %}Edit campaign{% else %}New campaign{% endif %} - SudoTag Admin{% endblock %}
+{% block page_title %}Awareness Campaigns{% endblock %}
+
+{% block content %}
+<a href="{% url 'civic_awareness' %}" class="btn btn-sm btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-1"></i>Back to campaigns</a>
+
+{% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+
+<div class="st-card st-card-pad" style="max-width: 760px">
+  <h2 class="h5 mb-3">{% if campaign %}Edit campaign{% else %}New awareness campaign{% endif %}</h2>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label" for="title">Title</label>
+      <input class="form-control" id="title" name="title" maxlength="80" required value="{{ form.title|default:'' }}" placeholder="Don't block the school gate">
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="description">Description</label>
+      <textarea class="form-control" id="description" name="description" rows="5" maxlength="1000" required placeholder="One or two short paragraphs. No fines or legal threats; keep it friendly.">{{ form.description|default:'' }}</textarea>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="form-label" for="category">Category</label>
+        <select class="form-select" id="category" name="category">
+          {% for slug, label in categories.items %}<option value="{{ slug }}" {% if form.category == slug %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="publish_at">Publish at (IST)</label>
+        <input class="form-control" type="datetime-local" id="publish_at" name="publish_at" value="{{ form.publish_at|default:'' }}">
+        <div class="form-text">Leave empty to publish now.</div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="link_url">Link (optional)</label>
+      <input class="form-control" type="url" id="link_url" name="link_url" maxlength="500" value="{{ form.link_url|default:'' }}" placeholder="https://sudotag.com/...">
+      <div class="form-text">Shown as a “Learn more” button. Must start with https://</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="cover">Cover image (optional)</label>
+      {% if form.cover_url %}
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <img src="{{ form.cover_url }}" alt="Current cover" style="width:160px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--st-line)">
+          <label class="form-check-label"><input class="form-check-input me-1" type="checkbox" name="remove_cover">Remove cover</label>
+        </div>
+      {% endif %}
+      <input class="form-control" type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/webp">
+      <input type="hidden" name="cover_url" value="{{ form.cover_url|default:'' }}">
+      <div class="form-text">JPG, PNG or WebP under 5 MB. Wide images (16:9) look best.</div>
+    </div>
+    <div class="form-check form-switch mb-4">
+      <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" {% if form.is_active %}checked{% endif %}>
+      <label class="form-check-label" for="is_active">Show in the app</label>
+    </div>
+    <button class="btn btn-primary"><i class="fas fa-save me-1"></i>{% if campaign %}Save changes{% else %}Create campaign{% endif %}</button>
+  </form>
+</div>
+{% endblock %}

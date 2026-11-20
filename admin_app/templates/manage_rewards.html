@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}Wallet - Admin Panel{% endblock %}
-{% block page_title %}Wallet management{% endblock %}
+{% block page_title %}Wallet{% endblock %}
 
 {% block content %}
 {% if messages %}
@@ -33,7 +33,7 @@
         <input class="form-control" name="q" value="{{ query }}" placeholder="User ID or email">
     </div>
     <div class="col-md-2">
-        <button class="btn btn-primary w-100" type="submit">Find wallet</button>
+        <button class="btn btn-dark w-100" type="submit">Find wallet</button>
     </div>
 </form>
 
@@ -121,7 +121,7 @@
     <div class="col-md-2"><input class="form-control" name="category" value="{{ category }}" placeholder="Category"></div>
     <div class="col-md-2"><input class="form-control" name="vehicle" value="{{ vehicle }}" placeholder="Vehicle ID"></div>
     <div class="col-md-3 d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Filter</button>
+        <button class="btn btn-dark" type="submit">Filter</button>
         <a class="btn btn-outline-secondary" href="?tab=reports&q={{ query }}&status={{ status }}&category={{ category }}&vehicle={{ vehicle }}&export=1">Export</a>
     </div>
 </form>
@@ -163,7 +163,7 @@
             <option value="refunded" {% if status == 'refunded' %}selected{% endif %}>Refunded</option>
         </select>
     </div>
-    <div class="col-md-2"><button class="btn btn-primary" type="submit">Filter</button></div>
+    <div class="col-md-2"><button class="btn btn-dark" type="submit">Filter</button></div>
 </form>
 <div class="card mb-3">
     <div class="card-header">Manually redeem</div>
