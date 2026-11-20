@@ -24,6 +24,37 @@ fi
 echo "== packages";    "$PY" -m pip install -q -r requirements.txt
 echo "== migrate";     "$PY" manage.py migrate --noinput
 echo "== static";      "$PY" manage.py collectstatic --noinput >/dev/null
+
+# nginx may serve /static/ straight from its own folder (set up by hand once).
+# If that folder is not Django's STATIC_ROOT, new CSS/JS 404 and pages show
+# unstyled, so copy the collected files to wherever nginx actually looks.
+STATIC_ROOT_DIR="$("$PY" - <<'PYEOF'
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sudo_admin.settings')
+django.setup()
+from django.conf import settings
+print(settings.STATIC_ROOT)
+PYEOF
+)"
+read -r NGINX_DIRECTIVE NGINX_PATH < <(nginx -T 2>/dev/null | awk '
+  /location[^{]*\/static/ { inblock=1 }
+  inblock && /(alias|root)[[:space:]]/ { gsub(";", ""); for (i = 1; i <= NF; i++) if ($i == "alias" || $i == "root") { print $i, $(i + 1); exit } }
+  inblock && /}/ { inblock=0 }' || true)
+if [ -n "${NGINX_PATH:-}" ]; then
+  NGINX_STATIC="$NGINX_PATH"
+  [ "$NGINX_DIRECTIVE" = "root" ] && NGINX_STATIC="${NGINX_PATH%/}/static"
+  NGINX_STATIC="${NGINX_STATIC%/}"
+  echo "nginx serves /static/ from $NGINX_STATIC (Django collects to $STATIC_ROOT_DIR)"
+  if [ "$(readlink -f "$NGINX_STATIC" 2>/dev/null || echo "$NGINX_STATIC")" != "$(readlink -f "$STATIC_ROOT_DIR")" ]; then
+    mkdir -p "$NGINX_STATIC"
+    cp -a "$STATIC_ROOT_DIR/." "$NGINX_STATIC/"
+    chmod -R a+rX "$NGINX_STATIC"
+    echo "copied static files to $NGINX_STATIC"
+  fi
+else
+  echo "nginx passes /static/ to Django (WhiteNoise serves it)"
+fi
+
 echo "== restart $SERVICE"; systemctl restart "$SERVICE"
 
 # nginx rejects bodies over 1 MB by default (HTTP 413), which blocks ad image
@@ -49,7 +80,17 @@ fi
 
 for i in $(seq 1 30); do
   CODE="$(curl -s -o /dev/null -w '%{http_code}' https://sudotag.com/admin/login/ || true)"
-  case "$CODE" in 200|301|302) echo "live: HTTP $CODE  ($(git log --oneline -1))"; exit 0;; esac
+  case "$CODE" in 200|301|302)
+    echo "live: HTTP $CODE  ($(git log --oneline -1))"
+    CSS="$(curl -s -o /dev/null -w '%{http_code}' https://sudotag.com/static/assets/css/sudotag-admin.css || true)"
+    if [ "$CSS" = "200" ]; then
+      echo "admin theme CSS: OK"
+    else
+      echo "WARNING: admin theme CSS returns HTTP $CSS, so admin pages will look unstyled."
+      echo "nginx /static/ setting:"; nginx -T 2>/dev/null | grep -A3 -E 'location[^{]*/static' || true
+    fi
+    exit 0;;
+  esac
   sleep 2
 done
 echo "site not answering (HTTP $CODE). Last errors:"
