@@ -164,6 +164,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'admin_app.middleware.IndiaTimeMiddleware',
     'django.middleware.common.CommonMiddleware',
     'admin_app.middleware.DisableCSRFForAPI',  # Custom middleware to exempt API endpoints
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -189,6 +190,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'admin_app.context_processors.favicon_urls',
+                'admin_app.context_processors.civic_sense_badge',
             ],
         },
     },

@@ -1,0 +1,20 @@
+{% if notes.top %}
+<section class="an-matters" aria-labelledby="matters-title">
+  <div class="an-matters-head">
+    <h3 id="matters-title">{{ title|default:"What matters right now" }}</h3>
+    <span>Most important first</span>
+  </div>
+  <ul class="an-matters-list">
+    {% for n in notes.top %}
+    <li>
+      <span class="an-tag tone-{{ n.tone }}">{% if n.tone == 'good' %}Good news{% elif n.tone == 'alert' %}Act now{% elif n.tone == 'warn' %}Watch{% else %}Note{% endif %}</span>
+      <details class="an-why">
+        <summary><span class="h">{{ n.headline }}</span><span class="more">Why?</span></summary>
+        {% if n.detail %}<p>{{ n.detail }}</p>{% endif %}
+      </details>
+      {% if n.action and n.url %}<a class="btn btn-sm btn-outline-secondary an-matters-btn" href="{{ n.url }}">{{ n.action }}</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

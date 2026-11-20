@@ -70,8 +70,8 @@
         transition: all 0.2s ease;
     }
     .status-dropdown:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: var(--st-orange-deep);
+        box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.1);
         outline: none;
     }
     .action-buttons-group {
@@ -97,13 +97,14 @@
         font-size: 0.875rem;
     }
     .action-btn-primary {
-        background: #3b82f6;
-        color: white;
+        background: var(--st-orange);
+        color: var(--st-void);
     }
     .action-btn-primary:hover {
-        background: #2563eb;
+        background: var(--st-orange-hi);
         transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 4px 6px -1px rgba(255, 122, 26, 0.3);
+        color: var(--st-void);
     }
     .action-btn-secondary {
         background: #6b7280;
@@ -146,9 +147,9 @@
         color: #1e293b;
     }
     .page-item.active .page-link {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-        color: white;
+        background-color: var(--st-orange);
+        border-color: var(--st-orange);
+        color: var(--st-void);
     }
     @media (max-width: 768px) {
         .table {
@@ -172,6 +173,38 @@
         }
     }
 </style>
+
+<div class="st-page-head">
+    <div>
+        <h2>Orders</h2>
+        <p>{{ total_orders }} orders. Filter by status, payment or source, and search by name, phone, order ID or vehicle.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="?{{ qs }}export=csv"><i class="fas fa-file-download me-2"></i>Export CSV</a>
+</div>
+<div class="st-card st-filterbar mb-3">
+<form class="st-toolbar" method="get">
+    <div class="st-search">
+        <i class="fas fa-search"></i>
+        <input class="form-control" name="q" value="{{ q }}" placeholder="Search name, phone, order ID, vehicle or city">
+    </div>
+    <select class="form-select st-toolbar-select" name="status" onchange="this.form.submit()" aria-label="Order status">
+        <option value="">All statuses</option>
+        {% for code, label in STATUS_MAPPING.items %}<option value="{{ code }}" {% if status == code|stringformat:"d" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select class="form-select st-toolbar-select" name="pay" onchange="this.form.submit()" aria-label="Payment">
+        <option value="">Any payment</option>
+        <option value="paid" {% if pay == 'paid' %}selected{% endif %}>Paid</option>
+        <option value="unpaid" {% if pay == 'unpaid' %}selected{% endif %}>Not paid</option>
+    </select>
+    <select class="form-select st-toolbar-select" name="source" onchange="this.form.submit()" aria-label="Source">
+        <option value="">App and website</option>
+        <option value="app" {% if source == 'app' %}selected{% endif %}>App</option>
+        <option value="web" {% if source == 'web' %}selected{% endif %}>Website</option>
+    </select>
+    <button class="btn btn-dark" type="submit">Search</button>
+    {% if q or status or pay or source %}<a class="btn btn-link" href="?">Clear</a>{% endif %}
+</form>
+</div>
 
 <div class="order-table-wrapper">
     <div class="table-header-actions">
@@ -332,12 +365,12 @@
         <ul class="pagination justify-content-center">
             {% if orders.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1" aria-label="First">
+                    <a class="page-link" href="?{{ qs }}page=1" aria-label="First">
                         <span aria-hidden="true">&laquo;&laquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ orders.previous_page_number }}" aria-label="Previous">
+                    <a class="page-link" href="?{{ qs }}page={{ orders.previous_page_number }}" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
@@ -357,19 +390,19 @@
                     </li>
                 {% elif num > orders.number|add:'-3' and num < orders.number|add:'3' %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?{{ qs }}page={{ num }}">{{ num }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
 
             {% if orders.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ orders.next_page_number }}" aria-label="Next">
+                    <a class="page-link" href="?{{ qs }}page={{ orders.next_page_number }}" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ orders.paginator.num_pages }}" aria-label="Last">
+                    <a class="page-link" href="?{{ qs }}page={{ orders.paginator.num_pages }}" aria-label="Last">
                         <span aria-hidden="true">&raquo;&raquo;</span>
                     </a>
                 </li>
@@ -394,7 +427,7 @@
         <div class="card-body text-center py-5">
             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
             <h5 class="text-muted">No orders found</h5>
-            <p class="text-muted mb-0">There are no orders in the system yet.</p>
+            <p class="text-muted mb-0">{% if q or status or pay or source %}Nothing matches these filters. <a href="?">Clear filters</a>{% else %}There are no orders in the system yet.{% endif %}</p>
         </div>
     </div>
     {% endif %}

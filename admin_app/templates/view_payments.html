@@ -50,6 +50,24 @@
     }
 </style>
 
+<div class="st-page-head">
+    <div>
+        <h2>Payments</h2>
+        <p>{{ total_payments }} verified payments. Search by payment ID, order ID or user ID.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="?{{ qs }}export=csv"><i class="fas fa-file-download me-2"></i>Export CSV</a>
+</div>
+<div class="st-card st-filterbar mb-3">
+<form class="st-toolbar" method="get">
+    <div class="st-search">
+        <i class="fas fa-search"></i>
+        <input class="form-control" name="q" value="{{ q }}" placeholder="Search payment ID, order ID or user ID">
+    </div>
+    <button class="btn btn-dark" type="submit">Search</button>
+    {% if q %}<a class="btn btn-link" href="?">Clear</a>{% endif %}
+</form>
+</div>
+
 <div class="mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div class="text-muted">
@@ -127,12 +145,12 @@
         <ul class="pagination justify-content-center">
             {% if payments.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1" aria-label="First">
+                    <a class="page-link" href="?{{ qs }}page=1" aria-label="First">
                         <span aria-hidden="true">&laquo;&laquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ payments.previous_page_number }}" aria-label="Previous">
+                    <a class="page-link" href="?{{ qs }}page={{ payments.previous_page_number }}" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
@@ -152,19 +170,19 @@
                     </li>
                 {% elif num > payments.number|add:'-3' and num < payments.number|add:'3' %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?{{ qs }}page={{ num }}">{{ num }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
 
             {% if payments.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ payments.next_page_number }}" aria-label="Next">
+                    <a class="page-link" href="?{{ qs }}page={{ payments.next_page_number }}" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ payments.paginator.num_pages }}" aria-label="Last">
+                    <a class="page-link" href="?{{ qs }}page={{ payments.paginator.num_pages }}" aria-label="Last">
                         <span aria-hidden="true">&raquo;&raquo;</span>
                     </a>
                 </li>
@@ -189,7 +207,7 @@
             <div class="card-body text-center py-5">
                 <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">No payments found</h5>
-                <p class="text-muted mb-0">There are no payments in the system yet.</p>
+                <p class="text-muted mb-0">{% if q %}No payment matches “{{ q }}”. <a href="?">Clear search</a>{% else %}There are no payments in the system yet.{% endif %}</p>
             </div>
         </div>
     {% endif %}

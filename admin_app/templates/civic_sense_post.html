@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Civic Sense post - SudoTag Admin{% endblock %}
+{% block page_title %}Civic Sense Reports{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cs-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.25rem; align-items: start; }
+  .cs-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .6rem; margin-top: 1rem; }
+  .cs-gallery a { display: block; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; border: 1px solid var(--st-line); }
+  .cs-gallery img { width: 100%; height: 100%; object-fit: cover; }
+  .cs-body { white-space: pre-wrap; color: var(--st-ink-2); line-height: 1.6; margin: 0; }
+  .cs-section-title { font-family: var(--st-font-display); font-weight: 600; font-size: 1rem; margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .cs-report { padding: 1rem 1.25rem; border-top: 1px solid var(--st-line); }
+  .cs-report-head { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: .35rem; }
+  .cs-reason { font-weight: 600; color: var(--st-ink); }
+  .cs-who { color: var(--st-muted); font-size: .8rem; }
+  .cs-comment { display: flex; gap: .75rem; padding: .8rem 1.25rem; border-top: 1px solid var(--st-line); font-size: .875rem; }
+  .cs-sticky { position: sticky; top: calc(var(--st-topbar-h) + 1rem); }
+  .cs-actions { display: grid; gap: .5rem; }
+  .cs-actions .btn { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+  @media (max-width: 1100px) { .cs-grid { grid-template-columns: 1fr; } .cs-sticky { position: static; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'civic_sense_reports' %}?state={{ back_state }}" class="btn btn-sm btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-1"></i>Back to reports</a>
+
+{% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+
+<div class="cs-grid">
+  <div class="d-flex flex-column gap-3">
+    <div class="st-card st-card-pad">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+        {% if post.state == 'removed' %}<span class="st-badge is-alert">Removed</span>
+        {% elif post.state == 'reported' %}<span class="st-badge is-orange">Needs review</span>
+        {% elif post.state == 'pending' %}<span class="st-badge is-amber">Pending</span>
+        {% else %}<span class="st-badge is-safe">Live</span>{% endif %}
+        <span class="st-badge">{{ post.category }}</span>
+        {% for tag in post.tags %}<span class="st-badge is-blue">#{{ tag }}</span>{% endfor %}
+      </div>
+      <h2 class="h4 mb-2">{{ post.title|default:"Untitled post" }}</h2>
+      <p class="cs-body">{{ post.text|default:"No description." }}</p>
+      {% if post.images %}
+        <div class="cs-gallery">
+          {% for url in post.images %}<a href="{{ url }}" target="_blank" rel="noopener"><img src="{{ url }}" alt="Post image {{ forloop.counter }}" loading="lazy"></a>{% endfor %}
+        </div>
+      {% endif %}
+      <div class="d-flex flex-wrap gap-3 mt-3 text-muted small">
+        <span><i class="far fa-heart me-1"></i>{{ post.likes }} likes</span>
+        <span><i class="far fa-comment me-1"></i>{{ post.comments }} comments</span>
+        <span><i class="fas fa-flag me-1"></i>{{ post.reports }} reports</span>
+        {% if post.created_at %}<span><i class="far fa-clock me-1"></i>{{ post.created_at|date:"d M Y, h:i A" }}</span>{% endif %}
+        <span class="st-mono">ID {{ post.id }}</span>
+      </div>
+    </div>
+
+    <div class="st-card">
+      <div class="st-card-pad pb-3"><h3 class="cs-section-title"><i class="fas fa-flag text-danger"></i>Reports ({{ reports|length }})</h3></div>
+      {% for report in reports %}
+        <div class="cs-report">
+          <div class="cs-report-head">
+            <span class="cs-reason">{{ report.reason }}</span>
+            <span class="st-badge {% if report.status == 'open' %}is-orange{% elif report.status == 'removed' %}is-alert{% else %}is-safe{% endif %}">{{ report.status|capfirst }}</span>
+          </div>
+          {% if report.details %}<p class="mb-2" style="white-space:pre-wrap">{{ report.details }}</p>{% endif %}
+          <div class="cs-who">
+            <i class="far fa-user me-1"></i>{{ report.user.name|default:report.reporter_name|default:"Unknown customer" }}
+            {% if report.user.email %} · {{ report.user.email }}{% endif %}
+            {% if report.user.phone %} · {{ report.user.phone }}{% endif %}
+            {% if report.created_at %} · {{ report.created_at|date:"d M Y, h:i A" }}{% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="st-empty pt-2"><i class="fas fa-flag"></i><p class="mb-0">{% if post.reports %}This post has {{ post.reports }} report{{ post.reports|pluralize }}, but the app didn't save the details.{% else %}No reports on this post.{% endif %}</p></div>
+      {% endfor %}
+    </div>
+
+    <div class="st-card">
+      <div class="st-card-pad pb-3"><h3 class="cs-section-title"><i class="far fa-comments"></i>Comments ({{ comments|length }})</h3></div>
+      {% for c in comments %}
+        <div class="cs-comment">
+          <span class="st-avatar">{{ c.author_name|first|upper }}</span>
+          <div><strong>{{ c.author_name }}</strong> <span class="text-muted small">{% if c.created_at %}{{ c.created_at|date:"d M, h:i A" }}{% endif %}</span><div>{{ c.text }}</div></div>
+        </div>
+      {% empty %}
+        <div class="st-empty pt-2"><i class="far fa-comments"></i><p class="mb-0">No comments.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="cs-sticky d-flex flex-column gap-3">
+    <div class="st-card st-card-pad">
+      <h3 class="cs-section-title mb-3"><i class="fas fa-gavel"></i>Moderate</h3>
+      <form method="post" action="{% url 'civic_sense_moderate' post.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label class="form-label" for="note">Note (required to remove)</label>
+        <textarea class="form-control mb-3" id="note" name="note" rows="3" maxlength="500" placeholder="Why you kept or removed it. Saved on the post.">{{ post.moderation_note }}</textarea>
+        <div class="cs-actions">
+          {% if post.state != 'removed' %}
+            {% if post.reports %}<button class="btn btn-outline-secondary" name="action" value="dismiss"><i class="fas fa-check-double"></i>Dismiss reports, keep live</button>{% endif %}
+            {% if post.state == 'pending' %}<button class="btn btn-success" name="action" value="approve"><i class="fas fa-check"></i>Approve</button>{% endif %}
+            <button class="btn btn-danger" name="action" value="remove" onclick="return confirm('Remove this post from Civic Sense? Customers will no longer see it.')"><i class="fas fa-ban"></i>Remove post</button>
+          {% else %}
+            <button class="btn btn-success" name="action" value="approve"><i class="fas fa-undo"></i>Restore post</button>
+          {% endif %}
+        </div>
+      </form>
+      {% if post.moderated_by %}
+        <hr>
+        <dl class="st-kv mb-0">
+          <dt>Last action</dt><dd>{{ post.moderation_status|default:post.status|capfirst }}</dd>
+          <dt>By</dt><dd>{{ post.moderated_by }}</dd>
+          {% if post.moderated_at %}<dt>When</dt><dd>{{ post.moderated_at|date:"d M Y, h:i A" }}</dd>{% endif %}
+        </dl>
+      {% endif %}
+    </div>
+
+    <div class="st-card st-card-pad">
+      <h3 class="cs-section-title mb-3"><i class="far fa-user"></i>Posted by</h3>
+      <div class="d-flex align-items-center gap-2 mb-3">
+        {% if post.author_photo %}<img class="st-avatar" src="{{ post.author_photo }}" alt="">{% else %}<span class="st-avatar">{{ post.author_name|first|upper }}</span>{% endif %}
+        <strong>{{ author.name|default:post.author_name }}</strong>
+      </div>
+      <dl class="st-kv mb-0">
+        {% if author.email %}<dt>Email</dt><dd>{{ author.email }}</dd>{% endif %}
+        {% if author.phone %}<dt>Phone</dt><dd>{{ author.phone }}</dd>{% endif %}
+        <dt>User ID</dt><dd class="st-mono">{{ post.author_id|default:"-" }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

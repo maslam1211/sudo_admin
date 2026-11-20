@@ -15,35 +15,29 @@
 </div>
 {% endif %}
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div class="col-md-3">
-        {% include 'includes/qr_kind_dropdown.html' %}
+<div class="st-page-head">
+    <div>
+        <h2>Smart Tags</h2>
+        <p>Multipurpose QR tags customers stick on anything. <b>{{ active_count }}</b> active of <b>{{ total_count }}</b>.</p>
     </div>
-    <div class="d-flex gap-2 align-items-center">
-        <a href="{% url 'assign_qr' %}?qr_kind=multipurpose" class="btn btn-primary btn-sm">Assign QR</a>
-        <span class="badge bg-dark">{{ total_count }} total</span>
-        <span class="badge bg-success">{{ active_count }} active</span>
-        <span class="badge bg-secondary">{{ inactive_count }} inactive</span>
-    </div>
+    <a href="{% url 'assign_qr' %}?qr_kind=multipurpose" class="btn btn-primary"><i class="fas fa-link me-2"></i>Assign QR</a>
 </div>
 
-<form class="row g-2 mb-3" method="get">
-    <div class="col-md-5">
-        <input class="form-control" name="search" value="{{ search }}" placeholder="Search ID, owner, mobile, category, or title">
+<div class="st-card st-table-card">
+<form class="st-toolbar" method="get">
+    <div class="st-toolbar-kind">{% include 'includes/qr_kind_dropdown.html' %}</div>
+    <div class="st-search">
+        <i class="fas fa-search"></i>
+        <input class="form-control" name="search" value="{{ search }}" placeholder="Search ID, owner, mobile, category or title">
     </div>
-    <div class="col-md-3">
-        <select class="form-select" name="status">
-            <option value="" {% if not status %}selected{% endif %}>All</option>
-            <option value="assigned" {% if status == 'assigned' %}selected{% endif %}>Active</option>
-            <option value="unassigned" {% if status == 'unassigned' %}selected{% endif %}>Inactive</option>
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary w-100" type="submit">Filter</button>
-    </div>
+    <select class="form-select st-toolbar-select" name="status" onchange="this.form.submit()">
+        <option value="" {% if not status %}selected{% endif %}>All tags ({{ total_count }})</option>
+        <option value="assigned" {% if status == 'assigned' %}selected{% endif %}>Active ({{ active_count }})</option>
+        <option value="unassigned" {% if status == 'unassigned' %}selected{% endif %}>Inactive ({{ inactive_count }})</option>
+    </select>
+    <button class="btn btn-dark" type="submit">Search</button>
 </form>
 
-<div class="card">
     <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle">
             <thead>
@@ -65,7 +59,7 @@
                         <div class="fw-semibold">{{ row.id }}</div>
                         {% if row.title %}<div class="text-muted small">{{ row.title }}</div>{% endif %}
                     </td>
-                    <td><span class="badge text-bg-dark">{{ row.category_label|default:"—" }}</span></td>
+                    <td>{% if row.category_label %}<span class="st-badge is-orange">{{ row.category_label }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                     <td>{{ row.owner|default:"—" }}</td>
                     <td>{{ row.contact|default:"—" }}</td>
                     <td>

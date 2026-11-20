@@ -1,0 +1,13 @@
+{% if items %}
+<div class="an-bars">
+  {% for b in items %}
+  <div class="an-bar{% if b.label == 'Other' or b.label == 'Older / other' %} is-other{% endif %}">
+    <span class="an-bar-label" title="{{ b.label }}">{{ b.label }}</span>
+    <span class="an-bar-track"><span class="an-bar-fill d-block" style="width: {{ b.pct }}%;{% if color %} background: {{ color }};{% endif %}"></span></span>
+    <span class="an-bar-value">{{ b.value }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="an-empty">{{ empty|default:"No data yet." }}</div>
+{% endif %}

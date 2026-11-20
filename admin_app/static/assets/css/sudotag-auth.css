@@ -1,0 +1,105 @@
+/*
+ * SudoTag theme for the standalone admin entry screens:
+ * verify_auth_pin, admin_access_menu, login, register_admin.
+ * Loaded after each page's own <style>, so it wins without touching markup or scripts.
+ */
+:root {
+  --st-orange: #FF7A1A;
+  --st-orange-hi: #FFA25C;
+  --st-orange-deep: #E5640A;
+  --st-orange-soft: rgba(255, 122, 26, 0.12);
+  --st-void: #07080B;
+  --st-panel: #0E1117;
+  --st-line-dark: #1F2633;
+  --st-ink: #0B0D12;
+  --st-ink-2: #3A4150;
+  --st-muted: #6B7385;
+  --st-line: #E6E8EC;
+  --st-font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --st-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --st-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body {
+  font-family: var(--st-font-body) !important;
+  color: var(--st-ink);
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(255, 122, 26, 0.22), transparent 60%),
+    radial-gradient(700px 500px at -10% 110%, rgba(61, 123, 255, 0.12), transparent 60%),
+    var(--st-void) !important;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+}
+
+.login-card, .pin-card, .register-card, .menu-card {
+  position: relative;
+  background: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px !important;
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 122, 26, 0.08) !important;
+  overflow: hidden;
+}
+.login-card::before, .pin-card::before, .register-card::before, .menu-card::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: linear-gradient(120deg, #FF7A1A 0%, #FFB547 100%);
+}
+
+.login-card h1, .login-card h2, .login-card h3, .pin-title, .otp-title,
+.register-card h1, .register-card h2, .menu-card h1, .menu-card h2 {
+  font-family: var(--st-font-display) !important;
+  letter-spacing: -0.01em;
+  color: var(--st-ink) !important;
+}
+.brand-tagline, .pin-subtitle, .otp-subtitle, .menu-lead, .hint { color: var(--st-muted) !important; }
+
+.form-label { color: var(--st-ink-2) !important; font-weight: 600 !important; font-size: 0.85rem !important; }
+.form-control, .pin-input, .otp-digit {
+  border: 1.5px solid #D5D9E0 !important;
+  border-radius: 12px !important;
+  color: var(--st-ink);
+}
+.form-control:focus, .pin-input:focus, .otp-digit:focus {
+  border-color: var(--st-orange) !important;
+  box-shadow: 0 0 0 3px var(--st-orange-soft) !important;
+  outline: none;
+}
+.pin-input, .otp-digit { font-family: var(--st-font-mono) !important; font-weight: 700 !important; }
+.input-group-icon i { color: var(--st-muted) !important; }
+
+.login-btn, .pin-submit-btn, .register-btn, .btn-login {
+  background: var(--st-orange) !important;
+  color: var(--st-void) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 24px -10px rgba(255, 122, 26, 0.6) !important;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+.login-btn:hover, .pin-submit-btn:hover, .register-btn:hover, .btn-login:hover {
+  background: var(--st-orange-hi) !important;
+  color: var(--st-void) !important;
+  transform: translateY(-1px);
+}
+.login-btn:disabled, .pin-submit-btn:disabled, .register-btn:disabled { opacity: 0.55; transform: none; box-shadow: none !important; }
+.btn-register {
+  background: #fff !important;
+  color: var(--st-ink) !important;
+  border: 1.5px solid #D5D9E0 !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+}
+.btn-register:hover { border-color: var(--st-ink) !important; background: #F9FAFB !important; }
+
+.register-link a, .login-link a, .back-link a, .auth-options a { color: var(--st-orange-deep) !important; font-weight: 600; }
+.register-link a:hover, .login-link a:hover, .back-link a:hover, .auth-options a:hover { color: var(--st-orange) !important; }
+.otp-phone { font-family: var(--st-font-mono) !important; color: var(--st-ink) !important; letter-spacing: 0.06em; }
+.otp-status.info { color: #2558CC !important; }
+.error-message { border-radius: 12px !important; }
+.success-message { border-radius: 12px !important; }

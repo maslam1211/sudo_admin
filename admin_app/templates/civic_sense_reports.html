@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Civic Sense Reports - SudoTag Admin{% endblock %}
+{% block page_title %}Civic Sense Reports{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cs-list { display: flex; flex-direction: column; }
+  .cs-row { display: grid; grid-template-columns: 72px 1fr auto; gap: 1rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--st-line); text-decoration: none; color: inherit; transition: background .15s ease; }
+  .cs-row:last-child { border-bottom: 0; }
+  .cs-row:hover { background: #FFF8F2; color: inherit; }
+  .cs-thumb { width: 72px; height: 72px; border-radius: 12px; object-fit: cover; background: var(--st-surface-2); border: 1px solid var(--st-line); display: grid; place-items: center; color: var(--st-line-hi); font-size: 1.4rem; }
+  .cs-title { font-family: var(--st-font-display); font-weight: 600; font-size: 1rem; color: var(--st-ink); margin: 0 0 .15rem; }
+  .cs-text { color: var(--st-ink-2); font-size: .86rem; margin: 0 0 .45rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .cs-meta { display: flex; flex-wrap: wrap; gap: .4rem .9rem; color: var(--st-muted); font-size: .78rem; align-items: center; }
+  .cs-meta i { margin-right: .25rem; }
+  .cs-side { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
+  .cs-flag { font-family: var(--st-font-mono); font-weight: 700; font-size: .8rem; color: #C02536; background: var(--st-alert-soft); border-radius: 999px; padding: .25rem .65rem; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .cs-row { grid-template-columns: 56px 1fr; }
+    .cs-thumb { width: 56px; height: 56px; }
+    .cs-side { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="st-page-head">
+  <div>
+    <div class="st-eyebrow">Community moderation</div>
+    <h2>Posts customers flagged in Civic Sense</h2>
+    <p>Open a post to see who reported it and why, then keep it, remove it, or dismiss the reports.</p>
+  </div>
+</div>
+
+{% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="st-stats">
+  <div class="st-stat is-accent"><div class="st-stat-label"><i class="fas fa-flag"></i>Open reports</div><div class="st-stat-value">{{ counts.reported }}</div></div>
+  <div class="st-stat"><div class="st-stat-label"><i class="fas fa-hourglass-half"></i>Pending review</div><div class="st-stat-value">{{ counts.pending }}</div></div>
+  <div class="st-stat"><div class="st-stat-label"><i class="fas fa-check"></i>Live</div><div class="st-stat-value">{{ counts.live }}</div></div>
+  <div class="st-stat"><div class="st-stat-label"><i class="fas fa-ban"></i>Removed</div><div class="st-stat-value">{{ counts.removed }}</div></div>
+</div>
+
+<div class="st-card">
+  <form class="st-toolbar" method="get">
+    <div class="st-filter-chips">
+      {% for key, label, icon in filters %}
+        <a href="?state={{ key }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="st-chip {% if state == key %}active{% endif %}">
+          <i class="fas {{ icon }}"></i>{{ label }}
+          <span class="count">{% if key == 'reported' %}{{ counts.reported }}{% elif key == 'pending' %}{{ counts.pending }}{% elif key == 'live' %}{{ counts.live }}{% elif key == 'removed' %}{{ counts.removed }}{% else %}{{ counts.all }}{% endif %}</span>
+        </a>
+      {% endfor %}
+    </div>
+    <input type="hidden" name="state" value="{{ state }}">
+    <div class="st-search ms-auto">
+      <i class="fas fa-search"></i>
+      <input type="search" class="form-control form-control-sm" name="q" value="{{ query }}" placeholder="Search title, text, author, tag">
+    </div>
+  </form>
+
+  {% if posts %}
+  <div class="cs-list">
+    {% for post in posts %}
+      <a class="cs-row" href="{% url 'civic_sense_post' post.id %}?from={{ state }}">
+        {% if post.images %}
+          <img class="cs-thumb" src="{{ post.images.0 }}" alt="" loading="lazy">
+        {% else %}
+          <div class="cs-thumb"><i class="fas fa-city"></i></div>
+        {% endif %}
+        <div style="min-width:0">
+          <p class="cs-title">{{ post.title|default:"Untitled post" }}</p>
+          <p class="cs-text">{{ post.text|default:"No description." }}</p>
+          <div class="cs-meta">
+            <span><i class="far fa-user"></i>{{ post.author_name }}</span>
+            <span><i class="fas fa-tag"></i>{{ post.category }}</span>
+            <span><i class="far fa-heart"></i>{{ post.likes }}</span>
+            <span><i class="far fa-comment"></i>{{ post.comments }}</span>
+            {% if post.created_at %}<span><i class="far fa-clock"></i>{{ post.created_at|date:"d M Y, h:i A" }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="cs-side">
+          {% if post.reports %}<span class="cs-flag"><i class="fas fa-flag me-1"></i>{{ post.reports }} report{{ post.reports|pluralize }}</span>{% endif %}
+          {% if post.state == 'removed' %}<span class="st-badge is-alert">Removed</span>
+          {% elif post.state == 'reported' %}<span class="st-badge is-orange">Needs review</span>
+          {% elif post.state == 'pending' %}<span class="st-badge is-amber">Pending</span>
+          {% else %}<span class="st-badge is-safe">Live</span>{% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="st-empty">
+      <i class="fas {% if state == 'reported' %}fa-shield-alt{% else %}fa-city{% endif %}"></i>
+      <h3>{% if query %}No posts match “{{ query }}”{% elif state == 'reported' %}No open reports{% else %}Nothing here yet{% endif %}</h3>
+      <p class="mb-0">{% if state == 'reported' and not query %}When a customer reports a Civic Sense post, it shows up here.{% else %}Try another filter.{% endif %}</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

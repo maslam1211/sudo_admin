@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+{% block title %}Analytics - SudoTag Admin{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block content %}
+{% with s=stats %}
+<div class="st-page-head">
+  <div>
+    <div class="st-eyebrow">Analytics</div>
+    <h2>How SudoTag is growing</h2>
+    <p>
+      {% if range_key == 'all' %}All time{% else %}Last {{ s.range_days }} days{% endif %}, grouped by {{ s.unit }}.
+      {% if loaded_at %}Data from {{ loaded_at|date:"g:i A" }} (refreshes every 5 minutes).{% endif %}
+    </p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <nav class="st-seg" aria-label="Date range">
+      {% for key, label in ranges %}
+      <a href="?range={{ key }}" class="{% if key == range_key %}active{% endif %}" {% if key == range_key %}aria-current="page"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <a href="?range={{ range_key }}&refresh=1" class="btn btn-sm btn-outline-secondary"><i class="fas fa-sync-alt me-1"></i>Refresh</a>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>{{ error }}</div>{% endif %}
+
+<!-- KPI tiles -->
+<div class="an-kpis">
+  {% for k in s.kpis %}
+  <a class="an-kpi" href="{{ k.url }}">
+    <span class="an-kpi-label"><i class="fas {{ k.icon }}"></i>{{ k.label }}</span>
+    <span class="an-kpi-value">{% if k.money %}₹{{ k.value|floatformat:0|intcomma }}{% else %}{{ k.value|intcomma }}{% endif %}</span>
+    {% if k.delta is not None %}
+      <span class="an-delta {% if k.delta > 0 %}is-up{% elif k.delta < 0 %}is-down{% else %}is-flat{% endif %}">
+        <b>{% if k.delta > 0 %}▲ {{ k.delta }}%{% elif k.delta < 0 %}▼ {{ k.delta|stringformat:"d"|slice:"1:" }}%{% else %}No change{% endif %}</b>
+        <span title="Compared with the {{ s.range_days }} days before">vs before</span>
+      </span>
+    {% elif range_key == 'all' %}
+      <span class="an-delta">All time</span>
+    {% else %}
+      <span class="an-delta">No earlier data</span>
+    {% endif %}
+    <svg class="an-spark" data-spark="{{ forloop.counter0 }}" aria-hidden="true"></svg>
+  </a>
+  {% endfor %}
+</div>
+
+{% include 'partials/an_takeaways.html' %}
+
+<div class="an-tabs" role="tablist" aria-label="Analytics sections">
+  <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true">Overview</button>
+  <button type="button" role="tab" id="tab-customers" aria-controls="panel-customers" aria-selected="false" tabindex="-1">Customers</button>
+  <button type="button" role="tab" id="tab-qr" aria-controls="panel-qr" aria-selected="false" tabindex="-1">QR &amp; Vehicles</button>
+  <button type="button" role="tab" id="tab-revenue" aria-controls="panel-revenue" aria-selected="false" tabindex="-1">Revenue</button>
+  <button type="button" role="tab" id="tab-community" aria-controls="panel-community" aria-selected="false" tabindex="-1">Community</button>
+</div>
+
+<div class="an-panel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+<div class="an-grid">
+<section class="an-card">
+    <div class="an-card-head">
+      <div><h3>Growth</h3><p>Per {{ s.unit }}. The darkest bar is the busiest.</p></div>
+      <button type="button" class="an-toggle" data-view-toggle="growth" aria-pressed="false">Table</button>
+    </div>
+    <div data-view="growth-chart">
+      <div class="an-chart-top">
+        <div class="an-summary" id="growth-summary" aria-live="polite"></div>
+        <div class="st-seg an-seg-sm" id="growth-switch" aria-label="Choose what to show"></div>
+      </div>
+      <div class="an-chart"><canvas id="growth-chart" role="img" aria-label="Bar chart of growth over time"></canvas></div>
+    </div>
+    <div data-view="growth-table" hidden>
+      <div class="an-table-wrap">
+        <table class="table table-sm">
+          <thead><tr><th>{{ s.unit|capfirst }}</th>{% for ser in s.growth.series %}<th class="text-end">{{ ser.label }}</th>{% endfor %}</tr></thead>
+          <tbody id="growth-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  
+    {% include 'partials/an_insight.html' with n=notes.growth %}
+  </section>
+</div>
+<div class="an-grid cols-2">
+<section class="an-card">
+    <div class="an-card-head">
+      <div><h3>Customer base</h3><p>Everyone who has an account, counted day by day. A steeper slope means faster growth.</p></div>
+      {% with last=s.cumulative.data|last %}<span class="st-badge is-orange">{{ last|default:0|intcomma }} now</span>{% endwith %}
+    </div>
+    <div class="an-chart is-sm"><canvas id="base-chart" role="img" aria-label="Area chart of total customers over time"></canvas></div>
+  
+    {% include 'partials/an_insight.html' with n=notes.base %}
+  </section>
+<section class="an-card">
+    <div class="an-card-head"><div><h3>Customer journey</h3><p>How far customers get after signing up. {{ s.profile.value }} ({{ s.profile.pct }}%) have also completed their profile.</p></div></div>
+    <div class="an-funnel">
+      {% for step in s.funnel %}
+      <div class="an-step">
+        <div class="an-step-top"><span>{{ step.label }}</span><b>{{ step.value|intcomma }}<small>{{ step.pct }}%</small></b></div>
+        <div class="an-step-bar"><div style="width: {{ step.pct }}%"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+
+  
+    {% include 'partials/an_insight.html' with n=notes.funnel %}
+  </section>
+</div>
+</div>
+
+<div class="an-panel" role="tabpanel" id="panel-customers" aria-labelledby="tab-customers" hidden>
+<div class="an-grid cols-2">
+<section class="an-card">
+    <div class="an-card-head">
+      <div><h3>When people sign up</h3><p>Darker squares mean more sign-ups at that day and time (IST). Use it to time pushes and ads.</p></div>
+    </div>
+    {% if s.heatmap.total %}
+    <div class="an-heat" role="table" aria-label="Sign-ups by weekday and time">
+      <div role="row" style="display: contents;">
+        <span></span>{% for c in s.heatmap.cols %}<span class="hd" role="columnheader">{{ c }}</span>{% endfor %}
+      </div>
+      {% for row in s.heatmap.grid %}
+      <div role="row" style="display: contents;">
+        <span class="rl" role="rowheader">{{ row.day }}</span>
+        {% for c in row.cells %}<span class="cell l{{ c.level }}" role="cell" title="{{ row.day }} {{ c.hour }}: {{ c.value }} sign-up{{ c.value|pluralize }}" aria-label="{{ row.day }} {{ c.hour }}: {{ c.value }}"></span>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="an-heat-scale">Fewer <i style="background: var(--heat-0)"></i><i style="background: var(--heat-1)"></i><i style="background: var(--heat-2)"></i><i style="background: var(--heat-3)"></i><i style="background: var(--heat-4)"></i><i style="background: var(--heat-5)"></i> More</div>
+    {% else %}
+    <div class="an-empty">No sign-ups in this range.</div>
+    {% endif %}
+  
+    {% include 'partials/an_insight.html' with n=notes.heat %}
+  </section>
+<section class="an-card">
+    <div class="an-card-head"><div><h3>Active customers</h3><p>Opened the app recently, out of {{ s.engagement.total|intcomma }}.</p></div></div>
+    <div class="an-bars">
+      {% for r in s.engagement.rows %}
+      <div class="an-bar"><span class="an-bar-label">{{ r.label }}</span><span class="an-bar-track"><span class="an-bar-fill d-block" style="width: {{ r.pct }}%"></span></span><span class="an-bar-value">{{ r.value }} <small class="text-muted fw-normal">{{ r.pct }}%</small></span></div>
+      {% endfor %}
+    </div>
+    <div class="an-sub">App platform</div>
+    {% if s.platforms %}
+    <div class="an-bars">{% for b in s.platforms %}<div class="an-bar"><span class="an-bar-label">{{ b.label }}</span><span class="an-bar-track"><span class="an-bar-fill d-block" style="width: {{ b.pct }}%; background: var(--viz-2)"></span></span><span class="an-bar-value">{{ b.value }}</span></div>{% endfor %}</div>
+    {% else %}<div class="an-empty">No platform data yet.</div>{% endif %}
+    <div class="an-sub">App version</div>
+    {% if s.versions %}
+    <div class="an-bars">{% for b in s.versions %}<div class="an-bar"><span class="an-bar-label st-mono">{{ b.label }}</span><span class="an-bar-track"><span class="an-bar-fill d-block" style="width: {{ b.pct }}%; background: var(--viz-2)"></span></span><span class="an-bar-value">{{ b.value }}</span></div>{% endfor %}</div>
+    {% else %}<div class="an-empty">No version data yet.</div>{% endif %}
+    {% if s.no_app %}<div class="an-card-foot">{{ s.no_app }} customer{{ s.no_app|pluralize }} haven't reported a platform or version yet. Older app builds don't send it.</div>{% endif %}
+  
+    {% include 'partials/an_insight.html' with n=notes.engagement %}
+    {% include 'partials/an_insight.html' with n=notes.versions %}
+  </section>
+</div>
+<div class="an-grid cols-2">
+<section class="an-card">
+    <div class="an-card-head"><div><h3>Top cities</h3><p>Where customers live, from their profile.</p></div></div>
+    {% include 'partials/an_bars.html' with items=s.cities empty='No city data yet.' %}
+  
+    {% include 'partials/an_insight.html' with n=notes.cities %}
+  </section>
+</div>
+</div>
+
+<div class="an-panel" role="tabpanel" id="panel-qr" aria-labelledby="tab-qr" hidden>
+<div class="an-grid">
+<section class="an-card an-hero">
+    <div class="an-card-head">
+      <div><h3>QR sticker stock</h3><p>How many printed vehicle QRs are in use, and how long they wait first.</p></div>
+      <a href="{% url 'manage_qrs' %}" class="btn btn-sm btn-primary">Manage QRs</a>
+    </div>
+    <div class="row g-4 position-relative" style="z-index: 1;">
+      <div class="col-md-6">
+        <div class="an-hero-num">{{ s.qr.rate }}%<small>activated</small></div>
+        <div class="an-meter"><div style="width: {{ s.qr.rate }}%"></div></div>
+        <div class="small" style="color: #8C95A8;">{{ s.qr.assigned|intcomma }} of {{ s.qr.total|intcomma }} printed stickers are linked to a vehicle.</div>
+        <div class="an-hero-stats">
+          <div><span>In stock</span><b>{{ s.qr.unassigned|intcomma }}</b></div>
+          <div><span>Activated</span><b>{{ s.qr.assigned|intcomma }}</b></div>
+          <div><span>Median wait</span><b>{% if s.qr.median_wait is not None %}{{ s.qr.median_wait }}d{% else %}–{% endif %}</b></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="an-sub" style="color: #8C95A8; margin-top: 0;">Print to activation</div>
+        {% if s.qr.dated %}
+        <div class="an-bars">
+          {% for b in s.qr.wait_bins %}
+          <div class="an-bar"><span class="an-bar-label">{{ b.label }}</span><span class="an-bar-track"><span class="an-bar-fill d-block" style="width: {{ b.pct }}%"></span></span><span class="an-bar-value">{{ b.value }}</span></div>
+          {% endfor %}
+        </div>
+        <div class="an-card-foot">Based on {{ s.qr.dated }} activation{{ s.qr.dated|pluralize }} with both dates.</div>
+        {% else %}
+        <div class="an-empty" style="border-color: #1F2633;">No activations with dates yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  
+    {% include 'partials/an_insight.html' with n=notes.qr %}
+  </section>
+</div>
+<div class="an-grid cols-2">
+<section class="an-card">
+    <div class="an-card-head"><div><h3>Vehicle types</h3><p>{{ s.vehicles_total|intcomma }} vehicles{% if s.lost_mode %} · {{ s.lost_mode }} in lost mode{% endif %}</p></div></div>
+    {% include 'partials/an_bars.html' with items=s.vehicle_types empty='No vehicles yet.' %}
+  
+    {% include 'partials/an_insight.html' with n=notes.vehicles %}
+    {% include 'partials/an_insight.html' with n=notes.lost %}
+  </section>
+<section class="an-card">
+    <div class="an-card-head"><div><h3>Top makes</h3><p>Most common vehicle brands.</p></div></div>
+    {% include 'partials/an_bars.html' with items=s.makes empty='No vehicle makes yet.' %}
+  
+  </section>
+</div>
+</div>
+
+<div class="an-panel" role="tabpanel" id="panel-revenue" aria-labelledby="tab-revenue" hidden>
+<div class="an-grid main-side">
+<section class="an-card">
+    <div class="an-card-head">
+      <div><h3>Revenue</h3><p>Paid order value per {{ s.unit }}.</p></div>
+      <button type="button" class="an-toggle" data-view-toggle="revenue" aria-pressed="false">Table</button>
+    </div>
+    <div class="an-minis">
+      <div class="an-mini"><span>All-time revenue</span><b>₹{{ s.revenue.total|floatformat:0|intcomma }}</b></div>
+      <div class="an-mini"><span>Orders</span><b>{{ s.revenue.count|intcomma }}</b></div>
+      <div class="an-mini"><span>Paid</span><b>{{ s.revenue.paid|intcomma }}</b></div>
+      <div class="an-mini"><span>Avg. paid order</span><b>₹{{ s.revenue.aov|intcomma }}</b></div>
+    </div>
+    <div data-view="revenue-chart"><div class="an-chart is-sm"><canvas id="revenue-chart" role="img" aria-label="Bar chart of revenue over time"></canvas></div></div>
+    <div data-view="revenue-table" hidden>
+      <div class="an-table-wrap">
+        <table class="table table-sm"><thead><tr><th>{{ s.unit|capfirst }}</th><th class="text-end">Orders</th><th class="text-end">Revenue</th></tr></thead><tbody id="revenue-tbody"></tbody></table>
+      </div>
+    </div>
+  
+    {% include 'partials/an_insight.html' with n=notes.revenue %}
+  </section>
+<section class="an-card">
+    <div class="an-card-head"><div><h3>Orders</h3><p>All orders by status and where they came from.</p></div><a href="{% url 'view_orders' %}" class="an-toggle">View</a></div>
+    <div class="an-sub" style="margin-top: 0;">Status</div>
+    {% include 'partials/an_bars.html' with items=s.revenue.status empty='No orders yet.' %}
+    <div class="an-sub">Channel</div>
+    {% include 'partials/an_bars.html' with items=s.revenue.channels empty='No orders yet.' color='var(--viz-2)' %}
+  
+    {% include 'partials/an_insight.html' with n=notes.channels %}
+  </section>
+</div>
+</div>
+
+<div class="an-panel" role="tabpanel" id="panel-community" aria-labelledby="tab-community" hidden>
+<div class="an-grid cols-2">
+<section class="an-card">
+    <div class="an-card-head">
+      <div><h3>Civic Sense</h3><p>Community posts and moderation.</p></div>
+      <a href="{% url 'civic_sense_reports' %}" class="an-toggle">Reports</a>
+    </div>
+    <div class="an-minis">
+      <div class="an-mini"><span>Posts</span><b>{{ s.civic.total|intcomma }}</b></div>
+      {% for b in s.civic.states %}<div class="an-mini"><span>{{ b.label }}</span><b>{{ b.value }}</b></div>{% endfor %}
+    </div>
+    <div class="an-chart is-sm" style="height: 140px;"><canvas id="civic-chart" role="img" aria-label="Line chart of Civic Sense posts over time"></canvas></div>
+    <div class="an-sub">Categories</div>
+    {% include 'partials/an_bars.html' with items=s.civic.categories empty='No posts yet.' %}
+  
+    {% include 'partials/an_insight.html' with n=notes.civic %}
+  </section>
+<section class="an-card">
+    <div class="an-card-head">
+      <div><h3>Smart Tags</h3><p>Multipurpose QR tags.</p></div>
+      <a href="{% url 'manage_multipurpose_qrs' %}" class="an-toggle">Manage</a>
+    </div>
+    <div class="an-minis">
+      <div class="an-mini"><span>Tags</span><b>{{ s.smart.total|intcomma }}</b></div>
+      <div class="an-mini"><span>Active</span><b>{{ s.smart.assigned|intcomma }}</b></div>
+      <div class="an-mini"><span>Total scans</span><b>{{ s.smart.scans|intcomma }}</b></div>
+    </div>
+    <div class="an-sub">Categories</div>
+    {% include 'partials/an_bars.html' with items=s.smart.categories empty='No categories set yet.' %}
+  
+    {% include 'partials/an_insight.html' with n=notes.smart %}
+  </section>
+</div>
+</div>
+{% endwith %}
+
+{{ stats.kpis|json_script:"an-kpis" }}
+{{ stats.growth|json_script:"an-growth" }}
+{{ stats.cumulative|json_script:"an-base" }}
+{{ stats.revenue.labels|json_script:"an-rev-labels" }}
+{{ stats.revenue.amounts|json_script:"an-rev-amounts" }}
+{{ stats.revenue.orders|json_script:"an-rev-orders" }}
+{{ stats.civic.series|json_script:"an-civic" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'assets/js/sudotag-charts.js' %}"></script>
+<script>
+(function () {
+  function data(id) { var el = document.getElementById(id); return el ? JSON.parse(el.textContent) : null; }
+  var C = STCharts.colors;
+  var growth = data('an-growth'), base = data('an-base');
+  var revLabels = data('an-rev-labels'), revAmounts = data('an-rev-amounts'), revOrders = data('an-rev-orders');
+
+  // Sparklines: each KPI's own series, in the brand orange.
+  var kpis = data('an-kpis');
+  document.querySelectorAll('[data-spark]').forEach(function (svg) {
+    STCharts.spark(svg, kpis[+svg.getAttribute('data-spark')].spark, C.series[0]);
+  });
+
+  STCharts.metricBars(document.getElementById('growth-chart'), {
+    labels: growth.labels, series: growth.series,
+    switchEl: document.getElementById('growth-switch'), summaryEl: document.getElementById('growth-summary')
+  });
+  var tb = document.getElementById('growth-tbody');
+  tb.innerHTML = growth.labels.map(function (l, i) {
+    return '<tr><td>' + l + '</td>' + growth.series.map(function (s) { return '<td class="text-end">' + s.data[i] + '</td>'; }).join('') + '</tr>';
+  }).reverse().join('');
+
+  STCharts.line(document.getElementById('base-chart'), {
+    labels: base.labels, series: [{ label: 'Customers', data: base.data }], fill: true, zero: false, smooth: true
+  });
+
+  STCharts.bars(document.getElementById('revenue-chart'), { labels: revLabels, label: 'Revenue', data: revAmounts, money: true });
+  document.getElementById('revenue-tbody').innerHTML = revLabels.map(function (l, i) {
+    return '<tr><td>' + l + '</td><td class="text-end">' + revOrders[i] + '</td><td class="text-end">' + STCharts.fmt(revAmounts[i], true) + '</td></tr>';
+  }).reverse().join('');
+
+  // Tabs (remembered per browser, arrow keys move between them).
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.an-tabs [role="tab"]'));
+  function show(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    if (focus) tab.focus();
+    try { localStorage.setItem('st-analytics-tab', tab.id); } catch (e) {}
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') show(tabs[(i + 1) % tabs.length], true);
+      if (e.key === 'ArrowLeft') show(tabs[(i - 1 + tabs.length) % tabs.length], true);
+    });
+  });
+  try { var saved = document.getElementById(localStorage.getItem('st-analytics-tab')); if (saved) show(saved); } catch (e) {}
+
+  STCharts.bars(document.getElementById('civic-chart'), { labels: growth.labels, label: 'Posts', data: data('an-civic'), maxTicks: 6 });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% if n %}
+<details class="an-insight tone-{{ n.tone }}">
+  <summary>
+    <span class="ic"><i class="fas {{ n.icon }}"></i></span>
+    <span class="h">{{ n.headline }}</span>
+    {% if n.detail %}<span class="more">More</span>{% endif %}
+  </summary>
+  {% if n.detail or n.action %}
+  <div class="body">
+    {{ n.detail }}
+    {% if n.action and n.url %}<a href="{{ n.url }}">{{ n.action }} <i class="fas fa-arrow-right ms-1"></i></a>{% endif %}
+  </div>
+  {% endif %}
+</details>
+{% endif %}

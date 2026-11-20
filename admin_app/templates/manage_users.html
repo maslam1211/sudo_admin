@@ -61,12 +61,12 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
     .btn-icon-edit {
-        background: #3b82f6;
-        color: #fff;
+        background: var(--st-orange);
+        color: var(--st-void);
     }
     .btn-icon-edit:hover {
-        background: #2563eb;
-        color: #fff;
+        background: var(--st-orange-hi);
+        color: var(--st-void);
     }
     .btn-icon-delete {
         background: #ef4444;
@@ -123,6 +123,35 @@
     </div>
     {% endif %}
     
+<div class="st-page-head">
+    <div>
+        <h2>Customers</h2>
+        <p>{{ total_users }} customers. Search by name, email, phone or city, then export what you see.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="?{{ qs }}export=csv"><i class="fas fa-file-download me-2"></i>Export CSV</a>
+</div>
+<div class="st-card st-filterbar mb-3">
+<form class="st-toolbar" method="get">
+    <div class="st-search">
+        <i class="fas fa-search"></i>
+        <input class="form-control" name="q" value="{{ q }}" placeholder="Search name, email, phone, city or user ID" autofocus>
+    </div>
+    <select class="form-select st-toolbar-select" name="sort" onchange="this.form.submit()" aria-label="Sort">
+        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
+        <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+        <option value="name" {% if sort == 'name' %}selected{% endif %}>Name A–Z</option>
+    </select>
+    <select class="form-select st-toolbar-select" name="per" onchange="this.form.submit()" aria-label="Rows per page">
+                <option value="20" {% if per == 20 %}selected{% endif %}>20 per page</option>
+        <option value="50" {% if per == 50 %}selected{% endif %}>50 per page</option>
+        <option value="100" {% if per == 100 %}selected{% endif %}>100 per page</option>
+    </select>
+    <button class="btn btn-dark" type="submit">Search</button>
+    {% if q %}<a class="btn btn-link" href="?">Clear</a>{% endif %}
+</form>
+</div>
+{% if q and not users.object_list %}<div class="st-card st-empty mb-3"><i class="fas fa-search"></i><h3>No customer matches “{{ q }}”</h3>Try part of the name, the last 4 digits of the phone, or the city.</div>{% endif %}
+
     <form method="POST">
         {% csrf_token %}
         <div class="users-table-wrapper">
@@ -227,12 +256,12 @@
         <ul class="pagination justify-content-center">
             {% if users.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1" aria-label="First">
+                    <a class="page-link" href="?{{ qs }}page=1" aria-label="First">
                         <span aria-hidden="true">&laquo;&laquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ users.previous_page_number }}" aria-label="Previous">
+                    <a class="page-link" href="?{{ qs }}page={{ users.previous_page_number }}" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
@@ -252,19 +281,19 @@
                     </li>
                 {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?{{ qs }}page={{ num }}">{{ num }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
 
             {% if users.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ users.next_page_number }}" aria-label="Next">
+                    <a class="page-link" href="?{{ qs }}page={{ users.next_page_number }}" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ users.paginator.num_pages }}" aria-label="Last">
+                    <a class="page-link" href="?{{ qs }}page={{ users.paginator.num_pages }}" aria-label="Last">
                         <span aria-hidden="true">&raquo;&raquo;</span>
                     </a>
                 </li>

@@ -1,276 +1,300 @@
 {% extends 'base.html' %}
-{% load humanize %}
-{% load custom_filters %}
-{% block title %}Admin Dashboard{% endblock %}
+{% load static humanize custom_filters %}
+{% block title %}Dashboard - SudoTag Admin{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
-{% block content %}
-<!-- Main Stats Cards -->
-<div class="row g-4 mb-4">
-    <!-- Total Users -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card stat-card primary h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Total Users</div>
-                        <div class="h3 mb-0 fw-bold">{{ total_users }}</div>
-                        <a href="{% url 'manage_users' %}" class="text-decoration-none small text-primary mt-2 d-inline-block">
-                            View Details <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    <div class="stat-icon primary">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Orders -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card stat-card success h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Total Orders</div>
-                        <div class="h3 mb-0 fw-bold">{{ total_orders }}</div>
-                        <a href="{% url 'view_orders' %}" class="text-decoration-none small text-success mt-2 d-inline-block">
-                            View Details <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    <div class="stat-icon success">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Earnings -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card stat-card info h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Total Earnings</div>
-                        <div class="h3 mb-0 fw-bold">₹{{ total_earnings|intcomma }}</div>
-                        <a href="{% url 'view_orders' %}" class="text-decoration-none small text-info mt-2 d-inline-block">
-                            View Details <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    <div class="stat-icon info">
-                        <i class="fas fa-rupee-sign"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Vehicle QR -->
-    <div class="col-xl-3 col-md-6">
-        <div class="card stat-card warning h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Vehicle QR</div>
-                        <div class="h3 mb-0 fw-bold">{{ total_qr }}</div>
-                        <div class="small text-muted mt-1">
-                            <span class="text-success">{{ active_qr }} Active</span> /
-                            <span class="text-muted">{{ inactive_qr }} Inactive</span>
-                        </div>
-                        <a href="{% url 'manage_qrs' %}" class="text-decoration-none small text-warning mt-2 d-inline-block">
-                            View Details <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    <div class="stat-icon warning">
-                        <i class="fas fa-car"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-4">
-    <div class="col-xl-3 col-md-6">
-        <div class="card stat-card warning h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Smart Tag</div>
-                        <div class="h3 mb-0 fw-bold">{{ mp_total|default:0 }}</div>
-                        <div class="small text-muted mt-1">
-                            <span class="text-success">{{ mp_active|default:0 }} Active</span> /
-                            <span class="text-muted">{{ mp_inactive|default:0 }} Inactive</span>
-                        </div>
-                        <a href="{% url 'manage_multipurpose_qrs' %}" class="text-decoration-none small text-warning mt-2 d-inline-block">
-                            View Details <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    <div class="stat-icon warning">
-                        <i class="fas fa-qrcode"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card stat-card primary h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Active fleets</div>
-                        <div class="h3 mb-0 fw-bold">{{ active_fleets|default:0 }}</div>
-                        <a href="{% url 'manage_fleets' %}?status=active" class="text-decoration-none small text-primary mt-2 d-inline-block">
-                            SudoTag Fleet <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    <div class="stat-icon primary">
-                        <i class="fas fa-truck"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Today's Stats -->
-<div class="row g-4 mb-4">
-    <!-- Today's Orders -->
-    <div class="col-xl-4 col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Today's Orders</div>
-                        <div class="h4 mb-0 fw-bold text-primary">{{ today_orders }}</div>
-                    </div>
-                    <div class="stat-icon primary">
-                        <i class="fas fa-calendar-day"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Today's Earnings -->
-    <div class="col-xl-4 col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Today's Earnings</div>
-                        <div class="h4 mb-0 fw-bold text-success">₹{{ today_earnings|intcomma }}</div>
-                    </div>
-                    <div class="stat-icon success">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Last 7 Days Orders -->
-    <div class="col-xl-4 col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-muted small mb-1">Last 7 Days Orders</div>
-                        <div class="h4 mb-0 fw-bold text-info">{{ week_orders }}</div>
-                    </div>
-                    <div class="stat-icon info">
-                        <i class="fas fa-calendar-week"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Orders Table -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold">Recent Orders</h5>
-                <a href="{% url 'view_orders' %}" class="btn btn-sm btn-primary">
-                    View All <i class="fas fa-arrow-right ms-1"></i>
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Source</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in all_orders|slice:":10" %}
-                            <tr>
-                                <td>
-                                    <span class="font-monospace small" style="word-break: break-all;">{{ order.id }}</span>
-                                </td>
-                                <td>{{ order.fullName|default:"N/A" }}</td>
-                                <td>
-                                    {% if order.source == "website" or order.placedVia == "Website" or order.channel == "web" %}
-                                    <span class="badge" style="background:#e58147;color:#fff;">
-                                        <i class="fas fa-globe me-1"></i>Website
-                                    </span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-mobile-alt me-1"></i>App
-                                    </span>
-                                    {% endif %}
-                                </td>
-                                <td class="fw-bold">₹{{ order.amount|default:0 }}</td>
-                                <td>
-                                    <span class="badge rounded-pill 
-                                        {% if order.orderStatus == 3 %}bg-success
-                                        {% elif order.orderStatus == 0 %}bg-secondary
-                                        {% elif order.orderStatus == 4 %}bg-danger
-                                        {% else %}bg-info{% endif %}">
-                                        {{ STATUS_MAPPING|get_item:order.orderStatus|default:"Unknown" }}
-                                    </span>
-                                </td>
-                                <td class="text-muted small">
-                                    {% if order.timestamp %}
-                                        {{ order.timestamp|to_ist|date:"M d, Y" }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">
-                                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
-                                    No orders found
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
+{% block extra_head %}
 <style>
-    .font-monospace {
-        font-family: 'Courier New', monospace;
-        background: #f1f5f9;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.875rem;
-    }
+  .db-hero { position: relative; overflow: hidden; border-radius: var(--st-r-lg); padding: 2rem 2.25rem; margin-bottom: 1.75rem;
+    background: radial-gradient(520px 300px at 92% 50%, rgba(255,122,26,.28), transparent 65%), radial-gradient(400px 260px at 0% 120%, rgba(42,120,214,.14), transparent 60%), var(--st-void);
+    color: #fff; display: grid; grid-template-columns: minmax(0, 1fr) auto 170px; align-items: center; gap: 2.5rem; }
+  .db-signal { position: relative; width: 170px; height: 170px; display: grid; place-items: center; color: var(--st-orange); }
+  .db-signal .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255,122,26,.45); animation: db-pulse 3.6s cubic-bezier(.2,.6,.3,1) infinite; opacity: 0; }
+  .db-signal .r2 { animation-delay: 1.2s; } .db-signal .r3 { animation-delay: 2.4s; }
+  .db-signal .glyph { width: 64px; height: 64px; padding: 12px; box-sizing: content-box; border-radius: 22px; background: #0E1117; border: 1px solid #262E3D;
+    box-shadow: 0 0 0 6px rgba(255,122,26,.06), 0 0 40px 4px rgba(255,122,26,.35); position: relative; z-index: 1; }
+  @keyframes db-pulse { 0% { transform: scale(.35); opacity: 0; } 15% { opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .db-signal .ring { animation: none; opacity: .5; } .db-signal .r1 { transform: scale(.55); } .db-signal .r2 { transform: scale(.78); } }
+  @media (max-width: 1280px) { .db-hero { grid-template-columns: minmax(0, 1fr) auto; } .db-signal { display: none; } }
+  @media (max-width: 900px) { .db-hero { grid-template-columns: 1fr; gap: 1.5rem; } }
+  .db-hero .st-eyebrow { color: var(--st-orange-hi); }
+  .db-hero h2 { color: #fff; font-size: 1.75rem; margin: .4rem 0 .5rem; letter-spacing: -.02em; }
+  .db-hero p { color: #A9B1C2; margin: 0; font-size: .95rem; max-width: 52ch; line-height: 1.6; }
+  .db-hero p b { color: #fff; font-weight: 600; }
+  .db-hero p .up { color: #5BE0B0; font-weight: 700; }
+  .db-today { display: flex; gap: 2.5rem; }
+  .db-today span { display: block; font-size: .78rem; color: #8C95A8; }
+  .db-today b { display: block; font-size: 2rem; letter-spacing: -.02em; margin-top: .15rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .db-today b.is-orange { color: var(--st-orange); }
+
+  .db-attn { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.75rem; }
+  .db-attn a { display: inline-flex; align-items: center; gap: .6rem; padding: .6rem 1rem .6rem .7rem; border-radius: 999px; background: var(--st-surface); border: 1px solid var(--st-line); text-decoration: none; color: var(--st-ink-2); font-size: .86rem; box-shadow: var(--st-shadow); transition: border-color .15s ease; }
+  .db-attn a:hover { border-color: var(--st-orange-ring); color: var(--st-ink); }
+  .db-attn .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: .72rem; }
+  .db-attn b { color: var(--st-ink); font-variant-numeric: tabular-nums; }
+  .db-attn .is-alert .ic { background: var(--st-alert-soft); color: var(--st-alert); }
+  .db-attn .is-amber .ic { background: var(--st-amber-soft); color: var(--st-amber); }
+  .db-attn .is-ok .ic { background: var(--st-safe-soft); color: var(--st-safe); }
+  .db-attn .fa-arrow-right { font-size: .7rem; color: var(--st-muted); margin-left: .15rem; }
+
+  .db-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1.75rem; }
+  .db-kpi-sub { font-size: .8rem; color: var(--st-muted); margin-top: .1rem; }
+  .db-kpi-sub .on { color: #0A7F5D; font-weight: 600; }
+
+  .db-head { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.6rem; border-bottom: 1px solid var(--st-line); }
+  .db-head h3 { font-size: 1rem; margin: 0; }
+  .db-orders .table > tbody td, .db-orders .table > thead th { padding-left: 1.6rem !important; }
+  .db-orders .table > tbody td { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  .db-cust { display: flex; align-items: center; gap: .7rem; min-width: 0; font-weight: 500; }
+
+  @media (max-width: 1100px) { .db-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) {
+    .db-hero { padding: 1.4rem; gap: 1.25rem; margin-bottom: 1.25rem; } .db-hero h2 { font-size: 1.4rem; }
+    .db-today { gap: 1.5rem; } .db-today b { font-size: 1.5rem; }
+    .db-kpis { gap: .75rem; margin-bottom: 1.25rem; } .db-kpis .an-kpi-value { font-size: 1.35rem; }
+    .db-attn { margin-bottom: 1.25rem; }
+  }
+
+  .db-split-row { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.5rem; margin-bottom: 1.75rem; align-items: stretch; }
+  .db-split-row > .an-card:first-child .an-chart { flex: 1; min-height: 240px; height: auto !important; }
+  .db-live { display: inline-flex; align-items: center; gap: .4rem; font-size: .74rem; font-weight: 600; color: #0A7F5D; }
+  .db-live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--st-safe); box-shadow: 0 0 0 0 rgba(14,166,122,.5); animation: db-blink 1.8s ease-out infinite; }
+  @keyframes db-blink { 0% { box-shadow: 0 0 0 0 rgba(14,166,122,.5); } 100% { box-shadow: 0 0 0 8px rgba(14,166,122,0); } }
+  .db-timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+  .db-timeline::before { content: ""; position: absolute; left: 15px; top: 8px; bottom: 8px; width: 2px; background: var(--st-line); border-radius: 2px; }
+  .db-timeline li { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: .75rem; padding: .5rem 0; }
+  .db-timeline .ic { grid-row: span 2; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: .72rem; background: var(--st-surface); border: 2px solid var(--st-line); color: var(--st-ink-2); position: relative; z-index: 1; }
+  .db-timeline .kind-user .ic { border-color: #FFD2AE; color: var(--st-orange-deep); background: #FFF6EE; }
+  .db-timeline .kind-vehicle .ic { border-color: #C9D9FF; color: #2558CC; background: #F2F6FF; }
+  .db-timeline .kind-qr .ic { border-color: #BDEBD9; color: #0A7F5D; background: #EFFBF6; }
+  .db-timeline .kind-order .ic { border-color: #FBE0AE; color: #9A6205; background: #FFF9EE; }
+  .db-timeline .kind-civic .ic { border-color: #E6D5FF; color: #6250D6; background: #F7F3FF; }
+  .db-timeline .txt { font-size: .85rem; color: var(--st-ink); text-decoration: none; font-weight: 500; line-height: 1.35; padding-top: .1rem; }
+  .db-timeline .txt:hover { color: var(--st-orange-deep); }
+  .db-timeline time { font-size: .72rem; color: var(--st-muted); }
+  .db-pace { margin-bottom: 1.75rem; }
+  .db-rings { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; }
+  .db-ring-item { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 1rem; align-items: center; }
+  .db-ring { width: 76px; height: 76px; transform: rotate(-90deg); }
+  .db-ring circle { fill: none; stroke-width: 7; }
+  .db-ring .track { stroke: #F1F2F5; }
+  .db-ring .fill { stroke: #FFB27A; stroke-linecap: round; transition: stroke-dasharray .9s cubic-bezier(.2,.8,.2,1); }
+  .db-ring .fill.is-ahead { stroke: var(--st-orange); }
+  .db-ring-center { position: absolute; left: 0; top: 50%; width: 76px; transform: translateY(-50%); text-align: center; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .db-ring-text { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+  .db-ring-text .lbl { font-size: .76rem; font-weight: 600; color: var(--st-muted); }
+  .db-ring-text b { font-size: 1.3rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .db-ring-text .vs { font-size: .74rem; color: var(--st-muted); }
+  .db-ring-text .proj { font-size: .74rem; font-weight: 600; color: var(--st-ink-2); }
+  .db-ring-text .proj.is-ahead { color: #0A7F5D; }
+  @media (max-width: 1200px) { .db-split-row { grid-template-columns: 1fr; } .db-rings { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .db-rings { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .db-live .dot { animation: none; } }
 </style>
+{% endblock %}
+
+{% block content %}
+{% with k=trend.kpis %}
+<section class="db-hero">
+  <div>
+    <div class="st-eyebrow">{% now "l, j F" %} · <span id="dbClock">{% now "g:i A" %}</span></div>
+    <h2>{{ greeting }}</h2>
+    {% if trend %}
+    <p>Last 30 days: <b>{{ k.0.value }} new customer{{ k.0.value|pluralize }}</b>{% if k.0.delta and k.0.delta > 0 %} <span class="up">▲ {{ k.0.delta }}%</span>{% endif %}, <b>{{ k.1.value }} vehicle{{ k.1.value|pluralize }}</b> and <b>{{ k.2.value }} QR activation{{ k.2.value|pluralize }}</b>.</p>
+    {% else %}
+    <p>Here's what's happening across SudoTag today.</p>
+    {% endif %}
+  </div>
+  <div class="db-today">
+    <div><span>Orders today</span><b class="is-orange">{{ today_orders }}</b></div>
+    <div><span>Earned today</span><b>₹{{ today_earnings|floatformat:0|intcomma }}</b></div>
+    <div><span>Orders this week</span><b>{{ week_orders }}</b></div>
+  </div>
+  <div class="db-signal" aria-hidden="true">
+    <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+    <svg class="glyph" viewBox="0 0 7 7" shape-rendering="crispEdges">
+      <path fill="currentColor" d="M0 0h3v3H0zM4 0h3v3H4zM0 4h3v3H0z"/>
+      <path fill="#07080B" d="M.6.6h1.8v1.8H.6zM4.6.6h1.8v1.8H4.6zM.6 4.6h1.8v1.8H.6z"/>
+      <path fill="currentColor" d="M1.1 1.1h.8v.8h-.8zM5.1 1.1h.8v.8h-.8zM1.1 5.1h.8v.8h-.8zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z"/>
+    </svg>
+  </div>
+</section>
+
+<nav class="st-quick" aria-label="Quick actions">
+  <a href="{% url 'generate_qr' %}"><i class="fas fa-qrcode"></i><span>Generate QR</span></a>
+  <a href="{% url 'assign_qr' %}"><i class="fas fa-link"></i><span>Assign QR</span></a>
+  <a href="{% url 'view_orders' %}"><i class="fas fa-shopping-bag"></i><span>Orders</span>{% if to_process %}<span class="st-badge is-amber">{{ to_process }}</span>{% endif %}</a>
+  <a href="{% url 'manage_promotion_notification' %}"><i class="fas fa-bell"></i><span>Send push</span></a>
+  <a href="{% url 'civic_sense_reports' %}"><i class="fas fa-city"></i><span>Civic Sense</span>{% if civic_open_reports %}<span class="st-badge is-alert">{{ civic_open_reports }}</span>{% endif %}</a>
+  <a href="{% url 'manage_users' %}"><i class="fas fa-user-friends"></i><span>Customers</span></a>
+</nav>
+
+{% if notes %}
+{% include 'partials/an_takeaways.html' with title="What matters today" %}
+{% else %}
+<div class="db-attn">
+  {% if to_process %}<a href="{% url 'view_orders' %}" class="is-amber"><span class="ic"><i class="fas fa-box-open"></i></span><span><b>{{ to_process }}</b> order{{ to_process|pluralize }} to process</span><i class="fas fa-arrow-right"></i></a>{% endif %}
+  {% if civic_open_reports %}<a href="{% url 'civic_sense_reports' %}" class="is-alert"><span class="ic"><i class="fas fa-flag"></i></span><span><b>{{ civic_open_reports }}</b> Civic Sense report{{ civic_open_reports|pluralize }}</span><i class="fas fa-arrow-right"></i></a>{% endif %}
+</div>
+{% endif %}
+
+<div class="db-kpis">
+  <a class="an-kpi" href="{% url 'manage_users' %}">
+    <span class="an-kpi-label"><i class="fas fa-users"></i>Customers</span>
+    <span class="an-kpi-value">{{ total_users|intcomma }}</span>
+    {% if trend %}<span class="db-kpi-sub"><span class="on">+{{ k.0.value }}</span> this month</span>{% endif %}
+    <svg class="an-spark" data-spark="0" aria-hidden="true"></svg>
+  </a>
+  <a class="an-kpi" href="{% url 'manage_vehicles' %}">
+    <span class="an-kpi-label"><i class="fas fa-car"></i>Vehicles</span>
+    <span class="an-kpi-value">{{ trend.vehicles_total|default:0|intcomma }}</span>
+    {% if trend %}<span class="db-kpi-sub"><span class="on">+{{ k.1.value }}</span> this month</span>{% endif %}
+    <svg class="an-spark" data-spark="1" aria-hidden="true"></svg>
+  </a>
+  <a class="an-kpi" href="{% url 'manage_qrs' %}">
+    <span class="an-kpi-label"><i class="fas fa-qrcode"></i>Active QRs</span>
+    <span class="an-kpi-value">{{ active_qr|intcomma }}</span>
+    <span class="db-kpi-sub">{{ inactive_qr|intcomma }} in stock</span>
+    <svg class="an-spark" data-spark="2" aria-hidden="true"></svg>
+  </a>
+  <a class="an-kpi" href="{% url 'view_orders' %}">
+    <span class="an-kpi-label"><i class="fas fa-rupee-sign"></i>Earnings</span>
+    <span class="an-kpi-value">₹{{ total_earnings|floatformat:0|intcomma }}</span>
+    <span class="db-kpi-sub">{{ total_orders }} order{{ total_orders|pluralize }} in total</span>
+    <svg class="an-spark" data-spark="3" aria-hidden="true"></svg>
+  </a>
+</div>
+
+{% if trend %}
+<div class="db-split-row">
+<section class="an-card">
+  <div class="an-card-head">
+    <div><h3>Last 30 days</h3><p>One bar per day. The darkest bar is the busiest.</p></div>
+    <a href="{% url 'analytics' %}" class="btn btn-sm btn-outline-secondary text-nowrap">See all analytics <i class="fas fa-arrow-right ms-1"></i></a>
+  </div>
+  <div class="an-chart-top">
+    <div class="an-summary" id="trend-summary" aria-live="polite"></div>
+    <div class="st-seg an-seg-sm" id="trend-switch" aria-label="Choose what to show"></div>
+  </div>
+  <div class="an-chart" style="height: 240px;"><canvas id="trend-chart" role="img" aria-label="Bar chart of the last 30 days"></canvas></div>
+
+</section>
+
+  <section class="an-card db-feed">
+    <div class="an-card-head">
+      <div><h3>Live activity</h3><p>The latest things customers did.</p></div>
+      <span class="db-live"><span class="dot"></span>Live</span>
+    </div>
+    {% if feed %}
+    <ol class="db-timeline">
+      {% for e in feed %}
+      <li class="kind-{{ e.kind }}">
+        <span class="ic"><i class="fas {{ e.icon }}"></i></span>
+        <a href="{{ e.url }}" class="txt">{{ e.text }}</a>
+        <time datetime="{{ e.iso }}" title="{{ e.at|date:'j M Y, g:i A' }}">{{ e.at|date:'j M, g:i A' }}</time>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="an-empty">Nothing yet. New sign-ups, vehicles and orders will appear here.</div>
+    {% endif %}
+  </section>
+</div>
+
+{% if pace %}
+<section class="an-card db-pace">
+  <div class="an-card-head">
+    <div><h3>{{ pace.month }} so far</h3><p>Day {{ pace.day }} of {{ pace.days }}. Each ring fills as this month catches up with all of {{ pace.last_month }}.</p></div>
+  </div>
+  <div class="db-rings">
+    {% for i in pace.items %}
+    <div class="db-ring-item">
+      <svg class="db-ring" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="27" class="track"/>
+        <circle cx="32" cy="32" r="27" class="fill{% if i.ahead %} is-ahead{% endif %}" pathLength="100" style="stroke-dasharray: {{ i.ring }} 100"/>
+      </svg>
+      <div class="db-ring-center">{% if i.last %}{{ i.pct }}%{% else %}New{% endif %}</div>
+      <div class="db-ring-text">
+        <span class="lbl">{{ i.label }}</span>
+        <b>{{ i.now_text }}</b> <span class="vs">{% if i.last %}vs {{ i.last_text }} in {{ pace.last_month }}{% else %}nothing in {{ pace.last_month }}{% endif %}</span>
+        <span class="proj {% if i.ahead %}is-ahead{% endif %}">{% if i.ahead %}▲ On pace for {{ i.projected_text }}{% else %}On pace for {{ i.projected_text }}{% endif %}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{{ trend.kpis|json_script:"trend-kpis" }}
+{{ trend.growth|json_script:"trend-data" }}
+{% endif %}
+{% endwith %}
+
+<section class="st-card db-orders">
+  <div class="db-head">
+    <h3>Recent orders</h3>
+    <a href="{% url 'view_orders' %}" class="btn btn-sm btn-outline-secondary">View all <i class="fas fa-arrow-right ms-1"></i></a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Customer</th><th>Status</th><th>Source</th><th>Date</th><th class="text-end pe-4">Amount</th></tr></thead>
+      <tbody>
+        {% for order in all_orders|slice:":5" %}
+        <tr>
+          <td><span class="db-cust"><span class="st-avatar">{{ order.fullName|default:"?"|slice:":1"|upper }}</span><span>{{ order.fullName|default:"N/A" }}</span></span></td>
+          <td>
+            {% with st=order.orderStatus %}
+            <span class="st-badge {% if st == 3 %}is-safe{% elif st == 4 or st == 6 %}is-alert{% elif st == 0 or st == 7 %}is-amber{% else %}is-blue{% endif %}">{{ STATUS_MAPPING|get_item:st|default:"Unknown" }}</span>
+            {% endwith %}
+          </td>
+          <td class="text-muted">{% if order.source == "website" or order.placedVia == "Website" or order.channel == "web" %}Website{% else %}App{% endif %}</td>
+          <td class="text-muted text-nowrap">{% if order.timestamp %}{{ order.timestamp|to_ist|date:"j M, g:i A" }}{% else %}–{% endif %}</td>
+          <td class="text-end fw-bold text-nowrap pe-4">₹{{ order.amount|default:0|floatformat:0|intcomma }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="st-empty"><i class="fas fa-inbox"></i><h3>No orders yet</h3>New orders will show up here.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{% if trend %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'assets/js/sudotag-charts.js' %}"></script>
+<script>
+(function () {
+  var clock = document.getElementById('dbClock');
+  if (clock) setInterval(function () {
+    clock.textContent = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }).toUpperCase();
+  }, 15000);
+  function ago(iso) {
+    var m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    var h = Math.round(m / 60);
+    if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+    var d = Math.round(h / 24);
+    return d === 1 ? 'yesterday' : (d < 30 ? d + ' days ago' : null);
+  }
+  function relTimes() {
+    document.querySelectorAll('.db-timeline time').forEach(function (t) {
+      var a = ago(t.getAttribute('datetime'));
+      if (a) t.textContent = a;
+    });
+  }
+  relTimes(); setInterval(relTimes, 60000);
+  var g = JSON.parse(document.getElementById('trend-data').textContent);
+  var kpis = JSON.parse(document.getElementById('trend-kpis').textContent);
+  document.querySelectorAll('[data-spark]').forEach(function (svg) {
+    STCharts.spark(svg, kpis[+svg.getAttribute('data-spark')].spark, STCharts.colors.series[0]);
+  });
+  STCharts.metricBars(document.getElementById('trend-chart'), {
+    labels: g.labels, series: g.series,
+    switchEl: document.getElementById('trend-switch'), summaryEl: document.getElementById('trend-summary')
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

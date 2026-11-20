@@ -53,6 +53,7 @@ from .vehicle_lost_mode import (
 )
 from .msg91_vehicle_sms import send_vehicle_issue_sms
 from .ad_image_rules import rules_for_browser, validate_ad_image
+from . import qr_designs
 from .family_assignment import (
     effective_contact_display_name,
     effective_contact_number,
@@ -370,6 +371,25 @@ def _compose_multipurpose_qr(qr_img):
     final_img = template.copy()
     final_img.paste(placed, (qr_x, qr_y))
     return final_img
+
+
+def _standard_vehicle_png(qr_id, base_domain, template_img, qr_size, qr_x, qr_y):
+    """Vehicle QR pasted inside the orange brackets of car.png (exact 10 cm × 5 cm)."""
+    qr = qrcode.QRCode(
+        version=3,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=12,
+        border=0,
+    )
+    qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    qr_img = _trim_and_resize_qr_for_sticker(qr_img, qr_size)
+    final_img = template_img.copy()
+    final_img.paste(qr_img, (qr_x, qr_y))
+    buffer = BytesIO()
+    final_img.save(buffer, format="PNG", dpi=(_STICKER_PRINT_DPI, _STICKER_PRINT_DPI))
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
 
 def custom_404(request, exception):
@@ -881,6 +901,36 @@ def dashboard(request):
         'STATUS_MAPPING': STATUS_MAPPING,
         'all_orders': recent_orders,
     }
+
+    hour = now().astimezone(ist).hour
+    context['greeting'] = 'Good morning' if hour < 12 else 'Good afternoon' if hour < 17 else 'Good evening'
+    context['to_process'] = sum(status_counts.get(code, 0) for code in (0, 1, 7))
+    context['qr_stock_low'] = inactive_qr < 50
+
+    try:
+        from . import analytics
+        raw = analytics.load(db)
+        context['trend'] = analytics.compute(raw, 30)
+        context['feed'] = analytics.activity(raw, 7)
+        for e in context['feed']:
+            e['url'] = reverse(e['url'])
+        context['pace'] = analytics.month_pace(raw)
+        notes = analytics.insights(context['trend'])
+        if context['to_process']:
+            n = context['to_process']
+            notes['top'].insert(0, {
+                'tone': 'warn', 'icon': 'fa-box-open', 'weight': 99,
+                'headline': f"{n} order{'s' if n != 1 else ''} waiting to be processed.",
+                'detail': 'Confirm, pack and ship them so customers get their stickers quickly.',
+                'action': 'Open orders', 'url': 'view_orders',
+            })
+        notes['top'] = notes['top'][:3]
+        context['notes'] = analytics.resolve(notes)
+        funnel = context['trend']['funnel']
+        context['no_vehicle'] = max(funnel[0]['value'] - funnel[1]['value'], 0)
+    except Exception:
+        logger.exception('dashboard trend failed')
+        context['trend'] = None
     
     # Cache only non-time-sensitive stats (exclude today's and week's data)
     cache_stats = {
@@ -943,9 +993,12 @@ from django.utils.timezone import now  # Add this import at the top of your file
 
 def _generate_qr_page_context(request, **extra):
     otp_phone = getattr(settings, 'GENERATE_QR_OTP_PHONE', '')
+    verified = is_generate_qr_otp_verified(request)
     return {
-        'otp_verified': is_generate_qr_otp_verified(request),
+        'otp_verified': verified,
         'otp_phone_masked': mask_phone_for_display(otp_phone),
+        'qr_designs': qr_designs.list_designs(db) if verified else [],
+        'qr_design_min_mm': qr_designs.MIN_QR_MM,
         **extra,
     }
 
@@ -1082,50 +1135,48 @@ def generate_qr(request):
         qr_type = request.POST.get('qr_type', 'user')
         qr_data = []
         base_domain = settings.BASE_DOMAIN
+
+        # Custom design: paste each QR into the box the admin marked on an uploaded design.
+        design = design_img = None
+        if qr_type in ('user', 'multipurpose') and request.POST.get('design_mode') == 'custom':
+            try:
+                design = qr_designs.get_design(db, request.POST.get('design_id') or '')
+                design_img = qr_designs.load_design_image(design)
+            except qr_designs.DesignError as exc:
+                return render(request, 'generate_qr.html', _generate_qr_page_context(request, error=str(exc)))
+            design_print_mm = list(qr_designs.print_size_mm(design, design_img))
+            design_dpi = qr_designs.dpi_for(design, design_img)
+
+        def _custom_png(scan_url):
+            final = qr_designs.compose(design_img, design, scan_url)
+            buf = BytesIO()
+            final.save(buf, format='PNG', dpi=(design_dpi, design_dpi))
+            return base64.b64encode(buf.getvalue()).decode('utf-8')
         
         if qr_type == 'user':
-            count = int(request.POST.get('count', 1))
+            count = max(1, min(int(request.POST.get('count', 1) or 1), 100))
             batch = db.batch()  # Firestore batch
             template_path = os.path.join(settings.BASE_DIR, 'admin_app', 'static', 'images', 'car.png')
             
-            if not os.path.exists(template_path):
+            if design is None and not os.path.exists(template_path):
                 return render(request, 'generate_qr.html', _generate_qr_page_context(
                     request,
                     error=f'Template image not found at: {template_path}',
                 ))
             
-            template_img = _load_sticker_template(template_path)
-            qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
+            if design is None:
+                template_img = _load_sticker_template(template_path)
+                qr_size, qr_x, qr_y = _get_fasttag_qr_layout(template_img)
             
             for _ in range(count):
                 try:
                     # Generate unique QR ID
                     qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
                     
-                    # Create QR code
-                    qr = qrcode.QRCode(
-                        version=3,
-                        error_correction=qrcode.constants.ERROR_CORRECT_H,
-                        box_size=12,
-                        border=0,
-                    )
-                    qr.add_data(f"{base_domain}/admin/send-notification/{qr_id}/")
-                    qr.make(fit=True)
-                    qr_img = qr.make_image(fill_color="black", back_color="white")
-                    qr_img = _trim_and_resize_qr_for_sticker(qr_img, qr_size)
-                    
-                    # Paste QR code inside orange bracket area on right side
-                    final_img = template_img.copy()
-                    final_img.paste(qr_img, (qr_x, qr_y))
-                    
-                    # Convert to base64 (exact 10 cm × 5 cm)
-                    buffer = BytesIO()
-                    final_img.save(
-                        buffer,
-                        format="PNG",
-                        dpi=(_STICKER_PRINT_DPI, _STICKER_PRINT_DPI),
-                    )
-                    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                    if design is not None:
+                        qr_code_base64 = _custom_png(f"{base_domain}/admin/send-notification/{qr_id}/")
+                    else:
+                        qr_code_base64 = _standard_vehicle_png(qr_id, base_domain, template_img, qr_size, qr_x, qr_y)
                     
                     # Prepare Firestore data
                     qr_doc_ref = db.collection('qrcodes').document(qr_id)
@@ -1137,15 +1188,20 @@ def generate_qr(request):
                         'vehicleID': '',
                         'userID': ''
                     }
+                    if design is not None:
+                        qr_data_firestore['designId'] = design['id']
                     batch.set(qr_doc_ref, qr_data_firestore)
                     
                     # Add to response
-                    qr_data.append({
+                    entry = {
                         'type': 'user',
                         'qrId': qr_id,
                         'vehicleID': '',
                         'qr_code_base64': qr_code_base64
-                    })
+                    }
+                    if design is not None:
+                        entry.update({'print_mm': design_print_mm, 'title': design['name']})
+                    qr_data.append(entry)
                 except Exception as e:
                     # Log error but continue
                     qr_data.append({'error': f'Failed to generate QR: {str(e)}'})
@@ -1166,7 +1222,7 @@ def generate_qr(request):
                 count = 1
             count = max(1, min(count, 100))
             template_path = _multipurpose_template_path()
-            if not os.path.exists(template_path):
+            if design is None and not os.path.exists(template_path):
                 return render(request, 'generate_qr.html', _generate_qr_page_context(
                     request,
                     error='Smart Tag template image is missing.',
@@ -1176,21 +1232,25 @@ def generate_qr(request):
                 try:
                     qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
                     scan_url = f"{base_domain}/admin/mp/{qr_id}/"
-                    qr = qrcode.QRCode(
-                        version=3,
-                        error_correction=qrcode.constants.ERROR_CORRECT_H,
-                        box_size=12,
-                        border=2,
-                    )
-                    qr.add_data(scan_url)
-                    qr.make(fit=True)
-                    qr_img = qr.make_image(fill_color="black", back_color="white")
-                    final_img = _compose_multipurpose_qr(qr_img)
-                    buffer = BytesIO()
-                    final_img.save(buffer, format="PNG")
-                    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                    if design is not None:
+                        qr_code_base64 = _custom_png(scan_url)
+                    else:
+                        qr = qrcode.QRCode(
+                            version=3,
+                            error_correction=qrcode.constants.ERROR_CORRECT_H,
+                            box_size=12,
+                            border=2,
+                        )
+                        qr.add_data(scan_url)
+                        qr.make(fit=True)
+                        qr_img = qr.make_image(fill_color="black", back_color="white")
+                        final_img = _compose_multipurpose_qr(qr_img)
+                        buffer = BytesIO()
+                        final_img.save(buffer, format="PNG")
+                        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     qr_doc_ref = db.collection('multipurpose_qrs').document(qr_id)
                     batch.set(qr_doc_ref, {
+                        **({'designId': design['id']} if design is not None else {}),
                         'qrType': MULTIPURPOSE_QR_TYPE,
                         'purpose': 'multipurpose',
                         'isAssigned': False,
@@ -1199,11 +1259,14 @@ def generate_qr(request):
                         'qrId': qr_id,
                         'scanUrl': scan_url,
                     })
-                    qr_data.append({
+                    entry = {
                         'type': 'multipurpose',
                         'qrId': qr_id,
                         'qr_code_base64': qr_code_base64,
-                    })
+                    }
+                    if design is not None:
+                        entry.update({'print_mm': design_print_mm, 'title': design['name']})
+                    qr_data.append(entry)
                 except Exception as e:
                     qr_data.append({'error': f'Failed to generate QR: {str(e)}'})
             try:
@@ -1254,6 +1317,7 @@ def generate_qr(request):
                         'type': qr.get('type', 'user'),
                         'qrId': qr.get('qrId', ''),
                         'vehicleID': qr.get('vehicleID', ''),
+                        'print_mm': qr.get('print_mm'),
                         # Store base64 but session will handle size limits
                         'qr_code_base64': qr.get('qr_code_base64', '')
                     })
@@ -1413,6 +1477,12 @@ def download_qr_pdf(request):
         if i > 0:
             c.showPage()
         img_bytes = base64.b64decode(qr['qr_code_base64'])
+        if qr.get('print_mm'):
+            # Custom design: page is the design's own print size.
+            w_pt, h_pt = mm_to_pt(qr['print_mm'][0]), mm_to_pt(qr['print_mm'][1])
+            c.setPageSize((w_pt, h_pt))
+            c.drawImage(ImageReader(BytesIO(img_bytes)), 0, 0, width=w_pt, height=h_pt, mask='auto')
+            continue
         if qr.get('type') == 'multipurpose':
             side = mm_to_pt(80)
             c.setPageSize((side, side))
@@ -1615,10 +1685,31 @@ def manage_users(request):
         messages.error(request, f'Error accessing database: {str(e)}')
         users = []
 
+    from . import list_tools
+    total_users = len(users)
+    q = (request.GET.get('q') or '').strip()
+    users = [u for u in users if list_tools.matches(
+        u, q, ('fullName', 'emailAddress', 'contactNumber', 'mobileNumber', 'city', 'district', 'doc_id'))]
+    sort = request.GET.get('sort') or 'newest'
+    if sort == 'name':
+        users.sort(key=lambda u: str(u.get('fullName') or '').lower())
+    elif sort == 'oldest':
+        users.sort(key=list_tools.sort_key_time('createdAt'))
+    else:
+        users.sort(key=list_tools.sort_key_time('createdAt'), reverse=True)
+
+    if request.GET.get('export') == 'csv':
+        return list_tools.csv_response('sudotag-customers', [
+            ('User ID', 'doc_id'), ('Name', 'fullName'), ('Email', 'emailAddress'),
+            ('Phone', lambda u: u.get('contactNumber') or u.get('mobileNumber')), ('City', 'city'),
+            ('Vehicles', 'vehicleCount'), ('Platform', 'appPlatform'), ('App version', 'appVersion'),
+            ('Joined', 'createdAt'), ('Last seen', 'lastSeen'),
+        ], users)
+
     # Pagination
     page = request.GET.get('page', 1)
-    items_per_page = 10  # You can adjust this number
-    
+    items_per_page = int(request.GET.get('per') or 20) if str(request.GET.get('per') or '20') in ('20', '50', '100') else 20
+
     paginator = Paginator(users, items_per_page)
     
     try:
@@ -1654,7 +1745,9 @@ def manage_users(request):
     return render(request, 'manage_users.html', {
         'users': users_page,
         'paginator': paginator,
-        'messages': get_message_list(request)
+        'messages': get_message_list(request),
+        'q': q, 'sort': sort, 'per': items_per_page, 'total_users': total_users,
+        'qs': list_tools.query_string(request),
     })
 
 
@@ -1682,6 +1775,23 @@ def manage_vehicles(request):
         messages.error(request, f'Error loading vehicles: {e}')
         vehicles = []
 
+    from . import list_tools
+    total_vehicles = len(vehicles)
+    types = sorted({str(v.get('vehicleType') or '').strip().title() for v in vehicles} - {''})
+    q = (request.GET.get('q') or '').strip()
+    vtype = (request.GET.get('type') or '').strip()
+    vehicles = [v for v in vehicles
+                if list_tools.matches(v, q, ('registrationNumber', 'make', 'model', 'ownerFullName', 'ownerContact', 'id'))
+                and (not vtype or str(v.get('vehicleType') or '').strip().lower() == vtype.lower())]
+    if request.GET.get('lost') == '1':
+        vehicles = [v for v in vehicles if v.get('isLostMode')]
+    if request.GET.get('export') == 'csv':
+        return list_tools.csv_response('sudotag-vehicles', [
+            ('Vehicle ID', 'id'), ('Registration', 'registrationNumber'), ('Make', 'make'), ('Model', 'model'),
+            ('Type', 'vehicleType'), ('Year', 'yearOfManufacturing'), ('Owner', 'ownerFullName'),
+            ('Owner phone', 'ownerContact'), ('QR', 'qrCodeId'), ('Lost mode', 'isLostMode'), ('Added', 'createdAt'),
+        ], vehicles)
+
     page = request.GET.get('page', 1)
     paginator = Paginator(vehicles, 20)
     try:
@@ -1695,6 +1805,8 @@ def manage_vehicles(request):
         'vehicles': vehicles_page,
         'paginator': paginator,
         'messages': get_message_list(request),
+        'q': q, 'vtype': vtype, 'types': types, 'lost': request.GET.get('lost') == '1',
+        'total_vehicles': total_vehicles, 'qs': list_tools.query_string(request),
     })
 
 
@@ -5295,9 +5407,41 @@ def view_orders(request):
                 'order': order_dict,
             })
 
-        # Sort by timestamp (newest first) if not already sorted
-        if orders_data:
-            orders_data.sort(key=lambda x: x['order'].get('timestamp', ''), reverse=True)
+        from . import list_tools
+        orders_data.sort(key=lambda x: list_tools.sort_key_time('timestamp')(x['order']), reverse=True)
+        total_orders = len(orders_data)
+        q = (request.GET.get('q') or '').strip()
+        status = request.GET.get('status', '')
+        pay = request.GET.get('pay', '')
+        source = request.GET.get('source', '')
+
+        def is_web(o):
+            return o.get('source') == 'website' or o.get('placedVia') == 'Website' or o.get('channel') == 'web'
+
+        def keep(o):
+            if not list_tools.matches(o, q, ('id', 'fullName', 'mobile', 'vehicleNumber', 'paymentId',
+                                             'paymentOrderId', 'qrId', 'address.city', 'address.pincode')):
+                return False
+            if status != '' and str(o.get('orderStatus', 0)) != status:
+                return False
+            if pay == 'paid' and o.get('paymentStatus') != 'paid':
+                return False
+            if pay == 'unpaid' and o.get('paymentStatus') == 'paid':
+                return False
+            if source == 'web' and not is_web(o):
+                return False
+            if source == 'app' and is_web(o):
+                return False
+            return True
+
+        orders_data = [x for x in orders_data if keep(x['order'])]
+        if request.GET.get('export') == 'csv':
+            return list_tools.csv_response('sudotag-orders', [
+                ('Order ID', 'id'), ('Date', 'timestamp'), ('Customer', 'fullName'), ('Phone', 'mobile'),
+                ('Item', 'selectedItem'), ('Qty', 'quantity'), ('Amount', 'amount'), ('Payment', 'paymentStatus'),
+                ('Payment ID', 'paymentId'), ('Status', 'status_text'), ('Vehicle', 'vehicleNumber'),
+                ('Address', 'address'), ('Source', lambda o: 'Website' if is_web(o) else 'App'),
+            ], [x['order'] for x in orders_data])
 
         # Pagination
         
@@ -5314,6 +5458,8 @@ def view_orders(request):
             'orders': orders_page,
             'paginator': paginator,
             'STATUS_MAPPING': STATUS_MAPPING,
+            'q': q, 'status': status, 'pay': pay, 'source': source, 'total_orders': total_orders,
+            'qs': list_tools.query_string(request),
         }
         return render(request, 'view_orders.html', context)
 
@@ -5344,8 +5490,18 @@ def view_payments(request):
                 'payment': payment_dict,
             })
         
-        # Sort by timestamp (newest first)
-        payments_data.sort(key=lambda x: x['payment'].get('timestamp', ''), reverse=True)
+        from . import list_tools
+        payments_data.sort(key=lambda x: list_tools.sort_key_time('timestamp')(x['payment']), reverse=True)
+        total_payments = len(payments_data)
+        q = (request.GET.get('q') or '').strip()
+        payments_data = [x for x in payments_data if list_tools.matches(
+            x['payment'], q, ('id', 'paymentId', 'orderId', 'firestoreOrderId', 'userId', 'source'))]
+        if request.GET.get('export') == 'csv':
+            return list_tools.csv_response('sudotag-payments', [
+                ('Payment ID', 'paymentId'), ('Order ID', 'orderId'), ('Firestore order', 'firestoreOrderId'),
+                ('User ID', 'userId'), ('Source', 'source'), ('Verified', 'verified'),
+                ('Method', 'verificationMethod'), ('Time', 'timestamp'),
+            ], [x['payment'] for x in payments_data])
         
         # Pagination
         paginator = Paginator(payments_data, items_per_page)
@@ -5360,6 +5516,7 @@ def view_payments(request):
         return render(request, 'view_payments.html', {
             'payments': payments_page,
             'paginator': paginator,
+            'q': q, 'total_payments': total_payments, 'qs': list_tools.query_string(request),
         })
     except Exception as e:
         messages.error(request, f'Error loading payments: {str(e)}')

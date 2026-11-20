@@ -16,7 +16,7 @@
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #FF7A1A;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -85,8 +85,8 @@
         }
         
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            border-color: #FF7A1A;
+            box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.1);
             outline: none;
         }
         
@@ -113,17 +113,17 @@
             font-size: 1.1rem;
             font-weight: 600;
             border-radius: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #FF7A1A;
             border: none;
             color: white;
             transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 15px rgba(255, 122, 26, 0.4);
             margin-top: 1rem;
         }
         
         .login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            box-shadow: 0 6px 20px rgba(255, 122, 26, 0.5);
         }
         
         .login-btn:active {
@@ -138,14 +138,14 @@
         }
         
         .register-link a {
-            color: #667eea;
+            color: #FF7A1A;
             text-decoration: none;
             font-weight: 500;
             transition: color 0.2s;
         }
         
         .register-link a:hover {
-            color: #764ba2;
+            color: #E5640A;
         }
         
         .error-message {
@@ -199,9 +199,9 @@
         }
 
         .otp-digit:focus {
-            border-color: #667eea;
+            border-color: #FF7A1A;
             outline: none;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.1);
         }
 
         .otp-status {
@@ -212,7 +212,7 @@
 
         .otp-status.error { color: #991b1b; }
         .otp-status.success { color: #065f46; }
-        .otp-status.info { color: #667eea; }
+        .otp-status.info { color: #FF7A1A; }
 
         .otp-title {
             font-size: 1.25rem;
@@ -229,6 +229,10 @@
             font-size: 0.95rem;
         }
     </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'assets/css/sudotag-auth.css' %}">
 </head>
 <body>
     <div class="login-container">

@@ -16,33 +16,33 @@
 </div>
 {% endif %}
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <p class="text-muted mb-0">Paid fleet subscriptions. Activate or extend a plan here after an offline GST payment. Customers subscribe from the app under Me → SudoTag Fleet.</p>
+<div class="st-page-head">
+    <div>
+        <h2>SudoTag Fleet</h2>
+        <p>Paid fleet subscriptions. Activate or extend a plan after an offline GST payment. Customers subscribe in the app under Me → SudoTag Fleet.</p>
+    </div>
     <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-success">{{ active_count }} active</span>
-        <span class="badge bg-primary">{{ scheduled_count }} scheduled</span>
-        <a class="btn btn-outline-secondary btn-sm" href="{% url 'export_fleets_csv' %}?status={{ status }}&search={{ search }}">Export CSV</a>
+        <span class="st-badge is-safe">{{ active_count }} active</span>
+        <span class="st-badge is-blue">{{ scheduled_count }} scheduled</span>
+        <a class="btn btn-outline-secondary" href="{% url 'export_fleets_csv' %}?status={{ status }}&search={{ search }}"><i class="fas fa-file-download me-2"></i>Export CSV</a>
     </div>
 </div>
 
-<form class="row g-2 mb-3" method="get">
-    <div class="col-md-5">
-        <input class="form-control" name="search" value="{{ search }}" placeholder="Search name, GSTIN, city, owner id">
+<div class="st-card st-table-card">
+<form class="st-toolbar" method="get">
+    <div class="st-search">
+        <i class="fas fa-search"></i>
+        <input class="form-control" name="search" value="{{ search }}" placeholder="Search name, GSTIN, city or owner id">
     </div>
-    <div class="col-md-3">
-        <select class="form-select" name="status">
-            <option value="" {% if not status %}selected{% endif %}>All statuses</option>
-            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
-            <option value="scheduled" {% if status == 'scheduled' %}selected{% endif %}>Scheduled</option>
-            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive / expired</option>
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary w-100" type="submit">Filter</button>
-    </div>
+    <select class="form-select st-toolbar-select" name="status" onchange="this.form.submit()">
+        <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+        <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+        <option value="scheduled" {% if status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+        <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive / expired</option>
+    </select>
+    <button class="btn btn-dark" type="submit">Search</button>
 </form>
 
-<div class="bg-white rounded shadow-sm overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead>

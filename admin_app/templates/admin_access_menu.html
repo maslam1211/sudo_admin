@@ -11,7 +11,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #FF7A1A;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -47,8 +47,8 @@
             border-radius: 12px;
             border: none;
             color: #fff;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            background: #FF7A1A;
+            box-shadow: 0 4px 15px rgba(255, 122, 26, 0.4);
             margin-bottom: 0.75rem;
             text-decoration: none;
             display: inline-block;
@@ -66,9 +66,13 @@
             text-decoration: none;
             display: inline-block;
         }
-        .btn-login:hover { border-color: #667eea; color: #667eea; }
+        .btn-login:hover { border-color: #FF7A1A; color: #FF7A1A; }
         .hint { margin-top: 1.5rem; font-size: 0.85rem; color: #94a3b8; }
     </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'assets/css/sudotag-auth.css' %}">
 </head>
 <body>
     <div class="menu-container">

@@ -2,6 +2,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 from . import views
+from . import analytics_views
 from . import checkout_views
 from . import checkout_coupon_views
 from . import referral_views
@@ -10,6 +11,8 @@ from . import firebase_usage_views
 from . import wallet_views
 from . import fleet_views
 from . import promotion_notification_views
+from . import civic_sense_views
+from . import qr_design_views
 from .multipurpose_admin import (
     assign_multipurpose_qr,
     delete_multipurpose_qr,
@@ -33,6 +36,7 @@ urlpatterns = [
     path('login/otp/verify/', views.admin_login_otp_verify, name='admin_login_otp_verify'),
     path('register-admin/', views.register_admin, name='register_admin'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('analytics/', analytics_views.analytics_page, name='analytics'),
     path('generate-qr/', views.generate_qr, name='generate_qr'),
     path('generate-qr/otp/send/', views.generate_qr_otp_send, name='generate_qr_otp_send'),
     path('generate-qr/otp/resend/', views.generate_qr_otp_resend, name='generate_qr_otp_resend'),
@@ -146,6 +150,14 @@ urlpatterns = [
     path('view-auth-users/', views.view_auth_users, name='view_auth_users'),
     path('delete-auth-user/<str:uid>/', views.delete_auth_user, name='delete_auth_user'),
     path('bulk-delete-auth-users/', views.bulk_delete_auth_users, name='bulk_delete_auth_users'),
+    # Custom QR sticker designs (Generate QR)
+    path('qr-designs/save/', qr_design_views.qr_design_save, name='qr_design_save'),
+    path('qr-designs/<str:design_id>/update/', qr_design_views.qr_design_update, name='qr_design_update'),
+    path('qr-designs/<str:design_id>/delete/', qr_design_views.qr_design_delete, name='qr_design_delete'),
+    # Civic Sense (community post) reports
+    path('civic-sense/', civic_sense_views.civic_sense_reports, name='civic_sense_reports'),
+    path('civic-sense/<str:post_id>/', civic_sense_views.civic_sense_post, name='civic_sense_post'),
+    path('civic-sense/<str:post_id>/moderate/', civic_sense_views.civic_sense_moderate, name='civic_sense_moderate'),
     # Ads management URLs
     path('manage-ads/', views.manage_ads, name='manage_ads'),
     path(

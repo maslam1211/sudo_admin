@@ -50,3 +50,26 @@ class DisableCSRFForAPI(MiddlewareMixin):
             setattr(request, '_dont_enforce_csrf_checks', True)
         return None
 
+
+
+class IndiaTimeMiddleware:
+    """Show dates and times in India time on every page.
+
+    Firestore stores UTC. Templates often do `|to_ist|date:"…"`, but Django's
+    `date` filter converts aware datetimes back to the active timezone, which
+    defaults to settings.TIME_ZONE (UTC), so times were shown 5½ hours early.
+    Activating Asia/Kolkata per request fixes display without changing how
+    anything is stored.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from django.utils import timezone
+        import pytz
+        timezone.activate(pytz.timezone('Asia/Kolkata'))
+        try:
+            return self.get_response(request)
+        finally:
+            timezone.deactivate()

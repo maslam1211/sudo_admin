@@ -37,10 +37,10 @@
         background-color: #f8fafc;
     }
     .qr-code-image {
-        width: 80px;
-        height: 80px;
+        width: 60px;
+        height: 60px;
         object-fit: contain;
-        border: 2px solid #e5e7eb;
+        border: 1px solid #e5e7eb;
         border-radius: 0.5rem;
         padding: 0.375rem;
         background: #fff;
@@ -50,7 +50,13 @@
         align-items: center;
         gap: 0.5rem;
         flex-wrap: wrap;
+        min-width: 160px;
     }
+    .qr-row td:nth-child(7) small { display: inline-block; min-width: 120px; }
+    .st-admin .content-wrapper .qr-row .action-btn-download span,
+    .st-admin .content-wrapper .qr-row .action-btn-delete span { display: none; }
+    .st-admin .content-wrapper .qr-row .action-btn-download,
+    .st-admin .content-wrapper .qr-row .action-btn-delete { width: 32px !important; padding: 0 !important; }
     .copy-btn {
         width: 28px;
         height: 28px;
@@ -67,9 +73,9 @@
         cursor: pointer;
     }
     .copy-btn:hover {
-        background: #3b82f6;
-        color: #fff;
-        border-color: #3b82f6;
+        background: var(--st-orange);
+        color: var(--st-void);
+        border-color: var(--st-orange);
         transform: translateY(-1px);
     }
     .copy-btn.copied {
@@ -104,9 +110,9 @@
         opacity: 1;
     }
     .copy-qr-btn:hover {
-        background: #3b82f6;
-        color: #fff;
-        border-color: #3b82f6;
+        background: var(--st-orange);
+        color: var(--st-void);
+        border-color: var(--st-orange);
     }
     .copy-qr-btn.copied {
         background: #10b981;
@@ -147,12 +153,12 @@
         color: white;
     }
     .action-btn-assign {
-        background: #0d6efd;
-        color: white;
+        background: var(--st-orange);
+        color: var(--st-void);
     }
     .action-btn-assign:hover {
-        background: #0b5ed7;
-        color: white;
+        background: var(--st-orange-hi);
+        color: var(--st-void);
     }
     .action-btn-delete {
         background: #fff;
@@ -170,10 +176,10 @@
         width: 1rem;
         height: 1rem;
         cursor: pointer;
-        accent-color: #3b82f6;
+        accent-color: var(--st-orange-deep);
     }
     .qr-row.selected {
-        background-color: #eff6ff !important;
+        background-color: #FFF4EB !important;
     }
     .bulk-action-bar {
         position: sticky;
@@ -199,7 +205,7 @@
         color: #1e293b;
     }
     .bulk-action-bar .bulk-count .count-number {
-        color: #3b82f6;
+        color: var(--st-orange-deep);
     }
     .bulk-action-bar .btn-bulk-delete {
         background: #dc2626;
@@ -235,7 +241,7 @@
         border-radius: 0.5rem;
         font-weight: 500;
         font-size: 0.875rem;
-        background: #0dcaf0;
+        background: var(--st-blue);
         color: #000;
         width: 100%;
     }
@@ -485,7 +491,7 @@
                                 <div class="action-buttons-container">
                                     <a class="action-btn action-btn-download" 
                                    href="{% url 'regenerate_qr' qr_id=qr.doc_id %}"
-                                   title="Download QR Code">
+                                   title="Download QR Code" aria-label="Download QR Code">
                                         <i class="fas fa-download me-1"></i>
                                         <span>Download</span>
                                     </a>
@@ -505,7 +511,7 @@
                                         <input type="hidden" name="page" value="{{ qrs.number }}">
                                         {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
                                         {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
-                                        <button type="submit" class="action-btn action-btn-delete" title="Unassign QR Code">
+                                        <button type="submit" class="action-btn action-btn-delete" title="Unassign QR Code" aria-label="Unassign QR Code">
                                             <i class="fas fa-unlink me-1"></i>
                                             <span>Unassign</span>
                                         </button>
@@ -517,7 +523,8 @@
                                             data-bs-toggle="modal"
                                             data-bs-target="#deleteQrModal"
                                             data-delete-url="{% url 'delete_qr_code' qr_id=qr.doc_id %}"
-                                            data-qr-label="{{ qr.doc_id }}">
+                                            data-qr-label="{{ qr.doc_id }}"
+                                            title="Delete QR Code" aria-label="Delete QR Code">
                                         <i class="fas fa-trash-alt me-1"></i>
                                         <span>Delete</span>
                                     </button>

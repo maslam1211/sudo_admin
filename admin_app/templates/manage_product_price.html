@@ -5,7 +5,10 @@
 
 {% block content %}
 <style>
-  .pp-wrap { max-width: 720px; }
+  .pp-wrap { max-width: 1180px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; align-items: start; }
+  .pp-wrap > :not(.pp-card) { grid-column: 1 / -1; }
+  .pp-wrap > .pp-card.mt-3 { margin-top: 0 !important; }
+  @media (max-width: 1100px) { .pp-wrap { grid-template-columns: 1fr; } }
   .pp-card {
     background: #fff;
     border: 1px solid #e5e7eb;
@@ -34,7 +37,7 @@
   .pp-field label { font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.3rem; }
   .pp-help { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
   .pp-preview {
-    background: #eff6ff;
+    background: #FFF4EB;
     border: 1px solid #bfdbfe;
     border-radius: 0.65rem;
     padding: 0.9rem 1rem;
@@ -42,10 +45,16 @@
     font-size: 0.9rem;
     color: #1e3a8a;
   }
-  .pp-preview strong { color: #1e40af; }
+  .pp-preview strong { color: #A3470A; }
   .pp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 </style>
 
+<div class="st-page-head">
+  <div>
+    <h2>Product price</h2>
+    <p>The sticker price customers see on the website and in the app, and whether they can order right now.</p>
+  </div>
+</div>
 <div class="pp-wrap">
   {% if messages %}
     {% for message in messages %}

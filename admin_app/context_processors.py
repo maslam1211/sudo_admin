@@ -23,3 +23,15 @@ def favicon_urls(request):
         'favicon_96_url': absolute('site_favicon_96'),
         'favicon_apple_url': absolute('site_apple_touch_icon'),
     }
+
+
+def civic_sense_badge(request):
+    """Open Civic Sense report count for the admin sidebar (cached for a minute)."""
+    if not request or not request.session.get('admin'):
+        return {}
+    try:
+        from .civic_sense import open_report_count
+        from .views import db
+        return {'civic_open_reports': open_report_count(db)}
+    except Exception:
+        return {}
