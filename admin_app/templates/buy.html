@@ -329,6 +329,11 @@
                   <span id="summary-coupon-code" class="summary-coupon-code"></span>
                 </div>
               </div>
+              {% if partner_code %}
+              <div class="coupon-box coupon-box--summary" style="border-color:rgba(74,222,128,.45)">
+                <span class="coupon-box__label">&#129309; Buying through SudoTag partner <b class="st-mono">{{ partner_code }}</b></span>
+              </div>
+              {% endif %}
               <div class="coupon-box coupon-box--summary">
                 <label for="couponCodeSummary" class="coupon-box__label">Coupon code</label>
                 <div class="coupon-box__row">

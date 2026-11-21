@@ -1,0 +1,40 @@
+<div class="bg-white rounded shadow-sm overflow-hidden mb-3">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+    <thead><tr><th>Created</th><th>Order</th><th>Partner</th><th class="text-end">Tags</th><th class="text-end">Amount</th><th>Status</th><th class="text-end"></th></tr></thead>
+    <tbody>
+    {% for c in rows %}
+    <tr>
+        <td class="small">{{ c.created }}</td>
+        <td class="small user-select-all">{{ c.order_id }}<div class="text-muted">{{ c.source }}</div></td>
+        <td><a href="?tab=partner&uid={{ c.partner_uid }}">{{ c.partner_id|default:c.partner_uid }}</a></td>
+        <td class="text-end">{{ c.quantity }}</td>
+        <td class="text-end fw-semibold">₹{{ c.amount }}</td>
+        <td>
+            {% if c.status == 'available' %}<span class="badge bg-success">Available</span>
+            {% elif c.status == 'approved' %}<span class="badge bg-info text-dark">In hold</span><div class="small text-muted">until {{ c.available_at }}</div>
+            {% elif c.status == 'reversed' %}<span class="badge bg-secondary">Reversed</span><div class="small text-muted">{{ c.reversed_reason }}</div>
+            {% else %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}
+            {% if c.reverse_requested %}<div class="small text-warning">Reversal in progress…</div>{% endif %}
+        </td>
+        <td class="text-end">
+            {% if c.status != 'reversed' and not c.reverse_requested %}
+            <form method="post" class="d-inline-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="tab" value="{{ return_tab }}">
+                <input type="hidden" name="uid" value="{{ uid|default:c.partner_uid }}">
+                <input type="hidden" name="order_id" value="{{ c.order_id }}">
+                <input class="form-control form-control-sm" name="reason" placeholder="Reason" required minlength="4" style="width:140px">
+                <button class="btn btn-sm btn-outline-danger" name="action" value="reverse_commission" type="submit"
+                        onclick="return confirm('Reverse this commission? Money already credited will be taken back from the partner wallet.')">Reverse</button>
+            </form>
+            {% endif %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" class="text-center text-muted py-4">No commissions.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>

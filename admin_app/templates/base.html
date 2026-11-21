@@ -141,6 +141,12 @@
                 </a>
             </div>
             <div class="sidebar-menu-item">
+                <a href="{% url 'manage_partners' %}" class="sidebar-menu-link {% if '/partners/' in request.path %}active{% endif %}">
+                    <i class="fas fa-handshake"></i>
+                    <span>Partners</span>
+                </a>
+            </div>
+            <div class="sidebar-menu-item">
                 <a href="{% url 'manage_app_versions' %}" class="sidebar-menu-link {% if '/app-versions/' in request.path %}active{% endif %}">
                     <i class="fas fa-mobile-alt"></i>
                     <span>App Versions</span>

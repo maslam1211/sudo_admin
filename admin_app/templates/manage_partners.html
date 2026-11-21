@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}Partners - Admin Panel{% endblock %}
+{% block page_title %}Partner Programme{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<ul class="nav nav-pills mb-3 flex-wrap gap-1">
+    <li class="nav-item"><a class="nav-link {% if tab == 'applications' %}active{% endif %}" href="?tab=applications">Applications {% if counts.applications %}<span class="badge bg-warning text-dark">{{ counts.applications }}</span>{% endif %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'partners' or tab == 'partner' %}active{% endif %}" href="?tab=partners">Partners {% if counts.partners %}<span class="badge bg-secondary">{{ counts.partners }}</span>{% endif %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'withdrawals' %}active{% endif %}" href="?tab=withdrawals">Withdrawals {% if counts.withdrawals %}<span class="badge bg-danger">{{ counts.withdrawals }}</span>{% endif %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'commissions' %}active{% endif %}" href="?tab=commissions">Commissions</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'settings' %}active{% endif %}" href="?tab=settings">Settings</a></li>
+    <li class="nav-item ms-auto dropdown">
+        <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button"><i class="fas fa-file-csv"></i> Reports</a>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="?export=partners">All partners (CSV)</a></li>
+            <li><a class="dropdown-item" href="?export=commissions">All commissions (CSV)</a></li>
+            <li><a class="dropdown-item" href="?export=withdrawals&status=requested">Withdrawals to pay (CSV)</a></li>
+            <li><a class="dropdown-item" href="?export=withdrawals&status=paid">Paid withdrawals (CSV)</a></li>
+        </ul>
+    </li>
+</ul>
+
+{% if load_error %}<div class="alert alert-danger">{{ load_error }}</div>{% endif %}
+
+{# ───────────── Applications ───────────── #}
+{% if tab == 'applications' %}
+<p class="text-muted small">Approving issues a Partner ID (e.g. SUDO1001) and referral link automatically.</p>
+<div class="bg-white rounded shadow-sm overflow-hidden">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+    <thead><tr><th>Applied</th><th>Name</th><th>Mobile</th><th>City</th><th class="text-end">Decision</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+        <td class="small">{{ r.applied }}</td>
+        <td><a href="?tab=partner&uid={{ r.uid }}">{{ r.name }}</a></td>
+        <td>{{ r.phone }}</td>
+        <td>{{ r.city }}</td>
+        <td class="text-end">
+            <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="tab" value="applications">
+                <input type="hidden" name="uid" value="{{ r.uid }}">
+                <button class="btn btn-sm btn-success" name="action" value="approve" type="submit">Approve</button>
+            </form>
+            <form method="post" class="d-inline-flex gap-1 ms-1">
+                {% csrf_token %}
+                <input type="hidden" name="tab" value="applications">
+                <input type="hidden" name="uid" value="{{ r.uid }}">
+                <input class="form-control form-control-sm" name="reason" placeholder="Reason" minlength="4" required style="width:160px">
+                <button class="btn btn-sm btn-outline-danger" name="action" value="reject" type="submit">Reject</button>
+            </form>
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" class="text-center text-muted py-4">No pending applications.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endif %}
+
+{# ───────────── Partners ───────────── #}
+{% if tab == 'partners' %}
+<form class="row g-2 mb-3" method="get">
+    <input type="hidden" name="tab" value="partners">
+    <div class="col-md-3">
+        <select class="form-select" name="status">
+            <option value="approved" {% if status == 'approved' %}selected{% endif %}>Active</option>
+            <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspended</option>
+            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+    </div>
+    <div class="col-md-5"><input class="form-control" name="q" value="{{ q }}" placeholder="Partner ID, name, mobile or city"></div>
+    <div class="col-md-2"><button class="btn btn-dark w-100" type="submit">Filter</button></div>
+</form>
+<div class="bg-white rounded shadow-sm overflow-hidden">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+    <thead><tr><th>Partner ID</th><th>Name</th><th>City</th><th class="text-end">Verified tags</th><th class="text-end">Available</th><th class="text-end">Pending</th><th class="text-end">Paid out</th><th>Target</th><th>Payout</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+        <td class="fw-semibold"><a href="?tab=partner&uid={{ r.uid }}">{{ r.partner_id|default:"—" }}</a></td>
+        <td>{{ r.name }}<div class="small text-muted">{{ r.phone }}</div></td>
+        <td>{{ r.city }}</td>
+        <td class="text-end">{{ r.verified_tags }}{% if r.pending_tags %} <span class="text-muted small">(+{{ r.pending_tags }})</span>{% endif %}</td>
+        <td class="text-end">₹{{ r.available }}</td>
+        <td class="text-end">₹{{ r.pending }}</td>
+        <td class="text-end">₹{{ r.paid }}</td>
+        <td class="small">{{ r.target|default:"—" }}</td>
+        <td class="small">{% if r.payout_ready %}<span class="text-success">✔</span> {{ r.payout_display }}{% else %}<span class="text-muted">Not added</span>{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9" class="text-center text-muted py-4">No partners.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endif %}
+
+{# ───────────── Partner detail ───────────── #}
+{% if tab == 'partner' %}
+{% if not detail %}
+<div class="alert alert-warning">Partner not found.</div>
+{% else %}
+{% with p=detail.partner %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h4 class="mb-0">{{ p.name }} {% if p.partner_id %}<span class="badge bg-dark">{{ p.partner_id }}</span>{% endif %}</h4>
+    <span class="badge {% if p.status == 'approved' %}bg-success{% elif p.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ p.status }}</span>
+    <span class="text-muted small">{{ p.phone }} · {{ p.city }} · uid {{ p.uid }}</span>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Available</div><div class="fs-5 fw-bold">₹{{ p.available }}</div></div></div></div>
+    <div class="col-6 col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Pending</div><div class="fs-5 fw-bold">₹{{ p.pending }}</div></div></div></div>
+    <div class="col-6 col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">On hold</div><div class="fs-5 fw-bold">₹{{ p.on_hold }}</div></div></div></div>
+    <div class="col-6 col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Paid out</div><div class="fs-5 fw-bold">₹{{ p.paid }}</div></div></div></div>
+    <div class="col-6 col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Lifetime</div><div class="fs-5 fw-bold">₹{{ p.lifetime }}</div></div></div></div>
+    <div class="col-6 col-md-2"><div class="card"><div class="card-body"><div class="text-muted small">Verified tags</div><div class="fs-5 fw-bold">{{ p.verified_tags }}</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-header">Status</div><div class="card-body">
+            <p class="small mb-2">Target: {{ p.target|default:"none" }}{% if p.completed_targets %} · completed: {{ p.completed_targets }}{% endif %}</p>
+            {% if p.reject_reason %}<p class="small text-danger">Reject reason: {{ p.reject_reason }}</p>{% endif %}
+            <form method="post" class="d-flex flex-wrap gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="tab" value="partner">
+                <input type="hidden" name="uid" value="{{ p.uid }}">
+                {% if p.status == 'pending' or p.status == 'rejected' %}<button class="btn btn-sm btn-success" name="action" value="approve">Approve</button>{% endif %}
+                {% if p.status == 'suspended' %}<button class="btn btn-sm btn-success" name="action" value="reactivate">Reactivate</button>{% endif %}
+                {% if p.status == 'approved' or p.status == 'pending' %}
+                <input class="form-control form-control-sm" name="reason" placeholder="Reason (needed to reject / suspend)" style="max-width:260px">
+                {% if p.status == 'pending' %}<button class="btn btn-sm btn-outline-danger" name="action" value="reject">Reject</button>{% endif %}
+                {% if p.status == 'approved' %}<button class="btn btn-sm btn-outline-warning" name="action" value="suspend">Suspend</button>{% endif %}
+                {% endif %}
+            </form>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-header">Payout details</div><div class="card-body small">
+            {% if detail.payout %}
+                {% if detail.payout.method == 'upi' %}
+                    UPI: <span class="fw-semibold">{{ detail.payout.upiId }}</span>
+                {% else %}
+                    Bank: <span class="fw-semibold">{{ detail.payout.accountName }}</span><br>
+                    A/c {{ detail.payout.accountNumber }} · IFSC {{ detail.payout.ifsc }}
+                {% endif %}
+            {% else %}<span class="text-muted">Not added yet.</span>{% endif %}
+        </div></div>
+    </div>
+</div>
+{% endwith %}
+
+<h6 class="mt-4">Withdrawals</h6>
+{% include 'partials/partner_withdrawals_table.html' with rows=detail.withdrawals return_tab='partner' %}
+
+<h6 class="mt-4">Commissions</h6>
+{% include 'partials/partner_commissions_table.html' with rows=detail.commissions return_tab='partner' uid=detail.partner.uid %}
+
+<h6 class="mt-4">Ledger</h6>
+<div class="bg-white rounded shadow-sm overflow-hidden mb-4">
+<div class="table-responsive">
+<table class="table table-sm mb-0">
+    <thead><tr><th>When</th><th>Type</th><th class="text-end">Amount</th><th>Note</th><th>Ref</th></tr></thead>
+    <tbody>
+    {% for e in detail.ledger %}
+    <tr><td class="small">{{ e.created }}</td><td>{{ e.type }}</td><td class="text-end fw-semibold">₹{{ e.amount }}</td><td class="small">{{ e.note }}</td><td class="small text-muted">{{ e.ref }}</td></tr>
+    {% empty %}
+    <tr><td colspan="5" class="text-center text-muted py-3">No ledger entries yet.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+{% endif %}
+{% endif %}
+
+{# ───────────── Withdrawals ───────────── #}
+{% if tab == 'withdrawals' %}
+<form class="row g-2 mb-3" method="get">
+    <input type="hidden" name="tab" value="withdrawals">
+    <div class="col-md-3">
+        <select class="form-select" name="status" onchange="this.form.submit()">
+            <option value="requested" {% if status == 'requested' %}selected{% endif %}>To pay</option>
+            <option value="paid" {% if status == 'paid' %}selected{% endif %}>Paid</option>
+            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+    </div>
+</form>
+{% if status == 'requested' %}
+<div class="alert alert-info small">
+    Pay each request from your bank or UPI app first, then enter the transaction reference (UTR) and click <b>Mark paid</b>.
+    Rejecting returns the amount to the partner's available balance.
+</div>
+{% endif %}
+{% include 'partials/partner_withdrawals_table.html' with rows=rows return_tab='withdrawals' %}
+{% endif %}
+
+{# ───────────── Commissions ───────────── #}
+{% if tab == 'commissions' %}
+<form class="row g-2 mb-3" method="get">
+    <input type="hidden" name="tab" value="commissions">
+    <div class="col-md-3">
+        <select class="form-select" name="status" onchange="this.form.submit()">
+            <option value="" {% if not status %}selected{% endif %}>All</option>
+            <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending (paid, not delivered)</option>
+            <option value="approved" {% if status == 'approved' %}selected{% endif %}>In hold (delivered)</option>
+            <option value="available" {% if status == 'available' %}selected{% endif %}>Available</option>
+            <option value="reversed" {% if status == 'reversed' %}selected{% endif %}>Reversed</option>
+        </select>
+    </div>
+</form>
+<p class="text-muted small">Commissions follow the order status automatically: Delivered starts the hold period; Cancelled / Returned / Failed reverses them.</p>
+{% include 'partials/partner_commissions_table.html' with rows=rows return_tab='commissions' %}
+{% endif %}
+
+{# ───────────── Settings ───────────── #}
+{% if tab == 'settings' %}
+<form method="post" class="card">
+    {% csrf_token %}
+    <input type="hidden" name="tab" value="settings">
+    <input type="hidden" name="action" value="save_settings">
+    <div class="card-body">
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" name="enabled" id="enabled" {% if config.enabled %}checked{% endif %}>
+            <label class="form-check-label" for="enabled">Accept new partner applications</label>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label small">Commission per tag (₹)</label><input class="form-control" type="number" name="commissionPerTag" value="{{ config.commissionPerTag }}" min="1" required></div>
+            <div class="col-md-3"><label class="form-label small">Hold after delivery (days)</label><input class="form-control" type="number" name="holdDays" value="{{ config.holdDays }}" min="0" max="90" required></div>
+            <div class="col-md-3"><label class="form-label small">Minimum withdrawal (₹)</label><input class="form-control" type="number" name="minWithdrawal" value="{{ config.minWithdrawal }}" min="1" required></div>
+            <div class="col-md-3"><label class="form-label small">Target period (days, empty = no limit)</label><input class="form-control" type="number" name="targetDays" value="{{ config.targetDays|default_if_none:'' }}" min="1"></div>
+        </div>
+        <h6 class="mt-4">Targets</h6>
+        <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr><th>Name</th><th>Tags</th><th>Bonus (₹)</th></tr></thead>
+            <tbody>
+            {% for t in config.targets %}
+            <tr>
+                <td><input class="form-control" name="{{ t.key }}_name" value="{{ t.name }}"></td>
+                <td><input class="form-control" type="number" name="{{ t.key }}_tags" value="{{ t.tags }}" min="1" required></td>
+                <td><input class="form-control" type="number" name="{{ t.key }}_bonus" value="{{ t.bonus }}" min="0" required></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <p class="text-muted small">Changes apply to new commissions and new targets. Existing commissions keep the rate they were created with.</p>
+        <button class="btn btn-primary" type="submit">Save settings</button>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

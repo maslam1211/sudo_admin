@@ -72,7 +72,7 @@ def index(request):
     except Exception:
         tag_price = tag_shipping = None
 
-    return render(request, 'index.html', {
+    response = render(request, 'index.html', {
         'tag_price': tag_price,
         'tag_shipping': tag_shipping,
         'banner_ads': _landing_banner_ads(request),
@@ -82,6 +82,9 @@ def index(request):
         'approved_feedbacks_api_url': reverse('approved_feedbacks_api'),
         'splash_qr': _qr_matrix(SPLASH_QR_URL),
     })
+    # sudotag.com/?ref=SUDO1001 — remember the partner for the website checkout.
+    from admin_app.partner_service import remember_ref
+    return remember_ref(request, response)
 
 
 def terms(request):

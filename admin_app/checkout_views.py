@@ -17,6 +17,7 @@ from django.views.decorators.http import require_GET, require_POST
 from firebase_admin import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
+from . import partner_service
 from .razorpay_service import (
     create_razorpay_order,
     get_razorpay_credentials,
@@ -249,10 +250,17 @@ def buy_now(request):
 
     _db = _get_db()
     product, shipping_charge, checkout_settings = _checkout_pricing(_db)
-    return render(
+    partner_code = partner_service.current_ref(request)
+    try:
+        if partner_code and not partner_service.is_active_code(partner_code, db=_db):
+            partner_code = ''
+    except Exception:
+        partner_code = ''
+    response = render(
         request,
         'buy.html',
         {
+            'partner_code': partner_code,
             'product': product,
             'shipping_charge': shipping_charge,
             'buying_open': checkout_settings.get('buyingOpen', True),
@@ -268,6 +276,7 @@ def buy_now(request):
             'pending_url': reverse('buy_pending'),
         },
     )
+    return partner_service.remember_ref(request, response, db=_db)
 
 
 @require_GET
@@ -396,6 +405,15 @@ def checkout_create_order(request):
         order_doc['coupon'] = cleaned.get('coupon') or {}
     if cleaned['email']:
         order_doc['email'] = cleaned['email']
+    # Partner Programme: code typed at checkout, else the ?ref= cookie. Only
+    # an active code is stored; commission rules run in Cloud Functions.
+    partner_code = partner_service.normalize_code(data.get('partnerCode')) \
+        or partner_service.current_ref(request)
+    try:
+        if partner_code and partner_service.is_active_code(partner_code, db=db):
+            order_doc['partnerCode'] = partner_code
+    except Exception:
+        logger.warning('Partner code check failed; order saved without it')
     if cleaned.get('deliveryLocation'):
         order_doc['deliveryLocation'] = cleaned['deliveryLocation']
 

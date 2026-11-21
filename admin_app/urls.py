@@ -11,6 +11,7 @@ from . import referral_views
 from . import app_version_views
 from . import firebase_usage_views
 from . import wallet_views
+from . import partner_views
 from . import fleet_views
 from . import promotion_notification_views
 from . import civic_sense_views
@@ -58,6 +59,7 @@ urlpatterns = [
     path('manage-daily-usage/', views.manage_daily_usage, name='manage_daily_usage'),
     # Referral management (read / analytics / export — writes via Cloud Functions)
     path('rewards/', wallet_views.manage_rewards, name='manage_rewards'),
+    path('partners/', partner_views.manage_partners, name='manage_partners'),
     path('app-versions/', app_version_views.manage_app_versions, name='manage_app_versions'),
     path('firebase-usage/', firebase_usage_views.firebase_usage, name='firebase_usage'),
     path('app-versions/<str:platform>/publish/', app_version_views.publish_app_version, name='publish_app_version'),
