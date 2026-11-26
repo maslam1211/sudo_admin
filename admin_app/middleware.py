@@ -73,3 +73,40 @@ class IndiaTimeMiddleware:
             return self.get_response(request)
         finally:
             timezone.deactivate()
+
+
+class AdminSessionGuardMiddleware:
+    """Sign admins out after 30 minutes idle or 12 hours in total.
+
+    Runs after the session and messages middleware. Asset and sign-in URLs
+    are skipped so they never extend or end a session.
+    """
+
+    SKIP_PREFIXES = ('/admin/assets/', '/admin/login', '/admin/verify-auth-pin', '/admin/logout',
+                     '/admin/security/setup', '/static/', '/favicon')
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        session = getattr(request, 'session', None)
+        if session is not None and session.get('admin') and not request.path.startswith(self.SKIP_PREFIXES):
+            import time
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            from django.urls import reverse
+            from . import admin_security as sec
+
+            reason = sec.session_expired(session)
+            if reason:
+                session.flush()
+                try:
+                    messages.info(request, reason)
+                except Exception:
+                    pass
+                return redirect(f"{reverse('verify_auth_pin')}?action=login")
+            now = time.time()
+            # Write at most once a minute to keep session saves cheap.
+            if now - float(session.get('admin_last_seen') or 0) > 60:
+                session['admin_last_seen'] = now
+        return self.get_response(request)

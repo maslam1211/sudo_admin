@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Account security - SudoTag Admin{% endblock %}
+{% block page_title %}Account security{% endblock %}
+{% block content %}
+<div class="st-page-head">
+  <div>
+    <h2>Account security</h2>
+    <p>Your sign-ins use your own password plus a code from the authenticator app on your iPhone. You're signed out after 30 minutes idle, or 12 hours at most.</p>
+  </div>
+</div>
+
+{% if messages %}{% for message in messages %}
+<div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}{% endif %}
+
+<div class="an-grid main-side">
+  <section class="an-card">
+    <div class="an-card-head"><div><h3>Recent sign-ins</h3><p>Every attempt on your account that got past the PIN. If you don't recognise one, change your password now.</p></div></div>
+    {% if events %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead><tr><th>When</th><th>Result</th><th>Step</th><th>IP address</th><th>Device</th></tr></thead>
+        <tbody>
+        {% for e in events %}
+          <tr>
+            <td class="text-nowrap">{{ e.at|date:"j M, g:i A" }}</td>
+            <td>{% if e.ok %}<span class="st-badge is-safe">OK</span>{% else %}<span class="st-badge is-alert">Failed</span>{% endif %}</td>
+            <td class="small">{{ e.step }}{% if e.reason %} <span class="text-muted">· {{ e.reason }}</span>{% endif %}</td>
+            <td class="small st-mono">{{ e.ip }}</td>
+            <td class="small text-muted" style="max-width: 260px;"><span class="d-inline-block text-truncate" style="max-width: 260px;" title="{{ e.userAgent }}">{{ e.userAgent }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="an-empty">No sign-ins recorded yet.</div>
+    {% endif %}
+  </section>
+
+  <section class="an-card">
+    <div class="an-card-head"><div><h3>Change password</h3><p>Needs your current password and a fresh code from your iPhone.</p></div></div>
+    {% if is_set_up %}
+    <form method="post" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="change_password">
+      <label class="form-label" for="cur">Current password</label>
+      <input class="form-control mb-2" id="cur" type="password" name="current" autocomplete="current-password" required>
+      <label class="form-label" for="new">New password</label>
+      <input class="form-control mb-2" id="new" type="password" name="new" autocomplete="new-password" minlength="{{ min_length }}" required>
+      <label class="form-label" for="new2">Type it again</label>
+      <input class="form-control mb-2" id="new2" type="password" name="new2" autocomplete="new-password" minlength="{{ min_length }}" required>
+      <label class="form-label" for="code">Authenticator code</label>
+      <input class="form-control mb-3 st-mono" id="code" name="code" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="000000" required>
+      <button class="btn btn-primary w-100" type="submit">Change password</button>
+    </form>
+    {% else %}
+    <div class="an-empty">Sign out and sign in again to finish setting up your password and authenticator.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -100,6 +100,10 @@ RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
 
 # PIN shown before login/register and for delete-data flow (override in production via env)
 ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '')
+# Encrypts admins' authenticator secrets in Firestore. Set it once in the
+# server env and never change it (changing it means every admin re-scans).
+# Falls back to SECRET_KEY when unset.
+ADMIN_2FA_KEY = os.getenv('ADMIN_2FA_KEY', '')
 
 # Local dev: common ports (avoids 403 "Origin checking failed" when CSRF_TRUSTED_ORIGINS is set)
 if DEBUG:
@@ -170,6 +174,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'admin_app.middleware.AdminSessionGuardMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'admin_app.middleware.InjectFaviconMiddleware',
 ]

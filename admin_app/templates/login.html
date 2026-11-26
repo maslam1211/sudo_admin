@@ -286,10 +286,6 @@
                 </button>
             </div>
             {% else %}
-            <div class="success-message">
-                <i class="fas fa-check-circle"></i>
-                <span>OTP verified for {{ otp_phone_masked }}. Enter your credentials below.</span>
-            </div>
 
             <form method="POST" action="{% url 'admin_login' %}">
                 {% csrf_token %}
@@ -488,5 +484,6 @@
         });
     });
     </script>
+{% include 'includes/password_toggle.html' %}
 </body>
 </html>

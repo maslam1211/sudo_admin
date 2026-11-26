@@ -1,0 +1,46 @@
+{% load admin_assets %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Sign in{% endblock %} - SudoTag Admin</title>
+    {% include 'includes/admin_head.html' %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        .auth-wrap { width: 100%; max-width: {% block width %}440px{% endblock %}; position: relative; }
+        .pin-card { padding: 2.25rem 2rem; text-align: left; }
+        .brand-logo { text-align: center; line-height: 0; margin-bottom: 1.25rem; }
+        .brand-logo img { height: 32px; width: auto; }
+        .auth-step { font-family: var(--st-font-mono); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--st-orange-deep); text-align: center; margin-bottom: .35rem; }
+        .pin-title { font-size: 1.4rem; text-align: center; margin-bottom: .35rem; }
+        .pin-subtitle { text-align: center; color: var(--st-muted); font-size: .92rem; margin-bottom: 1.5rem; }
+        .code-input { font-family: var(--st-font-mono); font-size: 1.8rem; letter-spacing: .5em; text-align: center; padding: .7rem .5rem .7rem 1rem; }
+        .help { font-size: .82rem; color: var(--st-muted); }
+        .alert { border-radius: 12px; font-size: .88rem; }
+        .back { text-align: center; margin-top: 1.1rem; font-size: .85rem; }
+        .back a { color: var(--st-orange-deep); font-weight: 600; text-decoration: none; }
+    </style>
+    <link rel="stylesheet" href="{% admin_asset 'assets/css/sudotag-auth.css' %}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="auth-wrap">
+        <div class="pin-card">
+            <div class="brand-logo">{% include 'includes/brand_logo_img.html' %}</div>
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+            {% block card %}{% endblock %}
+        </div>
+    </div>
+    {% block scripts %}{% endblock %}
+{% include 'includes/password_toggle.html' %}
+</body>
+</html>

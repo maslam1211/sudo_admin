@@ -1,0 +1,25 @@
+{% extends 'auth_base.html' %}
+{% block title %}Authenticator code{% endblock %}
+{% block card %}
+<div class="auth-step">Step 3 of 3</div>
+<h1 class="pin-title">Enter your code</h1>
+<p class="pin-subtitle">Open the authenticator app on your iPhone and type the 6-digit code for <b>SudoTag Admin</b> ({{ email }}).</p>
+<form method="post" autocomplete="off">
+    {% csrf_token %}
+    <input class="form-control code-input" name="code" inputmode="numeric" pattern="[0-9 ]*" maxlength="7"
+           autocomplete="one-time-code" placeholder="000000" required autofocus aria-label="6-digit code">
+    <button type="submit" class="btn login-btn w-100 mt-3 py-2"><i class="fas fa-shield-alt me-2"></i>Verify and sign in</button>
+</form>
+<p class="help mt-3 mb-0"><i class="fas fa-info-circle me-1"></i>Codes change every 30 seconds. If it keeps failing, make sure your iPhone's time is set automatically. Lost your phone? Ask the owner to reset your authenticator.</p>
+<div class="back"><a href="{% url 'admin_logout' %}">Cancel and start again</a></div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Submit as soon as 6 digits are typed or pasted.
+  const i = document.querySelector('[name=code]');
+  i.addEventListener('input', () => {
+    i.value = i.value.replace(/\D/g, '').slice(0, 6);
+    if (i.value.length === 6) i.form.requestSubmit();
+  });
+</script>
+{% endblock %}

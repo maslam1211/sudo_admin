@@ -249,6 +249,9 @@
                 </div>
             </div>
             {% endif %}
+            <a href="{% url 'admin_account_security' %}" class="btn-logout mb-2" style="background: transparent;">
+                <i class="fas fa-user-shield"></i>Account security
+            </a>
             <a href="{% url 'admin_logout' %}" class="btn-logout">
                 <i class="fas fa-sign-out-alt"></i>Log out
             </a>
@@ -322,5 +325,6 @@
     </script>
     <script src="{% admin_asset 'assets/js/sudotag-ui.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
+{% include 'includes/password_toggle.html' %}
 </body>
 </html>

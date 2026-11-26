@@ -415,7 +415,21 @@ def custom_404(request, exception):
 def verify_auth_pin(request):
     """PIN verification page for login/register access"""
     if request.method == 'POST':
+        from . import admin_security as sec
         pin = request.POST.get('pin', '').strip()
+        ip = sec.client_ip(request)
+        try:
+            sec.check_not_locked('pin', ip)
+        except sec.SecurityError as exc:
+            messages.error(request, str(exc))
+            return render(request, 'verify_auth_pin.html', {'action': request.GET.get('action', 'login')})
+        if not _secret_matches(pin, 'ADMIN_GATE_PIN'):
+            left = sec.record_failure('pin', ip)
+            if not left:
+                messages.error(request, 'Too many wrong tries. The PIN is locked for 15 minutes.')
+                return render(request, 'verify_auth_pin.html', {'action': request.GET.get('action', 'login')})
+        else:
+            sec.clear_failures('pin', ip)
         if _secret_matches(pin, 'ADMIN_GATE_PIN'):
             request.session['auth_pin_verified'] = True
             request.session.modified = True
@@ -453,34 +467,37 @@ def _is_admin_role_id(role_id):
 
 @ensure_csrf_cookie
 def admin_login(request):
+    from . import admin_security as sec
     # Check PIN verification
     if not request.session.get('auth_pin_verified'):
         return redirect(f"{reverse('verify_auth_pin')}?action=login")
 
-    otp_phone = getattr(settings, 'ADMIN_LOGIN_OTP_PHONE', '')
-    login_ctx = {
-        'otp_verified': is_admin_login_otp_verified(request),
-        'otp_phone_masked': mask_phone_for_display(otp_phone),
-    }
-
+    # No SMS step: the authenticator code on the admin's iPhone (next step)
+    # is the second factor. The page's old OTP gate stays hidden.
+    login_ctx = {'otp_verified': True}
 
     if request.method == 'POST':
-        if not is_admin_login_otp_verified(request):
-            messages.error(request, 'Verify OTP before signing in.')
-            return render(request, 'login.html', login_ctx)
-
         email_raw = (request.POST.get('email') or '').strip()
         email_lower = email_raw.lower()
-        password = request.POST.get('password')
+        password = request.POST.get('password') or ''
+        lock_id = f'{email_lower}|{sec.client_ip(request)}'
+        try:
+            sec.check_not_locked('password', lock_id)
+        except sec.SecurityError as exc:
+            messages.error(request, str(exc))
+            return render(request, 'login.html', login_ctx)
 
-        # Verify password
-        if not _secret_matches(password, 'ADMIN_PANEL_PASSWORD'):
-            messages.error(request, 'Invalid email or password.')
+        def wrong(reason, uid=''):
+            left = sec.record_failure('password', lock_id)
+            sec.log_event(db, request, email=email_lower, uid=uid, ok=False, step='password', reason=reason)
+            if left:
+                messages.error(request, f'Invalid email or password. {left} tr{"y" if left == 1 else "ies"} left.')
+            else:
+                messages.error(request, 'Too many wrong tries. Sign-in is locked for 15 minutes.')
             return render(request, 'login.html', login_ctx)
 
         # Fetch user data from Firebase (Firestore string match is case-sensitive; try common variants)
         try:
-            db = firestore.client()
             query_values = []
             if email_raw:
                 query_values.append(email_raw)
@@ -498,43 +515,46 @@ def admin_login(request):
                         seen_doc_ids.add(doc.id)
                         user_docs.append(doc)
 
-            user_found = bool(user_docs)
-            permission_denied = False
+            match = None
             for user in user_docs:
-                user_data = user.to_dict()
+                user_data = user.to_dict() or {}
                 stored_email = (user_data.get('emailAddress') or '').strip()
-                if stored_email.lower() != email_lower:
-                    continue
-
-                # Check if user has role 1 (admin role)
-                if not _is_admin_role_id(user_data.get('roleId')):
-                    messages.error(
-                        request,
-                        "You don't have permission to access admin panel.",
-                    )
-                    permission_denied = True
+                if stored_email.lower() == email_lower:
+                    match = (user, user_data, stored_email or email_raw)
                     break
+            # Same message whether the email exists or not, so nobody can
+            # probe which emails are admins.
+            if not match:
+                return wrong('unknown email')
+            user, user_data, stored_email = match
+            if not _is_admin_role_id(user_data.get('roleId')):
+                return wrong('not an admin', user.id)
 
-                request.session['admin'] = True
-                request.session['user_id'] = user.id
-                request.session['email'] = stored_email or email_raw
-                request.session.pop('auth_pin_verified', None)
-                request.session.pop('admin_login_otp_verified', None)
-                request.session.modified = True
-                return redirect('dashboard')
+            account = sec.get_account(db, user.id)
+            if sec.is_set_up(account):
+                if not sec.password_ok(password, account.get('passwordHash', '')):
+                    return wrong('wrong password', user.id)
+                setup = False
+            else:
+                # First sign-in after the upgrade: the old shared password,
+                # once, then straight to creating a personal one.
+                if not _secret_matches(password, 'ADMIN_PANEL_PASSWORD'):
+                    return wrong('wrong shared password', user.id)
+                setup = True
 
-            if not user_found:
-                messages.error(request, 'No user found with this email.')
-            elif not permission_denied:
-                messages.error(request, 'Invalid email or password.')
-        except Exception as e:
+            sec.clear_failures('password', lock_id)
+            sec.set_pending(request, uid=user.id, email=stored_email, setup=setup)
+            sec.log_event(db, request, email=email_lower, uid=user.id, ok=True, step='password',
+                          reason='first-time setup' if setup else '')
+            return redirect('admin_security_setup' if setup else 'admin_login_2fa')
+        except Exception:
             logger.exception("Admin login Firestore lookup failed")
             messages.error(
                 request,
                 'Login service is temporarily unavailable. '
                 'Please check internet/DNS and try again.'
             )
-    
+
     return render(request, 'login.html', login_ctx)
 
 
