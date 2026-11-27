@@ -1933,8 +1933,11 @@ def manage_vehicle_detail(request, vehicle_id):
 
     vehicle_doc = vehicle_ref.get()
     vehicle = enrich_vehicle_for_admin({**(vehicle_doc.to_dict() or {}), 'id': vehicle_id})
+    from .customer_admin import VEHICLE_TYPES
     return render(request, 'manage_vehicle_detail.html', {
         'vehicle': vehicle,
+        'vehicle_id': vehicle_id,
+        'vehicle_types': VEHICLE_TYPES,
         'max_photos': MAX_VEHICLE_PHOTOS,
         'messages': get_message_list(request),
     })
@@ -2057,7 +2060,11 @@ def handle_bulk_delete(request, users_ref):
             if snap.exists and _is_protected_admin_user(snap.to_dict()):
                 skipped_admin += 1
                 continue
-            users_ref.document(user_id).delete()
+            # Full delete: archive, free QR stickers / Smart Tags, remove
+            # vehicles and the sign-in account, then the profile.
+            from . import customer_admin
+            customer_admin.delete_customer(db, user_id, auth_module=auth,
+                                           is_protected=_is_protected_admin_user)
             success_count += 1
         except Exception as e:
             messages.error(request, f'Error deleting user {user_id}: {str(e)}')
@@ -2089,8 +2096,12 @@ def handle_single_delete(request, users_ref):
         if snap.exists and _is_protected_admin_user(snap.to_dict()):
             messages.error(request, 'Cannot delete admin account')
             return redirect('manage_users')
-        users_ref.document(user_id).delete()
-        messages.success(request, 'User deleted successfully')
+        from . import customer_admin
+        res = customer_admin.delete_customer(db, user_id, auth_module=auth,
+                                             is_protected=_is_protected_admin_user)
+        messages.success(request, (
+            f"Customer deleted and archived: {res['vehicles']} vehicle(s), "
+            f"{res['qrs_freed']} QR sticker(s) and {res['smart_tags_freed']} Smart Tag(s) freed."))
     except Exception as e:
         messages.error(request, f'Error deleting user: {str(e)}')
     

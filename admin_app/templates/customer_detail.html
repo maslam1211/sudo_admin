@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}{{ user.fullName|default:"Customer" }} - SudoTag Admin{% endblock %}
+{% block page_title %}Customers{% endblock %}
+
+{% block content %}
+<style>
+  .cu-head { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .cu-avatar { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font: 700 1.3rem var(--st-font-display); background: var(--st-orange-soft); color: var(--st-orange-deep); overflow: hidden; flex-shrink: 0; }
+  .cu-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .cu-meta { color: var(--st-muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: .35rem 1rem; }
+  .cu-list { list-style: none; margin: 0; padding: 0; }
+  .cu-list li { display: flex; align-items: center; gap: .75rem; padding: .75rem 0; border-top: 1px solid var(--st-line); }
+  .cu-list li:first-child { border-top: 0; padding-top: 0; }
+  .cu-list .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--st-surface-2); color: var(--st-ink-2); flex-shrink: 0; }
+  .cu-list .main { min-width: 0; flex: 1; }
+  .cu-list .main b { display: block; }
+  .cu-list .main small { color: var(--st-muted); }
+  .danger-zone { border: 1px solid rgba(229,56,74,.35); background: #FFF7F8; }
+  .danger-zone h3 { color: #A31D2D; }
+</style>
+
+<div class="mb-3">
+  <a href="{% url 'manage_users' %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>All customers</a>
+</div>
+
+{% if messages %}{% for message in messages %}
+<div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags %}{{ message.tags }}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}{% endif %}
+
+<section class="an-card mb-4">
+  <div class="cu-head">
+    <div class="cu-avatar">{% if user.profilePicture %}<img src="{{ user.profilePicture }}" alt="" onerror="this.replaceWith(document.createTextNode('{{ user.fullName|default:"?"|slice:":1"|upper|escapejs }}'))">{% else %}{{ user.fullName|default:"?"|slice:":1"|upper }}{% endif %}</div>
+    <div class="flex-grow-1" style="min-width: 0;">
+      <h2 class="h4 mb-1">{{ user.fullName|default:"Unnamed customer" }}{% if protected %} <span class="st-badge is-orange">Admin</span>{% endif %}</h2>
+      <div class="cu-meta">
+        <span><i class="fas fa-envelope me-1"></i>{{ user.emailAddress|default:"No email" }}</span>
+        <span><i class="fas fa-phone me-1"></i>{{ user.contactNumber|default:"No phone" }}</span>
+        {% if user.city %}<span><i class="fas fa-map-marker-alt me-1"></i>{{ user.city }}</span>{% endif %}
+        {% if user.createdAt %}<span><i class="far fa-calendar me-1"></i>Joined {{ user.createdAt|to_ist|date:"j M Y" }}</span>{% endif %}
+        {% if user.lastSeen %}<span><i class="far fa-clock me-1"></i>Last seen {{ user.lastSeen|to_ist|date:"j M, g:i A" }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <span class="st-badge">{{ vehicles|length }} vehicle{{ vehicles|length|pluralize }}</span>
+      <span class="st-badge">{{ qrs|length }} QR</span>
+      <span class="st-badge">{{ orders_count }} order{{ orders_count|pluralize }}</span>
+    </div>
+  </div>
+</section>
+
+<div class="an-grid main-side">
+  <section class="an-card">
+    <div class="an-card-head"><div><h3>Customer details</h3><p>Changes also update this customer's vehicles (owner name and phone shown on QR scans) and their sign-in email / phone.</p></div></div>
+    <form method="post" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label required" for="fullName">Full name</label>
+          <input class="form-control" id="fullName" name="fullName" value="{{ user.fullName|default:'' }}" maxlength="80" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="city">City</label>
+          <input class="form-control" id="city" name="city" value="{{ user.city|default:'' }}" maxlength="60">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label required" for="emailAddress">Email</label>
+          <input class="form-control" id="emailAddress" name="emailAddress" type="email" value="{{ user.emailAddress|default:'' }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label required" for="contactNumber">Mobile number</label>
+          <input class="form-control" id="contactNumber" name="contactNumber" inputmode="tel" value="{{ user.contactNumber|default:'' }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="bloodGroup">Blood group</label>
+          <select class="form-select" id="bloodGroup" name="bloodGroup">
+            <option value="">Not set</option>
+            {% for g in blood_groups %}<option value="{{ g }}" {% if user.bloodGroup|upper == g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="defaultEmergencyContact">Emergency contact</label>
+          <input class="form-control" id="defaultEmergencyContact" name="defaultEmergencyContact" inputmode="tel" value="{{ user.defaultEmergencyContact|default:'' }}" placeholder="Optional">
+        </div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+        <span class="small text-muted">User ID <span class="st-mono">{{ uid }}</span></span>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-save me-2"></i>Save changes</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="an-card">
+    <div class="an-card-head"><div><h3>Vehicles</h3><p>Open a vehicle to edit it, move it to another customer, unlink its QR or delete it.</p></div></div>
+    {% if duplicates %}
+    <div class="alert alert-warning py-2 small"><i class="fas fa-exclamation-triangle me-1"></i>
+      Duplicate vehicle record{{ duplicates|length|pluralize }}: <b>{{ duplicates|join:", " }}</b> is saved more than once.
+      Open the extra copy and delete it. The QR sticker stays with the copy you keep.</div>
+    {% endif %}
+    {% if vehicles %}
+    <ul class="cu-list">
+      {% for v in vehicles %}
+      <li>
+        <span class="ic"><i class="fas fa-car"></i></span>
+        <span class="main"><b>{{ v.registrationNumber|default:"No registration" }}</b><small>{{ v.make }} {{ v.model }} · {{ v.vehicleType|default:"" }}{% if v.qrCodeId %} · QR {{ v.qrCodeId|truncatechars:10 }}{% else %} · no QR{% endif %}</small></span>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'manage_vehicle_detail' v.id %}">Open</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<div class="an-empty">No vehicles.</div>{% endif %}
+
+    {% if tags %}
+    <div class="an-sub">Smart Tags</div>
+    <ul class="cu-list">
+      {% for t in tags %}
+      <li><span class="ic"><i class="fas fa-tag"></i></span><span class="main"><b>{{ t.title|default:t.id }}</b><small>{{ t.categoryLabel|default:"" }}{% if not t.isAssigned %} · inactive{% endif %}</small></span>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'manage_multipurpose_qr' t.id %}">Open</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+</div>
+
+{% if orders %}
+<section class="st-card mb-4">
+  <div class="db-head" style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.6rem;border-bottom:1px solid var(--st-line);">
+    <h3 class="h6 m-0">Orders</h3>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'view_orders' %}?q={{ user.contactNumber|default:user.emailAddress|urlencode }}">View in Orders</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Payment</th><th class="text-end">Amount</th></tr></thead>
+      <tbody>
+      {% for o in orders %}
+        <tr>
+          <td class="st-mono small">{{ o.id|truncatechars:14 }}</td>
+          <td class="small text-nowrap">{% if o.timestamp %}{{ o.timestamp|to_ist|date:"j M Y" }}{% else %}–{% endif %}</td>
+          <td><span class="st-badge">{{ STATUS_MAPPING|get_item:o.orderStatus|default:"Unknown" }}</span></td>
+          <td>{% if o.paymentStatus == 'paid' %}<span class="st-badge is-safe">Paid</span>{% else %}<span class="st-badge is-amber">{{ o.paymentStatus|default:"Pending"|capfirst }}</span>{% endif %}</td>
+          <td class="text-end fw-bold">₹{{ o.amount|default:0|floatformat:0 }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if not protected %}
+<section class="an-card danger-zone">
+  <div class="an-card-head"><div><h3>Delete customer</h3>
+    <p>Archives the customer and their {{ vehicles|length }} vehicle{{ vehicles|length|pluralize }} (see Archived Data), frees their QR stickers and Smart Tags so they can be reused, deletes their sign-in account and removes their profile. Orders and payments are kept.</p></div></div>
+  <form method="post" class="d-flex gap-2 flex-wrap align-items-end" onsubmit="return confirm('Delete {{ user.fullName|default:'this customer'|escapejs }}? This cannot be undone.');">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete">
+    <div class="flex-grow-1" style="min-width: 240px;">
+      <label class="form-label" for="confirm">Type <b>{{ user.emailAddress|default:"DELETE" }}</b> to confirm</label>
+      <input class="form-control" id="confirm" name="confirm" autocomplete="off" required>
+    </div>
+    <button class="btn btn-danger" type="submit"><i class="fas fa-trash-alt me-2"></i>Delete customer</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

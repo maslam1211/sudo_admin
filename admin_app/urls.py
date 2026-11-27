@@ -5,6 +5,7 @@ from . import views
 from . import analytics_views
 from . import asset_views
 from . import admin_auth_views
+from . import customer_admin_views
 from . import order_delete_views
 from . import checkout_views
 from . import checkout_coupon_views
@@ -45,6 +46,8 @@ urlpatterns = [
     path('login/2fa/', admin_auth_views.admin_login_2fa, name='admin_login_2fa'),
     path('security/setup/', admin_auth_views.admin_security_setup, name='admin_security_setup'),
     path('security/', admin_auth_views.admin_account_security, name='admin_account_security'),
+    path('customers/<str:user_id>/', customer_admin_views.customer_detail, name='customer_detail'),
+    path('manage-vehicles/<str:vehicle_id>/action/', customer_admin_views.vehicle_admin_action, name='vehicle_admin_action'),
     path('assets/<path:path>', asset_views.admin_asset, name='admin_asset'),
     path('generate-qr/', views.generate_qr, name='generate_qr'),
     path('generate-qr/otp/send/', views.generate_qr_otp_send, name='generate_qr_otp_send'),

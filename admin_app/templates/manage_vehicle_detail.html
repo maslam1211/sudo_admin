@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}Vehicle Photos - Admin Panel{% endblock %}
-{% block page_title %}Vehicle Photos{% endblock %}
+{% block title %}{{ vehicle.registrationNumber|default:'Vehicle' }} - SudoTag Admin{% endblock %}
+{% block page_title %}Vehicles{% endblock %}
 
 {% block content %}
 <style>
@@ -44,19 +44,76 @@
 
 <div class="mb-3">
     <a href="{% url 'manage_vehicles' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Back to vehicles
+        <i class="fas fa-arrow-left me-1"></i> All vehicles
     </a>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="mb-1">{{ vehicle.registrationNumber|default:"Vehicle" }}</h5>
-        <p class="text-muted mb-0">
-            {{ vehicle.make|default:"" }} {{ vehicle.model|default:"" }}
-            · {{ vehicle.vehicleType|default:"" }}
-            · Owner: {{ vehicle.ownerFullName|default:"—" }}
-        </p>
+<div class="an-grid main-side">
+  <section class="an-card">
+    <div class="an-card-head"><div><h3>{{ vehicle.registrationNumber|default:"Vehicle" }}</h3><p>Edit the vehicle details. The registration number must be unique.</p></div></div>
+    <form method="post" action="{% url 'vehicle_admin_action' vehicle_id %}" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label required" for="reg">Registration number</label>
+          <input class="form-control st-mono text-uppercase" id="reg" name="registrationNumber" value="{{ vehicle.registrationNumber|default:'' }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label required" for="vtype">Type</label>
+          <select class="form-select" id="vtype" name="vehicleType" required>
+            {% for t in vehicle_types %}<option value="{{ t }}" {% if vehicle.vehicleType|title == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label required" for="make">Make</label>
+          <input class="form-control" id="make" name="make" value="{{ vehicle.make|default:'' }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="model">Model</label>
+          <input class="form-control" id="model" name="model" value="{{ vehicle.model|default:'' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="year">Year</label>
+          <input class="form-control" id="year" name="yearOfManufacturing" inputmode="numeric" maxlength="4" value="{{ vehicle.yearOfManufacturing|default:'' }}">
+        </div>
+      </div>
+      <div class="text-end mt-3"><button class="btn btn-primary" type="submit"><i class="fas fa-save me-2"></i>Save vehicle</button></div>
+    </form>
+  </section>
+
+  <section class="an-card">
+    <div class="an-card-head"><div><h3>Owner</h3></div>
+      {% if vehicle.ownerId %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'customer_detail' vehicle.ownerId %}">Open customer</a>{% endif %}</div>
+    <div class="mb-3">
+      <b>{{ vehicle.ownerFullName|default:"—" }}</b><br>
+      <span class="text-muted small">{{ vehicle.ownerContact|default:"" }}</span>
     </div>
+    <form method="post" action="{% url 'vehicle_admin_action' vehicle_id %}" onsubmit="return confirm('Move this vehicle and its QR sticker to the new owner?');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="transfer">
+      <label class="form-label" for="owner">Move to another customer</label>
+      <div class="input-group">
+        <input class="form-control" id="owner" name="owner" placeholder="Their email or mobile number" required>
+        <button class="btn btn-outline-secondary" type="submit">Move</button>
+      </div>
+      <div class="form-text">For a sold vehicle. Its QR sticker moves to the new owner too.</div>
+    </form>
+
+    <div class="an-sub">QR sticker</div>
+    {% if vehicle.qrCodeId %}
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+      <span class="st-mono small">{{ vehicle.qrCodeId }}</span>
+      <form method="post" action="{% url 'vehicle_admin_action' vehicle_id %}" onsubmit="return confirm('Unlink QR {{ vehicle.qrCodeId|escapejs }}? Scanning it will open activation again.');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="unlink_qr">
+        <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-unlink me-1"></i>Unlink</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="small text-muted">No QR sticker linked. <a href="{% url 'assign_qr' %}">Assign one</a>.</div>
+    {% endif %}
+  </section>
 </div>
 
 <div class="card shadow-sm mb-4">
@@ -117,4 +174,19 @@
         {% endif %}
     </div>
 </div>
+
+<section class="an-card mt-4" style="border-color: rgba(229,56,74,.35); background: #FFF7F8;">
+  <div class="an-card-head"><div><h3 style="color:#A31D2D;">Delete vehicle</h3>
+    <p>Archives the vehicle (see Archived Data), frees its QR sticker for reuse and updates the owner's vehicle count.</p></div></div>
+  <form method="post" action="{% url 'vehicle_admin_action' vehicle_id %}" class="d-flex gap-2 flex-wrap align-items-end"
+        onsubmit="return confirm('Delete {{ vehicle.registrationNumber|default:'this vehicle'|escapejs }}? This cannot be undone.');">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete">
+    <div class="flex-grow-1" style="min-width: 220px;">
+      <label class="form-label" for="confirm">Type <b>{{ vehicle.registrationNumber|default:"DELETE" }}</b> to confirm</label>
+      <input class="form-control st-mono" id="confirm" name="confirm" autocomplete="off" required>
+    </div>
+    <button class="btn btn-danger" type="submit"><i class="fas fa-trash-alt me-2"></i>Delete vehicle</button>
+  </form>
+</section>
 {% endblock %}

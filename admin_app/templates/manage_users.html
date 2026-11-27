@@ -184,15 +184,13 @@
                     <tr class="user-row">
                         <td><input type="checkbox" name="selected_users" value="{{ user.doc_id }}" class="user_checkbox"></td>
                         <td><span class="font-monospace" style="word-break: break-all;">{{ user.doc_id }}</span></td>
-                        <td>{{ user.fullName|default:"-" }}</td>
+                        <td><a href="{% url 'customer_detail' user.doc_id %}" class="fw-semibold text-decoration-none">{{ user.fullName|default:"-" }}</a></td>
                         <td>{{ user.city|default:"-" }}</td>
                         <td>{{ user.emailAddress|default:"<span class='text-muted'>Not available</span>" }}</td>
                         <td>{{ user.contactNumber|default:"<span class='text-muted'>Not available</span>" }}</td>
                         <td>
                             <div class="action-buttons">
-                                <button type="button" class="btn-icon btn-icon-edit" data-bs-toggle="modal" data-bs-target="#editModal{{ forloop.counter }}" title="Edit User">
-                                    <i class="fas fa-edit"></i>
-                                </button>
+                                <a href="{% url 'customer_detail' user.doc_id %}" class="btn-icon btn-icon-edit" title="Open and edit customer" aria-label="Open and edit customer"><i class="fas fa-edit"></i></a>
                                 <form method="POST" class="d-inline m-0">
                                     {% csrf_token %}
                                     <input type="hidden" name="user_id" value="{{ user.doc_id }}">
