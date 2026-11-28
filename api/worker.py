@@ -92,6 +92,16 @@ def _sync_referrals():
     return referral_service.import_everything(firebase.firestore_db())
 
 
+def _sync_partners():
+    """Read copy of the Partner Programme; the Cloud Functions still own every
+    balance change (their triggers run after admin decisions and orders)."""
+    from partners import sync as partner_sync
+
+    from . import firebase
+
+    return partner_sync.import_everything(firebase.firestore_db())
+
+
 def _mirror_hours() -> float:
     return float(getattr(settings, 'MIRROR_INTERVAL_HOURS', 24) or 0)
 
@@ -108,6 +118,7 @@ JOBS: list[Job] = [
     Job('prune', timedelta(days=1), _prune),
     Job('sync_phase2', timedelta(minutes=2), _sync_phase2, lease=timedelta(minutes=10)),
     Job('sync_referrals', timedelta(minutes=10), _sync_referrals, lease=timedelta(minutes=10)),
+    Job('sync_partners', timedelta(minutes=5), _sync_partners, lease=timedelta(minutes=10)),
 ]
 
 

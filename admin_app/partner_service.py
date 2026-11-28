@@ -46,6 +46,38 @@ def _db():
     return firestore.client()
 
 
+def _copy(db):
+    """partners.sync when reading the PostgreSQL copy: only for the real pages
+    (no db passed in) and after the first full import."""
+    if db is not None:
+        return None
+    try:
+        from partners import sync
+
+        return sync if sync.postgres_ready() else None
+    except Exception:
+        return None
+
+
+def _refresh(db_given, fn, *args, **kwargs):
+    """Copy what a decision changed into PostgreSQL (real pages only)."""
+    if db_given is not None:
+        return
+    try:
+        from partners import sync
+
+        getattr(sync, fn)(_db(), *args, **kwargs)
+    except Exception:
+        pass  # the worker's next import catches it
+
+
+def _copied_rows(model, row_fn, limit, order, **filters):
+    from partners.sync import Doc
+
+    qs = model.objects.filter(deleted_at__isnull=True, **filters).order_by(*order)[:limit]
+    return [row_fn(Doc(r.pk, r.document)) for r in qs]
+
+
 def stamp(value) -> str:
     if value is None:
         return ''
@@ -114,12 +146,14 @@ def parse_config_form(form) -> dict:
 
 
 def save_config(config: dict, actor: str, db=None) -> None:
+    given = db
     db = db or _db()
     db.collection('partnerProgram').document('config').set({
         **config,
         'updatedBy': actor,
         'updatedAt': firestore.SERVER_TIMESTAMP,
     }, merge=True)
+    _refresh(given, 'refresh_settings')
 
 
 # ─── Reads ──────────────────────────────────────────────────────────────────
@@ -156,11 +190,17 @@ def _partner_row(doc) -> dict:
 
 
 def list_partners(status: str = '', query: str = '', db=None, limit: int = 200) -> list[dict]:
-    db = db or _db()
-    ref = db.collection('partners')
-    if status in PARTNER_STATUSES:
-        ref = ref.where(filter=FieldFilter('status', '==', status))
-    rows = [_partner_row(d) for d in ref.limit(limit).stream()]
+    if _copy(db):
+        from partners.models import Partner
+
+        rows = _copied_rows(Partner, _partner_row, limit, ['uid'],
+                            **({'status': status} if status in PARTNER_STATUSES else {}))
+    else:
+        db = db or _db()
+        ref = db.collection('partners')
+        if status in PARTNER_STATUSES:
+            ref = ref.where(filter=FieldFilter('status', '==', status))
+        rows = [_partner_row(d) for d in ref.limit(limit).stream()]
     q = (query or '').strip().lower()
     if q:
         rows = [r for r in rows if q in ' '.join(
@@ -194,6 +234,16 @@ def _withdrawal_row(doc) -> dict:
 
 
 def list_withdrawals(status: str = 'requested', partner_uid: str = '', db=None, limit: int = 200) -> list[dict]:
+    if _copy(db):
+        from django.db.models import F
+
+        from partners.models import PartnerWithdrawal
+
+        filters = {'status': status} if status in WITHDRAWAL_STATUSES else {}
+        if partner_uid:
+            filters['partner_uid'] = partner_uid
+        return _copied_rows(PartnerWithdrawal, _withdrawal_row, limit,
+                            [F('requested_at').desc(nulls_last=True), 'id'], **filters)
     db = db or _db()
     ref = db.collection('partnerWithdrawals')
     if status in WITHDRAWAL_STATUSES:
@@ -223,6 +273,16 @@ def _commission_row(doc) -> dict:
 
 
 def list_commissions(status: str = '', partner_uid: str = '', db=None, limit: int = 300) -> list[dict]:
+    if _copy(db):
+        from django.db.models import F
+
+        from partners.models import PartnerCommission
+
+        filters = {'status': status} if status in COMMISSION_STATUSES else {}
+        if partner_uid:
+            filters['partner_uid'] = partner_uid
+        return _copied_rows(PartnerCommission, _commission_row, limit,
+                            [F('created_at').desc(nulls_last=True), 'id'], **filters)
     db = db or _db()
     ref = db.collection('partnerCommissions')
     if status in COMMISSION_STATUSES:
@@ -235,6 +295,7 @@ def list_commissions(status: str = '', partner_uid: str = '', db=None, limit: in
 
 
 def partner_detail(uid: str, db=None) -> dict | None:
+    """Live from Firestore: this is the page decisions are made from."""
     db = db or _db()
     ref = db.collection('partners').document(uid)
     snap = ref.get()
@@ -263,6 +324,15 @@ def partner_detail(uid: str, db=None) -> dict | None:
 
 def summary(db=None) -> dict:
     """Counts for the page header (small, bounded reads)."""
+    if _copy(db):
+        from partners.models import Partner, PartnerWithdrawal
+
+        live = {'deleted_at__isnull': True}
+        return {
+            'applications': Partner.objects.filter(status='pending', **live).count(),
+            'partners': Partner.objects.filter(status='approved', **live).count(),
+            'withdrawals': PartnerWithdrawal.objects.filter(status='requested', **live).count(),
+        }
     db = db or _db()
 
     def count(coll, field, value):
@@ -294,6 +364,7 @@ def _run_tx(db, fn):
 
 def decide_partner(uid: str, action: str, actor: str, reason: str = '', db=None) -> str:
     """approve | reject | suspend | reactivate. Returns the new status."""
+    given = db
     db = db or _db()
     ref = db.collection('partners').document(uid)
     snap = ref.get()
@@ -331,12 +402,14 @@ def decide_partner(uid: str, action: str, actor: str, reason: str = '', db=None)
         'kind': 'partner', 'action': action, 'uid': uid, 'reason': reason,
         'actor': actor, 'at': firestore.SERVER_TIMESTAMP,
     })
+    _refresh(given, 'refresh_partner', uid)
     return new_status
 
 
 def decide_withdrawal(withdrawal_id: str, action: str, actor: str,
                       utr: str = '', reason: str = '', db=None) -> str:
     """paid (needs a UTR) | rejected (needs a reason). Only from 'requested'."""
+    given = db
     db = db or _db()
     ref = db.collection('partnerWithdrawals').document(withdrawal_id)
     utr = (utr or '').strip()
@@ -366,16 +439,20 @@ def decide_withdrawal(withdrawal_id: str, action: str, actor: str,
         else:
             update['rejectReason'] = reason
         tx.update(ref, update)
+        return data.get('partnerUid') or ''
 
-    _run_tx(db, run)
+    partner_uid = _run_tx(db, run)
     db.collection('partner_admin_audit').add({
         'kind': 'withdrawal', 'action': action, 'id': withdrawal_id, 'utr': utr,
         'reason': reason, 'actor': actor, 'at': firestore.SERVER_TIMESTAMP,
     })
+    if partner_uid:
+        _refresh(given, 'refresh_partner', partner_uid, withdrawal_id=withdrawal_id)
     return action
 
 
 def request_commission_reversal(order_id: str, reason: str, actor: str, db=None) -> None:
+    given = db
     db = db or _db()
     reason = (reason or '').strip()[:300]
     if len(reason) < 4:
@@ -396,6 +473,9 @@ def request_commission_reversal(order_id: str, reason: str, actor: str, db=None)
         'kind': 'commission', 'action': 'reverse', 'orderId': order_id,
         'reason': reason, 'actor': actor, 'at': firestore.SERVER_TIMESTAMP,
     })
+    partner_uid = (snap.to_dict() or {}).get('partnerUid') or ''
+    if partner_uid:
+        _refresh(given, 'refresh_partner', partner_uid, commission_id=order_id)
 
 
 # ─── Website referral ───────────────────────────────────────────────────────
@@ -437,6 +517,12 @@ def is_active_code(code: str, db=None) -> bool:
     code = normalize_code(code)
     if not code:
         return False
+    if _copy(db):
+        from partners.models import PartnerCode
+
+        if PartnerCode.objects.filter(code=code, active=True, deleted_at__isnull=True).exists():
+            return True
+        # Not active in the copy: ask Firestore, so a code issued minutes ago still works.
     db = db or _db()
     snap = db.collection('partnerCodes').document(code).get()
     return bool(snap.exists and (snap.to_dict() or {}).get('active') is True)

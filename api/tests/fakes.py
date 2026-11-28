@@ -79,7 +79,14 @@ class FakeQuery:
     def document(self, doc_id=None):
         return FakeDocRef(self._db, f'{self._path}/{doc_id or f"auto{next(_ids)}"}')
 
-    def where(self, field, op, value):
+    def add(self, data):
+        ref = self.document()
+        ref.set(data)
+        return None, ref
+
+    def where(self, field=None, op=None, value=None, *, filter=None):
+        if filter is not None:
+            field, op, value = filter.field_path, filter.op_string, filter.value
         assert op == '==', op
         return FakeQuery(self._db, self._path, self._filters + ((field, value),), self._limit)
 

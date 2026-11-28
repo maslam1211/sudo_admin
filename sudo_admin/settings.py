@@ -167,6 +167,7 @@ INSTALLED_APPS = [
     'commerce',
     'appconfig',
     'referrals',
+    'partners',
 ]
 
 MIDDLEWARE = [
