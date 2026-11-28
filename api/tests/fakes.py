@@ -43,6 +43,9 @@ class FakeDocRef:
                 out[key] = (current.get(key) or 0) + value.value
             elif value is transforms.SERVER_TIMESTAMP:
                 out[key] = datetime.now(timezone.utc)
+            elif isinstance(value, transforms.ArrayUnion):
+                existing = list(current.get(key) or [])
+                out[key] = existing + [v for v in value.values if v not in existing]
             else:
                 out[key] = value
         return out

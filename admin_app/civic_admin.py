@@ -336,7 +336,49 @@ def report_flags(report: Dict[str, Any]) -> bool:
 FILTERS = ('open', 'disputed', 'flagged', 'verified', 'resolved', 'closed', 'all')
 
 
+def _is_live_firestore(db) -> bool:
+    """The real client (admin pages), not a test fake."""
+    return type(db).__module__.startswith('google.cloud.firestore')
+
+
+def _copy(db):
+    """civic.sync when list pages should read the PostgreSQL copy."""
+    if not _is_live_firestore(db):
+        return None
+    try:
+        from civic import sync
+
+        return sync if sync.postgres_ready() else None
+    except Exception:
+        return None
+
+
+def _refresh(db, fn: str, *args) -> None:
+    """Copy what an admin write changed into PostgreSQL; never fails the write."""
+    if not _is_live_firestore(db):
+        return
+    try:
+        from civic import sync
+
+        getattr(sync, fn)(db, *args)
+    except Exception:
+        logger.exception('civic admin: copy refresh %s%s failed (worker will retry)', fn, args)
+
+
+def _copied(model, order, limit, **filters) -> List[Any]:
+    from civic.sync import Doc
+
+    rows = model.objects.filter(deleted_at__isnull=True, **filters).order_by(*order)[:limit]
+    return [Doc(r.pk, r.document) for r in rows]
+
+
 def _latest(db, collection: str, limit: int = LIST_LIMIT) -> List[Any]:
+    if _copy(db):
+        from django.db.models import F
+
+        from civic.sync import TABLE
+
+        return _copied(TABLE[collection].model, [F('created_at').desc(nulls_last=True), 'id'], limit)
     try:
         return list(
             db.collection(collection)
@@ -400,6 +442,12 @@ def open_report_count(db) -> int:
     if cached is not None:
         return cached
     count = 0
+    if _copy(db):
+        from civic.models import CivicReport
+
+        count = CivicReport.objects.filter(status__in=list(OPEN_STATUSES), deleted_at__isnull=True).count()
+        cache.set(OPEN_COUNT_CACHE_KEY, count, 60)
+        return count
     try:
         for status in OPEN_STATUSES:
             q = db.collection(REPORTS).where(filter=FieldFilter('status', '==', status))
@@ -719,6 +767,7 @@ def update_report_status(db, doc_id: str, status: str, note: str, admin_email: s
     if review['from'] == 'resolved':
         _bump_stats(db, {'resolvedReports': -1})
     _invalidate()
+    _refresh(db, 'refresh_report', doc_id)
     return {'from': review['from'], 'to': status}
 
 
@@ -735,6 +784,7 @@ def set_abuse_flag(db, doc_id: str, flagged: bool, admin_email: str, note: str =
     }, merge=True)
     _admin_log(db, doc_id, admin_email, clean_text(note, MAX_ADMIN_NOTE),
                action='Flagged for repeat reports' if flagged else 'Cleared repeat-report flag')
+    _refresh(db, 'refresh_report', doc_id)
 
 
 def resolve_dispute(db, doc_id: str, admin_email: str, note: str = '') -> None:
@@ -752,6 +802,7 @@ def resolve_dispute(db, doc_id: str, admin_email: str, note: str = '') -> None:
     _admin_log(db, doc_id, admin_email, clean_text(note, MAX_ADMIN_NOTE),
                action='Dispute reviewed, report kept')
     _invalidate()
+    _refresh(db, 'refresh_report', doc_id)
 
 
 def evidence_bucket():
@@ -795,6 +846,7 @@ def delete_evidence_now(db, doc_id: str, admin_email: str, bucket=None) -> int:
         'updatedAt': firestore.SERVER_TIMESTAMP,
     })
     _admin_log(db, doc_id, admin_email, None, action=f'Deleted {len(paths)} evidence photo(s)')
+    _refresh(db, 'refresh_report', doc_id)
     return deleted
 
 
@@ -833,6 +885,7 @@ def recount_stats(db) -> Dict[str, int]:
         'activeCampaigns': campaigns,
     }
     db.collection(STATS).document(STATS_DOC).set({**values, 'updatedAt': firestore.SERVER_TIMESTAMP}, merge=True)
+    _refresh(db, 'import_doc', STATS, STATS_DOC)
     return values
 
 
@@ -866,8 +919,15 @@ def normalize_campaign(doc_id: str, d: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def list_campaigns(db) -> List[Dict[str, Any]]:
-    rows = [normalize_campaign(s.id, s.to_dict() or {}) for s in db.collection(AWARENESS).stream()]
+def list_campaigns(db, live: bool = False) -> List[Dict[str, Any]]:
+    """live=True reads Firestore even when the copy is ready (for counts written back)."""
+    if not live and _copy(db):
+        from civic.models import CivicCampaign
+
+        snaps = _copied(CivicCampaign, ['id'], 10000)
+    else:
+        snaps = list(db.collection(AWARENESS).stream())
+    rows = [normalize_campaign(s.id, s.to_dict() or {}) for s in snaps]
     rows.sort(key=lambda c: c['publish_at'] or c['created_at'] or datetime.min.replace(tzinfo=timezone.utc),
               reverse=True)
     return rows
@@ -879,7 +939,7 @@ def get_campaign(db, campaign_id: str) -> Optional[Dict[str, Any]]:
 
 
 def count_live_campaigns(db) -> int:
-    return sum(1 for c in list_campaigns(db) if c['state'] == 'live')
+    return sum(1 for c in list_campaigns(db, live=True) if c['state'] == 'live')
 
 
 def _refresh_campaign_stat(db) -> None:
@@ -969,6 +1029,7 @@ def save_campaign(db, campaign_id: Optional[str], form: Dict[str, Any], admin_em
         data.update({'createdBy': admin_email or 'admin', 'createdAt': firestore.SERVER_TIMESTAMP})
         ref.set(data)
     _refresh_campaign_stat(db)
+    _refresh(db, 'refresh_campaign', ref.id)
     return ref.id
 
 
@@ -979,11 +1040,13 @@ def set_campaign_active(db, campaign_id: str, active: bool, admin_email: str) ->
     ref.set({'isActive': bool(active), 'updatedAt': firestore.SERVER_TIMESTAMP,
              'updatedBy': admin_email or 'admin'}, merge=True)
     _refresh_campaign_stat(db)
+    _refresh(db, 'refresh_campaign', campaign_id)
 
 
 def delete_campaign(db, campaign_id: str) -> None:
     db.collection(AWARENESS).document(campaign_id).delete()
     _refresh_campaign_stat(db)
+    _refresh(db, 'refresh_campaign', campaign_id)
 
 
 # ─── Civic Points admin ─────────────────────────────────────────────────────
@@ -1006,12 +1069,17 @@ def normalize_member(uid: str, d: Dict[str, Any], now: Optional[datetime] = None
 
 
 def list_members(db, query: str = '', limit: int = 200) -> List[Dict[str, Any]]:
-    try:
-        snaps = list(db.collection(POINTS_COLL)
-                     .order_by('total', direction=firestore.Query.DESCENDING).limit(limit).stream())
-    except Exception as exc:
-        logger.warning('civic admin: ordered points read failed (%s)', exc)
-        snaps = list(db.collection(POINTS_COLL).limit(limit).stream())
+    if _copy(db):
+        from civic.models import CivicPoints
+
+        snaps = _copied(CivicPoints, ['-total', 'id'], limit)
+    else:
+        try:
+            snaps = list(db.collection(POINTS_COLL)
+                         .order_by('total', direction=firestore.Query.DESCENDING).limit(limit).stream())
+        except Exception as exc:
+            logger.warning('civic admin: ordered points read failed (%s)', exc)
+            snaps = list(db.collection(POINTS_COLL).limit(limit).stream())
     members = [normalize_member(s.id, s.to_dict() or {}) for s in snaps]
     members.sort(key=lambda m: m['total'], reverse=True)
     users = get_users(db, [m['uid'] for m in members])
@@ -1028,10 +1096,15 @@ def list_members(db, query: str = '', limit: int = 200) -> List[Dict[str, Any]]:
 def get_leaderboard(db, month: str, limit: int = 20) -> List[Dict[str, Any]]:
     rows = []
     try:
-        snaps = (db.collection(LEADERBOARD)
-                 .where(filter=FieldFilter('monthKey', '==', month))
-                 .order_by('monthPoints', direction=firestore.Query.DESCENDING)
-                 .limit(limit).stream())
+        if _copy(db):
+            from civic.models import CivicLeaderboardEntry
+
+            snaps = _copied(CivicLeaderboardEntry, ['-month_points', 'id'], limit, month_key=month)
+        else:
+            snaps = (db.collection(LEADERBOARD)
+                     .where(filter=FieldFilter('monthKey', '==', month))
+                     .order_by('monthPoints', direction=firestore.Query.DESCENDING)
+                     .limit(limit).stream())
         for s in snaps:
             d = s.to_dict() or {}
             if _int(d.get('monthPoints')) <= 0:
@@ -1112,7 +1185,9 @@ def adjust_points(db, uid: str, amount, reason: str, admin_email: str) -> int:
         })
         return applied
 
-    return _run_tx(db, fn)
+    applied = _run_tx(db, fn)
+    _refresh(db, 'refresh_member', uid)
+    return applied
 
 
 def hide_public_name(db, uid: str, admin_email: str) -> None:
@@ -1130,3 +1205,4 @@ def hide_public_name(db, uid: str, admin_email: str) -> None:
                             'nameHiddenAt': firestore.SERVER_TIMESTAMP}, merge=True)
 
     _run_tx(db, fn)
+    _refresh(db, 'refresh_member', uid)

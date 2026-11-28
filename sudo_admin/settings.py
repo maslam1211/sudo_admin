@@ -168,6 +168,7 @@ INSTALLED_APPS = [
     'appconfig',
     'referrals',
     'partners',
+    'civic',
 ]
 
 MIDDLEWARE = [

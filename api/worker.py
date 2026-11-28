@@ -102,6 +102,16 @@ def _sync_partners():
     return partner_sync.import_everything(firebase.firestore_db())
 
 
+def _sync_civic():
+    """Read copy of CivicSense; reports are still written by the Cloud
+    Functions and the admin panel in Firestore."""
+    from civic import sync as civic_sync
+
+    from . import firebase
+
+    return civic_sync.import_everything(firebase.firestore_db())
+
+
 def _mirror_hours() -> float:
     return float(getattr(settings, 'MIRROR_INTERVAL_HOURS', 24) or 0)
 
@@ -119,6 +129,7 @@ JOBS: list[Job] = [
     Job('sync_phase2', timedelta(minutes=2), _sync_phase2, lease=timedelta(minutes=10)),
     Job('sync_referrals', timedelta(minutes=10), _sync_referrals, lease=timedelta(minutes=10)),
     Job('sync_partners', timedelta(minutes=5), _sync_partners, lease=timedelta(minutes=10)),
+    Job('sync_civic', timedelta(minutes=10), _sync_civic, lease=timedelta(minutes=10)),
 ]
 
 
