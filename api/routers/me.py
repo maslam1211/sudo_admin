@@ -7,7 +7,7 @@
                                             bloodGroup, defaultEmergencyContact, liveStatus,
                                             liveStatusCustomText, fullProfile
     PATCH  /api/v1/me/settings              any of the 8 user-settings toggles
-    POST   /api/v1/me/password-changed
+    POST   /api/v1/me/password-changed      {adminAddedUser?: false}
     POST   /api/v1/me/civic-terms           {version}
     GET    /api/v1/me/blocks                POST {userId, name?, picture?}   DELETE /me/blocks/{userId}
     GET    /api/v1/me/family                POST {name, relation, contactNumber}
@@ -73,7 +73,8 @@ def update_settings(request):
 
 @router.post('/me/password-changed')
 def password_changed(request):
-    return service.password_changed(firebase.firestore_db(), _write(request))
+    return service.password_changed(firebase.firestore_db(), _write(request),
+                                    clear_admin_added=_body(request).get('adminAddedUser') is False)
 
 
 @router.post('/me/civic-terms')

@@ -114,8 +114,13 @@ class MeApiTests(TestCase):
         self.assertEqual(self.call('patch', '/api/v1/me/settings', {'isAdmin': True}).status_code, 400)
 
     def test_password_changed_and_civic_terms(self):
+        self.db.docs['users/u1'].update({'adminAddedUser': True, 'admin_added_user': True})
         self.call('post', '/api/v1/me/password-changed')
         self.assertFalse(self.db.docs['users/u1']['mustChangePassword'])
+        self.assertTrue(self.db.docs['users/u1']['adminAddedUser'])
+        self.call('post', '/api/v1/me/password-changed', {'adminAddedUser': False})
+        self.assertFalse(self.db.docs['users/u1']['adminAddedUser'])
+        self.assertNotIn('admin_added_user', self.db.docs['users/u1'])
         self.call('post', '/api/v1/me/civic-terms', {'version': '1.0.0'})
         self.assertEqual(self.db.docs['users/u1']['civicTermsAcceptedVersion'], '1.0.0')
 

@@ -222,8 +222,14 @@ def update_profile(db, uid: str, changes: dict) -> dict:
     return me(uid)
 
 
-def password_changed(db, uid: str) -> dict:
-    _user_ref(db, uid).set({'mustChangePassword': False, 'passwordUpdatedAt': _fs().SERVER_TIMESTAMP}, merge=True)
+def password_changed(db, uid: str, *, clear_admin_added: bool = False) -> dict:
+    """The user set their own password. `clear_admin_added`: the first password
+    of an account an admin created, so it no longer counts as admin-added."""
+    patch = {'mustChangePassword': False, 'passwordUpdatedAt': _fs().SERVER_TIMESTAMP}
+    if clear_admin_added:
+        patch.update({'adminAddedUser': False,
+                      **_deletes(['admin_added_user', 'adminUserAdded', 'admin_user_added'])})
+    _user_ref(db, uid).set(patch, merge=True)
     _copy(db, uid)
     return me(uid)
 
