@@ -65,7 +65,7 @@ class ApiTestBase(TestCase):
 # ─── Auth plumbing ────────────────────────────────────────────────────────────
 class AuthTests(ApiTestBase):
     def test_health_is_public(self):
-        self.assertEqual(self.client.get('/api/v1/health').json(), {'ok': True})
+        self.assertEqual(self.client.get('/api/v1/health').json()['ok'], True)
 
     def test_missing_or_bad_token_is_401_in_api_shape(self):
         for headers in ({}, {'HTTP_AUTHORIZATION': 'Bearer nope'}):

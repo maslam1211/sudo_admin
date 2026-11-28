@@ -48,6 +48,8 @@ pillow==11.3.0
 propcache==0.3.2
 proto-plus==1.26.1
 protobuf==6.31.1
+psycopg==3.3.9
+psycopg-binary==3.3.9
 pydantic==2.14.4
 pyasn1==0.6.1
 pyasn1_modules==0.4.2

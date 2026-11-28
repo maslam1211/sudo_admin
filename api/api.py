@@ -58,7 +58,22 @@ def _unexpected(request, exc):
 
 @api.get('/health', auth=None, tags=['meta'])
 def health(request):
-    return {'ok': True}
+    """Database reachable (503 if not) and when the worker last checked in."""
+    from django.db import connection
+
+    from .worker import worker_status
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+    except Exception:
+        logger.exception('health: database check failed')
+        return api.create_response(request, {'ok': False, 'db': 'down'}, status=503)
+    try:
+        worker = worker_status()
+    except Exception:  # tables missing before migrate
+        worker = {'state': 'unknown'}
+    return {'ok': True, 'db': connection.vendor, 'worker': worker}
 
 
 api.add_router('/auth', otp.public_router)

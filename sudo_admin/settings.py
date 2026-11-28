@@ -165,6 +165,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'api.observability.RequestIdMiddleware',  # first: id on every log line + response
     'corsheaders.middleware.CorsMiddleware',  # Add this if using CORS
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -213,12 +214,44 @@ CACHES = {
 }
 
 # Database
+# PostgreSQL when DATABASE_URL is set, e.g.
+#   DATABASE_URL=postgres://sudotag:<password>@127.0.0.1:5432/sudotag
+# Without it the project keeps using db.sqlite3 (local development, and the
+# VPS until the switch in docs/firebase_audit/PHASE1_IMPLEMENTATION.md).
+def _database_from_url(url: str) -> dict:
+    from urllib.parse import parse_qs, unquote, urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ('postgres', 'postgresql'):
+        raise ValueError('DATABASE_URL must start with postgres://')
+    options = {k: v[-1] for k, v in parse_qs(parsed.query).items()}
+    return {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': unquote(parsed.path.lstrip('/')),
+        'USER': unquote(parsed.username or ''),
+        'PASSWORD': unquote(parsed.password or ''),
+        'HOST': parsed.hostname or '',
+        'PORT': str(parsed.port or ''),
+        # Reuse connections between requests (gunicorn sync workers).
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': True,
+        'OPTIONS': options,
+    }
+
+
+_DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
 DATABASES = {
-    'default': {
+    'default': _database_from_url(_DATABASE_URL) if _DATABASE_URL else {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # SQLITE_PATH: read a copy of the database (deploy/move_sqlite_to_postgres.sh).
+        'NAME': os.getenv('SQLITE_PATH') or BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Scheduled user pushes: a thread inside each web process (old behaviour) or
+# the `run_worker` service (Phase 1). Set to 0 once the worker is running, so
+# schedules are not sent by both.
+SCHEDULED_PUSH_IN_WEB = os.getenv('SCHEDULED_PUSH_IN_WEB', '1').lower() in ('1', 'true', 'yes')
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -352,6 +385,30 @@ API_PUBLIC_BASE_URL = os.getenv('API_PUBLIC_BASE_URL', 'https://sudotag.com')
 API_REQUIRE_APP_CHECK = os.getenv('API_REQUIRE_APP_CHECK', '').lower() in ('1', 'true', 'yes')
 # Behind nginx: take the client IP from X-Real-IP / last X-Forwarded-For hop.
 API_TRUST_X_FORWARDED_FOR = os.getenv('API_TRUST_X_FORWARDED_FOR', '1').lower() in ('1', 'true', 'yes')
+# Worker: how often to mirror all Firebase data into PostgreSQL (0 = never).
+MIRROR_INTERVAL_HOURS = float(os.getenv('MIRROR_INTERVAL_HOURS', '24') or 0)
+
+# Logs to stdout (journald on the VPS). LOG_FORMAT=json for one JSON object per line.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {'request_id': {'()': 'api.observability.RequestIdFilter'}},
+    'formatters': {
+        'text': {'format': '%(asctime)s %(levelname)s %(name)s [%(request_id)s] %(message)s'},
+        'json': {'()': 'api.observability.JsonFormatter'},
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['request_id'],
+            'formatter': 'json' if os.getenv('LOG_FORMAT', '').lower() == 'json' else 'text',
+        },
+    },
+    'root': {'handlers': ['console'], 'level': os.getenv('LOG_LEVEL', 'INFO')},
+    'loggers': {
+        'django': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
+}
 
 # Caller identity for the Contact Owner voice bridge when the page does not send a mobile number.
 # Set COMPANY_PHONE_NUMBER in the environment to override.

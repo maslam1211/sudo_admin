@@ -456,12 +456,16 @@ class AdminAccessTests(_FakeDBMixin, TestCase):
             'A1': {'emailAddress': 'other-admin@example.com', 'roleId': 1},
             'U1': {'emailAddress': 'user@example.com', 'roleId': 0},
         }
-        self.client.post(reverse('manage_users'), {
-            'delete_selected': '1',
-            'selected_users': ['A1', 'U1'],
-        })
+        # The view also deletes the Firebase Auth account. Mocked: this test
+        # used to call the real Auth service (production) with uid 'U1'.
+        with patch('admin_app.views.auth.delete_user') as delete_auth:
+            self.client.post(reverse('manage_users'), {
+                'delete_selected': '1',
+                'selected_users': ['A1', 'U1'],
+            })
         self.assertIn('A1', self.fake.store['users'])
         self.assertNotIn('U1', self.fake.store['users'])
+        delete_auth.assert_called_once_with('U1')
 
     def test_unassign_returns_qr_to_pool_and_unlinks_vehicle(self):
         self._login()

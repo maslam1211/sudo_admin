@@ -11,6 +11,21 @@ from firebase_admin import credentials
 logger = logging.getLogger(__name__)
 
 
+def _running_tests() -> bool:
+    import sys
+
+    return len(sys.argv) > 1 and sys.argv[1] == 'test' or os.environ.get('SUDOTAG_FIREBASE_TEST_MODE') == '1'
+
+
+class _AnonymousCredential(credentials.Base):
+    """No-key credential for tests (google.auth AnonymousCredentials)."""
+
+    def get_credential(self):
+        from google.auth.credentials import AnonymousCredentials
+
+        return AnonymousCredentials()
+
+
 def ensure_firebase_app():
     """Return the default app, creating it from the environment the first time.
 
@@ -22,6 +37,15 @@ def ensure_firebase_app():
     """
     if firebase_admin._apps:
         return firebase_admin.get_app()
+
+    if _running_tests():
+        # Tests must never reach production Firebase, even with a key in .env:
+        # anonymous credentials on a dummy project fail closed if a test
+        # forgets to mock a call. Also lets CI run without any key.
+        return firebase_admin.initialize_app(_AnonymousCredential(), {
+            'projectId': 'sudotag-tests',
+            'storageBucket': 'sudotag-tests.invalid',
+        })
 
     sa_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON', '').strip()
     sa_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
