@@ -169,6 +169,7 @@ INSTALLED_APPS = [
     'referrals',
     'partners',
     'civic',
+    'accounts',
 ]
 
 MIDDLEWARE = [

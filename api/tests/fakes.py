@@ -71,13 +71,25 @@ class FakeDocRef:
     def collection(self, name):
         return FakeQuery(self._db, f'{self.path}/{name}')
 
+    def collections(self):
+        prefix = self.path + '/'
+        names = sorted({p[len(prefix):].split('/')[0] for p in self._db.docs if p.startswith(prefix)})
+        return [FakeQuery(self._db, f'{self.path}/{n}') for n in names]
+
 
 class FakeQuery:
     def __init__(self, db, collection_path, filters=(), limit=None):
         self._db = db
         self._path = collection_path
+        self.id = collection_path.rsplit('/', 1)[-1]
         self._filters = filters
         self._limit = limit
+
+    def list_documents(self, page_size=None):
+        """Every document id, including parents that only hold subcollections."""
+        prefix = self._path + '/'
+        ids = sorted({p[len(prefix):].split('/')[0] for p in self._db.docs if p.startswith(prefix)})
+        return [FakeDocRef(self._db, f'{self._path}/{i}') for i in ids]
 
     def document(self, doc_id=None):
         return FakeDocRef(self._db, f'{self._path}/{doc_id or f"auto{next(_ids)}"}')
