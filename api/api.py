@@ -9,7 +9,7 @@ from ninja import NinjaAPI
 from ninja.errors import AuthenticationError, HttpError, ValidationError
 
 from .errors import ApiError
-from .routers import appconfig, checkout, documents, otp, vehicle_contact
+from .routers import appconfig, checkout, documents, otp, referrals, vehicle_contact
 
 logger = logging.getLogger(__name__)
 
@@ -84,3 +84,5 @@ api.add_router('/', checkout.public_router)
 api.add_router('/', checkout.router)
 api.add_router('/', appconfig.public_router)
 api.add_router('/', appconfig.router)
+api.add_router('/', referrals.public_router)
+api.add_router('/', referrals.router)

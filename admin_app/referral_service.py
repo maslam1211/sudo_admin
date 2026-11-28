@@ -52,6 +52,38 @@ TOP_REFERRERS_LIMIT = 15
 RECENT_LIMIT = 15
 
 
+def _stored():
+    """referrals app (PostgreSQL) once its first full import has finished, else None."""
+    try:
+        from referrals import service as stored
+
+        return stored if stored.postgres_ready() else None
+    except Exception:
+        logger.exception('referrals: PostgreSQL check failed, using Firestore')
+        return None
+
+
+def _stored_referral_rows(*, referrer_user_id=None, status=None, start_dt=None, end_dt=None, limit=None):
+    from api.mirror import decode
+    from referrals.models import Referral
+
+    qs = Referral.objects.filter(deleted_at__isnull=True)
+    if referrer_user_id:
+        qs = qs.filter(referrer_user_id=referrer_user_id)
+    if status:
+        qs = qs.filter(status=status)
+    if start_dt:
+        qs = qs.filter(registered_at__gte=start_dt)
+    if end_dt:
+        qs = qs.filter(registered_at__lte=end_dt)
+    from django.db.models import F
+
+    qs = qs.order_by(F('registered_at').desc(nulls_last=True))
+    if limit:
+        qs = qs[:limit]
+    return [map_referral_doc(r.id, decode(r.document)) for r in qs]
+
+
 def _get_db():
     from .views import db
     return db
@@ -220,6 +252,13 @@ def fetch_referrals(
     then optional client-side search + rewardStatus filter.
     Ordered by registeredAt descending.
     """
+    valid_status = status if status in REFERRAL_STATUS.values() else None
+    if _stored() is not None:
+        start_dt, end_dt = _range_bounds_utc(start_date, end_date)
+        rows = _stored_referral_rows(referrer_user_id=referrer_user_id, status=valid_status,
+                                     start_dt=start_dt, end_dt=end_dt, limit=limit)
+        return _filter_rows(rows, reward_status=reward_status, search=search)
+
     db = _get_db()
     query = db.collection('referrals')
 
@@ -257,7 +296,10 @@ def fetch_referrals(
         key=lambda r: r.get('registeredAt') or datetime.min.replace(tzinfo=pytz.UTC),
         reverse=True,
     )
+    return _filter_rows(rows, reward_status=reward_status, search=search)
 
+
+def _filter_rows(rows: list[dict[str, Any]], *, reward_status=None, search=None) -> list[dict[str, Any]]:
     if reward_status and reward_status in REWARD_STATUS.values():
         rows = [r for r in rows if (r.get('rewardStatus') or REWARD_STATUS['NONE']) == reward_status]
 
@@ -283,6 +325,12 @@ def fetch_referrals(
 def get_referral_by_id(referral_id: str) -> Optional[dict[str, Any]]:
     if not referral_id:
         return None
+    if _stored() is not None:
+        from api.mirror import decode
+        from referrals.models import Referral
+
+        row = Referral.objects.filter(id=referral_id, deleted_at__isnull=True).first()
+        return map_referral_doc(row.id, decode(row.document)) if row else None
     db = _get_db()
     doc = db.collection('referrals').document(referral_id).get()
     if not doc.exists:
@@ -293,6 +341,20 @@ def get_referral_by_id(referral_id: str) -> Optional[dict[str, Any]]:
 def get_user_referral_profile(user_id: str) -> Optional[dict[str, Any]]:
     if not user_id:
         return None
+    if _stored() is not None:
+        from api.mirror import decode
+        from referrals.models import ReferralProfile
+
+        p = ReferralProfile.objects.filter(user_id=user_id, deleted_at__isnull=True).first()
+        if p is None:
+            return None
+        return {
+            'id': p.user_id, 'fullName': p.full_name, 'contactNumber': p.contact_number,
+            'emailAddress': p.email_address, 'referralCode': p.referral_code,
+            'referredByCode': p.referred_by_code or None, 'referredByUserId': p.referred_by_user_id or None,
+            'referralStats': map_referral_stats(decode(p.stats) if p.stats is not None else None),
+            'referralLink': referral_link_for(p.referral_code) if p.referral_code else '',
+        }
     db = _get_db()
     doc = db.collection('users').document(user_id).get()
     if not doc.exists:
@@ -316,6 +378,15 @@ def lookup_referral_code(code: str) -> Optional[dict[str, Any]]:
     normalized = normalize_referral_code(code)
     if not normalized:
         return None
+    if _stored() is not None:
+        from referrals.models import ReferralCode
+
+        row = ReferralCode.objects.filter(code=normalized, deleted_at__isnull=True).first()
+        if row is None:
+            return None
+        return {'code': row.code, 'userId': row.user_id, 'userName': row.user_name,
+                'contactNumber': row.contact_number, 'createdAt': row.created_at,
+                'isActive': row.is_active, 'referralLink': referral_link_for(row.code)}
     db = _get_db()
     doc = db.collection('referralCodes').document(normalized).get()
     if not doc.exists:
@@ -407,6 +478,21 @@ def top_referrers_from_users(*, limit: int = TOP_REFERRERS_LIMIT) -> list[dict[s
     Rank users by referralStats.successfulReferrals then totalReferrals.
     Streams a bounded sample of users that have referralCode / referralStats.
     """
+    if _stored() is not None:
+        from api.mirror import decode
+        from referrals.models import ReferralProfile
+
+        out = []
+        for p in ReferralProfile.objects.filter(deleted_at__isnull=True, total_referrals__gt=0):
+            stats = map_referral_stats(decode(p.stats) if p.stats is not None else None)
+            if stats['totalReferrals'] <= 0:
+                continue
+            out.append({'userId': p.user_id, 'fullName': p.full_name, 'contactNumber': p.contact_number,
+                        'referralCode': p.referral_code, 'referralLink': referral_link_for(p.referral_code),
+                        'stats': stats})
+        out.sort(key=lambda u: (u['stats']['successfulReferrals'], u['stats']['totalReferrals'],
+                                u['stats']['rewardsEarned']), reverse=True)
+        return out[:limit]
     db = _get_db()
     ranked: list[dict[str, Any]] = []
     try:

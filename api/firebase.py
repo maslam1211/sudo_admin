@@ -19,6 +19,14 @@ def firestore_db():
     return firestore.client()
 
 
+def run_transaction(db, fn):
+    """Run fn(tx) in a Firestore transaction (retried on contention).
+    Inside fn read with `ref.get(transaction=tx)`, write with tx.set/tx.update."""
+    from google.cloud import firestore as gcf
+
+    return gcf.transactional(fn)(db.transaction())
+
+
 def verify_id_token(token: str) -> dict:
     from firebase_admin import auth
 

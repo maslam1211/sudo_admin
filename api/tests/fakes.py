@@ -27,7 +27,7 @@ class FakeDocRef:
         self.path = path
         self.id = path.rsplit('/', 1)[-1]
 
-    def get(self):
+    def get(self, transaction=None):
         data = self._db.docs.get(self.path)
         return FakeSnap(self, data)
 
@@ -98,6 +98,31 @@ class FakeQuery:
             if all(data.get(f) == v for f, v in self._filters):
                 out.append(FakeSnap(FakeDocRef(self._db, path), data))
         return out[: self._limit] if self._limit else out
+
+
+class FakeTransaction:
+    """Writes are applied when the transaction function returns, like Firestore."""
+
+    def __init__(self):
+        self._writes = []
+
+    def set(self, ref, data, merge=False):
+        self._writes.append(lambda: ref.set(data, merge=merge))
+
+    def update(self, ref, data):
+        self._writes.append(lambda: ref.update(data))
+
+    def commit(self):
+        for write in self._writes:
+            write()
+
+
+def fake_run_transaction(db, fn):
+    """Stand-in for api.firebase.run_transaction."""
+    tx = FakeTransaction()
+    result = fn(tx)
+    tx.commit()
+    return result
 
 
 class FakeDB:

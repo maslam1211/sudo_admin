@@ -81,6 +81,17 @@ def _sync_phase2():
     return {'commerce': commerce_sync.import_everything(db), 'appconfig': appconfig_service.import_everything(db)}
 
 
+def _sync_referrals():
+    """Codes and referrals the Cloud Function triggers (new user, first
+    vehicle) and older builds wrote. Reads every users doc, so it runs every
+    10 minutes, not 2; API writes are copied at once."""
+    from referrals import service as referral_service
+
+    from . import firebase
+
+    return referral_service.import_everything(firebase.firestore_db())
+
+
 def _mirror_hours() -> float:
     return float(getattr(settings, 'MIRROR_INTERVAL_HOURS', 24) or 0)
 
@@ -96,6 +107,7 @@ JOBS: list[Job] = [
         enabled=lambda: _mirror_hours() > 0),
     Job('prune', timedelta(days=1), _prune),
     Job('sync_phase2', timedelta(minutes=2), _sync_phase2, lease=timedelta(minutes=10)),
+    Job('sync_referrals', timedelta(minutes=10), _sync_referrals, lease=timedelta(minutes=10)),
 ]
 
 
