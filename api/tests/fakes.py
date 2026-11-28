@@ -50,20 +50,29 @@ class FakeDocRef:
                 out[key] = value
         return out
 
+    @staticmethod
+    def _apply(target: dict, resolved: dict) -> dict:
+        from google.cloud.firestore_v1 import transforms
+
+        for key, value in resolved.items():
+            if value is transforms.DELETE_FIELD:
+                target.pop(key, None)
+            else:
+                target[key] = value
+        return target
+
     def set(self, data, merge=False):
         if self._db.fail_writes:
             raise RuntimeError('write failed')
         current = self._db.docs.get(self.path, {})
         resolved = self._resolve(data, current if merge else {})
-        if merge and self.path in self._db.docs:
-            self._db.docs[self.path].update(resolved)
-        else:
-            self._db.docs[self.path] = resolved
+        base = self._db.docs[self.path] if merge and self.path in self._db.docs else {}
+        self._db.docs[self.path] = self._apply(base, resolved)
 
     def update(self, data):
         if self.path not in self._db.docs:
             raise KeyError(self.path)
-        self._db.docs[self.path].update(self._resolve(data, self._db.docs[self.path]))
+        self._apply(self._db.docs[self.path], self._resolve(data, self._db.docs[self.path]))
 
     def delete(self):
         self._db.docs.pop(self.path, None)

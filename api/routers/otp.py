@@ -201,6 +201,9 @@ def otp_verify(request, body: PhoneOtpIn):
         raise ApiError('internal', 'Sign-in failed. Please try again.')
     if isinstance(token, bytes):
         token = token.decode('utf-8')
+    from accounts import service as accounts_service
+
+    accounts_service.record_verified_phone(firebase.firestore_db(), uid, phone)
     return {'customToken': token}
 
 
