@@ -21,7 +21,6 @@ from . import partner_service
 from .razorpay_service import (
     create_razorpay_order,
     get_razorpay_credentials,
-    verify_razorpay_payment,
 )
 from .checkout_coupon_service import (
     DEFAULT_SHIPPING_CHARGE,
@@ -485,28 +484,33 @@ def checkout_verify_payment(request):
             'Missing required payment verification parameters (orderId and paymentId)'
         )
 
+    # Same checks as the app (commerce.razorpay_guard): captured INR payment
+    # of exactly the amount of the Razorpay order the server created, a
+    # matching signature when one is sent, and each payment used only once.
+    # The old check accepted a captured payment of any amount and fell back
+    # to "captured" when the signature did not match.
+    from commerce import razorpay_guard
+
+    def _rejected(reason):
+        return JsonResponse({'success': False, 'verified': False, 'error': reason}, status=400)
+
     try:
-        result = verify_razorpay_payment(
-            razorpay_order_id=razorpay_order_id,
-            razorpay_payment_id=razorpay_payment_id,
-            razorpay_signature=razorpay_signature or None,
+        payment, rp_order = razorpay_guard.check_payment(
+            payment_id=razorpay_payment_id, order_id=razorpay_order_id,
         )
+        if razorpay_signature and payment.get('order_id') and not razorpay_guard.signature_matches(
+                razorpay_order_id, razorpay_payment_id, razorpay_signature):
+            raise razorpay_guard.PaymentRejected('Payment signature is invalid.')
+    except razorpay_guard.PaymentRejected as exc:
+        logger.warning('Website payment %s rejected: %s', razorpay_payment_id, exc.reason)
+        return _rejected(exc.reason)
     except Exception as exc:
         logger.exception('verify payment error: %s', exc)
-        return _err(f'Payment verification failed: {exc}', status=500)
-
-    if not result.get('verified'):
-        return JsonResponse({
-            'success': False,
-            'verified': False,
-            'error': result.get('reason') or 'Payment verification failed.',
-        }, status=400)
+        return _err('Payment verification failed. Please try again.', status=500)
 
     db = _get_db()
-    actual_order_id = result.get('actualOrderId') or razorpay_order_id
-    verification_method = result.get('verificationMethod') or (
-        'signature' if razorpay_signature else 'api'
-    )
+    actual_order_id = razorpay_order_id
+    verification_method = 'signature' if razorpay_signature else 'api'
 
     # Resolve + update order first so payment.userId matches the order
     order_doc = None
@@ -539,6 +543,16 @@ def checkout_verify_payment(request):
                 firestore_order_id = docs[0].id
 
         if order_ref is not None:
+            paid_paise = int(payment.get('amount') or 0)
+            if int(round(float((order_doc or {}).get('amount') or 0) * 100)) != paid_paise:
+                return _rejected('Order amount does not match the payment.')
+            try:
+                razorpay_guard.claim_payment(
+                    db, payment_id=razorpay_payment_id, purpose=f'order:{razorpay_order_id}',
+                    uid=str((order_doc or {}).get('userId') or ''),
+                )
+            except razorpay_guard.PaymentRejected as exc:
+                return _rejected(exc.reason)
             update_payload = {
                 'paymentId': razorpay_payment_id,
                 'paymentOrderId': razorpay_order_id,

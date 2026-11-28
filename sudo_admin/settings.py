@@ -97,6 +97,8 @@ ADMIN_PANEL_PASSWORD = os.getenv('ADMIN_PANEL_PASSWORD', '')
 # Razorpay — same live key as mobile app / Cloud Functions (override via env in production)
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
+# Razorpay dashboard → Webhooks → secret for /api/v1/webhooks/razorpay
+RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '')
 
 # PIN shown before login/register and for delete-data flow (override in production via env)
 ADMIN_GATE_PIN = os.getenv('ADMIN_GATE_PIN', '')
@@ -162,6 +164,8 @@ INSTALLED_APPS = [
     'call_routing',
     'landing',
     'api',
+    'commerce',
+    'appconfig',
 ]
 
 MIDDLEWARE = [

@@ -31,18 +31,36 @@ class FakeDocRef:
         data = self._db.docs.get(self.path)
         return FakeSnap(self, data)
 
+    def _resolve(self, data, current):
+        """Apply Firestore sentinels (Increment, SERVER_TIMESTAMP) like the server."""
+        from datetime import datetime, timezone
+
+        from google.cloud.firestore_v1 import transforms
+
+        out = {}
+        for key, value in data.items():
+            if isinstance(value, transforms.Increment):
+                out[key] = (current.get(key) or 0) + value.value
+            elif value is transforms.SERVER_TIMESTAMP:
+                out[key] = datetime.now(timezone.utc)
+            else:
+                out[key] = value
+        return out
+
     def set(self, data, merge=False):
         if self._db.fail_writes:
             raise RuntimeError('write failed')
+        current = self._db.docs.get(self.path, {})
+        resolved = self._resolve(data, current if merge else {})
         if merge and self.path in self._db.docs:
-            self._db.docs[self.path].update(data)
+            self._db.docs[self.path].update(resolved)
         else:
-            self._db.docs[self.path] = dict(data)
+            self._db.docs[self.path] = resolved
 
     def update(self, data):
         if self.path not in self._db.docs:
             raise KeyError(self.path)
-        self._db.docs[self.path].update(data)
+        self._db.docs[self.path].update(self._resolve(data, self._db.docs[self.path]))
 
     def delete(self):
         self._db.docs.pop(self.path, None)
@@ -67,6 +85,9 @@ class FakeQuery:
 
     def limit(self, n):
         return FakeQuery(self._db, self._path, self._filters, n)
+
+    def order_by(self, field, direction=None):
+        return self  # tests don't depend on order
 
     def stream(self):
         prefix = self._path + '/'

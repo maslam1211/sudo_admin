@@ -70,6 +70,13 @@ def delete_orders(db, order_ids, admin_email):
             batch, pending = db.batch(), 0
     if pending:
         batch.commit()
+    if deleted:
+        try:
+            from commerce import service as commerce_service
+
+            commerce_service.admin_orders_deleted(db, deleted)
+        except Exception:
+            logger.exception('Marking deleted orders in PostgreSQL failed')
     return deleted, missing
 
 

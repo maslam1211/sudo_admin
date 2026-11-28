@@ -5597,6 +5597,14 @@ def update_order_status(request):
             order_ref.update({
                 'orderStatus': new_status,
             })
+            # Orders placed through the API live in PostgreSQL: update it too
+            # (it re-copies the order to Firestore, so both agree).
+            try:
+                from commerce import service as commerce_service
+
+                commerce_service.admin_status_changed(db, order_id, new_status)
+            except Exception:
+                logger.exception('update_order_status: PostgreSQL update failed for %s', order_id)
 
             return JsonResponse({
                 'success': True,

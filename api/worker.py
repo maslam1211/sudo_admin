@@ -69,6 +69,18 @@ def _prune():
     OutboxEvent.objects.filter(status=OutboxEvent.STATUS_DONE, processed_at__lt=now - timedelta(days=30)).delete()
 
 
+def _sync_phase2():
+    """Firestore -> PostgreSQL for records old writers still master, and
+    retry any order copy to Firestore that failed."""
+    from appconfig import service as appconfig_service
+    from commerce import sync as commerce_sync
+
+    from . import firebase
+
+    db = firebase.firestore_db()
+    return {'commerce': commerce_sync.import_everything(db), 'appconfig': appconfig_service.import_everything(db)}
+
+
 def _mirror_hours() -> float:
     return float(getattr(settings, 'MIRROR_INTERVAL_HOURS', 24) or 0)
 
@@ -83,6 +95,7 @@ JOBS: list[Job] = [
     Job('mirror_firebase', timedelta(hours=24), _mirror_firebase, lease=timedelta(hours=2),
         enabled=lambda: _mirror_hours() > 0),
     Job('prune', timedelta(days=1), _prune),
+    Job('sync_phase2', timedelta(minutes=2), _sync_phase2, lease=timedelta(minutes=10)),
 ]
 
 

@@ -16,10 +16,13 @@ Firestore client so they are unit-tested without network.
 """
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime
 from typing import Any, Optional
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 PLATFORMS = ('android', 'ios')
 UPDATE_TYPES = ('flexible', 'immediate')
@@ -283,8 +286,30 @@ def get_db():
 
 
 def get_config(db, platform: str) -> Optional[dict]:
-    snap = db.collection(CONFIG_COLLECTION).document(check_platform(platform)).get()
+    """PostgreSQL copy (appconfig app) first; Firestore until it is filled."""
+    platform = check_platform(platform)
+    try:
+        from appconfig import service as stored
+
+        document = stored.config_document(platform)
+        if document is not None:
+            return document
+    except Exception:
+        logger.exception('app config: PostgreSQL read failed, using Firestore')
+    snap = db.collection(CONFIG_COLLECTION).document(platform).get()
     return snap.to_dict() if snap.exists else None
+
+
+def _import_after_publish(db, platform: str) -> None:
+    """Copy the new config + history into PostgreSQL straight away (the
+    worker's sync_phase2 job also catches anything missed)."""
+    try:
+        from appconfig import service as stored
+
+        stored.import_config(db, platform)
+        stored.import_releases(db, platform)
+    except Exception:
+        logger.exception('app config: import after publish failed (worker will retry)')
 
 
 def publish_config(db, platform: str, clean: dict, *, admin_email: str = '', admin_uid: str = '') -> None:
@@ -303,10 +328,20 @@ def publish_config(db, platform: str, clean: dict, *, admin_email: str = '', adm
     batch.set(config_ref, doc)
     batch.set(history_ref, dict(doc, adminUid=admin_uid or ''))
     batch.commit()
+    _import_after_publish(db, platform)
 
 
 def list_releases(db, platform: str, limit: int = 20) -> list[dict]:
     from firebase_admin import firestore
+
+    try:
+        from appconfig import service as stored
+
+        rows = stored.releases(check_platform(platform), limit)
+        if rows:
+            return rows
+    except Exception:
+        logger.exception('app releases: PostgreSQL read failed, using Firestore')
 
     ref = (db.collection(CONFIG_COLLECTION).document(check_platform(platform))
            .collection(RELEASES_SUBCOLLECTION)
@@ -352,6 +387,17 @@ def total_users(db) -> int:
 def recent_events(db, platform: Optional[str] = None, limit: int = 50, errors_only: bool = False) -> list[dict]:
     from firebase_admin import firestore
     from google.cloud.firestore_v1.base_query import FieldFilter
+
+    # Current builds post events to the API (PostgreSQL); older builds still
+    # write Firestore and are imported by the worker every 2 minutes.
+    try:
+        from appconfig import service as stored
+
+        rows = stored.recent_events(check_platform(platform) if platform else None, limit, errors_only)
+        if rows:
+            return rows
+    except Exception:
+        logger.exception('update events: PostgreSQL read failed, using Firestore')
 
     q = db.collection(EVENTS_COLLECTION)
     if platform:

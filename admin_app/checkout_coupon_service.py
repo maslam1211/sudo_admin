@@ -23,6 +23,21 @@ DISCOUNT_TYPES = ('unit_price', 'fixed', 'percent')
 CODE_RE = re.compile(r'^[A-Z0-9_-]{3,32}$')
 
 
+def _sync_to_postgres(db, *, coupon: str | None = None, settings_doc: bool = False) -> None:
+    """Copy an admin change into PostgreSQL at once (the app reads prices and
+    coupons from there). Failures are logged; the worker's sync_phase2 job
+    re-imports everything every 2 minutes anyway."""
+    try:
+        from commerce import sync as commerce_sync
+
+        if coupon is not None:
+            commerce_sync.import_coupon(db, coupon)
+        if settings_doc:
+            commerce_sync.import_settings(db, SETTINGS_DOC_ID)
+    except Exception as exc:
+        logger.warning('checkout sync to PostgreSQL failed: %s', exc)
+
+
 def normalize_coupon_code(raw: str) -> str:
     return re.sub(r'\s+', '', str(raw or '').strip().upper())
 
@@ -104,6 +119,7 @@ def save_checkout_settings(db, *, sticker_unit_price: float, shipping_charge: fl
         'updatedAt': firestore.SERVER_TIMESTAMP,
     }
     db.collection(SETTINGS_COLLECTION).document(SETTINGS_DOC_ID).set(payload, merge=True)
+    _sync_to_postgres(db, settings_doc=True)
     return get_checkout_settings(db)
 
 
@@ -118,6 +134,7 @@ def save_buying_availability(db, *, buying_open: bool, message: str) -> dict:
         },
         merge=True,
     )
+    _sync_to_postgres(db, settings_doc=True)
     return get_checkout_settings(db)
 
 
@@ -325,6 +342,7 @@ def save_coupon(db, payload: dict) -> dict:
         doc['createdAt'] = firestore.SERVER_TIMESTAMP
         ref.set(doc)
 
+    _sync_to_postgres(db, coupon=code)
     saved = ref.get().to_dict() or {}
     saved['id'] = code
     saved['code'] = code
@@ -339,6 +357,7 @@ def delete_coupon(db, code: str) -> bool:
     if not ref.get().exists:
         return False
     ref.delete()
+    _sync_to_postgres(db, coupon=norm)
     return True
 
 
@@ -354,3 +373,5 @@ def increment_coupon_use(db, code: str) -> None:
         })
     except Exception as exc:
         logger.warning('increment_coupon_use failed code=%s err=%s', norm, exc)
+        return
+    _sync_to_postgres(db, coupon=norm)
