@@ -161,6 +161,7 @@ INSTALLED_APPS = [
     'admin_app',
     'call_routing',
     'landing',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -336,6 +337,21 @@ DELETION_WEBHOOK_SECRET = os.getenv('DELETION_WEBHOOK_SECRET', '')
 # PBX webhook POST /admin/api/call — require Authorization: Bearer <key> or X-API-Key when non-empty.
 # Rotate by changing CALL_ROUTING_API_KEY in .env and updating your PBX + curl.
 CALL_ROUTING_API_KEY = os.getenv('CALL_ROUTING_API_KEY', '')
+
+# ─── Mobile REST API (api/, django-ninja at /api/v1/) ────────────────────────
+# Private files (vehicle documents). Must NOT be under STATIC_ROOT or any
+# folder nginx serves. On the VPS set e.g. /var/lib/sudotag/private_media and
+# include it in backups.
+PRIVATE_MEDIA_ROOT = os.getenv(
+    'SUDOTAG_PRIVATE_MEDIA_ROOT', os.path.join(BASE_DIR, 'private_media')
+)
+# Base used in vehicleDocuments.documentUrl for privately stored files.
+API_PUBLIC_BASE_URL = os.getenv('API_PUBLIC_BASE_URL', 'https://sudotag.com')
+# Require a valid Firebase App Check token on public API routes (OTP send).
+# Off until every supported app build sends one.
+API_REQUIRE_APP_CHECK = os.getenv('API_REQUIRE_APP_CHECK', '').lower() in ('1', 'true', 'yes')
+# Behind nginx: take the client IP from X-Real-IP / last X-Forwarded-For hop.
+API_TRUST_X_FORWARDED_FOR = os.getenv('API_TRUST_X_FORWARDED_FOR', '1').lower() in ('1', 'true', 'yes')
 
 # Caller identity for the Contact Owner voice bridge when the page does not send a mobile number.
 # Set COMPANY_PHONE_NUMBER in the environment to override.

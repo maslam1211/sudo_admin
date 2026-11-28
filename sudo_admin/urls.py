@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+
+from api.api import api as mobile_api
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -264,6 +266,9 @@ urlpatterns = [
     ),
     path('django-admin/', admin.site.urls),
     path('api/v1/', include('admin_app.app_version_urls')),
+    # Mobile REST API (django-ninja). Listed after the version-check routes,
+    # which share the /api/v1/ prefix.
+    path('api/v1/', mobile_api.urls),
     path('admin/', include('admin_app.urls')),
     # Short activation link (/activate-id/<qr>/) → the real page under /admin/.
     path(

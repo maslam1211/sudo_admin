@@ -53,3 +53,6 @@ wbkt ypis bsgl lxf
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# Private uploads (vehicle documents) — server disk only, never commit
+private_media/

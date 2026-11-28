@@ -5978,7 +5978,6 @@ def lost_mode_enabled_webhook(request):
             )
         vehicle_data = vdoc.to_dict() or {}
         lost = parse_vehicle_lost_mode(vehicle_data)
-        source = str(data.get('source') or '').strip().lower()
         client_sms_sent = data.get('client_sms_sent') in (
             True,
             1,
@@ -5987,9 +5986,13 @@ def lost_mode_enabled_webhook(request):
             'True',
             'yes',
         )
-        # Mobile writes Firestore then calls immediately — skip stale-read gate.
-        force = bool(data.get('force')) or source == 'mobile' or client_sms_sent
-        if not lost.get('is_lost_mode') and not force:
+        # This endpoint has no sign-in (older app builds call it), so the
+        # request body is not trusted: the vehicle must really be in Lost Mode
+        # in Firestore. The old `force` / `source=mobile` bypass let anyone
+        # trigger an SMS to any vehicle owner. Firestore reads are strongly
+        # consistent, so the app's own write is already visible here.
+        # Current app builds don't call this endpoint at all.
+        if not lost.get('is_lost_mode'):
             return JsonResponse(
                 {
                     'status': 'ok',
@@ -6001,12 +6004,23 @@ def lost_mode_enabled_webhook(request):
                 }
             )
 
-        sms_body_override = str(
-            data.get('sms_body')
-            or data.get('message')
-            or data.get('issue')
-            or ''
-        ).strip()
+        # The SMS text is built server-side; a caller-supplied body would let
+        # anyone send arbitrary text from SudoTag's SMS sender id.
+        sms_body_override = ''
+
+        # One SMS (or one "client sent it" log + inbox row) per vehicle per
+        # 10 minutes, whoever calls.
+        from api.ratelimit import seen_once
+
+        if not seen_once(f'legacy-lost-mode-sms:{vehicle_id}', window_seconds=600):
+            return JsonResponse(
+                {
+                    'status': 'ok',
+                    'sms_sent': False,
+                    'skipped_reason': 'recently_sent',
+                    'message': 'Lost Mode SMS was already sent recently.',
+                }
+            )
 
         notify = notify_owner_lost_mode_enabled(
             db,
